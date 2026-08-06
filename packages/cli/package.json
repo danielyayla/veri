@@ -1,10 +1,29 @@
 {
   "name": "@veri/cli",
   "version": "0.1.0",
-  "description": "Stub — the veri CLI lands with WO-002",
-  "private": true,
+  "description": "CLI for Veri knowledge bases: init, new, check, list",
   "type": "module",
   "engines": {
     "node": ">=20"
+  },
+  "bin": {
+    "veri": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@veri/core": "^0.1.0"
   }
 }

@@ -29,7 +29,8 @@ test('invalid frontmatter names the file, the field, and the problem', () => {
   assert.equal(outcome.issues.length, 1);
   const issue = outcome.issues[0];
   assert.equal(issue.kind, 'invalid-frontmatter');
-  assert.match(issue.message, /requirements\/REQ-001-x\.md/);
+  assert.equal(issue.file, 'requirements/REQ-001-x.md');
+  assert.ok(issue.kind === 'invalid-frontmatter' && issue.field === 'status');
   assert.match(issue.message, /"status"/);
   assert.match(issue.message, /Invalid enum value|invalid/i);
 });

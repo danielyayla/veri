@@ -1,2 +1,2 @@
-// Stub: the veri CLI lands with WO-002.
-export {};
+export * from './commands.ts';
+export * from './templates.ts';

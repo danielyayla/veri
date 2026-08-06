@@ -21,7 +21,9 @@ export function parseDocument(file: string, content: string): ParseOutcome {
   try {
     raw = parseYaml(match[1]);
   } catch (err) {
-    return { issues: [invalidFrontmatter(file, null, `YAML parse error: ${(err as Error).message}`)] };
+    // Issue messages are one-line by contract; the yaml library appends a multi-line code frame.
+    const firstLine = (err as Error).message.split('\n', 1)[0];
+    return { issues: [invalidFrontmatter(file, null, `YAML parse error: ${firstLine}`)] };
   }
 
   if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
@@ -56,11 +58,13 @@ export function parseDocument(file: string, content: string): ParseOutcome {
   return { document, issues: [] };
 }
 
+// The file lives in the structured `file` field; the message stays file-free
+// so renderers can prefix it without duplication.
 function invalidFrontmatter(file: string, field: string | null, message: string): Issue {
   return {
     kind: 'invalid-frontmatter',
     file,
     field,
-    message: field === null ? `${file}: ${message}` : `${file}: frontmatter field "${field}": ${message}`,
+    message: field === null ? message : `frontmatter field "${field}": ${message}`,
   };
 }

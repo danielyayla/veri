@@ -11,7 +11,7 @@ export function checkDuplicateIds(documents: VeriDocument[]): Issue[] {
   const issues: Issue[] = [];
   for (const [id, files] of filesById) {
     if (files.length > 1) {
-      issues.push({ kind: 'duplicate-id', id, files, message: `duplicate id ${id}: ${files.join(', ')}` });
+      issues.push({ kind: 'duplicate-id', id, files, message: `duplicate id ${id}` });
     }
   }
   return issues;

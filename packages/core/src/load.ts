@@ -32,7 +32,7 @@ export async function loadProject(veriDir: string | URL): Promise<LoadResult> {
         kind: 'invalid-frontmatter',
         file,
         field: null,
-        message: `${file}: could not read file: ${(err as Error).message}`,
+        message: `could not read file: ${(err as Error).message}`,
       });
       continue;
     }
