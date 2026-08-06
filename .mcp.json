@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "veri": {
+      "command": "node",
+      "args": ["packages/mcp/dist/server.js", "."]
+    }
+  }
+}

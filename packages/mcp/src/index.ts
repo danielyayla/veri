@@ -1,2 +1,3 @@
-// Stub: the Veri MCP server lands with WO-003.
-export {};
+export * from './context.ts';
+export * from './search.ts';
+export * from './writeback.ts';
