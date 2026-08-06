@@ -2,7 +2,7 @@
 id: WO-004
 type: work-order
 title: Demo project — skiff fixture for init --demo
-status: in-progress
+status: done
 created: 2026-08-06
 updated: 2026-08-06
 links:
@@ -42,12 +42,12 @@ From [[REQ-002]]: the `veri init --demo` acceptance criterion, verbatim.
 
 ## Acceptance tests
 
-- [ ] `veri init --demo && veri check` reports exactly the 2 intended
+- [x] `veri init --demo && veri check` reports exactly the 2 intended
       issues and nothing else
-- [ ] `get_context("WO-002")` on the demo returns the package matching the
+- [x] `get_context("WO-002")` on the demo returns the package matching the
       mockup's context panel (REQ-002, DEC-005, DEC-002 equivalents)
-- [ ] Every demo document renders cleanly on GitHub
+- [x] Every demo document renders cleanly on GitHub
 
 ## Receipts
 
-(none yet)
+- 2026-08-06 — fbe6189 — packages/cli/demo (18 files), packages/cli src+tests, packages/mcp/src/demo.test.ts, DEC-007 — ported the skiff demo and wired veri init --demo; 45 tests green with exactly the 2 intended demo issues
