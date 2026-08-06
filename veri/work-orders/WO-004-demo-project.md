@@ -2,7 +2,7 @@
 id: WO-004
 type: work-order
 title: Demo project — skiff fixture for init --demo
-status: backlog
+status: in-progress
 created: 2026-08-06
 updated: 2026-08-06
 links:

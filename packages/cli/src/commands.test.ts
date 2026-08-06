@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -63,13 +63,36 @@ test('every document type gets its template and initial status', async (t) => {
   assert.match(src, /^status: imported$/m);
 });
 
-test('init --demo errors politely until WO-004', (t) => {
+test('init --demo installs skiff; check reports exactly the 2 intended issues', async (t) => {
   const cwd = tempProject();
   t.after(() => rmSync(cwd, { recursive: true, force: true }));
+
   const result = init(cwd, { demo: true });
-  assert.equal(result.code, 1);
-  assert.match(result.lines.join(' '), /WO-004/);
-  assert.ok(!existsSync(join(cwd, 'veri')), 'must not scaffold on --demo');
+  assert.equal(result.code, 0, result.lines.join('\n'));
+  assert.ok(existsSync(join(cwd, 'README.md')), 'demo README should be installed');
+  assert.ok(existsSync(join(cwd, 'CLAUDE.md')), 'demo CLAUDE.md should be installed');
+
+  const listed = await list(cwd, undefined);
+  assert.equal(listed.lines.length, 16, listed.lines.join('\n'));
+  assert.match(listed.lines.join('\n'), /WO-002 {3}in-progress {2}PDF export pipeline/);
+
+  const checked = await check(cwd);
+  assert.equal(checked.code, 1);
+  assert.equal(checked.lines.at(-1), '2 issue(s)', checked.lines.join('\n'));
+  const issues = checked.lines.slice(0, -1).join('\n');
+  assert.match(issues, /WO-004/, 'WO-004 must be flagged for its missing requirement');
+  assert.match(issues, /SRC-003/, 'REQ-004 must be flagged for its broken SRC-003 link');
+});
+
+test('init --demo keeps an existing README.md and refuses an existing veri/', (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  writeFileSync(join(cwd, 'README.md'), 'mine\n');
+  const result = init(cwd, { demo: true });
+  assert.equal(result.code, 0);
+  assert.equal(readFileSync(join(cwd, 'README.md'), 'utf8'), 'mine\n', 'must not clobber an existing README');
+  assert.match(result.lines.join('\n'), /Skipped README\.md/);
+  assert.equal(init(cwd, { demo: true }).code, 1, 'second --demo run must refuse');
 });
 
 test('init refuses to run twice; commands refuse to run without veri/', async (t) => {
