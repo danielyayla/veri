@@ -1,0 +1,10 @@
+{
+  "name": "@veri/mcp",
+  "version": "0.1.0",
+  "description": "Stub — the Veri MCP server lands with WO-003",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  }
+}

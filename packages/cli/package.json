@@ -1,0 +1,10 @@
+{
+  "name": "@veri/cli",
+  "version": "0.1.0",
+  "description": "Stub — the veri CLI lands with WO-002",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  }
+}
