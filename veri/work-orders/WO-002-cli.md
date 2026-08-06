@@ -2,7 +2,7 @@
 id: WO-002
 type: work-order
 title: CLI — init, new, check, list
-status: backlog
+status: done
 created: 2026-08-06
 updated: 2026-08-06
 links:
@@ -41,12 +41,15 @@ All acceptance criteria of [[REQ-002]] verbatim (see that file).
 
 ## Acceptance tests
 
-- [ ] `veri init && veri new requirement "X" && veri check` succeeds in a
+- [x] `veri init && veri new requirement "X" && veri check` succeeds in a
       temp directory end-to-end
-- [ ] `veri check` on a fixture with 5 known issue types reports exactly 5
+- [x] `veri check` on a fixture with 5 known issue types reports exactly 5
       issues and exits 1
-- [ ] `veri check` on this repository exits 0
+- [x] `veri check` on this repository exits 0
 
 ## Receipts
 
-(none yet)
+- 2026-08-06 — 25b47de — packages/cli (src + fixtures + tests),
+  .github/workflows/ci.yml, core message refinement, DEC-005 — built the
+  veri CLI (init, new, check, list) with bin wiring and CI; 30 tests
+  green and `veri check` exits 0 on this repo
