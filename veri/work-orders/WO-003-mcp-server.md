@@ -2,7 +2,7 @@
 id: WO-003
 type: work-order
 title: MCP server — context packages and write-back
-status: backlog
+status: done
 created: 2026-08-06
 updated: 2026-08-06
 links:
@@ -46,15 +46,15 @@ All acceptance criteria of [[REQ-003]] verbatim (see that file).
 
 ## Acceptance tests
 
-- [ ] From Claude Code with the server configured: `get_context("WO-004")`
+- [x] From Claude Code with the server configured: `get_context("WO-004")`
       returns a package containing REQ, DEC, and conventions content
-- [ ] `file_decision` then `veri check` → zero issues; new DEC visible in
+- [x] `file_decision` then `veri check` → zero issues; new DEC visible in
       `veri list`
-- [ ] `file_receipt` appends to the correct WO; second call appends a
+- [x] `file_receipt` appends to the correct WO; second call appends a
       second receipt without clobbering the first
-- [ ] Context for a WO linked to a superseded decision names it under
+- [x] Context for a WO linked to a superseded decision names it under
       "already rejected" and omits its body
 
 ## Receipts
 
-(none yet)
+- 2026-08-06 — 412ea6b — packages/mcp (src + fixtures + tests), README.md, .mcp.json, DEC-006 — built the MCP server; 42 tests green including a stdio JSON-RPC round-trip against the built binary
