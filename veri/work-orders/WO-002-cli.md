@@ -53,3 +53,4 @@ All acceptance criteria of [[REQ-002]] verbatim (see that file).
   .github/workflows/ci.yml, core message refinement, DEC-005 — built the
   veri CLI (init, new, check, list) with bin wiring and CI; 30 tests
   green and `veri check` exits 0 on this repo
+- 2026-08-06 — 9371906 — package.json (root), .github/workflows/ci.yml — fixed CI on fresh checkouts: typecheck now builds first since cross-package types resolve to @veri/core dist; also added workflow_dispatch
