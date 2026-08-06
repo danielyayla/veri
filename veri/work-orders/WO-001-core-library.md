@@ -2,7 +2,7 @@
 id: WO-001
 type: work-order
 title: Core library — parse, validate, link graph
-status: backlog
+status: done
 created: 2026-08-06
 updated: 2026-08-06
 links:
@@ -49,11 +49,14 @@ All acceptance criteria of [[REQ-001]] verbatim (see that file).
 
 ## Acceptance tests
 
-- [ ] Loading the fixtures directory yields exact expected documents,
+- [x] Loading the fixtures directory yields exact expected documents,
       links, and backlinks (snapshot test)
-- [ ] Each broken fixture yields exactly its expected structured issue
-- [ ] Loading this repository's own `veri/` directory yields zero issues
+- [x] Each broken fixture yields exactly its expected structured issue
+- [x] Loading this repository's own `veri/` directory yields zero issues
 
 ## Receipts
 
-(none yet)
+- 2026-08-06 — 4811035 — root scaffold, packages/core (src + fixtures +
+  tests), packages/cli + packages/mcp stubs, DEC-004 — built the core
+  library: schemas, parser, loader, link graph, health checks; 20 tests
+  green including the self-check on this repo's `veri/`
