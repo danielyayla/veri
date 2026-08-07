@@ -1,14 +1,15 @@
 import { watch } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BrowserWindow, app, clipboard, ipcMain } from 'electron';
 import { assembleContext, searchDocs } from '@veri/mcp';
+import { findProjectRoot } from './lib/root.ts';
 import { buildSnapshot } from './lib/snapshot.ts';
 import { appendNote, setStatus } from './lib/write.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const projectRoot = resolve(process.argv[2] ?? process.cwd());
+const projectRoot = findProjectRoot(process.argv[2], process.cwd());
 
 // Screenshot mode for automated visual verification: render one view headlessly,
 // write a PNG, quit. VERI_UI_SHOT=/path.png [VERI_UI_VIEW=board] [VERI_UI_DOC=WO-005]
