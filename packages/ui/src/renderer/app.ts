@@ -8,13 +8,15 @@ import { h } from './dom.ts';
 import { TYPE_META, relTime } from './theme.ts';
 import { docsById, issueDocId, issuesByDoc, packageSummary } from './derive.ts';
 import type { ActivityRow, DocsById, PackageSummary } from './derive.ts';
+import type { McpStatus } from '../lib/mcpconfig.ts';
 import { readerView } from './views/reader.ts';
+import { mcpView } from './views/mcp.ts';
 import { workOrderView } from './views/workorder.ts';
 import { boardView } from './views/board.ts';
 import { graphView } from './views/graph.ts';
 import { decisionsView } from './views/decisions.ts';
 
-export type View = 'home' | 'workorder' | 'board' | 'graph' | 'decisions';
+export type View = 'home' | 'workorder' | 'board' | 'graph' | 'decisions' | 'mcp';
 
 export interface State {
   view: View;
@@ -31,6 +33,13 @@ export interface State {
   searchHits: SearchHit[];
   projectSwitcherOpen: boolean;
   projectError: string | null;
+  mcpStatus: McpStatus | null;
+  /** Drives the restart banner; cleared by re-run checks or leaving the panel. */
+  mcpWrote: boolean;
+  /** Drives the external-edit banner; cleared by re-run checks. */
+  mcpExternal: boolean;
+  mcpBuildCopied: boolean;
+  mcpCmdCopied: boolean;
 }
 
 export interface CachedPackage {
@@ -52,7 +61,9 @@ export interface Ctx {
   setView(view: View): void;
   refresh(): Promise<void>;
   loadPackage(id: string): void;
+  refreshMcp(): Promise<void>;
   flashCopied(): void;
+  flashMcpCmdCopied(): void;
   sessionLog(id: string, row: ActivityRow): void;
   sessionRows(id: string): ActivityRow[];
   rel(date: string): string;
@@ -81,9 +92,15 @@ class App implements Ctx {
     searchHits: [],
     projectSwitcherOpen: false,
     projectError: null,
+    mcpStatus: null,
+    mcpWrote: false,
+    mcpExternal: false,
+    mcpBuildCopied: false,
+    mcpCmdCopied: false,
   };
   private sessionActivity = new Map<string, ActivityRow[]>();
   private copyTimer: ReturnType<typeof setTimeout> | undefined;
+  private mcpCmdTimer: ReturnType<typeof setTimeout> | undefined;
   private root: HTMLElement;
   private recentProjects: ProjectInfo[] = [];
 
@@ -93,14 +110,20 @@ class App implements Ctx {
 
   async boot(): Promise<void> {
     this.applySnapshot(await this.api.snapshot());
+    await this.refreshMcp();
     const params = new URLSearchParams(location.search);
     const view = params.get('view');
     const doc = params.get('doc');
     if (doc !== null && this.byId.has(doc)) this.openDoc(doc);
-    if (view !== null && ['home', 'workorder', 'board', 'graph', 'decisions'].includes(view)) {
+    if (view !== null && ['home', 'workorder', 'board', 'graph', 'decisions', 'mcp'].includes(view)) {
       this.state.view = view as View;
     }
     this.api.onChanged(() => void this.refresh());
+    this.api.onMcpChanged((external) => {
+      void this.refreshMcp().then(() => {
+        if (external) this.update({ mcpExternal: true });
+      });
+    });
     document.addEventListener('keydown', (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
@@ -158,6 +181,7 @@ class App implements Ctx {
     if (doc === undefined) return;
     this.update({
       view: doc.type === 'work-order' ? 'workorder' : 'home',
+      ...this.leaveMcpPatch(),
       docId: id,
       checkOpen: false,
       searchOpen: false,
@@ -176,10 +200,15 @@ class App implements Ctx {
       const first = this.snap.documents
         .filter((d) => d.type !== 'work-order')
         .sort((a, b) => a.id.localeCompare(b.id))[0];
-      this.update({ view, docId: first?.id ?? this.state.docId, checkOpen: false, graphSel: null });
+      this.update({ view, docId: first?.id ?? this.state.docId, checkOpen: false, graphSel: null, ...this.leaveMcpPatch() });
       return;
     }
-    this.update({ view, checkOpen: false, graphSel: null });
+    this.update({ view, checkOpen: false, graphSel: null, ...(view === 'mcp' ? {} : this.leaveMcpPatch()) });
+  }
+
+  /** Leaving the agent-connection panel dismisses its banners (SRC-002). */
+  private leaveMcpPatch(): Partial<State> {
+    return this.state.view === 'mcp' ? { mcpWrote: false, mcpExternal: false, mcpBuildCopied: false } : {};
   }
 
   async refresh(): Promise<void> {
@@ -194,10 +223,21 @@ class App implements Ctx {
     });
   }
 
+  async refreshMcp(): Promise<void> {
+    this.state.mcpStatus = await this.api.mcpStatus();
+    this.render();
+  }
+
   flashCopied(): void {
     clearTimeout(this.copyTimer);
     this.update({ copied: true });
     this.copyTimer = setTimeout(() => this.update({ copied: false }), 1800);
+  }
+
+  flashMcpCmdCopied(): void {
+    clearTimeout(this.mcpCmdTimer);
+    this.update({ mcpCmdCopied: true });
+    this.mcpCmdTimer = setTimeout(() => this.update({ mcpCmdCopied: false }), 1800);
   }
 
   sessionLog(id: string, row: ActivityRow): void {
@@ -467,12 +507,33 @@ class App implements Ctx {
       ),
       h('div', { class: 'sb-divider' }),
       h('div', { class: 'sb-tree' }, ...tree),
-      h(
-        'div',
-        { class: 'sb-footer' },
-        h('span', { class: 'sb-pulse' }),
-        h('span', {}, 'mcp · veri-mcp · stdio'),
-      ),
+      this.mcpFooterRow(),
+    );
+  }
+
+  /**
+   * Sidebar footer: honest config state of the agent connection — a static
+   * dot (no pulse: a pulse would imply liveness), never live client status.
+   */
+  private mcpFooterRow(): HTMLElement {
+    const status = this.state.mcpStatus;
+    const notSetup =
+      status === null || status.state === 'missing' || status.state === 'no-entry';
+    const healthy = status !== null && status.state === 'ok' && status.executableFound && status.rootMatches;
+    const label = notSetup
+      ? 'agent connection · not set up'
+      : healthy
+        ? 'agent connection · configured'
+        : 'agent connection · needs attention';
+    return h(
+      'div',
+      {
+        class: this.state.view === 'mcp' ? 'sb-mcp sb-mcp-active' : 'sb-mcp',
+        onClick: () => this.setView('mcp'),
+      },
+      h('span', { class: 'sb-mcp-dot', style: `background:${healthy ? '#7FAF8A' : '#D9A03F'};` }),
+      h('span', { class: 'sb-mcp-label' }, label),
+      h('span', { class: 'sb-mcp-arrow' }, '→'),
     );
   }
 
@@ -480,6 +541,7 @@ class App implements Ctx {
     const view = this.state.view;
     let screen: HTMLElement;
     if (view === 'workorder' && this.doc()?.type === 'work-order') screen = workOrderView(this);
+    else if (view === 'mcp') screen = mcpView(this);
     else if (view === 'board') screen = boardView(this);
     else if (view === 'graph') screen = graphView(this);
     else if (view === 'decisions') screen = decisionsView(this);

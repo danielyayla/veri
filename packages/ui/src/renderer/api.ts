@@ -1,4 +1,5 @@
 import type { ContextPackage, SearchHit } from '@veri/mcp';
+import type { McpStatus } from '../lib/mcpconfig.ts';
 import type { Snapshot } from '../lib/snapshot.ts';
 
 export interface ProjectInfo {
@@ -17,6 +18,12 @@ export interface VeriApi {
   copyText(text: string): Promise<void>;
   setStatus(id: string, status: string): Promise<void>;
   appendNote(id: string, note: string): Promise<void>;
+  mcpStatus(): Promise<McpStatus>;
+  /** Setup and "Replace with Veri's entry" are the same write. */
+  mcpSetup(): Promise<void>;
+  mcpFixRoot(): Promise<void>;
+  /** Fires on any .mcp.json change; external=false for the panel's own writes. */
+  onMcpChanged(cb: (external: boolean) => void): void;
   listRecentProjects(): Promise<ProjectInfo[]>;
   /** Both resolve to an error message to show the user, or null on success/cancel. */
   switchProject(dir: string): Promise<string | null>;

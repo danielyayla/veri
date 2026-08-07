@@ -204,12 +204,17 @@ a:hover { color: #F49463; }
 .sb-row-title-active { color: var(--text); }
 .sb-health { margin-left: auto; width: 5px; height: 5px; border-radius: 50%; background: var(--amber); flex: 0 0 auto; }
 .sb-done { margin-left: auto; color: #5A7F64; font-size: 10px; flex: 0 0 auto; }
-.sb-footer {
-  flex: 0 0 auto; padding: 8px 14px; border-top: 1px solid var(--hair);
-  display: flex; align-items: center; gap: 7px;
+/* Sidebar footer: agent-connection config state (WO-007). Static dot — no
+   pulse; a pulse would imply live client status the app can't know. */
+.sb-mcp {
+  flex: 0 0 auto; padding: 9px 14px; border-top: 1px solid var(--hair);
+  display: flex; align-items: center; gap: 7px; cursor: pointer;
   font-family: var(--mono); font-size: 10px; color: var(--faint);
 }
-.sb-pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: veripulse 3s ease-in-out infinite; }
+.sb-mcp:hover, .sb-mcp-active { background: #1B1B20; }
+.sb-mcp-dot { width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto; }
+.sb-mcp-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-mcp-arrow { margin-left: auto; color: var(--ghost-2); }
 
 /* ===== Reader (home + work order) ===== */
 .screen-home, .screen-wo { flex: 1; display: flex; min-width: 0; min-height: 0; }
@@ -446,3 +451,108 @@ a:hover { color: #F49463; }
 .dl-link { font-family: var(--mono); font-size: 10.5px; border-radius: 4px; padding: 2px 7px; cursor: pointer; }
 .dl-sup { margin-top: 10px; display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--amber); cursor: pointer; }
 .dl-sup-id { font-family: var(--mono); font-size: 11px; }
+
+/* ===== Agent connection (WO-007, tokens per SRC-002) ===== */
+.mcp-snippet-link { color: var(--ember); cursor: pointer; }
+.mcp-snippet-link:hover { color: #F49463; }
+
+.mcp-view { flex: 1; overflow-y: auto; min-width: 0; }
+.mcp-col { max-width: 640px; margin: 0 auto; padding: 30px 40px 60px; }
+.mcp-crumb { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+.mcp-crumb-slash { color: #3A3841; }
+.mcp-crumb-here { color: var(--ember); }
+.mcp-title-row { display: flex; align-items: center; gap: 14px; margin-top: 10px; }
+.mcp-h1 { margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -.01em; flex: 1; }
+.mcp-ghost-btn {
+  height: 28px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--int-border);
+  color: var(--secondary); display: flex; align-items: center; gap: 7px;
+  font-size: 12px; font-weight: 500; cursor: pointer;
+}
+.mcp-ghost-btn:hover { border-color: var(--hover-border-2); }
+.mcp-sub { margin: 8px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--muted); text-wrap: pretty; }
+.mcp-sub-code, .mcp-inline-code { font-family: var(--mono); font-size: 12px; color: var(--secondary); }
+.mcp-inline-code { color: var(--body-text); }
+
+.mcp-banner {
+  margin-top: 18px; display: flex; gap: 10px; align-items: flex-start;
+  padding: 11px 14px; border-radius: 8px;
+}
+.mcp-banner-info { border: 1px solid #1F2A33; background: rgba(126,166,196,0.06); }
+.mcp-banner-warn { border: 1px solid #3A3020; background: rgba(217,160,63,0.07); }
+.mcp-banner-glyph { flex: 0 0 auto; }
+.mcp-banner-body { font-size: 12.5px; color: var(--secondary); line-height: 1.55; }
+.mcp-banner-body-warn { color: var(--body-text); }
+.mcp-banner-lead { font-weight: 600; }
+
+.mcp-card { margin-top: 20px; border: 1px solid var(--int-border); border-radius: 10px; background: var(--card); padding: 20px 22px; }
+.mcp-card-warn { border-color: #3A3020; }
+.mcp-eyebrow { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--faint); }
+.mcp-eyebrow-warn { color: var(--amber); }
+.mcp-card-h { font-size: 16px; font-weight: 600; margin-top: 8px; }
+.mcp-card-p { margin: 7px 0 0; font-size: 13.5px; color: var(--secondary); line-height: 1.6; text-wrap: pretty; }
+.mcp-btn-primary {
+  margin-top: 16px; display: inline-flex; height: 34px; padding: 0 18px; border-radius: 7px;
+  background: var(--ember); color: #141414; align-items: center; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.mcp-btn-primary:hover { filter: brightness(1.1); }
+.mcp-btn-replace { margin-top: 0; height: 32px; padding: 0 16px; font-size: 12.5px; flex: 0 0 auto; }
+.mcp-conflict-actions { margin-top: 14px; display: flex; align-items: center; gap: 12px; }
+.mcp-json {
+  margin-top: 8px; border: 1px solid var(--card-border); border-radius: 7px; background: var(--bg);
+  padding: 11px 13px; font-family: var(--mono); font-size: 11px; line-height: 1.75; color: var(--muted);
+  overflow-x: auto;
+}
+.mcp-ind1 { padding-left: 14px; }
+.mcp-ind2 { padding-left: 28px; }
+.mcp-json-key { color: var(--ember); }
+.mcp-json-key-warn { color: var(--amber); }
+.mcp-json-val { color: var(--body-text); }
+.mcp-caption { margin-top: 8px; font-size: 11.5px; color: var(--faint); line-height: 1.5; }
+
+.mcp-health { margin-top: 20px; border: 1px solid var(--card-border); border-radius: 10px; background: var(--card); overflow: hidden; }
+.mcp-health-head { display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-bottom: 1px solid #1B1B20; }
+.mcp-health-count { margin-left: auto; font-family: var(--mono); font-size: 10.5px; }
+.mcp-check-row { border-bottom: 1px solid #1B1B20; padding: 10px 14px; }
+.mcp-check-line { display: flex; align-items: center; gap: 10px; }
+.mcp-badge {
+  width: 16px; height: 16px; flex: 0 0 auto; border-radius: 50%; font-size: 10px;
+  display: flex; align-items: center; justify-content: center; font-weight: 700;
+}
+.mcp-badge-ok { background: rgba(127,175,138,0.15); color: var(--green); }
+.mcp-badge-fail { background: rgba(217,160,63,0.15); color: var(--amber); }
+.mcp-check-name { font-size: 13.5px; color: var(--text); font-weight: 500; white-space: nowrap; }
+/* rtl + bdi: clip long paths from the left so the tail stays visible,
+   without reordering the slashes. */
+.mcp-check-detail {
+  margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--ghost);
+  max-width: 55%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: rtl;
+}
+.mcp-check-detail bdi { unicode-bidi: plaintext; }
+.mcp-fail { margin: 8px 0 2px 26px; display: flex; align-items: flex-start; gap: 12px; }
+.mcp-fail-msg { flex: 1; font-size: 12.5px; color: var(--amber); line-height: 1.5; }
+.mcp-fail-btn {
+  flex: 0 0 auto; height: 26px; padding: 0 11px; border-radius: 6px;
+  background: rgba(217,160,63,0.12); border: 1px solid #3A3020; color: var(--amber);
+  display: flex; align-items: center; font-size: 11.5px; font-weight: 600; cursor: pointer;
+}
+.mcp-fail-btn:hover { background: rgba(217,160,63,0.2); }
+.mcp-health-note { padding: 9px 14px; font-size: 11.5px; color: var(--ghost); line-height: 1.5; }
+
+.mcp-kv { margin-top: 14px; border: 1px solid var(--card-border); border-radius: 10px; background: var(--card); padding: 4px 14px; }
+.mcp-kv-row { display: flex; align-items: center; min-height: 30px; border-bottom: 1px solid #1B1B20; }
+.mcp-kv-row-last { border-bottom: none; }
+.mcp-kv-k { width: 110px; flex: 0 0 auto; font-family: var(--mono); font-size: 11px; color: var(--faint); }
+.mcp-kv-v { font-family: var(--mono); font-size: 12px; color: var(--body-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.mcp-section { margin-top: 32px; }
+.mcp-section-p { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.6; text-wrap: pretty; }
+.mcp-cmd {
+  margin-top: 10px; display: flex; align-items: center; gap: 12px;
+  border: 1px solid var(--int-border); border-radius: 8px; background: var(--bg); padding: 10px 13px;
+}
+.mcp-cmd-text { flex: 1; font-family: var(--mono); font-size: 11px; line-height: 1.6; color: var(--body-text); word-break: break-all; }
+.mcp-copy-btn { height: 26px; padding: 0 11px; font-size: 11.5px; font-weight: 600; flex: 0 0 auto; }
+.mcp-tools { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mcp-tool { border: 1px solid var(--card-border); border-radius: 8px; background: var(--card); padding: 11px 13px; }
+.mcp-tool-name { font-family: var(--mono); font-size: 11.5px; color: var(--ember); }
+.mcp-tool-desc { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }

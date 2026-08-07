@@ -5,12 +5,26 @@ import { fileURLToPath } from 'node:url';
 import { BrowserWindow, app, clipboard, dialog, ipcMain } from 'electron';
 import { assembleContext, searchDocs } from '@veri/mcp';
 import { findProjectRoot, isVeriProject } from './lib/root.ts';
+import { fixRootArg, mcpStatus, writeVeriEntry } from './lib/mcpconfig.ts';
 import { buildSnapshot } from './lib/snapshot.ts';
 import { appendNote, setStatus } from './lib/write.ts';
 import type { ProjectInfo } from './renderer/api.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 let projectRoot = findProjectRoot(process.argv[2], process.cwd());
+
+// The MCP server executable setup writes into .mcp.json: server.js next to
+// @veri/mcp's resolved entry point (dist/index.js).
+const mcpServerJs = join(dirname(fileURLToPath(import.meta.resolve('@veri/mcp'))), 'server.js');
+
+// Writes the panel makes trip the same file watcher as external edits; the
+// timestamp lets the watcher tell the two apart (see watchProject).
+let mcpSelfWriteAt = 0;
+
+async function mcpWrite(action: () => Promise<void>): Promise<void> {
+  mcpSelfWriteAt = Date.now();
+  await action();
+}
 
 // Config management for MRU projects.
 const PROJECT_COLORS = ['#E8703A', '#7EA6C4', '#CFA83D', '#7FAF8A', '#E7A5D9', '#F0A87E', '#A5D4E8'];
@@ -68,6 +82,9 @@ function registerIpc(): void {
   ipcMain.handle('veri:copy', (_e, text: string) => clipboard.writeText(text));
   ipcMain.handle('veri:set-status', (_e, id: string, status: string) => setStatus(projectRoot, id, status));
   ipcMain.handle('veri:append-note', (_e, id: string, note: string) => appendNote(projectRoot, id, note));
+  ipcMain.handle('veri:mcp-status', () => mcpStatus(projectRoot, mcpServerJs));
+  ipcMain.handle('veri:mcp-setup', () => mcpWrite(() => writeVeriEntry(projectRoot, mcpServerJs)));
+  ipcMain.handle('veri:mcp-fix-root', () => mcpWrite(() => fixRootArg(projectRoot)));
   ipcMain.handle('veri:list-recent-projects', async () => {
     const projects = await getRecentProjects();
     const updated = await Promise.all(
@@ -119,10 +136,20 @@ function watchProject(win: BrowserWindow): void {
     }, 150);
   };
   // veri/ recursively, plus the project root (non-recursive) for CLAUDE.md —
-  // both feed the context package. Watchers die with the window.
+  // both feed the context package. Watchers die with the window. .mcp.json
+  // events instead feed the agent-connection panel; a change not preceded by
+  // one of the panel's own writes is an external edit (REQ-005: re-check and
+  // say so, files are the source of truth).
   watchers = [
     watch(join(projectRoot, 'veri'), { recursive: true }, notify),
-    watch(projectRoot, notify),
+    watch(projectRoot, (_event, filename) => {
+      if (filename === '.mcp.json') {
+        const external = Date.now() - mcpSelfWriteAt > 1000;
+        if (!win.isDestroyed()) win.webContents.send('veri:mcp-changed', external);
+      } else {
+        notify();
+      }
+    }),
   ];
   win.on('closed', () => {
     for (const w of watchers) w.close();

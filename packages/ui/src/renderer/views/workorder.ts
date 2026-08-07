@@ -172,7 +172,12 @@ function contextPanel(ctx: Ctx, doc: VeriDocument): HTMLElement {
         { class: 'mcp-snippet' },
         h('div', { class: 'mcp-dim' }, '# agent fetches with'),
         h('div', { class: 'mcp-code' }, 'veri.get_context(', h('span', { style: 'color:#E8703A;' }, `"${doc.id}"`), ')'),
-        h('div', { class: 'mcp-dim', style: 'margin-top:4px;' }, 'veri-mcp · stdio · ', h('span', { style: 'color:#7FAF8A;' }, 'live')),
+        h(
+          'div',
+          { class: 'mcp-dim', style: 'margin-top:4px;' },
+          'via .mcp.json · ',
+          h('span', { class: 'mcp-snippet-link', onClick: () => ctx.setView('mcp') }, 'connection settings →'),
+        ),
       )
     : null;
 
