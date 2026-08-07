@@ -3,7 +3,7 @@ import type { Issue, VeriDocument } from '@veri/core';
 import type { ContextPackage, SearchHit } from '@veri/mcp';
 import type { Snapshot } from '../lib/snapshot.ts';
 import { api } from './api.ts';
-import type { VeriApi } from './api.ts';
+import type { ProjectInfo, VeriApi } from './api.ts';
 import { h } from './dom.ts';
 import { TYPE_META, relTime } from './theme.ts';
 import { docsById, issueDocId, issuesByDoc, packageSummary } from './derive.ts';
@@ -29,6 +29,7 @@ export interface State {
   searchOpen: boolean;
   searchQuery: string;
   searchHits: SearchHit[];
+  projectSwitcherOpen: boolean;
 }
 
 export interface CachedPackage {
@@ -77,10 +78,12 @@ class App implements Ctx {
     searchOpen: false,
     searchQuery: '',
     searchHits: [],
+    projectSwitcherOpen: false,
   };
   private sessionActivity = new Map<string, ActivityRow[]>();
   private copyTimer: ReturnType<typeof setTimeout> | undefined;
   private root: HTMLElement;
+  private recentProjects: ProjectInfo[] = [];
 
   constructor(root: HTMLElement) {
     this.root = root;
@@ -100,9 +103,15 @@ class App implements Ctx {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         this.update({ searchOpen: !this.state.searchOpen, searchQuery: '', searchHits: [] });
-      } else if (e.key === 'Escape' && (this.state.searchOpen || this.state.checkOpen)) {
-        this.update({ searchOpen: false, checkOpen: false });
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'o') {
+        e.preventDefault();
+        void this.api.openProjectFolder();
+      } else if (e.key === 'Escape' && (this.state.searchOpen || this.state.checkOpen || this.state.projectSwitcherOpen)) {
+        this.update({ searchOpen: false, checkOpen: false, projectSwitcherOpen: false });
       }
+    });
+    document.addEventListener('click', () => {
+      if (this.state.projectSwitcherOpen) this.update({ projectSwitcherOpen: false });
     });
     this.render();
   }
@@ -145,6 +154,7 @@ class App implements Ctx {
       docId: id,
       checkOpen: false,
       searchOpen: false,
+      projectSwitcherOpen: false,
       graphSel: null,
       editorText: '',
       editorFocused: false,
@@ -204,7 +214,10 @@ class App implements Ctx {
       issueCount > 0
         ? h(
             'div',
-            { class: 'tb-health', onClick: () => this.update({ checkOpen: !this.state.checkOpen }) },
+            {
+              class: 'tb-health',
+              onClick: () => this.update({ checkOpen: !this.state.checkOpen, projectSwitcherOpen: false }),
+            },
             h('span', { class: 'tb-health-dot' }),
             h('span', {}, `veri check · ${issueCount} issue${issueCount === 1 ? '' : 's'}`),
           )
@@ -247,7 +260,19 @@ class App implements Ctx {
         h('div', { class: 'tb-logo' }, 'v'),
         h('span', { class: 'tb-wordmark' }, 'Veri'),
         h('span', { class: 'tb-slash' }, '/'),
-        h('span', { class: 'tb-project' }, this.snap.projectName),
+        h(
+          'div',
+          {
+            class: this.state.projectSwitcherOpen ? 'tb-proj-btn tb-proj-btn-open' : 'tb-proj-btn',
+            onClick: (e) => {
+              e.stopPropagation();
+              this.toggleProjectSwitcher();
+            },
+          },
+          h('span', { class: 'tb-proj-name' }, this.snap.projectName),
+          h('span', { class: 'tb-proj-caret' }, '▾'),
+        ),
+        this.state.projectSwitcherOpen ? this.projectSwitcherPopover() : null,
       ),
       h(
         'div',
@@ -266,6 +291,67 @@ class App implements Ctx {
         h('span', { style: 'color:#7FAF8A;' }, '⎇'),
         h('span', {}, git === null ? 'no git' : `${git.branch} · ${git.dirty ? 'dirty' : 'clean'}`),
       ), checkPop),
+    );
+  }
+
+  private toggleProjectSwitcher(): void {
+    const opening = !this.state.projectSwitcherOpen;
+    if (opening) {
+      void this.api.listRecentProjects().then((projects) => {
+        this.recentProjects = projects;
+        this.render();
+      });
+    }
+    this.update({ projectSwitcherOpen: opening, checkOpen: false });
+  }
+
+  private projectSwitcherPopover(): HTMLElement {
+    const rows = this.recentProjects.map((p) => {
+      const current = p.dir === this.snap.root;
+      const meta = `${p.dir} · ${p.docCount} doc${p.docCount === 1 ? '' : 's'}${p.issueCount > 0 ? ` · ${p.issueCount} issue${p.issueCount === 1 ? '' : 's'}` : ''}`;
+      return h(
+        'div',
+        {
+          class: current ? 'proj-row proj-row-current' : 'proj-row',
+          onClick: () => {
+            this.update({ projectSwitcherOpen: false });
+            if (!current) void this.api.switchProject(p.dir);
+          },
+        },
+        h('span', { class: 'proj-swatch', style: `background:${p.accentColor};` }),
+        h(
+          'div',
+          { class: 'proj-info' },
+          h(
+            'div',
+            { class: 'proj-name-line' },
+            h('span', { class: 'proj-name' }, p.name),
+            p.issueCount > 0 ? h('span', { class: 'proj-issue-dot' }) : null,
+          ),
+          h('div', { class: 'proj-meta' }, meta),
+        ),
+        current ? h('span', { class: 'proj-check' }, '✓') : null,
+      );
+    });
+    return h(
+      'div',
+      { class: 'proj-pop', onClick: (e) => e.stopPropagation() },
+      h('div', { class: 'proj-pop-label' }, 'PROJECTS'),
+      ...rows,
+      h('div', { class: 'proj-divider' }),
+      h(
+        'div',
+        {
+          class: 'proj-open-row',
+          onClick: () => {
+            this.update({ projectSwitcherOpen: false });
+            void this.api.openProjectFolder();
+          },
+        },
+        h('span', { class: 'proj-open-plus' }, '+'),
+        h('span', {}, 'Open project folder…'),
+        h('span', { class: 'proj-kbd' }, '⌘O'),
+      ),
     );
   }
 

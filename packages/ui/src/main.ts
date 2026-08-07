@@ -1,19 +1,65 @@
 import { watch } from 'node:fs';
-import { writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BrowserWindow, app, clipboard, ipcMain } from 'electron';
+import { BrowserWindow, app, clipboard, dialog, ipcMain } from 'electron';
 import { assembleContext, searchDocs } from '@veri/mcp';
 import { findProjectRoot } from './lib/root.ts';
 import { buildSnapshot } from './lib/snapshot.ts';
 import { appendNote, setStatus } from './lib/write.ts';
+import type { ProjectInfo } from './renderer/api.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const projectRoot = findProjectRoot(process.argv[2], process.cwd());
+let projectRoot = findProjectRoot(process.argv[2], process.cwd());
+
+// Config management for MRU projects.
+const PROJECT_COLORS = ['#E8703A', '#7EA6C4', '#CFA83D', '#7FAF8A', '#E7A5D9', '#F0A87E', '#A5D4E8'];
+
+function getConfigDir(): string {
+  return join(app.getPath('userData'), 'config');
+}
+
+async function getRecentProjects(): Promise<ProjectInfo[]> {
+  try {
+    const configFile = join(getConfigDir(), 'recent-projects.json');
+    const content = await readFile(configFile, 'utf-8');
+    return JSON.parse(content) as ProjectInfo[];
+  } catch {
+    return [];
+  }
+}
+
+async function saveRecentProjects(projects: ProjectInfo[]): Promise<void> {
+  const configDir = getConfigDir();
+  await mkdir(configDir, { recursive: true });
+  const configFile = join(configDir, 'recent-projects.json');
+  await writeFile(configFile, JSON.stringify(projects, null, 2));
+}
+
+async function addProjectToMru(dir: string): Promise<void> {
+  const projects = await getRecentProjects();
+  const existing = projects.find((p) => p.dir === dir);
+  const baseName = dir.split('/').pop() || dir;
+  const accentColor = existing?.accentColor ?? PROJECT_COLORS[projects.length % PROJECT_COLORS.length]!;
+  const filtered = projects.filter((p) => p.dir !== dir);
+  filtered.unshift({ dir, name: baseName, accentColor, docCount: 0, issueCount: 0 });
+  await saveRecentProjects(filtered.slice(0, 20));
+}
+
+async function getProjectStats(dir: string): Promise<{ docCount: number; issueCount: number }> {
+  try {
+    const snap = await buildSnapshot(dir);
+    return { docCount: snap.documents.length, issueCount: snap.issues.length };
+  } catch {
+    return { docCount: 0, issueCount: 0 };
+  }
+}
 
 // Screenshot mode for automated visual verification: render one view headlessly,
 // write a PNG, quit. VERI_UI_SHOT=/path.png [VERI_UI_VIEW=board] [VERI_UI_DOC=WO-005]
 const shotPath = process.env['VERI_UI_SHOT'];
+
+let mainWin: BrowserWindow | null = null;
 
 function registerIpc(): void {
   ipcMain.handle('veri:snapshot', () => buildSnapshot(projectRoot));
@@ -22,9 +68,46 @@ function registerIpc(): void {
   ipcMain.handle('veri:copy', (_e, text: string) => clipboard.writeText(text));
   ipcMain.handle('veri:set-status', (_e, id: string, status: string) => setStatus(projectRoot, id, status));
   ipcMain.handle('veri:append-note', (_e, id: string, note: string) => appendNote(projectRoot, id, note));
+  ipcMain.handle('veri:list-recent-projects', async () => {
+    const projects = await getRecentProjects();
+    const updated = await Promise.all(
+      projects.map(async (p) => {
+        const stats = await getProjectStats(p.dir);
+        return { ...p, docCount: stats.docCount, issueCount: stats.issueCount };
+      }),
+    );
+    return updated;
+  });
+  ipcMain.handle('veri:switch-project', async (_e, dir: string) => {
+    projectRoot = dir;
+    await addProjectToMru(dir);
+    if (mainWin !== null) {
+      watchProject(mainWin);
+      await mainWin.loadFile(join(here, '..', 'renderer', 'index.html'));
+    }
+  });
+  ipcMain.handle('veri:open-project-folder', async () => {
+    if (mainWin === null) return null;
+    const result = await dialog.showOpenDialog(mainWin, {
+      properties: ['openDirectory'],
+      title: 'Select a project folder',
+    });
+    if (result.canceled) return null;
+    const dir = result.filePaths[0];
+    if (dir !== undefined) {
+      projectRoot = dir;
+      await addProjectToMru(dir);
+      watchProject(mainWin);
+      await mainWin.loadFile(join(here, '..', 'renderer', 'index.html'));
+    }
+    return dir ?? null;
+  });
 }
 
+let watchers: ReturnType<typeof watch>[] = [];
+
 function watchProject(win: BrowserWindow): void {
+  for (const w of watchers) w.close();
   let timer: NodeJS.Timeout | undefined;
   const notify = (): void => {
     clearTimeout(timer);
@@ -34,7 +117,7 @@ function watchProject(win: BrowserWindow): void {
   };
   // veri/ recursively, plus the project root (non-recursive) for CLAUDE.md —
   // both feed the context package. Watchers die with the window.
-  const watchers = [
+  watchers = [
     watch(join(projectRoot, 'veri'), { recursive: true }, notify),
     watch(projectRoot, notify),
   ];
@@ -43,7 +126,7 @@ function watchProject(win: BrowserWindow): void {
   });
 }
 
-async function createWindow(): Promise<void> {
+async function createWindow(): Promise<BrowserWindow> {
   const win = new BrowserWindow({
     width: 1560,
     height: 980,
@@ -59,6 +142,7 @@ async function createWindow(): Promise<void> {
       nodeIntegration: false,
     },
   });
+  mainWin = win;
 
   watchProject(win);
 
@@ -84,11 +168,14 @@ async function createWindow(): Promise<void> {
     await writeFile(shotPath, image.toPNG());
     app.exit(0);
   }
+
+  return win;
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   registerIpc();
-  void createWindow();
+  await addProjectToMru(projectRoot);
+  await createWindow();
 });
 
 app.on('window-all-closed', () => {

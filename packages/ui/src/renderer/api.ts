@@ -1,6 +1,14 @@
 import type { ContextPackage, SearchHit } from '@veri/mcp';
 import type { Snapshot } from '../lib/snapshot.ts';
 
+export interface ProjectInfo {
+  dir: string;
+  name: string;
+  accentColor: string;
+  docCount: number;
+  issueCount: number;
+}
+
 /** The preload-exposed bridge (see src/preload.mts). */
 export interface VeriApi {
   snapshot(): Promise<Snapshot>;
@@ -9,6 +17,9 @@ export interface VeriApi {
   copyText(text: string): Promise<void>;
   setStatus(id: string, status: string): Promise<void>;
   appendNote(id: string, note: string): Promise<void>;
+  listRecentProjects(): Promise<ProjectInfo[]>;
+  switchProject(dir: string): Promise<void>;
+  openProjectFolder(): Promise<string | null>;
   onChanged(cb: () => void): void;
 }
 
