@@ -58,7 +58,8 @@ IDs are `REQ-`, `DEC-`, `WO-`, `SRC-` + zero-padded 3-digit number.
 
 - TypeScript, strict mode, Node >= 20, ESM only.
 - Monorepo: `packages/core` (parsing, graph, context assembly),
-  `packages/cli`, `packages/mcp`.
+  `packages/cli`, `packages/mcp`, `packages/ui` (Electron desktop app,
+  see DEC-008).
 - Core has zero runtime dependencies beyond `yaml` and `zod`.
   No database. Files are the source of truth (see DEC-002).
 - Tests colocated as `*.test.ts`, run with `node --test` via `npm test`.

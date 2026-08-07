@@ -1,0 +1,65 @@
+---
+id: WO-005
+type: work-order
+title: Desktop UI — five screens over the knowledge base
+status: in-progress
+created: 2026-08-07
+updated: 2026-08-07
+links:
+  - id: REQ-004
+    rel: delivers
+  - id: SRC-001
+    rel: informed-by
+  - id: DEC-002
+    rel: constrained-by
+  - id: DEC-008
+    rel: constrained-by
+  - id: WO-001
+    rel: depends-on
+  - id: WO-003
+    rel: depends-on
+---
+
+## Summary
+
+Build the Veri desktop UI per [[REQ-004]], recreating the design reference
+in [[SRC-001]] (`design/design-mockup.html` + `design/README.md`) at high
+fidelity. The UI is a new `packages/ui` consuming `packages/core` for all
+parsing, graph traversal, and context assembly — no logic duplicated in
+the frontend.
+
+## In scope
+
+- Framework/shell selection for a local desktop app (file it as a new DEC
+  with rejected alternatives before writing code)
+- The five screens and three cross-cutting behaviors in [[REQ-004]]
+- Read/write against a `veri/` directory via `packages/core`; watch for
+  external file changes
+- Context Package panel backed by the same assembly code as `get_context`
+- The design's exact visual system (tokens and measurements are specified
+  in `design/README.md`)
+
+## Out of scope
+
+- Editing raw markdown source in the UI beyond frontmatter fields, status,
+  and appended notes (full editor is a later WO)
+- Multi-project workspaces, tabs, or window management
+- Any network feature, telemetry, or auto-update
+- Mobile or web deployment
+
+## Requirements
+
+All acceptance criteria of [[REQ-004]] verbatim.
+
+## Acceptance tests
+
+- [x] Open this repo's own `veri/` directory: all five screens render its
+      real documents correctly
+- [x] Change a WO status on the board, run `veri check` → zero issues; the
+      file diff shows only the status + updated fields
+- [x] The Context Package panel for a WO matches `get_context` output for
+      the same ID (doc list and ordering identical)
+- [x] Break a link in a file externally → the health chip and the doc's
+      indicator appear without restart
+- [x] `[[` autocomplete in the note field inserts a link that resolves in
+      the Connections panel immediately
