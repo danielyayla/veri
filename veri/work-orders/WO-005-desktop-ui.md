@@ -67,3 +67,4 @@ All acceptance criteria of [[REQ-004]] verbatim.
 ## Receipts
 
 - 2026-08-07 — d060025 — design/, packages/ui (main, preload, lib, renderer, tests, fonts), veri/requirements/REQ-004, veri/decisions/DEC-008 + DEC-009, veri/sources/SRC-001, CLAUDE.md, package.json — claude-code agent session: integrated the design handoff and built the Electron desktop UI — five screens over live veri/ files, file watching, veri-check surfacing, [[ autocomplete, Context Package panel identical to get_context; all five acceptance tests verified via headless screenshots, 60 tests green
+- 2026-08-07 — 11e9895 — packages/ui/src/main.ts, packages/ui/src/lib/root.ts, packages/ui/src/lib/root.test.ts — claude-code agent session: bare `npm start -w @veri/ui` now works — project root resolved by walking up from cwd to the nearest veri/ directory (explicit argument still wins); 3 new tests
