@@ -2,7 +2,7 @@
 id: WO-007
 type: work-order
 title: Agent connection panel — MCP setup screen in the desktop UI
-status: in-progress
+status: done
 created: 2026-08-07
 updated: 2026-08-07
 links:
@@ -81,3 +81,12 @@ connection status.
       typecheck, and `veri check` pass clean
 
 ## Receipts
+
+- 2026-08-07 · fdcf713 · packages/ui/src/lib/mcpconfig.ts(+test),
+  packages/ui/src/{main.ts,preload.mts},
+  packages/ui/src/renderer/{api.ts,app.ts,views/mcp.ts,views/workorder.ts},
+  packages/ui/renderer/styles.css, veri/{REQ-005,SRC-002,DEC-011,WO-007} ·
+  Built the agent connection panel end to end; all five states verified by
+  screenshot against the SRC-002 prototype, one-click setup / fix-path /
+  external-edit re-check exercised against real files, 72 tests + veri
+  check clean.
