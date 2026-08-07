@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BrowserWindow, app, clipboard, dialog, ipcMain } from 'electron';
 import { assembleContext, searchDocs } from '@veri/mcp';
-import { findProjectRoot } from './lib/root.ts';
+import { findProjectRoot, isVeriProject } from './lib/root.ts';
 import { buildSnapshot } from './lib/snapshot.ts';
 import { appendNote, setStatus } from './lib/write.ts';
 import type { ProjectInfo } from './renderer/api.ts';
@@ -78,14 +78,7 @@ function registerIpc(): void {
     );
     return updated;
   });
-  ipcMain.handle('veri:switch-project', async (_e, dir: string) => {
-    projectRoot = dir;
-    await addProjectToMru(dir);
-    if (mainWin !== null) {
-      watchProject(mainWin);
-      await mainWin.loadFile(join(here, '..', 'renderer', 'index.html'));
-    }
-  });
+  ipcMain.handle('veri:switch-project', (_e, dir: string) => pointAppAt(dir));
   ipcMain.handle('veri:open-project-folder', async () => {
     if (mainWin === null) return null;
     const result = await dialog.showOpenDialog(mainWin, {
@@ -94,14 +87,24 @@ function registerIpc(): void {
     });
     if (result.canceled) return null;
     const dir = result.filePaths[0];
-    if (dir !== undefined) {
-      projectRoot = dir;
-      await addProjectToMru(dir);
-      watchProject(mainWin);
-      await mainWin.loadFile(join(here, '..', 'renderer', 'index.html'));
-    }
-    return dir ?? null;
+    return dir !== undefined ? pointAppAt(dir) : null;
   });
+}
+
+/**
+ * Re-point the whole app at a project directory. Validates before mutating
+ * anything so a bad pick (no veri/ inside) leaves projectRoot, the MRU, and
+ * the watchers exactly as they were. Returns an error message, or null on
+ * success (and on cancel — the renderer only surfaces non-null).
+ */
+async function pointAppAt(dir: string): Promise<string | null> {
+  if (mainWin === null) return null;
+  if (!isVeriProject(dir)) return `Not a Veri project — no veri/ directory inside ${dir}`;
+  projectRoot = dir;
+  await addProjectToMru(dir);
+  watchProject(mainWin);
+  await mainWin.loadFile(join(here, '..', 'renderer', 'index.html'));
+  return null;
 }
 
 let watchers: ReturnType<typeof watch>[] = [];

@@ -18,7 +18,8 @@ export interface VeriApi {
   setStatus(id: string, status: string): Promise<void>;
   appendNote(id: string, note: string): Promise<void>;
   listRecentProjects(): Promise<ProjectInfo[]>;
-  switchProject(dir: string): Promise<void>;
+  /** Both resolve to an error message to show the user, or null on success/cancel. */
+  switchProject(dir: string): Promise<string | null>;
   openProjectFolder(): Promise<string | null>;
   onChanged(cb: () => void): void;
 }

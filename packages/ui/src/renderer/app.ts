@@ -30,6 +30,7 @@ export interface State {
   searchQuery: string;
   searchHits: SearchHit[];
   projectSwitcherOpen: boolean;
+  projectError: string | null;
 }
 
 export interface CachedPackage {
@@ -79,6 +80,7 @@ class App implements Ctx {
     searchQuery: '',
     searchHits: [],
     projectSwitcherOpen: false,
+    projectError: null,
   };
   private sessionActivity = new Map<string, ActivityRow[]>();
   private copyTimer: ReturnType<typeof setTimeout> | undefined;
@@ -105,13 +107,18 @@ class App implements Ctx {
         this.update({ searchOpen: !this.state.searchOpen, searchQuery: '', searchHits: [] });
       } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'o') {
         e.preventDefault();
-        void this.api.openProjectFolder();
-      } else if (e.key === 'Escape' && (this.state.searchOpen || this.state.checkOpen || this.state.projectSwitcherOpen)) {
-        this.update({ searchOpen: false, checkOpen: false, projectSwitcherOpen: false });
+        this.surfaceProjectError(this.api.openProjectFolder());
+      } else if (
+        e.key === 'Escape' &&
+        (this.state.searchOpen || this.state.checkOpen || this.state.projectSwitcherOpen || this.state.projectError !== null)
+      ) {
+        this.update({ searchOpen: false, checkOpen: false, projectSwitcherOpen: false, projectError: null });
       }
     });
     document.addEventListener('click', () => {
-      if (this.state.projectSwitcherOpen) this.update({ projectSwitcherOpen: false });
+      if (this.state.projectSwitcherOpen || this.state.projectError !== null) {
+        this.update({ projectSwitcherOpen: false, projectError: null });
+      }
     });
     this.render();
   }
@@ -273,6 +280,14 @@ class App implements Ctx {
           h('span', { class: 'tb-proj-caret' }, '▾'),
         ),
         this.state.projectSwitcherOpen ? this.projectSwitcherPopover() : null,
+        this.state.projectError !== null
+          ? h(
+              'div',
+              { class: 'proj-err', onClick: (e) => e.stopPropagation() },
+              h('span', { class: 'proj-err-dot' }),
+              h('span', {}, this.state.projectError),
+            )
+          : null,
       ),
       h(
         'div',
@@ -302,7 +317,14 @@ class App implements Ctx {
         this.render();
       });
     }
-    this.update({ projectSwitcherOpen: opening, checkOpen: false });
+    this.update({ projectSwitcherOpen: opening, checkOpen: false, projectError: null });
+  }
+
+  /** Show the error a switch/open attempt resolves to (null means success or cancel). */
+  private surfaceProjectError(result: Promise<string | null>): void {
+    void result.then((err) => {
+      if (err !== null) this.update({ projectError: err });
+    });
   }
 
   private projectSwitcherPopover(): HTMLElement {
@@ -315,7 +337,7 @@ class App implements Ctx {
           class: current ? 'proj-row proj-row-current' : 'proj-row',
           onClick: () => {
             this.update({ projectSwitcherOpen: false });
-            if (!current) void this.api.switchProject(p.dir);
+            if (!current) this.surfaceProjectError(this.api.switchProject(p.dir));
           },
         },
         h('span', { class: 'proj-swatch', style: `background:${p.accentColor};` }),
@@ -345,7 +367,7 @@ class App implements Ctx {
           class: 'proj-open-row',
           onClick: () => {
             this.update({ projectSwitcherOpen: false });
-            void this.api.openProjectFolder();
+            this.surfaceProjectError(this.api.openProjectFolder());
           },
         },
         h('span', { class: 'proj-open-plus' }, '+'),

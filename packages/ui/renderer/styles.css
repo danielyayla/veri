@@ -115,6 +115,13 @@ a:hover { color: #F49463; }
   margin-left: auto; font-family: var(--mono); font-size: 10px;
   border: 1px solid var(--int-border); border-radius: 4px; padding: 1px 5px; color: var(--faint);
 }
+.proj-err {
+  position: absolute; top: 34px; left: 26px; max-width: 380px; display: flex;
+  align-items: flex-start; gap: 8px; padding: 9px 12px; background: var(--pop);
+  border: 1px solid #3A3020; border-radius: 8px; box-shadow: 0 12px 32px rgba(0,0,0,.5);
+  color: var(--amber); font-size: 12.5px; line-height: 1.4; z-index: 60;
+}
+.proj-err-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); margin-top: 4px; flex: 0 0 auto; }
 .tb-center { flex: 1; display: flex; justify-content: center; position: relative; }
 .tb-search {
   display: flex; align-items: center; gap: 8px; width: 340px; height: 26px; padding: 0 10px;

@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { mkdtemp, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { findProjectRoot } from './root.ts';
+import { findProjectRoot, isVeriProject } from './root.ts';
 
 test('an explicit root wins and is resolved', () => {
   assert.equal(findProjectRoot('/tmp/../tmp/x', '/anywhere'), resolve('/tmp/x'));
@@ -20,4 +20,12 @@ test('walks up from cwd to the nearest directory containing veri/', async () => 
 test('falls back to cwd when no veri/ exists on the path upward', async () => {
   const bare = await mkdtemp(join(tmpdir(), 'veri-bare-'));
   assert.equal(findProjectRoot(undefined, bare), bare);
+});
+
+test('isVeriProject requires a veri/ subdirectory', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'veri-check-'));
+  assert.equal(isVeriProject(root), false);
+  await mkdir(join(root, 'veri'));
+  assert.equal(isVeriProject(root), true);
+  assert.equal(isVeriProject(join(root, 'does-not-exist')), false);
 });

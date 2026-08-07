@@ -39,6 +39,9 @@ to be recreated in the shell built by [[WO-005]].
   doc/issue counts derived live per project
 - Switching re-points the app at the selected directory and reloads
   sidebar, docs, and health (including re-arming file watchers)
+- Directories are validated (must contain `veri/`) before any state
+  changes; an invalid pick or a stale MRU entry surfaces an error
+  instead of silently breaking the running app
 
 ## Out of scope
 
@@ -57,6 +60,9 @@ to be recreated in the shell built by [[WO-005]].
 - [x] Selecting another project re-points the app: sidebar tree, docs, and
       health chip reload from that project's `veri/` files
 - [x] MRU list survives app restart (persisted in app config)
+- [x] Picking a directory without `veri/` (or clicking a stale MRU row)
+      shows an error and leaves the running project fully intact —
+      projectRoot, MRU, and watchers unchanged
 
 ## Receipts
 
