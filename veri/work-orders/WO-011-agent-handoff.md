@@ -2,7 +2,7 @@
 id: WO-011
 type: work-order
 title: Agent handoff — Copy Kickoff Prompt and Start Agent Session
-status: in-progress
+status: done
 created: 2026-08-08
 updated: 2026-08-08
 links:
@@ -65,16 +65,22 @@ the current "Serve via MCP" affordance.
 
 ## Acceptance tests
 
-- [ ] A design document is linked `rel: designed-by` and was approved
+- [x] A design document is linked `rel: designed-by` and was approved
       before any code landed.
-- [ ] Copy Kickoff Prompt places an agent-neutral prompt naming the
+- [x] Copy Kickoff Prompt places an agent-neutral prompt naming the
       work-order id and `get_context` on the clipboard.
-- [ ] Start Agent Session lists only agents actually detected on this
+- [x] Start Agent Session lists only agents actually detected on this
       machine; undetected adapters are shown as unavailable.
-- [ ] Launching an agent whose MCP config lacks the veri entry offers
+- [x] Launching an agent whose MCP config lacks the veri entry offers
       the config write first; declining falls back to copy-prompt.
-- [ ] Each adapter's config write passes the DEC-011 recognized-entry
+- [x] Each adapter's config write passes the DEC-011 recognized-entry
       gate; a conflicting foreign entry is surfaced, never overwritten.
-- [ ] `veri check` reports zero issues.
+- [x] `veri check` reports zero issues.
 
 ## Receipts
+
+- 2026-08-08 · 4672af9 · packages/ui/src/lib/agents.ts (+tests),
+  mcpconfig.ts, main.ts, preload.mts, renderer/{api,app,derive}.ts,
+  views/workorder.ts, renderer/styles.css, design/agent-handoff/ ·
+  Adapter registry + picker + kickoff prompt per SRC-003; 79 tests pass,
+  veri check clean, verified via screenshot harness.
