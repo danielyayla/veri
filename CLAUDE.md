@@ -26,6 +26,11 @@ This repo is self-hosted: Veri is built by executing Veri work orders.
    criteria are checked AND at least one receipt exists.
 6. Run `veri check` (once WO-002 is done) before declaring any work
    complete. Zero issues is the bar.
+7. Any work order touching `packages/ui` must link a design document
+   (`rel: designed-by`) before implementation (see DEC-012). If none
+   exists, produce the design first with Claude Design, commit it as a
+   `source` document in `veri/`, and stop for user approval before
+   writing code.
 
 ## Document format
 

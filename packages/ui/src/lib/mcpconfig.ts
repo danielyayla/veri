@@ -58,7 +58,7 @@ function expandTilde(path: string): string {
  * and nothing else. Anything different is a foreign entry the panel must show
  * and never silently overwrite.
  */
-function recognizedEntry(value: unknown): VeriEntry | null {
+export function recognizedEntry(value: unknown): VeriEntry | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
   const keys = Object.keys(value);
   if (keys.length !== 2 || !('command' in value) || !('args' in value)) return null;

@@ -11,6 +11,9 @@ contextBridge.exposeInMainWorld('veri', {
   mcpStatus: () => ipcRenderer.invoke('veri:mcp-status'),
   mcpSetup: () => ipcRenderer.invoke('veri:mcp-setup'),
   mcpFixRoot: () => ipcRenderer.invoke('veri:mcp-fix-root'),
+  agents: () => ipcRenderer.invoke('veri:agents'),
+  agentLaunch: (id: string, binPath: string, prompt: string, setup: boolean) =>
+    ipcRenderer.invoke('veri:agent-launch', id, binPath, prompt, setup),
   onMcpChanged: (cb: (external: boolean) => void) => {
     ipcRenderer.on('veri:mcp-changed', (_e, external: boolean) => cb(external));
   },

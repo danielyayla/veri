@@ -11,6 +11,7 @@ import {
   graphLayout,
   insertAutocomplete,
   issuesByDoc,
+  kickoffPrompt,
   packageSummary,
   receipts,
 } from './derive.ts';
@@ -166,4 +167,11 @@ test('autocomplete triggers on [[ and inserts a closed wiki-link', () => {
   const items = autocomplete(s, 'see [[off')!;
   assert.deepEqual(items.map((i) => i.id), ['REQ-001']);
   assert.equal(insertAutocomplete('see [[off', 'REQ-001'), 'see [[REQ-001]] ');
+});
+
+test('kickoffPrompt names the work order and the MCP fetch, provider-free', () => {
+  const prompt = kickoffPrompt('WO-011', 'Agent handoff');
+  assert.match(prompt, /^Implement WO-011 — Agent handoff\.\n/);
+  assert.match(prompt, /get_context\("WO-011"\)/);
+  assert.doesNotMatch(prompt, /Claude|ChatGPT|Cursor|Gemini|Codex/);
 });

@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Veri — Agent handoff prototype</title>
+<style>
+  :root{
+    --bg:#0F0F11; --card:#151519; --border:#26262C; --border2:#1F1F24;
+    --div:#1B1B20; --accent:#E8703A; --on-accent:#141414;
+    --green:#7FAF8A; --amber:#D9A03F; --amber-border:#3A3020;
+    --t1:#E7E4DE; --t2:#C9C6CF; --t3:#A09DA6; --t4:#8B8893;
+    --t5:#6E6B76; --t6:#55525E; --t7:#4A4852;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--bg);color:var(--t1);
+    font-family:'Source Sans 3',-apple-system,sans-serif;
+    display:flex;justify-content:center;padding:48px 20px;}
+  .mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+  .wrap{width:340px}
+  .scenario{margin-bottom:26px;display:flex;gap:6px;align-items:center}
+  .scenario span{font:10px 'JetBrains Mono',monospace;color:var(--t5);letter-spacing:.1em}
+  .scenario button{font:10.5px 'JetBrains Mono',monospace;background:none;
+    border:1px solid var(--border);color:var(--t4);border-radius:6px;
+    padding:3px 8px;cursor:pointer}
+  .scenario button.on{color:var(--accent);border-color:#3A2418}
+
+  .micro{font:10px 'JetBrains Mono',monospace;letter-spacing:.1em;color:var(--t5);text-transform:uppercase}
+  .pkg-head{display:flex;justify-content:space-between;margin-bottom:8px}
+  .pkg-total{font:10.5px 'JetBrains Mono',monospace;color:var(--t6)}
+  .pkg-card{background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:6px 0 10px}
+  .pkg-row{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:12.5px}
+  .sw{width:8px;height:8px;border-radius:2px;flex:none}
+  .pid{font:11px 'JetBrains Mono',monospace}
+  .ptitle{color:var(--t3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ptok{font:10.5px 'JetBrains Mono',monospace;color:var(--t6)}
+  .pkg-note{font:10.5px 'JetBrains Mono',monospace;color:var(--t6);padding:8px 14px 0;border-top:1px solid var(--div);margin-top:6px;line-height:1.7}
+
+  .buttons{margin-top:14px;display:flex;flex-direction:column;gap:8px;position:relative}
+  .btn-primary{height:34px;border-radius:7px;background:var(--accent);color:var(--on-accent);
+    font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
+  .btn-primary:hover{filter:brightness(1.1)}
+  .btn-primary .caret{font:11px 'JetBrains Mono',monospace}
+  .btn-secondary{height:30px;border-radius:7px;border:1px solid var(--border);color:var(--t3);
+    font-size:12.5px;font-weight:500;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .btn-secondary:hover{border-color:#3A3A44}
+  .btn-secondary.copied{color:var(--green);border-color:#243026}
+  .ghost{font:10.5px 'JetBrains Mono',monospace;color:var(--t5);text-align:right;cursor:pointer;padding:2px 0}
+  .ghost:hover{color:var(--t3)}
+  .feedback{font-size:11.5px;min-height:16px;margin-top:2px}
+  .feedback.ok{color:var(--green)} .feedback.err{color:var(--amber)}
+
+  .picker{position:absolute;top:40px;left:0;right:0;background:var(--card);
+    border:1px solid var(--border);border-radius:8px;box-shadow:0 12px 32px rgba(0,0,0,.5);
+    z-index:5;overflow:hidden}
+  .picker-head{padding:10px 12px 6px}
+  .hint{font-size:11.5px;color:var(--amber);padding:0 12px 8px;line-height:1.5}
+  .row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--div)}
+  .row.act:hover{background:#1B1B20}
+  .row.dim{opacity:.45}
+  .rname{font-size:13px;font-weight:500}
+  .rdetail{font:10.5px 'JetBrains Mono',monospace;color:var(--t6);margin-top:2px}
+  .rdetail.warn{color:var(--amber)}
+  .rmain{flex:1;min-width:0}
+  .chip{font-size:11px;font-weight:600;border-radius:6px;padding:4px 10px;cursor:pointer;flex:none}
+  .chip.launch{background:rgba(232,112,58,.12);border:1px solid #3A2418;color:var(--accent)}
+  .chip.setup{background:rgba(217,160,63,.12);border:1px solid var(--amber-border);color:var(--amber)}
+  .chip.copy{background:none;border:1px solid var(--border);color:var(--t3)}
+  .chip:hover{filter:brightness(1.15)}
+  .dash{font:10.5px 'JetBrains Mono',monospace;color:var(--t6)}
+  .launching{font:10.5px 'JetBrains Mono',monospace;color:var(--t5)}
+  .picker-foot{font:10.5px 'JetBrains Mono',monospace;color:var(--t6);
+    border-top:1px solid var(--div);padding:8px 12px}
+  .picker-foot a{color:var(--accent);text-decoration:none;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="scenario">
+    <span>SCENARIO</span>
+    <button data-s="mixed" class="on">mixed</button>
+    <button data-s="all">all detected</button>
+    <button data-s="none">none detected</button>
+  </div>
+
+  <div class="pkg-head"><span class="micro">Context package</span><span class="pkg-total">~6.1k tokens</span></div>
+  <div class="pkg-card">
+    <div class="pkg-row"><span class="sw" style="background:#E8703A"></span><span class="pid" style="color:#E8703A">WO-011</span><span class="ptitle">Agent handoff — kickoff prompt…</span><span class="ptok">1.8k</span></div>
+    <div class="pkg-row"><span class="sw" style="background:#7EA6C4"></span><span class="pid" style="color:#7EA6C4">REQ-007</span><span class="ptitle">Agent handoff</span><span class="ptok">1.4k</span></div>
+    <div class="pkg-row"><span class="sw" style="background:#B48EAD"></span><span class="pid" style="color:#B48EAD">DEC-011</span><span class="ptitle">Recognized entry shape gates…</span><span class="ptok">0.9k</span></div>
+    <div class="pkg-row"><span class="sw" style="background:#B48EAD"></span><span class="pid" style="color:#B48EAD">DEC-012</span><span class="ptitle">UI changes require a design…</span><span class="ptok">0.8k</span></div>
+    <div class="pkg-note">assembled fresh from current doc versions<br/>git main @ 681efd6</div>
+  </div>
+
+  <div class="buttons" id="buttons">
+    <div class="btn-primary" id="start">Start agent session <span class="caret" id="caret">▾</span></div>
+    <div class="btn-secondary" id="kickoff">Copy kickoff prompt</div>
+    <div class="ghost" id="full">copy full package</div>
+    <div class="feedback" id="feedback"></div>
+    <div class="picker" id="picker" role="menu" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+const KICKOFF = 'Implement WO-011 — Agent handoff — Copy Kickoff Prompt and Start Agent Session.\nBefore writing any code, fetch the full context package with the Veri MCP tool: get_context("WO-011"). Follow the linked decisions and stay inside the work order\'s scope.';
+
+const AGENTS = {
+  mixed: [
+    {name:'Claude Code', state:'connected', detail:'~/.local/bin/claude'},
+    {name:'Cursor', state:'setup', detail:'mcp config: veri entry missing'},
+    {name:'Codex CLI', state:'missing'},
+    {name:'Gemini CLI', state:'missing'},
+  ],
+  all: [
+    {name:'Claude Code', state:'connected', detail:'~/.local/bin/claude'},
+    {name:'Cursor', state:'connected', detail:'/usr/local/bin/cursor'},
+    {name:'Codex CLI', state:'setup', detail:'mcp config: veri entry missing'},
+    {name:'Gemini CLI', state:'connected', detail:'~/.local/bin/gemini'},
+  ],
+  none: [
+    {name:'Claude Code', state:'missing'},
+    {name:'Cursor', state:'missing'},
+    {name:'Codex CLI', state:'missing'},
+    {name:'Gemini CLI', state:'missing'},
+  ],
+};
+
+let scenario='mixed', open=false;
+const picker=document.getElementById('picker'), fb=document.getElementById('feedback');
+
+function feedback(msg, ok){ fb.textContent=msg; fb.className='feedback '+(ok?'ok':'err');
+  if(ok) setTimeout(()=>{ if(fb.textContent===msg) fb.textContent=''; },4000); }
+
+function copyFlash(el, orig){ el.textContent='✓ Copied'; el.classList.add('copied');
+  navigator.clipboard && navigator.clipboard.writeText(KICKOFF);
+  setTimeout(()=>{ el.textContent=orig; el.classList.remove('copied'); },1800); }
+
+function render(){
+  const rows=AGENTS[scenario];
+  let html='<div class="picker-head micro">Start a session in</div>';
+  if(rows.every(r=>r.state==='missing'))
+    html+='<div class="hint">No local agents detected — use Copy kickoff prompt with any agent.</div>';
+  for(const [i,r] of rows.entries()){
+    if(r.state==='missing'){
+      html+=`<div class="row dim" aria-disabled="true"><div class="rmain"><div class="rname">${r.name}</div><div class="rdetail">not detected on this machine</div></div><span class="dash">—</span></div>`;
+    } else if(r.state==='connected'){
+      html+=`<div class="row act"><div class="rmain"><div class="rname">${r.name}</div><div class="rdetail">${r.detail}</div></div><span class="chip launch" data-i="${i}" data-a="launch">Launch</span></div>`;
+    } else {
+      html+=`<div class="row act"><div class="rmain"><div class="rname">${r.name}</div><div class="rdetail warn">${r.detail}</div></div><span class="chip setup" data-i="${i}" data-a="setup">Set up &amp; launch</span></div>`;
+    }
+  }
+  html+=`<div class="row act"><div class="rmain"><div class="rname">Web chat (ChatGPT, Claude.ai, …)</div><div class="rdetail">can't be launched with a local MCP server</div></div><span class="chip copy" data-a="copyweb">Copy prompt</span></div>`;
+  html+=`<div class="picker-foot">launches in ~/dev/skiff · <a id="conn">connection settings →</a></div>`;
+  picker.innerHTML=html;
+}
+
+document.getElementById('start').onclick=(e)=>{ e.stopPropagation();
+  open=!open; render(); picker.style.display=open?'block':'none';
+  document.getElementById('caret').textContent=open?'▴':'▾'; };
+
+picker.addEventListener('click',(e)=>{ e.stopPropagation();
+  const chip=e.target.closest('.chip'); if(!chip) return;
+  const a=chip.dataset.a;
+  if(a==='copyweb'){ navigator.clipboard&&navigator.clipboard.writeText(KICKOFF);
+    close(); feedback('✓ Kickoff prompt copied', true); return; }
+  const agent=AGENTS[scenario][chip.dataset.i].name;
+  chip.outerHTML='<span class="launching">launching…</span>';
+  setTimeout(()=>{ close(); feedback(`✓ Launched ${agent} — check your terminal`, true); },700);
+});
+
+function close(){ open=false; picker.style.display='none';
+  document.getElementById('caret').textContent='▾'; }
+document.body.addEventListener('click',close);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
+
+document.getElementById('kickoff').onclick=function(e){ e.stopPropagation(); copyFlash(this,'Copy kickoff prompt'); };
+document.getElementById('full').onclick=function(e){ e.stopPropagation();
+  this.textContent='✓ copied full package'; setTimeout(()=>this.textContent='copy full package',1800); };
+
+document.querySelectorAll('.scenario button').forEach(b=>b.onclick=(e)=>{ e.stopPropagation();
+  scenario=b.dataset.s;
+  document.querySelectorAll('.scenario button').forEach(x=>x.classList.toggle('on',x===b));
+  if(open) render(); });
+</script>
+</body>
+</html>

@@ -380,3 +380,17 @@ export function autocomplete(snap: Snapshot, text: string): AutocompleteItem[] |
 export function insertAutocomplete(text: string, id: string): string {
   return text.replace(/\[\[([^\]]*)$/, `[[${id}]] `);
 }
+
+/**
+ * The agent-neutral kickoff prompt (REQ-007). Exact template from the
+ * SRC-003 design — plain text, no markdown, no provider names. Used verbatim
+ * by Copy kickoff prompt and as the launch prompt for Start agent session.
+ */
+export function kickoffPrompt(id: string, title: string): string {
+  return (
+    `Implement ${id} — ${title}.\n` +
+    `Before writing any code, fetch the full context package with the Veri ` +
+    `MCP tool: get_context("${id}"). Follow the linked decisions and stay ` +
+    `inside the work order's scope.`
+  );
+}

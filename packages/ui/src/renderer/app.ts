@@ -9,6 +9,8 @@ import { TYPE_META, relTime } from './theme.ts';
 import { docsById, issueDocId, issuesByDoc, packageSummary } from './derive.ts';
 import type { ActivityRow, DocsById, PackageSummary } from './derive.ts';
 import type { McpStatus } from '../lib/mcpconfig.ts';
+import type { AgentInfo } from '../lib/agents.ts';
+import { kickoffPrompt } from './derive.ts';
 import { readerView } from './views/reader.ts';
 import { mcpView } from './views/mcp.ts';
 import { workOrderView } from './views/workorder.ts';
@@ -26,7 +28,12 @@ export interface State {
   editorText: string;
   editorFocused: boolean;
   copied: boolean;
-  mcpShown: boolean;
+  kickoffCopied: boolean;
+  /** Agent picker (WO-011): open flag, fresh detection results, and feedback. */
+  agentsOpen: boolean;
+  agents: AgentInfo[] | null;
+  agentLaunching: string | null;
+  agentLaunchMsg: { ok: boolean; text: string } | null;
   checkOpen: boolean;
   searchOpen: boolean;
   searchQuery: string;
@@ -62,6 +69,9 @@ export interface Ctx {
   refresh(): Promise<void>;
   loadPackage(id: string): void;
   refreshMcp(): Promise<void>;
+  toggleAgentPicker(): void;
+  launchAgent(info: AgentInfo): void;
+  copyKickoff(): void;
   flashCopied(): void;
   flashMcpCmdCopied(): void;
   sessionLog(id: string, row: ActivityRow): void;
@@ -85,7 +95,11 @@ class App implements Ctx {
     editorText: '',
     editorFocused: false,
     copied: false,
-    mcpShown: false,
+    kickoffCopied: false,
+    agentsOpen: false,
+    agents: null,
+    agentLaunching: null,
+    agentLaunchMsg: null,
     checkOpen: false,
     searchOpen: false,
     searchQuery: '',
@@ -100,6 +114,7 @@ class App implements Ctx {
   };
   private sessionActivity = new Map<string, ActivityRow[]>();
   private copyTimer: ReturnType<typeof setTimeout> | undefined;
+  private kickoffTimer: ReturnType<typeof setTimeout> | undefined;
   private mcpCmdTimer: ReturnType<typeof setTimeout> | undefined;
   private root: HTMLElement;
   private recentProjects: ProjectInfo[] = [];
@@ -133,14 +148,18 @@ class App implements Ctx {
         this.surfaceProjectError(this.api.openProjectFolder());
       } else if (
         e.key === 'Escape' &&
-        (this.state.searchOpen || this.state.checkOpen || this.state.projectSwitcherOpen || this.state.projectError !== null)
+        (this.state.searchOpen ||
+          this.state.checkOpen ||
+          this.state.projectSwitcherOpen ||
+          this.state.agentsOpen ||
+          this.state.projectError !== null)
       ) {
-        this.update({ searchOpen: false, checkOpen: false, projectSwitcherOpen: false, projectError: null });
+        this.update({ searchOpen: false, checkOpen: false, projectSwitcherOpen: false, agentsOpen: false, projectError: null });
       }
     });
     document.addEventListener('click', () => {
-      if (this.state.projectSwitcherOpen || this.state.projectError !== null) {
-        this.update({ projectSwitcherOpen: false, projectError: null });
+      if (this.state.projectSwitcherOpen || this.state.agentsOpen || this.state.projectError !== null) {
+        this.update({ projectSwitcherOpen: false, agentsOpen: false, projectError: null });
       }
     });
     this.render();
@@ -190,7 +209,9 @@ class App implements Ctx {
       editorText: '',
       editorFocused: false,
       copied: false,
-      mcpShown: false,
+      kickoffCopied: false,
+      agentsOpen: false,
+      agentLaunchMsg: null,
     });
   }
 
@@ -232,6 +253,55 @@ class App implements Ctx {
     clearTimeout(this.copyTimer);
     this.update({ copied: true });
     this.copyTimer = setTimeout(() => this.update({ copied: false }), 1800);
+  }
+
+  /** Open = re-detect from disk/PATH right now (DEC-002: nothing cached). */
+  toggleAgentPicker(): void {
+    if (this.state.agentsOpen) {
+      this.update({ agentsOpen: false });
+      return;
+    }
+    this.update({ agentsOpen: true, agents: null, agentLaunchMsg: null });
+    void this.api.agents().then((agents) => {
+      if (this.state.agentsOpen) this.update({ agents });
+    });
+  }
+
+  launchAgent(info: AgentInfo): void {
+    const doc = this.doc();
+    if (doc === null || info.binPath === null || this.state.agentLaunching !== null) return;
+    const prompt = kickoffPrompt(doc.id, doc.title);
+    this.update({ agentLaunching: info.id });
+    void this.api.agentLaunch(info.id, info.binPath, prompt, info.status === 'not-connected').then((err) => {
+      if (err === null) {
+        this.sessionLog(doc.id, { agent: false, text: `Started a ${info.name} session`, time: 'today' });
+        this.update({
+          agentsOpen: false,
+          agentLaunching: null,
+          agentLaunchMsg: { ok: true, text: `✓ Launched ${info.name} — check your terminal` },
+        });
+        setTimeout(() => {
+          if (this.state.agentLaunchMsg?.ok === true) this.update({ agentLaunchMsg: null });
+        }, 4000);
+      } else {
+        // Picker stays open (SRC-003); the row's config state may have changed.
+        this.update({
+          agentLaunching: null,
+          agentLaunchMsg: { ok: false, text: `Couldn't launch ${info.name} — ${err}. Copy the kickoff prompt instead.` },
+        });
+      }
+    });
+  }
+
+  copyKickoff(): void {
+    const doc = this.doc();
+    if (doc === null) return;
+    void this.api.copyText(kickoffPrompt(doc.id, doc.title)).then(() => {
+      this.sessionLog(doc.id, { agent: false, text: 'Copied the kickoff prompt', time: 'today' });
+      clearTimeout(this.kickoffTimer);
+      this.update({ kickoffCopied: true, agentsOpen: false });
+      this.kickoffTimer = setTimeout(() => this.update({ kickoffCopied: false }), 1800);
+    });
   }
 
   flashMcpCmdCopied(): void {

@@ -132,6 +132,94 @@ function decisionDetail(ctx: Ctx, target: VeriDocument): HTMLElement | null {
   return h('div', { class: 'linked-body linked-rationale' }, ...renderBlocks(blocks, ctx.byId, ctx));
 }
 
+function tildify(path: string, home: string): string {
+  return path === home || path.startsWith(`${home}/`) ? `~${path.slice(home.length)}` : path;
+}
+
+/**
+ * Start-agent-session picker (SRC-003). Rows come straight from the adapter
+ * registry: detected+connected → Launch, detected without a veri entry →
+ * Set up & launch, not installed → visible but inert (the roster doubles as
+ * documentation), plus a copy-only row for web chat apps. A foreign veri
+ * entry is surfaced and launched with as-is, never rewritten (DEC-011).
+ */
+function agentPicker(ctx: Ctx): HTMLElement {
+  const agents = ctx.state.agents;
+  const home = ctx.state.mcpStatus?.home ?? '';
+
+  const rows: (HTMLElement | null)[] = [];
+  if (agents === null) {
+    rows.push(h('div', { class: 'ap-row' }, h('div', { class: 'ap-detail' }, 'detecting…')));
+  } else {
+    if (agents.every((a) => a.status === 'not-installed')) {
+      rows.push(h('div', { class: 'ap-hint' }, 'No local agents detected — use Copy kickoff prompt with any agent.'));
+    }
+    for (const a of agents) {
+      const launching = ctx.state.agentLaunching === a.id;
+      const chip = (label: string, cls: string): HTMLElement =>
+        launching
+          ? h('span', { class: 'ap-launching' }, 'launching…')
+          : h('span', { class: `ap-chip ${cls}`, onClick: () => ctx.launchAgent(a) }, label);
+      if (a.status === 'not-installed') {
+        rows.push(
+          h(
+            'div',
+            { class: 'ap-row ap-row-dim' },
+            h('div', { class: 'ap-main' }, h('div', { class: 'ap-name' }, a.name), h('div', { class: 'ap-detail' }, 'not detected on this machine')),
+            h('span', { class: 'ap-dash' }, '—'),
+          ),
+        );
+      } else if (a.status === 'not-connected') {
+        rows.push(
+          h(
+            'div',
+            { class: 'ap-row ap-row-act' },
+            h('div', { class: 'ap-main' }, h('div', { class: 'ap-name' }, a.name), h('div', { class: 'ap-detail ap-warn' }, 'mcp config: veri entry missing')),
+            chip('Set up & launch', 'ap-chip-setup'),
+          ),
+        );
+      } else {
+        const detail =
+          a.status === 'conflict'
+            ? h('div', { class: 'ap-detail ap-warn' }, 'veri entry not written by Veri — left untouched')
+            : h('div', { class: 'ap-detail' }, tildify(a.binPath ?? '', home));
+        rows.push(
+          h(
+            'div',
+            { class: 'ap-row ap-row-act' },
+            h('div', { class: 'ap-main' }, h('div', { class: 'ap-name' }, a.name), detail),
+            chip('Launch', 'ap-chip-launch'),
+          ),
+        );
+      }
+    }
+  }
+
+  return h(
+    'div',
+    { class: 'ap-pop', onClick: (e) => e.stopPropagation() },
+    h('div', { class: 'ap-head micro-label' }, 'START A SESSION IN'),
+    ...rows,
+    h(
+      'div',
+      { class: 'ap-row ap-row-act' },
+      h(
+        'div',
+        { class: 'ap-main' },
+        h('div', { class: 'ap-name' }, 'Web chat (ChatGPT, Claude.ai, …)'),
+        h('div', { class: 'ap-detail' }, "can't be launched with a local MCP server"),
+      ),
+      h('span', { class: 'ap-chip ap-chip-copy', onClick: () => ctx.copyKickoff() }, 'Copy prompt'),
+    ),
+    h(
+      'div',
+      { class: 'ap-foot' },
+      `launches in ${tildify(ctx.snap.root, home)} · `,
+      h('span', { class: 'mcp-snippet-link', onClick: () => ctx.setView('mcp') }, 'connection settings →'),
+    ),
+  );
+}
+
 function contextPanel(ctx: Ctx, doc: VeriDocument): HTMLElement {
   const pkg = ctx.pkg.get(doc.id);
   if (pkg === undefined) ctx.loadPackage(doc.id);
@@ -150,11 +238,35 @@ function contextPanel(ctx: Ctx, doc: VeriDocument): HTMLElement {
       );
     }) ?? [h('div', { class: 'pkg-loading' }, 'assembling…')];
 
-  const copy = h(
+  // Agent handoff (WO-011 / SRC-003): Start agent session picker, kickoff
+  // prompt copy, and the full-package copy demoted to a ghost link.
+  const start = h(
     'div',
     {
       class: 'btn-primary',
-      style: ctx.state.copied ? 'background:rgba(127,175,138,0.15);color:#7FAF8A;' : '',
+      onClick: (e) => {
+        e.stopPropagation();
+        ctx.toggleAgentPicker();
+      },
+    },
+    'Start agent session ',
+    h('span', { class: 'ap-caret' }, ctx.state.agentsOpen ? '▴' : '▾'),
+  );
+
+  const kickoff = h(
+    'div',
+    {
+      class: 'btn-secondary',
+      style: ctx.state.kickoffCopied ? 'color:#7FAF8A;border-color:#243026;' : '',
+      onClick: () => ctx.copyKickoff(),
+    },
+    ctx.state.kickoffCopied ? '✓ Copied' : 'Copy kickoff prompt',
+  );
+
+  const fullCopy = h(
+    'div',
+    {
+      class: 'pkg-ghost',
       onClick: () => {
         if (pkg === undefined) return;
         void ctx.api.copyText(pkg.text).then(() => {
@@ -163,23 +275,15 @@ function contextPanel(ctx: Ctx, doc: VeriDocument): HTMLElement {
         });
       },
     },
-    ctx.state.copied ? '✓ Copied' : 'Copy for agent',
+    ctx.state.copied ? '✓ copied full package' : 'copy full package',
   );
 
-  const mcp = ctx.state.mcpShown
-    ? h(
-        'div',
-        { class: 'mcp-snippet' },
-        h('div', { class: 'mcp-dim' }, '# agent fetches with'),
-        h('div', { class: 'mcp-code' }, 'veri.get_context(', h('span', { style: 'color:#E8703A;' }, `"${doc.id}"`), ')'),
-        h(
-          'div',
-          { class: 'mcp-dim', style: 'margin-top:4px;' },
-          'via .mcp.json · ',
-          h('span', { class: 'mcp-snippet-link', onClick: () => ctx.setView('mcp') }, 'connection settings →'),
-        ),
-      )
-    : null;
+  const msg = ctx.state.agentLaunchMsg;
+  const feedback = h(
+    'div',
+    { class: msg === null ? 'pkg-feedback' : msg.ok ? 'pkg-feedback pkg-feedback-ok' : 'pkg-feedback pkg-feedback-err' },
+    msg?.text ?? '',
+  );
 
   return h(
     'div',
@@ -202,13 +306,7 @@ function contextPanel(ctx: Ctx, doc: VeriDocument): HTMLElement {
         git === null ? 'not a git repository' : `git ${git.branch} @ ${git.sha}`,
       ),
     ),
-    h(
-      'div',
-      { class: 'pkg-buttons' },
-      copy,
-      h('div', { class: 'btn-secondary', onClick: () => ctx.update({ mcpShown: !ctx.state.mcpShown }) }, 'Serve via MCP'),
-    ),
-    mcp,
+    h('div', { class: 'pkg-buttons-col' }, start, kickoff, fullCopy, feedback, ctx.state.agentsOpen ? agentPicker(ctx) : null),
     h('div', { class: 'micro-label', style: 'margin-top:22px;' }, 'PACKAGE RULES'),
     h(
       'div',

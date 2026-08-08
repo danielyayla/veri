@@ -1,4 +1,5 @@
 import type { ContextPackage, SearchHit } from '@veri/mcp';
+import type { AgentId, AgentInfo } from '../lib/agents.ts';
 import type { McpStatus } from '../lib/mcpconfig.ts';
 import type { Snapshot } from '../lib/snapshot.ts';
 
@@ -22,6 +23,10 @@ export interface VeriApi {
   /** Setup and "Replace with Veri's entry" are the same write. */
   mcpSetup(): Promise<void>;
   mcpFixRoot(): Promise<void>;
+  /** Fresh adapter detection (PATH + configs read from disk on every call). */
+  agents(): Promise<AgentInfo[]>;
+  /** Optionally write the veri entry, then launch; error message or null. */
+  agentLaunch(id: AgentId, binPath: string, prompt: string, setup: boolean): Promise<string | null>;
   /** Fires on any .mcp.json change; external=false for the panel's own writes. */
   onMcpChanged(cb: (external: boolean) => void): void;
   listRecentProjects(): Promise<ProjectInfo[]>;

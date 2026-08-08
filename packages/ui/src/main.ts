@@ -6,6 +6,8 @@ import { BrowserWindow, app, clipboard, dialog, ipcMain } from 'electron';
 import { assembleContext, searchDocs } from '@veri/mcp';
 import { findProjectRoot, isVeriProject } from './lib/root.ts';
 import { fixRootArg, mcpStatus, writeVeriEntry } from './lib/mcpconfig.ts';
+import { connectAgent, detectAgents, launchAgent } from './lib/agents.ts';
+import type { AgentId } from './lib/agents.ts';
 import { buildSnapshot } from './lib/snapshot.ts';
 import { appendNote, setStatus } from './lib/write.ts';
 import type { ProjectInfo } from './renderer/api.ts';
@@ -85,6 +87,19 @@ function registerIpc(): void {
   ipcMain.handle('veri:mcp-status', () => mcpStatus(projectRoot, mcpServerJs));
   ipcMain.handle('veri:mcp-setup', () => mcpWrite(() => writeVeriEntry(projectRoot, mcpServerJs)));
   ipcMain.handle('veri:mcp-fix-root', () => mcpWrite(() => fixRootArg(projectRoot)));
+  ipcMain.handle('veri:agents', () => detectAgents(projectRoot));
+  // Start agent session (WO-011): optional config write (DEC-011-gated),
+  // then spawn the agent in a terminal. Resolves to an error message or null
+  // so the picker can stay open and explain a failure.
+  ipcMain.handle('veri:agent-launch', async (_e, id: AgentId, binPath: string, prompt: string, setup: boolean) => {
+    try {
+      if (setup) await mcpWrite(() => connectAgent(projectRoot, mcpServerJs, id));
+      await launchAgent(projectRoot, id, binPath, prompt);
+      return null;
+    } catch (err) {
+      return err instanceof Error ? err.message : String(err);
+    }
+  });
   ipcMain.handle('veri:list-recent-projects', async () => {
     const projects = await getRecentProjects();
     const updated = await Promise.all(
