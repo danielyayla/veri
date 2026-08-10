@@ -2,7 +2,7 @@
 id: WO-016
 type: work-order
 title: Approval gate core — schema, check rules, proposal-only writeback
-status: in-progress
+status: done
 created: 2026-08-10
 updated: 2026-08-10
 links:
@@ -51,14 +51,16 @@ MCP writeback, the labeled pending block in context assembly, and a
 
 ## Acceptance criteria
 
-- [ ] `file_decision` cannot produce a non-`proposed` decision.
-- [ ] `veri check` flags an in-progress WO depending on a pending doc,
+- [x] `file_decision` cannot produce a non-`proposed` decision.
+- [x] `veri check` flags an in-progress WO depending on a pending doc,
       and passes the same WO in `backlog`.
-- [ ] `veri check` flags `active`/`accepted` without `approved`.
-- [ ] Context package for a WO citing a pending doc shows it only in
+- [x] `veri check` flags `active`/`accepted` without `approved`.
+- [x] Context package for a WO citing a pending doc shows it only in
       the labeled pending block.
-- [ ] `veri approve` performs the exact stamp-and-flip edit and refuses
+- [x] `veri approve` performs the exact stamp-and-flip edit and refuses
       on documents with check issues.
-- [ ] Migration commit landed; `npm test` and `veri check` clean.
+- [x] Migration commit landed; `npm test` and `veri check` clean.
 
 ## Receipts
+
+- 2026-08-10 — fa0dada + 25baf52 — packages/core (schema, types, parse, check, approve, index, tests+fixtures), packages/mcp (writeback, server, context, tests+fixtures), packages/cli (commands, cli, templates, tests+fixtures), veri/ corpus stamps, CLAUDE.md, REQ-003, DEC-015 — approval gate shipped: proposed status, approved: stamps, gated-wo + missing-approval checks, proposal-only file_decision, pending block in context assembly, veri approve; 69/69 core+mcp+cli tests, veri check clean.
