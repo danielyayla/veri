@@ -3,6 +3,7 @@ id: DEC-006
 type: decision
 title: Context packages are rendered markdown over an undirected 2-hop neighborhood
 status: active
+approved: 2026-08-10
 created: 2026-08-06
 updated: 2026-08-06
 links:

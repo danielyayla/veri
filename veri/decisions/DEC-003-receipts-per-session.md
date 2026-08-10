@@ -3,6 +3,7 @@ id: DEC-003
 type: decision
 title: Receipts are per execution session, 0..n per work order
 status: active
+approved: 2026-08-10
 created: 2026-08-06
 updated: 2026-08-06
 links:

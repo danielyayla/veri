@@ -3,6 +3,7 @@ id: DEC-013
 type: decision
 title: Sessions launch via a temp .command in Terminal.app; TOML configs get a regex-scoped veri gate
 status: active
+approved: 2026-08-10
 created: 2026-08-08
 updated: 2026-08-08
 links:

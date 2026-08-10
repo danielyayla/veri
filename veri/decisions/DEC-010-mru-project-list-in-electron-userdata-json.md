@@ -3,6 +3,7 @@ id: DEC-010
 type: decision
 title: "MRU project list stored as JSON in Electron userData"
 status: active
+approved: 2026-08-10
 created: 2026-08-07
 updated: 2026-08-07
 links:

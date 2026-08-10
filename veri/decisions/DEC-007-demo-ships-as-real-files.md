@@ -3,6 +3,7 @@ id: DEC-007
 type: decision
 title: Demo ships as real markdown files inside the CLI package
 status: active
+approved: 2026-08-10
 created: 2026-08-06
 updated: 2026-08-06
 links:

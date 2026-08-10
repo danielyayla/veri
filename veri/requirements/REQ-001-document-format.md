@@ -3,6 +3,7 @@ id: REQ-001
 type: requirement
 title: Linked markdown document format
 status: accepted
+approved: 2026-08-10
 created: 2026-08-06
 updated: 2026-08-06
 links:

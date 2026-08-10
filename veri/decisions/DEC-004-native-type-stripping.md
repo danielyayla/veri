@@ -3,6 +3,7 @@ id: DEC-004
 type: decision
 title: Native Node type stripping for dev; tsc emit for publishing
 status: active
+approved: 2026-08-10
 created: 2026-08-06
 updated: 2026-08-06
 links:

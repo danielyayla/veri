@@ -3,6 +3,7 @@ id: DEC-014
 type: decision
 title: "Pins and recents persist as one workspace-state JSON in Electron userData"
 status: active
+approved: 2026-08-10
 created: 2026-08-10
 updated: 2026-08-10
 links:

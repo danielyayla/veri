@@ -3,6 +3,7 @@ id: DEC-002
 type: decision
 title: Markdown files are the source of truth; no database in v1
 status: active
+approved: 2026-08-10
 created: 2026-08-06
 updated: 2026-08-06
 links:

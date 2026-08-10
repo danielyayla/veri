@@ -3,6 +3,7 @@ id: DEC-012
 type: decision
 title: UI changes require a linked design artifact before implementation
 status: active
+approved: 2026-08-10
 created: 2026-08-08
 updated: 2026-08-08
 links:

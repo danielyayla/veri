@@ -18,8 +18,10 @@ This repo is self-hosted: Veri is built by executing Veri work orders.
    "Out of scope" is forbidden, even if it seems easy or obvious.
 4. When you make a non-trivial technical choice during implementation
    (library selection, algorithm, schema shape), file it as a new decision
-   in `veri/decisions/` using the next free DEC id, status `active`,
-   with the alternatives you rejected.
+   in `veri/decisions/` using the next free DEC id, status `proposed`,
+   with the alternatives you rejected. Never promote a document yourself:
+   `active`/`accepted` (with the `approved:` stamp) is the user's act,
+   via `veri approve` or the app (see REQ-008).
 5. When you finish a work session on a work order, append a receipt to the
    work order file under `## Receipts`: date, commit SHA, files touched,
    one-line summary. A work order is `done` only when all acceptance
@@ -52,9 +54,16 @@ links:
 
 Statuses:
 - requirement: draft → accepted → retired
-- decision: active → superseded (add `superseded_by: DEC-XXX`)
+- decision: proposed → active → superseded (add `superseded_by: DEC-XXX`)
 - work-order: backlog → in-progress → done
 - source: imported
+
+Promotion (draft → accepted, proposed → active) requires an
+`approved: YYYY-MM-DD` frontmatter stamp and belongs to the user alone
+(`veri approve <id>`). `veri check` enforces both the stamp and the gate:
+a work order may not be in-progress/done while it links to an unapproved
+document — draft/proposed documents are visible in context packages but
+never binding (REQ-008).
 
 Cross-references inside body text use `[[ID]]` wiki-link syntax.
 IDs are `REQ-`, `DEC-`, `WO-`, `SRC-` + zero-padded 3-digit number.

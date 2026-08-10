@@ -3,6 +3,7 @@ id: REQ-004
 type: requirement
 title: Desktop UI for browsing and editing the knowledge base
 status: accepted
+approved: 2026-08-10
 created: 2026-08-07
 updated: 2026-08-07
 links:

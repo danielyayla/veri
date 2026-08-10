@@ -3,6 +3,7 @@ id: REQ-002
 type: requirement
 title: CLI for project lifecycle and health
 status: accepted
+approved: 2026-08-10
 created: 2026-08-06
 updated: 2026-08-06
 links:

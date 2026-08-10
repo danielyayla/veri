@@ -3,6 +3,7 @@ id: DEC-009
 type: decision
 title: "UI reuses context assembly and search from @veri/mcp's library exports"
 status: active
+approved: 2026-08-10
 created: 2026-08-07
 updated: 2026-08-07
 links:

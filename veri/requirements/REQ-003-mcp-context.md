@@ -3,6 +3,7 @@ id: REQ-003
 type: requirement
 title: MCP server assembles and serves context packages
 status: accepted
+approved: 2026-08-10
 created: 2026-08-06
 updated: 2026-08-06
 links:
@@ -29,7 +30,8 @@ already rejected.
 - [ ] `search(query)` returns matching documents by ID, title, and body
       text with type and status
 - [ ] `file_decision(...)` creates a valid decision document with the next
-      free DEC id and `status: active`, and returns its ID
+      free DEC id and `status: proposed` (pending user approval per
+      [[REQ-008]]), and returns its ID
 - [ ] `file_receipt(work_order_id, ...)` appends a receipt (date, commit,
       files, summary) to the work order's Receipts section per [[DEC-003]]
 - [ ] All four tools work end-to-end from Claude Code against this repo's

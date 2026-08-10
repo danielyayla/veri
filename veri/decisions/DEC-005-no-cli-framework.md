@@ -3,6 +3,7 @@ id: DEC-005
 type: decision
 title: No argument-parsing library in the CLI
 status: active
+approved: 2026-08-10
 created: 2026-08-06
 updated: 2026-08-06
 links:

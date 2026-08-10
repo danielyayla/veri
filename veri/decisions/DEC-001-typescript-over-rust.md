@@ -3,6 +3,7 @@ id: DEC-001
 type: decision
 title: TypeScript over Rust for v1
 status: active
+approved: 2026-08-10
 created: 2026-08-06
 updated: 2026-08-06
 links:
