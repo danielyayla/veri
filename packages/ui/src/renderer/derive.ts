@@ -359,6 +359,79 @@ export function fileActivity(doc: VeriDocument, rel: (date: string) => string): 
   return rows;
 }
 
+// ---- Home view derivations (WO-015, SRC-005 layer 4) ---------------------
+
+export interface HomeFlightRow {
+  id: string;
+  title: string;
+  status: string;
+  reqCount: number;
+  agent: boolean;
+}
+
+/** IN FLIGHT: work orders in backlog/in-progress, id order, with the
+    Board's receipt-derived agent marker and linked-REQ count. */
+export function inFlight(snap: Snapshot): HomeFlightRow[] {
+  return snap.documents
+    .filter((d) => d.type === 'work-order' && (d.status === 'backlog' || d.status === 'in-progress'))
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map((wo) => ({
+      id: wo.id,
+      title: wo.title,
+      status: wo.status,
+      reqCount: wo.links.filter((l) => l.id.startsWith('REQ-')).length,
+      agent: receipts(wo).some((r) => r.agent),
+    }));
+}
+
+export interface HomeActivityRow {
+  id: string;
+  text: string;
+  time: string;
+  /** YYYY-MM-DD sort key; session rows pass today's date. */
+  date: string;
+}
+
+/**
+ * AGENT ACTIVITY: the project-wide write-back feed — receipts on every work
+ * order plus filed decisions, newest first. In-memory session rows are merged
+ * in by the view (they carry no file date). Capped: a feed, not an archive.
+ */
+export function projectActivity(snap: Snapshot, rel: (date: string) => string, cap = 8): HomeActivityRow[] {
+  const rows: HomeActivityRow[] = [];
+  for (const doc of snap.documents) {
+    if (doc.type === 'work-order') {
+      for (const r of receipts(doc)) {
+        rows.push({
+          id: doc.id,
+          text: `Receipt filed: commit ${r.commit} · ${r.files.length} file${r.files.length === 1 ? '' : 's'}`,
+          time: rel(r.date),
+          date: r.date,
+        });
+      }
+    } else if (doc.type === 'decision') {
+      rows.push({ id: doc.id, text: `Decision filed: ${doc.title}`, time: rel(doc.created), date: doc.created });
+    }
+  }
+  return rows.sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)).slice(0, cap);
+}
+
+export interface ChangedRow {
+  id: string;
+  title: string;
+  time: string;
+}
+
+/** RECENTLY CHANGED: docs by `updated` desc, so external and agent edits
+    surface without hunting. */
+export function recentlyChanged(snap: Snapshot, rel: (date: string) => string, cap = 8): ChangedRow[] {
+  return snap.documents
+    .slice()
+    .sort((a, b) => b.updated.localeCompare(a.updated) || b.id.localeCompare(a.id))
+    .slice(0, cap)
+    .map((d) => ({ id: d.id, title: d.title, time: rel(d.updated) }));
+}
+
 export interface AutocompleteItem {
   id: string;
   title: string;

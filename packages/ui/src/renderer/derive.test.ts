@@ -9,8 +9,11 @@ import {
   connections,
   decisionLog,
   graphLayout,
+  inFlight,
   insertAutocomplete,
   issuesByDoc,
+  projectActivity,
+  recentlyChanged,
   kickoffPrompt,
   packageSummary,
   receipts,
@@ -174,4 +177,56 @@ test('kickoffPrompt names the work order and the MCP fetch, provider-free', () =
   assert.match(prompt, /^Implement WO-011 — Agent handoff\.\n/);
   assert.match(prompt, /get_context\("WO-011"\)/);
   assert.doesNotMatch(prompt, /Claude|ChatGPT|Cursor|Gemini|Codex/);
+});
+
+// ---- Home view derivations (WO-015) ----
+
+test('inFlight lists backlog/in-progress work orders with REQ counts and agent markers', () => {
+  const s = snap([
+    doc({ id: 'WO-010', type: 'work-order', title: 'Later', status: 'backlog' }),
+    doc({
+      id: 'WO-011',
+      type: 'work-order',
+      title: 'Now',
+      status: 'in-progress',
+      links: [{ id: 'REQ-001', rel: 'delivers' }, { id: 'DEC-001', rel: 'constrained-by' }],
+      body: '## Receipts\n\n- 2026-08-09 — abc1234 — a.ts — claude session receipt\n',
+    }),
+    doc({ id: 'WO-012', type: 'work-order', title: 'Done', status: 'done' }),
+  ]);
+  const rows = inFlight(s);
+  assert.deepEqual(rows.map((r) => r.id), ['WO-010', 'WO-011']);
+  assert.equal(rows[0].reqCount, 0);
+  assert.equal(rows[0].agent, false);
+  assert.equal(rows[1].reqCount, 1);
+  assert.equal(rows[1].agent, true);
+});
+
+test('projectActivity interleaves receipts and filed decisions newest-first, capped', () => {
+  const s = snap([
+    doc({ id: 'DEC-020', type: 'decision', title: 'Newest choice', status: 'active', created: '2026-08-09' }),
+    doc({ id: 'DEC-021', type: 'decision', title: 'Older choice', status: 'active', created: '2026-08-01' }),
+    doc({
+      id: 'WO-020',
+      type: 'work-order',
+      title: 'Work',
+      status: 'done',
+      body: '## Receipts\n\n- 2026-08-05 — abc1234 — a.ts, b.ts — did things\n',
+    }),
+  ]);
+  const rows = projectActivity(s, (d) => d);
+  assert.deepEqual(rows.map((r) => r.id), ['DEC-020', 'WO-020', 'DEC-021']);
+  assert.match(rows[1].text, /Receipt filed: commit abc1234 · 2 files/);
+  assert.match(rows[0].text, /Decision filed: Newest choice/);
+  assert.equal(projectActivity(s, (d) => d, 2).length, 2);
+});
+
+test('recentlyChanged orders by updated desc and caps', () => {
+  const s = snap([
+    doc({ id: 'REQ-001', type: 'requirement', title: 'A', status: 'draft', updated: '2026-08-02' }),
+    doc({ id: 'DEC-001', type: 'decision', title: 'B', status: 'active', updated: '2026-08-09' }),
+    doc({ id: 'SRC-001', type: 'source', title: 'C', status: 'imported', updated: '2026-08-05' }),
+  ]);
+  assert.deepEqual(recentlyChanged(s, (d) => d).map((r) => r.id), ['DEC-001', 'SRC-001', 'REQ-001']);
+  assert.equal(recentlyChanged(s, (d) => d, 1).length, 1);
 });

@@ -145,18 +145,6 @@ a:hover { color: #F49463; }
   border-radius: 6px; border: 1px solid var(--int-border);
   color: var(--secondary); font-family: var(--mono); font-size: 11px;
 }
-.tb-pop {
-  position: absolute; top: 32px; right: 0; width: 320px; background: var(--pop);
-  border: 1px solid #2B2B32; border-radius: 8px; box-shadow: 0 12px 32px rgba(0,0,0,.5);
-  padding: 6px; z-index: 50;
-}
-.tb-pop-label { padding: 6px 8px 8px; font-family: var(--mono); font-size: 10px; color: var(--faint); letter-spacing: .08em; }
-.tb-pop-row { display: flex; gap: 8px; align-items: flex-start; padding: 8px; border-radius: 6px; cursor: pointer; }
-.tb-pop-row:hover { background: #1F1F25; }
-.tb-pop-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); margin-top: 5px; flex: 0 0 auto; }
-.tb-pop-id { font-family: var(--mono); font-size: 11px; color: var(--text); }
-.tb-pop-msg { font-size: 12px; color: var(--secondary); margin-top: 1px; }
-
 /* ===== Command palette (WO-013, design/navigation-model/README.md) ===== */
 .pal-scrim {
   position: fixed; inset: 0; background: rgba(8,8,10,0.55); z-index: 100;
@@ -690,3 +678,41 @@ a:hover { color: #F49463; }
 .ap-chip-setup { background: rgba(217,160,63,0.12); border: 1px solid #3A3020; color: var(--amber); }
 .ap-chip-copy { background: none; border: 1px solid var(--int-border); color: var(--secondary); }
 .ap-foot { font-family: var(--mono); font-size: 10.5px; color: var(--ghost); border-top: 1px solid #1B1B20; padding: 8px 12px; }
+
+/* ===== Home view (WO-015, design/navigation-model/README.md) ===== */
+.screen-homeview { flex: 1; overflow-y: auto; min-width: 0; }
+.hv-wrap { max-width: 920px; margin: 0 auto; padding: 28px 36px 60px; }
+.hv-head { display: flex; align-items: baseline; gap: 12px; }
+.hv-title { margin: 0; font-size: 20px; font-weight: 600; }
+.hv-count { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+.hv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 20px; align-items: start; }
+.hv-card { border: 1px solid var(--hair); border-radius: 10px; background: var(--panel); overflow: hidden; }
+.hv-card-head { display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-bottom: 1px solid #1B1B20; }
+.hv-dot { width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto; }
+.hv-label { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--secondary); }
+.hv-meta { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--ghost-2); }
+.hv-agent-glyph { font-family: var(--mono); font-size: 11px; color: var(--ember); }
+.hv-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #17171B; cursor: pointer; }
+.hv-row:hover { background: #17171B; }
+.hv-row-top { align-items: flex-start; }
+.hv-row-feed { align-items: baseline; gap: 9px; padding: 9px 14px; }
+.hv-kind {
+  font-family: var(--mono); font-size: 9.5px; color: var(--amber);
+  border: 1px solid #3A3020; border-radius: 4px; padding: 1px 6px; flex: 0 0 auto; margin-top: 1px;
+}
+.hv-issue { min-width: 0; }
+.hv-issue-id { font-family: var(--mono); font-size: 11px; color: var(--text); }
+.hv-issue-msg { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.hv-id { font-family: var(--mono); font-size: 10px; flex: 0 0 auto; width: 52px; }
+.hv-id-wo { font-size: 10.5px; color: var(--ember); width: auto; }
+.hv-flight-title { font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hv-agent {
+  font-family: var(--mono); font-size: 9.5px; color: var(--ember);
+  background: rgba(232,112,58,0.1); border-radius: 4px; padding: 1px 5px; flex: 0 0 auto;
+}
+.hv-reqs { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--ghost); flex: 0 0 auto; }
+.hv-status { font-family: var(--mono); font-size: 10px; flex: 0 0 auto; width: 70px; text-align: right; }
+.hv-feed-text { font-size: 12.5px; color: var(--secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hv-changed-title { font-size: 12.5px; color: var(--body-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hv-time { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--ghost); flex: 0 0 auto; }
+.hv-empty { padding: 14px; font-size: 12px; color: var(--faint); }

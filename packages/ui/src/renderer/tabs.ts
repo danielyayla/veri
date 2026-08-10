@@ -6,9 +6,10 @@
  */
 
 /** View tabs alongside document tabs; ids are doc ids or these keys. */
-export type ViewKey = 'board' | 'graph' | 'decisions' | 'mcp';
+export type ViewKey = 'homeview' | 'board' | 'graph' | 'decisions' | 'mcp';
 
 export const VIEW_META: Record<ViewKey, { label: string; glyph: string }> = {
+  homeview: { label: 'Home', glyph: '⌂' },
   board: { label: 'Board', glyph: '▤' },
   graph: { label: 'Graph', glyph: '◉' },
   decisions: { label: 'Decisions', glyph: '§' },

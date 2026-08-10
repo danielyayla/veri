@@ -6,12 +6,13 @@ import { api } from './api.ts';
 import type { ProjectInfo, VeriApi } from './api.ts';
 import { h } from './dom.ts';
 import { TYPE_META, relTime, statusColor, tint } from './theme.ts';
-import { docsById, issueDocId, issuesByDoc, packageSummary } from './derive.ts';
+import { docsById, issuesByDoc, packageSummary } from './derive.ts';
 import type { ActivityRow, DocsById, PackageSummary } from './derive.ts';
 import type { McpStatus } from '../lib/mcpconfig.ts';
 import type { AgentInfo } from '../lib/agents.ts';
 import { kickoffPrompt } from './derive.ts';
 import { readerView } from './views/reader.ts';
+import { homeView } from './views/home.ts';
 import { mcpView } from './views/mcp.ts';
 import { workOrderView } from './views/workorder.ts';
 import { boardView } from './views/board.ts';
@@ -23,7 +24,7 @@ import { paletteRows } from './palette.ts';
 import type { PaletteRow } from './palette.ts';
 import { DEAD_LABEL, isLiving, pushRecent, treeSection, visibleRecents } from './sidebar.ts';
 
-export type View = 'home' | 'workorder' | 'board' | 'graph' | 'decisions' | 'mcp';
+export type View = 'home' | 'workorder' | 'homeview' | 'board' | 'graph' | 'decisions' | 'mcp';
 
 export interface OpenDocOpts {
   preview?: boolean;
@@ -50,7 +51,6 @@ export interface State {
   agents: AgentInfo[] | null;
   agentLaunching: string | null;
   agentLaunchMsg: { ok: boolean; text: string } | null;
-  checkOpen: boolean;
   /** Working set (WO-014): per-project pins and recents, persisted in userData. */
   pinned: string[];
   recents: string[];
@@ -104,6 +104,8 @@ export interface Ctx {
   flashMcpCmdCopied(): void;
   sessionLog(id: string, row: ActivityRow): void;
   sessionRows(id: string): ActivityRow[];
+  /** Every session-logged action across docs, newest first (Home feed). */
+  sessionAll(): Array<{ id: string; row: ActivityRow }>;
   rel(date: string): string;
 }
 
@@ -131,7 +133,6 @@ class App implements Ctx {
     agents: null,
     agentLaunching: null,
     agentLaunchMsg: null,
-    checkOpen: false,
     pinned: [],
     recents: [],
     sectionCollapsed: { source: true },
@@ -150,6 +151,7 @@ class App implements Ctx {
     mcpCmdCopied: false,
   };
   private sessionActivity = new Map<string, ActivityRow[]>();
+  private sessionFeed: Array<{ id: string; row: ActivityRow }> = [];
   /** Doc-tab activation order, most recent first — drives the Documents nav. */
   private docMru: string[] = [];
   private dragIdx: number | null = null;
@@ -183,8 +185,8 @@ class App implements Ctx {
     if (doc !== null && this.byId.has(doc)) this.openDoc(doc);
     if (view !== null && isViewKey(view)) this.applyTabs(openTab(this.tabState(), view));
     if (this.state.tabs.length === 0) {
-      const first = this.firstDocId();
-      if (first !== null) this.openDoc(first, { preview: true });
+      // Home is the default tab on project open (SRC-005 layer 4).
+      this.applyTabs(openTab(this.tabState(), 'homeview', { preview: true, previewTabs: this.state.previewTabs }));
     }
     this.api.onChanged(() => void this.refresh());
     this.api.onMcpChanged((external) => {
@@ -220,12 +222,11 @@ class App implements Ctx {
         }
       } else if (
         e.key === 'Escape' &&
-        (this.state.checkOpen ||
-          this.state.projectSwitcherOpen ||
+        (this.state.projectSwitcherOpen ||
           this.state.agentsOpen ||
           this.state.projectError !== null)
       ) {
-        this.update({ checkOpen: false, projectSwitcherOpen: false, agentsOpen: false, projectError: null });
+        this.update({ projectSwitcherOpen: false, agentsOpen: false, projectError: null });
       }
     });
     document.addEventListener('click', () => {
@@ -309,7 +310,6 @@ class App implements Ctx {
   openDoc(id: string, opts: OpenDocOpts = {}): void {
     if (!this.byId.has(id)) return;
     this.applyTabs(openTab(this.tabState(), id, { ...opts, previewTabs: this.state.previewTabs }), {
-      checkOpen: false,
       projectSwitcherOpen: false,
       recents: pushRecent(this.state.recents, id),
     });
@@ -338,7 +338,7 @@ class App implements Ctx {
   }
 
   setView(view: View): void {
-    const closed = { checkOpen: false, projectSwitcherOpen: false };
+    const closed = { projectSwitcherOpen: false };
     if (view === 'home' || view === 'workorder') {
       // Documents nav: focus the most recent doc tab, else open the first doc as preview.
       const open = new Set(this.state.tabs.map((t) => t.id));
@@ -441,10 +441,15 @@ class App implements Ctx {
     const rows = this.sessionActivity.get(id) ?? [];
     rows.unshift(row);
     this.sessionActivity.set(id, rows);
+    this.sessionFeed.unshift({ id, row });
   }
 
   sessionRows(id: string): ActivityRow[] {
     return this.sessionActivity.get(id) ?? [];
+  }
+
+  sessionAll(): Array<{ id: string; row: ActivityRow }> {
+    return this.sessionFeed;
   }
 
   rel = (date: string): string => relTime(date);
@@ -454,44 +459,16 @@ class App implements Ctx {
   private topbar(): HTMLElement {
     const issueCount = this.snap.issues.length;
     const git = this.snap.git;
+    // Deep-links to Home, whose HEALTH card is the full issue list (WO-015).
     const healthChip =
       issueCount > 0
         ? h(
             'div',
-            {
-              class: 'tb-health',
-              onClick: () => this.update({ checkOpen: !this.state.checkOpen, projectSwitcherOpen: false }),
-            },
+            { class: 'tb-health', onClick: () => this.setView('homeview') },
             h('span', { class: 'tb-health-dot' }),
             h('span', {}, `veri check · ${issueCount} issue${issueCount === 1 ? '' : 's'}`),
           )
         : null;
-    const checkPop = this.state.checkOpen
-      ? h(
-          'div',
-          { class: 'tb-pop' },
-          h('div', { class: 'tb-pop-label' }, `VERI CHECK — ${issueCount} ISSUE${issueCount === 1 ? '' : 'S'}`),
-          ...this.snap.issues.map((issue) => {
-            const docId = issueDocId(this.snap, issue);
-            return h(
-              'div',
-              {
-                class: 'tb-pop-row',
-                onClick: () => {
-                  if (docId !== null) this.openDoc(docId, { preview: true });
-                },
-              },
-              h('span', { class: 'tb-pop-dot' }),
-              h(
-                'div',
-                {},
-                h('div', { class: 'tb-pop-id' }, docId ?? issue.kind),
-                h('div', { class: 'tb-pop-msg' }, issue.message),
-              ),
-            );
-          }),
-        )
-      : null;
 
     return h(
       'div',
@@ -544,7 +521,7 @@ class App implements Ctx {
         { class: 'tb-git' },
         h('span', { style: 'color:#7FAF8A;' }, '⎇'),
         h('span', {}, git === null ? 'no git' : `${git.branch} · ${git.dirty ? 'dirty' : 'clean'}`),
-      ), checkPop),
+      )),
     );
   }
 
@@ -556,7 +533,7 @@ class App implements Ctx {
         this.render();
       });
     }
-    this.update({ projectSwitcherOpen: opening, checkOpen: false, projectError: null });
+    this.update({ projectSwitcherOpen: opening, projectError: null });
   }
 
   /** Show the error a switch/open attempt resolves to (null means success or cancel). */
@@ -754,6 +731,7 @@ class App implements Ctx {
       },
     });
     const items: Array<[View, string, string]> = [
+      ['homeview', 'Home', '⌂'],
       ['board', 'Board', '▤'],
       ['graph', 'Graph', '◉'],
       ['decisions', 'Decisions', '§'],
@@ -1021,7 +999,7 @@ class App implements Ctx {
   }
 
   /** The active view's scrollable regions, in document order. */
-  private static readonly SCROLL_SEL = '.reader, .panel-right, .screen-board, .screen-decisions, .mcp-view';
+  private static readonly SCROLL_SEL = '.reader, .panel-right, .screen-board, .screen-decisions, .screen-homeview, .mcp-view';
 
   render(): void {
     // Save the outgoing DOM's scroll positions (per tab, plus the sidebar tree)
@@ -1039,6 +1017,7 @@ class App implements Ctx {
     let screen: HTMLElement;
     if (this.state.tabs.length === 0) screen = this.emptyState();
     else if (view === 'workorder' && this.doc()?.type === 'work-order') screen = workOrderView(this);
+    else if (view === 'homeview') screen = homeView(this);
     else if (view === 'mcp') screen = mcpView(this);
     else if (view === 'board') screen = boardView(this);
     else if (view === 'graph') screen = graphView(this);

@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { PaletteHit, PaletteQuery, PaletteResult } from '@veri/mcp';
 import { PALETTE_MAX_ROWS, paletteRows } from './palette.ts';
+import { VIEW_META } from './tabs.ts';
 
 function hit(id: string, score: number): PaletteHit {
   return { id, type: 'work-order', status: 'backlog', title: id, score, snippet: null };
@@ -37,6 +38,6 @@ test('empty query lists views below docs and caps the list at 8', () => {
   assert.equal(rows.length, PALETTE_MAX_ROWS);
   assert.ok(rows.every((r) => r.kind === 'doc'), 'score-1 docs outrank score-0.5 views');
   const few = paletteRows(result({}, [hit('WO-001', 1)]));
-  assert.equal(few.length, 5); // 1 doc + 4 views
+  assert.equal(few.length, 1 + Object.keys(VIEW_META).length); // 1 doc + every view
   assert.equal(few[0].kind, 'doc');
 });
