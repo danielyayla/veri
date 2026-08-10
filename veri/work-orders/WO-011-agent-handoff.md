@@ -84,3 +84,6 @@ the current "Serve via MCP" affordance.
   views/workorder.ts, renderer/styles.css, design/agent-handoff/ ·
   Adapter registry + picker + kickoff prompt per SRC-003; 79 tests pass,
   veri check clean, verified via screenshot harness.
+- 2026-08-10 · 7f028d8 · packages/ui/renderer/styles.css · Fixed collapsed
+  button heights in the column layout (flex-basis override); re-verified
+  against the prototype via screenshot.
