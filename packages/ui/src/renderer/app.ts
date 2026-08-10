@@ -1,11 +1,11 @@
 /** App shell: state, topbar, sidebar, view switching, IPC wiring. */
 import type { Issue, VeriDocument } from '@veri/core';
-import type { ContextPackage, SearchHit } from '@veri/mcp';
+import type { ContextPackage, PaletteResult } from '@veri/mcp';
 import type { Snapshot } from '../lib/snapshot.ts';
 import { api } from './api.ts';
 import type { ProjectInfo, VeriApi } from './api.ts';
 import { h } from './dom.ts';
-import { TYPE_META, relTime } from './theme.ts';
+import { TYPE_META, relTime, statusColor, tint } from './theme.ts';
 import { docsById, issueDocId, issuesByDoc, packageSummary } from './derive.ts';
 import type { ActivityRow, DocsById, PackageSummary } from './derive.ts';
 import type { McpStatus } from '../lib/mcpconfig.ts';
@@ -19,6 +19,8 @@ import { graphView } from './views/graph.ts';
 import { decisionsView } from './views/decisions.ts';
 import { VIEW_META, activateTab, closeTab, cycleTab, isViewKey, openTab, pinTab, reorderTab, retainTabs } from './tabs.ts';
 import type { Tab, TabState } from './tabs.ts';
+import { paletteRows } from './palette.ts';
+import type { PaletteRow } from './palette.ts';
 
 export type View = 'home' | 'workorder' | 'board' | 'graph' | 'decisions' | 'mcp';
 
@@ -48,9 +50,11 @@ export interface State {
   agentLaunching: string | null;
   agentLaunchMsg: { ok: boolean; text: string } | null;
   checkOpen: boolean;
-  searchOpen: boolean;
-  searchQuery: string;
-  searchHits: SearchHit[];
+  /** Command palette (WO-013): overlay flag, raw query, selection, ranked result. */
+  paletteOpen: boolean;
+  paletteQuery: string;
+  paletteSel: number;
+  paletteResult: PaletteResult | null;
   projectSwitcherOpen: boolean;
   projectError: string | null;
   mcpStatus: McpStatus | null;
@@ -117,9 +121,10 @@ class App implements Ctx {
     agentLaunching: null,
     agentLaunchMsg: null,
     checkOpen: false,
-    searchOpen: false,
-    searchQuery: '',
-    searchHits: [],
+    paletteOpen: false,
+    paletteQuery: '',
+    paletteSel: 0,
+    paletteResult: null,
     projectSwitcherOpen: false,
     projectError: null,
     mcpStatus: null,
@@ -132,6 +137,8 @@ class App implements Ctx {
   /** Doc-tab activation order, most recent first — drives the Documents nav. */
   private docMru: string[] = [];
   private dragIdx: number | null = null;
+  /** The rendered palette rows' open actions, for the global Enter handler. */
+  private palRowActions: Array<{ open(pinned: boolean): void }> = [];
   /** Per-tab scroll positions (SRC-004 "State Management"), saved on re-render. */
   private scrollPos = new Map<string, number[]>();
   private sidebarScroll = 0;
@@ -167,7 +174,7 @@ class App implements Ctx {
     document.addEventListener('keydown', (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        this.update({ searchOpen: !this.state.searchOpen, searchQuery: '', searchHits: [] });
+        this.togglePalette();
       } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'o') {
         e.preventDefault();
         this.surfaceProjectError(this.api.openProjectFolder());
@@ -175,15 +182,29 @@ class App implements Ctx {
         // ⌃Tab / ⌃⇧Tab: cycle through the strip in order (SRC-004 recommended).
         e.preventDefault();
         this.applyTabs(cycleTab(this.tabState(), e.shiftKey ? -1 : 1));
+      } else if (this.state.paletteOpen) {
+        // ↑↓ / ↩ / ⌘↩ / esc while the palette is up (SRC-005 layer 2).
+        if (e.key === 'Escape') {
+          this.update({ paletteOpen: false });
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          this.update({ paletteSel: Math.min(this.state.paletteSel + 1, Math.max(0, this.palRowActions.length - 1)) });
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          this.update({ paletteSel: Math.max(0, this.state.paletteSel - 1) });
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          const row = this.palRowActions[Math.min(this.state.paletteSel, this.palRowActions.length - 1)];
+          if (row !== undefined) row.open(e.metaKey || e.ctrlKey);
+        }
       } else if (
         e.key === 'Escape' &&
-        (this.state.searchOpen ||
-          this.state.checkOpen ||
+        (this.state.checkOpen ||
           this.state.projectSwitcherOpen ||
           this.state.agentsOpen ||
           this.state.projectError !== null)
       ) {
-        this.update({ searchOpen: false, checkOpen: false, projectSwitcherOpen: false, agentsOpen: false, projectError: null });
+        this.update({ checkOpen: false, projectSwitcherOpen: false, agentsOpen: false, projectError: null });
       }
     });
     document.addEventListener('click', () => {
@@ -267,13 +288,12 @@ class App implements Ctx {
     if (!this.byId.has(id)) return;
     this.applyTabs(openTab(this.tabState(), id, { ...opts, previewTabs: this.state.previewTabs }), {
       checkOpen: false,
-      searchOpen: false,
       projectSwitcherOpen: false,
     });
   }
 
   setView(view: View): void {
-    const closed = { checkOpen: false, searchOpen: false, projectSwitcherOpen: false };
+    const closed = { checkOpen: false, projectSwitcherOpen: false };
     if (view === 'home' || view === 'workorder') {
       // Documents nav: focus the most recent doc tab, else open the first doc as preview.
       const open = new Set(this.state.tabs.map((t) => t.id));
@@ -428,8 +448,6 @@ class App implements Ctx {
         )
       : null;
 
-    const searchPop = this.state.searchOpen ? this.searchPopover() : null;
-
     return h(
       'div',
       { class: 'topbar' },
@@ -466,11 +484,15 @@ class App implements Ctx {
         { class: 'tb-center' },
         h(
           'div',
-          { class: 'tb-search', onClick: () => this.update({ searchOpen: true }) },
+          {
+            class: 'tb-search',
+            onClick: () => {
+              if (!this.state.paletteOpen) this.togglePalette();
+            },
+          },
           h('span', {}, 'Search docs…'),
           h('span', { class: 'tb-kbd' }, '⌘K'),
         ),
-        searchPop,
       ),
       h('div', { class: 'tb-right' }, healthChip, h(
         'div',
@@ -549,34 +571,122 @@ class App implements Ctx {
     );
   }
 
-  private searchPopover(): HTMLElement {
+  // ---- command palette (WO-013, SRC-005 layer 2) ----
+
+  private togglePalette(): void {
+    if (this.state.paletteOpen) {
+      this.update({ paletteOpen: false });
+      return;
+    }
+    this.update({ paletteOpen: true, paletteQuery: '', paletteSel: 0, paletteResult: null });
+    this.fetchPalette('');
+  }
+
+  /** docMru feeds the recency boost ("recently opened docs rank higher"). */
+  private fetchPalette(q: string): void {
+    void this.api.paletteSearch(q, this.docMru).then((result) => {
+      if (this.state.paletteOpen && this.state.paletteQuery === q) this.update({ paletteResult: result });
+    });
+  }
+
+  /** Open semantics mirror the tabs design: Enter/click = shared preview tab,
+      palette closes; ⌘Enter/⌘click = pinned tab in background, palette stays. */
+  private openPaletteRow(row: PaletteRow, pinned: boolean): void {
+    const opts = { previewTabs: this.state.previewTabs };
+    if (row.kind === 'view') {
+      this.applyTabs(openTab(this.tabState(), row.view, { ...opts, preview: true }), { paletteOpen: false });
+    } else if (!this.byId.has(row.hit.id)) {
+      return;
+    } else if (pinned) {
+      this.applyTabs(openTab(this.tabState(), row.hit.id, { ...opts, background: true }));
+    } else {
+      this.applyTabs(openTab(this.tabState(), row.hit.id, { ...opts, preview: true }), { paletteOpen: false });
+    }
+  }
+
+  private paletteRowEl(row: PaletteRow, i: number, sel: boolean): HTMLElement {
+    const doc = row.kind === 'doc' ? row.hit : null;
+    const meta = doc !== null ? TYPE_META[doc.type as VeriDocument['type']] : undefined;
+    const chipStyle =
+      meta !== undefined ? `color:${meta.color};background:${tint(meta.color)};` : 'color:#8B8893;background:#1B1B20;';
+    const snippet = doc?.snippet ?? null;
+    return h(
+      'div',
+      {
+        class: sel ? 'pal-row pal-row-sel' : 'pal-row',
+        onClick: (e) => this.openPaletteRow(row, row.kind === 'doc' && (e.metaKey || e.ctrlKey)),
+        onMouseenter: () => {
+          if (this.state.paletteSel !== i) this.update({ paletteSel: i });
+        },
+      },
+      h('span', { class: 'pal-chip', style: chipStyle }, doc !== null ? doc.id : (row as { glyph: string }).glyph),
+      h(
+        'div',
+        { class: 'pal-main' },
+        h(
+          'div',
+          { class: 'pal-title-line' },
+          h('span', { class: 'pal-title' }, doc !== null ? doc.title : (row as { label: string }).label),
+          h(
+            'span',
+            { class: 'pal-status', style: `color:${doc !== null ? statusColor(doc.status) : '#55525E'};` },
+            doc !== null ? doc.status : 'view',
+          ),
+        ),
+        snippet !== null ? h('div', { class: 'pal-snippet' }, snippet) : null,
+      ),
+      sel ? h('span', { class: 'pal-enter' }, '↩') : null,
+    );
+  }
+
+  private paletteEl(): HTMLElement | null {
+    if (!this.state.paletteOpen) {
+      this.palRowActions = [];
+      return null;
+    }
+    const result = this.state.paletteResult ?? { query: { text: '', type: null, statuses: [] }, hits: [] };
+    const rows = paletteRows(result);
+    const sel = Math.min(this.state.paletteSel, Math.max(0, rows.length - 1));
+    this.palRowActions = rows.map((row) => ({ open: (pinned: boolean) => this.openPaletteRow(row, pinned) }));
     const input = h('input', {
-      class: 'search-input',
-      placeholder: 'Search docs…',
-      value: this.state.searchQuery,
+      class: 'pal-input',
+      placeholder: 'Search docs or jump to a view — try req: is:backlog',
+      value: this.state.paletteQuery,
       onInput: (e) => {
         const q = (e.target as HTMLInputElement).value;
-        this.state.searchQuery = q;
-        void this.api.search(q).then((hits) => {
-          if (this.state.searchQuery === q) this.update({ searchHits: hits });
-        });
-      },
-      onKeydown: (e) => {
-        if (e.key === 'Enter' && this.state.searchHits.length > 0) this.openDoc(this.state.searchHits[0].id, { preview: true });
+        this.state.paletteQuery = q;
+        this.state.paletteSel = 0;
+        this.fetchPalette(q);
       },
     }) as HTMLInputElement;
     queueMicrotask(() => input.focus());
     return h(
       'div',
-      { class: 'search-pop' },
-      input,
-      ...this.state.searchHits.slice(0, 8).map((hit) =>
+      { class: 'pal-scrim', onClick: () => this.update({ paletteOpen: false }) },
+      h(
+        'div',
+        { class: 'pal-panel', onClick: (e) => e.stopPropagation() },
+        h('div', { class: 'pal-head' }, h('span', { class: 'pal-glyph' }, '⌕'), input, h('span', { class: 'pal-esc' }, 'esc')),
         h(
           'div',
-          { class: 'search-row', onClick: (e) => this.openDoc(hit.id, { preview: true, background: e.metaKey || e.ctrlKey }) },
-          h('span', { class: 'search-id', style: `color:${TYPE_META[hit.type as VeriDocument['type']]?.color ?? '#A09DA6'};` }, hit.id),
-          h('span', { class: 'search-title' }, hit.title),
-          h('span', { class: 'search-status' }, hit.status),
+          { class: 'pal-list' },
+          ...rows.map((row, i) => this.paletteRowEl(row, i, i === sel)),
+          rows.length === 0
+            ? h(
+                'div',
+                { class: 'pal-empty' },
+                'No matches — try an id, title text, or a filter like ',
+                h('span', { class: 'pal-empty-code' }, 'wo: is:backlog'),
+              )
+            : null,
+        ),
+        h(
+          'div',
+          { class: 'pal-foot' },
+          h('span', {}, '↑↓ navigate'),
+          h('span', {}, '↩ open'),
+          h('span', {}, '⌘↩ open pinned tab'),
+          h('span', { class: 'pal-foot-grammar' }, 'req: dec: wo: src: · is:done is:active is:backlog'),
         ),
       ),
     );
@@ -784,9 +894,11 @@ class App implements Ctx {
     else if (view === 'graph') screen = graphView(this);
     else if (view === 'decisions') screen = decisionsView(this);
     else screen = readerView(this);
+    const palette = this.paletteEl();
     this.root.replaceChildren(
       this.topbar(),
       h('div', { class: 'body' }, this.sidebar(), h('div', { class: 'editor-area' }, this.tabStrip(), screen)),
+      ...(palette !== null ? [palette] : []),
     );
     this.state.editorFocused = false;
 

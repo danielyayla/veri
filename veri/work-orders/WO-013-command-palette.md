@@ -2,7 +2,7 @@
 id: WO-013
 type: work-order
 title: Command palette (⌘K) — one input to any document or view
-status: in-progress
+status: done
 created: 2026-08-10
 updated: 2026-08-10
 links:
@@ -73,23 +73,23 @@ matcher extends the shared search module and is exported alongside
 
 ## Acceptance tests
 
-- [ ] `req14` and `REQ-014`-style queries rank the exact-id doc first;
+- [x] `req14` and `REQ-014`-style queries rank the exact-id doc first;
       id prefix beats title starts-with beats title contains beats body
       match; body matches render a one-line dimmed snippet.
-- [ ] `wo: is:backlog auth` composes: only backlog work orders matching
+- [x] `wo: is:backlog auth` composes: only backlog work orders matching
       "auth" (prefixes stripped from the free-text query); `is:active`
       matches living statuses (draft, accepted, active, backlog,
       in-progress).
-- [ ] Typing `board` (or `graph`, `decisions`, `agent`) surfaces the
+- [x] Typing `board` (or `graph`, `decisions`, `agent`) surfaces the
       view row; view rows disappear while a type/status filter is
       active; view rows open the view as a preview tab.
-- [ ] Enter/click opens the selected doc in the shared preview tab and
+- [x] Enter/click opens the selected doc in the shared preview tab and
       closes the palette; ⌘Enter/⌘click opens a pinned background tab
       and leaves the palette open; Esc closes it; ⌘K toggles it; the
       topbar search field opens it.
-- [ ] Recently opened docs rank above equal-score matches.
-- [ ] Unit tests for the parser, ranking, and row merge pass; `npm test`
+- [x] Recently opened docs rank above equal-score matches.
+- [x] Unit tests for the parser, ranking, and row merge pass; `npm test`
       green across the workspace.
-- [ ] `veri check` reports zero issues.
+- [x] `veri check` reports zero issues.
 
 ## Receipts

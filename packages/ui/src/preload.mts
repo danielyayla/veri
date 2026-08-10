@@ -4,7 +4,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('veri', {
   snapshot: () => ipcRenderer.invoke('veri:snapshot'),
   context: (id: string) => ipcRenderer.invoke('veri:context', id),
-  search: (query: string) => ipcRenderer.invoke('veri:search', query),
+  paletteSearch: (query: string, recents: string[]) => ipcRenderer.invoke('veri:palette-search', query, recents),
   copyText: (text: string) => ipcRenderer.invoke('veri:copy', text),
   setStatus: (id: string, status: string) => ipcRenderer.invoke('veri:set-status', id, status),
   appendNote: (id: string, note: string) => ipcRenderer.invoke('veri:append-note', id, note),

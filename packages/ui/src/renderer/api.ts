@@ -1,4 +1,4 @@
-import type { ContextPackage, SearchHit } from '@veri/mcp';
+import type { ContextPackage, PaletteResult } from '@veri/mcp';
 import type { AgentId, AgentInfo } from '../lib/agents.ts';
 import type { McpStatus } from '../lib/mcpconfig.ts';
 import type { Snapshot } from '../lib/snapshot.ts';
@@ -15,7 +15,8 @@ export interface ProjectInfo {
 export interface VeriApi {
   snapshot(): Promise<Snapshot>;
   context(id: string): Promise<ContextPackage>;
-  search(query: string): Promise<SearchHit[]>;
+  /** Ranked ⌘K search (WO-013); recents feed the recency boost. */
+  paletteSearch(query: string, recents: string[]): Promise<PaletteResult>;
   copyText(text: string): Promise<void>;
   setStatus(id: string, status: string): Promise<void>;
   appendNote(id: string, note: string): Promise<void>;

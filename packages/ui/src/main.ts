@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BrowserWindow, app, clipboard, dialog, ipcMain } from 'electron';
-import { assembleContext, searchDocs } from '@veri/mcp';
+import { assembleContext, paletteSearch } from '@veri/mcp';
 import { findProjectRoot, isVeriProject } from './lib/root.ts';
 import { fixRootArg, mcpStatus, writeVeriEntry } from './lib/mcpconfig.ts';
 import { cleanupLaunchScripts, connectAgent, detectAgents, launchAgent } from './lib/agents.ts';
@@ -80,7 +80,9 @@ let mainWin: BrowserWindow | null = null;
 function registerIpc(): void {
   ipcMain.handle('veri:snapshot', () => buildSnapshot(projectRoot));
   ipcMain.handle('veri:context', (_e, id: string) => assembleContext(projectRoot, id));
-  ipcMain.handle('veri:search', (_e, query: string) => searchDocs(projectRoot, query));
+  ipcMain.handle('veri:palette-search', (_e, query: string, recents: string[]) =>
+    paletteSearch(projectRoot, query, recents),
+  );
   ipcMain.handle('veri:copy', (_e, text: string) => clipboard.writeText(text));
   ipcMain.handle('veri:set-status', (_e, id: string, status: string) => setStatus(projectRoot, id, status));
   ipcMain.handle('veri:append-note', (_e, id: string, note: string) => appendNote(projectRoot, id, note));
