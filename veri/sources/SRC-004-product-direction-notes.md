@@ -77,6 +77,27 @@ work order is created.
   committed vs dirty — tracked and visible, enabling the day-one
   multi-user collaboration story.
 
+## 8. Plugin ecosystem
+
+- Swappable engines behind stable extension points, plus a plugin
+  library users browse to enhance Veri. E.g. exchange one drift
+  detection engine for another.
+- Candidate extension points: checkers (`veri check` rules — drift
+  engines live here), templates/skills, context
+  providers/transformers, UI panels, approval gates.
+- Resolves the BYOK tension: core keeps zero network calls; AI features
+  ship as plugins that bring their own API usage.
+- Sequencing caution: build drift detection, templates, and a context
+  optimizer as first-party features first, then extract the plugin
+  interfaces from what they actually needed — avoids premature
+  abstraction and launches the library non-empty.
+- Risks to design for: API stability promises once third-party plugins
+  exist; security/supply-chain surface (plugins near the BYOK key need
+  a permission model); empty-library chicken-and-egg.
+- Business angle: community plugins free; curated/verified registry,
+  enterprise plugin sets, or hosted plugin execution are natural paid
+  layers that never touch the free core.
+
 ## Suggested rough sequencing (for later triage)
 
 1. Git-native UI + markdown editor (6, 7) — foundation for everything.
