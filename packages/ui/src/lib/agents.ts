@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { homedir, tmpdir } from 'node:os';
 import { delimiter, dirname, join, resolve } from 'node:path';
@@ -222,6 +222,35 @@ export async function connectAgent(
   config['mcpServers'] = servers;
   await mkdir(dirname(file), { recursive: true });
   await writeFile(file, `${JSON.stringify(config, null, 2)}\n`);
+}
+
+const LAUNCH_SCRIPT = /^veri-launch-.*\.command$/;
+const LAUNCH_SCRIPT_TTL_MS = 60 * 60 * 1000;
+
+/**
+ * Sweep stale one-shot launch scripts from the temp dir (called at app
+ * startup). Scripts must outlive the spawn long enough for Terminal to read
+ * them, so they're deleted by age on the next launch of Veri, not after use.
+ */
+export async function cleanupLaunchScripts(dir: string = tmpdir(), now: number = Date.now()): Promise<void> {
+  let names: string[];
+  try {
+    names = await readdir(dir);
+  } catch {
+    return;
+  }
+  await Promise.all(
+    names
+      .filter((n) => LAUNCH_SCRIPT.test(n))
+      .map(async (n) => {
+        const file = join(dir, n);
+        try {
+          if (now - (await stat(file)).mtimeMs > LAUNCH_SCRIPT_TTL_MS) await rm(file);
+        } catch {
+          // already gone or unreadable — nothing to clean
+        }
+      }),
+  );
 }
 
 function shellQuote(value: string): string {

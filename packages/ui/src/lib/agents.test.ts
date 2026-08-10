@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, utimes, writeFile } from 'node:fs/promises';
 import { chmod } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { connectAgent, detectAgents } from './agents.ts';
+import { cleanupLaunchScripts, connectAgent, detectAgents } from './agents.ts';
 import type { AgentEnv } from './agents.ts';
 
 const SERVER = '/opt/veri/packages/mcp/dist/server.js';
@@ -130,4 +130,24 @@ test('unparseable JSON config is a conflict and never written', async () => {
   assert.equal((await detectAgents(root, env)).find((a) => a.id === 'claude')!.status, 'conflict');
   await assert.rejects(() => connectAgent(root, SERVER, 'claude', env), /not valid JSON/);
   assert.equal(await readFile(join(root, '.mcp.json'), 'utf8'), '{ not json');
+});
+
+test('cleanupLaunchScripts removes only stale veri-launch scripts', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'veri-cleanup-'));
+  const hour = 60 * 60 * 1000;
+  const now = 1_700_000_000_000;
+  await writeFile(join(dir, 'veri-launch-claude-1.command'), '#!/bin/zsh\n');
+  await writeFile(join(dir, 'veri-launch-codex-2.command'), '#!/bin/zsh\n');
+  await writeFile(join(dir, 'unrelated.command'), 'keep');
+  // stale = older than one hour; utimes takes seconds
+  await utimes(join(dir, 'veri-launch-claude-1.command'), (now - 2 * hour) / 1000, (now - 2 * hour) / 1000);
+  await utimes(join(dir, 'veri-launch-codex-2.command'), (now - hour / 2) / 1000, (now - hour / 2) / 1000);
+  await utimes(join(dir, 'unrelated.command'), (now - 9 * hour) / 1000, (now - 9 * hour) / 1000);
+
+  await cleanupLaunchScripts(dir, now);
+  const left = (await readdir(dir)).sort();
+  assert.deepEqual(left, ['unrelated.command', 'veri-launch-codex-2.command']);
+
+  // missing dir is a no-op, not a crash
+  await cleanupLaunchScripts(join(dir, 'does-not-exist'), now);
 });

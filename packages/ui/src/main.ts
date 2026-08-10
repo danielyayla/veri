@@ -6,7 +6,7 @@ import { BrowserWindow, app, clipboard, dialog, ipcMain } from 'electron';
 import { assembleContext, searchDocs } from '@veri/mcp';
 import { findProjectRoot, isVeriProject } from './lib/root.ts';
 import { fixRootArg, mcpStatus, writeVeriEntry } from './lib/mcpconfig.ts';
-import { connectAgent, detectAgents, launchAgent } from './lib/agents.ts';
+import { cleanupLaunchScripts, connectAgent, detectAgents, launchAgent } from './lib/agents.ts';
 import type { AgentId } from './lib/agents.ts';
 import { buildSnapshot } from './lib/snapshot.ts';
 import { appendNote, setStatus } from './lib/write.ts';
@@ -219,6 +219,7 @@ async function createWindow(): Promise<BrowserWindow> {
 
 app.whenReady().then(async () => {
   registerIpc();
+  void cleanupLaunchScripts();
   await addProjectToMru(projectRoot);
   await createWindow();
 });
