@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Veri — Approval Gate (design prototype)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --bg:#0F0F11; --panel:#131316; --card:#151519; --card2:#17171B;
+    --line:#1E1E24; --line2:#26262C; --pop:#2B2B32;
+    --t1:#E7E4DE; --t2:#C9C6CF; --t3:#A09DA6; --t4:#8B8893; --t5:#6E6B76; --t6:#55525E;
+    --accent:#E8703A; --req:#7EA6C4; --dec:#CFA83D; --wo:#E8703A; --src:#908BA8;
+    --warn:#D9A03F; --warnbg:rgba(217,160,63,0.08); --warnline:#3A3020;
+    --ok:#7FAF8A;
+    --sans:"Source Sans 3","Source Sans Pro",system-ui,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--t2);font-family:var(--sans);font-size:13px}
+
+  .app{display:flex;flex-direction:column;height:100vh;min-width:900px}
+  /* top bar */
+  .topbar{height:44px;flex:none;display:flex;align-items:center;gap:12px;padding:0 12px;border-bottom:1px solid var(--line);background:var(--panel)}
+  .logo{font-family:var(--mono);font-size:12.5px;color:var(--accent);font-weight:600}
+  .proj{font-size:12.5px;color:var(--t3)}
+  .search{margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line2);border-radius:7px;height:28px;padding:0 10px;color:var(--t5);font-size:12px;min-width:200px}
+  .kbd{font-family:var(--mono);font-size:10px;border:1px solid var(--line2);border-radius:4px;padding:1px 4px;color:var(--t4)}
+  .checkchip{font-family:var(--mono);font-size:10.5px;color:var(--warn);border:1px solid var(--warnline);background:var(--warnbg);border-radius:5px;padding:3px 8px}
+
+  .row{display:flex;flex:1;min-height:0}
+  /* icon rail */
+  .rail{width:44px;flex:none;background:#101013;border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:5px}
+  .rail button{width:32px;height:32px;border:0;border-radius:7px;background:transparent;color:#C9C6CF;font-family:var(--mono);font-size:14px;cursor:pointer}
+  .rail button:hover{background:#1B1B20}
+  .rail button.active{background:rgba(232,112,58,0.09);color:#F0A87E}
+  .rail .fill{flex:1}
+  .rail .agent{color:var(--t4);position:relative}
+  .rail .agent::after{content:"";position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 1px #101013}
+
+  /* sidebar */
+  .side{width:250px;flex:none;background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:10px 0;font-size:12.5px}
+  .sect{padding:8px 12px 3px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--t4);display:flex;align-items:center;gap:6px}
+  .sect .sq{width:7px;height:7px;border-radius:2px}
+  .sect .n{margin-left:auto;color:var(--t6)}
+  .drow{display:flex;align-items:center;gap:7px;padding:4px 12px 4px 14px;cursor:pointer;color:var(--t3)}
+  .drow:hover{background:var(--card2)}
+  .drow.on{background:var(--card2)}
+  .drow .id{font-family:var(--mono);font-size:10px;flex:none;width:46px}
+  .drow .ttl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#A8A5AF}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--warn);flex:none;margin-left:-13px;margin-right:0}
+  .divider{height:1px;background:var(--line);margin:8px 0}
+
+  /* editor area */
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .tabstrip{height:37px;flex:none;display:flex;align-items:stretch;background:var(--panel);border-bottom:1px solid var(--line);font-size:12px}
+  .tab{display:flex;align-items:center;gap:8px;padding:0 14px;border-right:1px solid var(--line);color:var(--t4);cursor:pointer}
+  .tab.on{background:var(--bg);color:var(--t2);box-shadow:inset 0 2px 0 var(--accent)}
+  .tab .tid{font-family:var(--mono);font-size:10px}
+  .view{flex:1;overflow-y:auto}
+
+  /* scenario bar (prototype chrome, not part of the design) */
+  .scenarios{position:fixed;top:7px;right:12px;z-index:50;display:flex;gap:4px;background:var(--card2);border:1px solid var(--pop);border-radius:7px;padding:3px}
+  .scenarios button{border:0;background:transparent;color:var(--t4);font-family:var(--mono);font-size:10px;padding:4px 8px;border-radius:5px;cursor:pointer}
+  .scenarios button.on{background:rgba(232,112,58,0.12);color:#F0A87E}
+
+  /* ---------- HOME ---------- */
+  .home{max-width:920px;margin:0 auto;padding:28px 24px}
+  .home h1{font-size:20px;color:var(--t1);font-weight:600}
+  .home .meta{font-family:var(--mono);font-size:10.5px;color:var(--t5);margin:4px 0 18px}
+  .card{border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden}
+  .card .hd{display:flex;align-items:center;padding:10px 14px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--t4)}
+  .card .hd .m{margin-left:auto;color:var(--t6);letter-spacing:0}
+  .card .r{display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid var(--card2);cursor:pointer;font-size:12.5px}
+  .card .r:hover{background:var(--card2)}
+  .cid{font-family:var(--mono);font-size:10px;width:52px;flex:none}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  .review-card{margin-bottom:0}
+  .review-card .hd{color:var(--warn)}
+  .chip{font-family:var(--mono);font-size:9.5px;color:var(--warn);background:var(--warnbg);border:1px solid var(--warnline);border-radius:4px;padding:1px 6px;flex:none}
+  .time{margin-left:auto;color:var(--t5);font-size:11.5px;flex:none}
+  .st{margin-left:auto;font-family:var(--mono);font-size:10px;flex:none}
+
+  /* ---------- DOC VIEW ---------- */
+  .doc{max-width:760px;margin:0 auto;padding:26px 24px 60px}
+  .dochead .idl{font-family:var(--mono);font-size:11px;color:var(--dec)}
+  .dochead h1{font-size:19px;color:var(--t1);font-weight:600;margin:3px 0 6px}
+  .dochead .sub{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:10px;color:var(--t6)}
+  .pinchip{border:1px solid var(--line2);border-radius:5px;padding:2px 8px;color:var(--t4);font-family:var(--sans);font-size:11px;cursor:pointer}
+
+  .banner{margin:16px 0 20px;background:rgba(217,160,63,0.06);border:1px solid var(--warnline);border-radius:8px;padding:12px 14px}
+  .banner .b1{font-size:13px;font-weight:600;color:var(--warn)}
+  .banner .b2{font-size:11.5px;color:var(--t3);margin-top:5px;line-height:1.5}
+  .banner .disc{margin-top:9px;font-size:11.5px;color:var(--t4);cursor:pointer;user-select:none}
+  .banner .disc:hover{color:var(--t2)}
+  .banner .discbody{display:none;margin-top:9px;padding-top:9px;border-top:1px solid var(--warnline);gap:24px}
+  .banner.open .discbody{display:flex}
+  .banner .col{flex:1;min-width:0}
+  .banner .col .cl{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;color:var(--t5);margin-bottom:6px}
+  .banner .col .lr{display:flex;gap:8px;font-size:12px;color:var(--t3);padding:2px 0;cursor:pointer}
+  .banner .col .lr:hover{color:var(--t1)}
+  .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:11px;position:relative}
+  .btn2{height:28px;padding:0 12px;border-radius:7px;border:1px solid var(--line2);background:transparent;color:var(--t2);font-family:var(--sans);font-size:12px;cursor:pointer}
+  .btn2:hover{border-color:var(--pop)}
+  .btn1{height:28px;padding:0 14px;border-radius:7px;border:0;background:var(--ok);color:#0F0F11;font-weight:600;font-family:var(--sans);font-size:12px;cursor:pointer}
+  .btn1:hover{filter:brightness(1.07)}
+
+  .pop{position:absolute;top:34px;right:0;width:320px;background:#1F1F25;border:1px solid var(--pop);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.4);padding:13px 14px;z-index:20;text-align:left}
+  .pop .pt{font-size:13px;font-weight:600;color:var(--t1)}
+  .pop .diff{font-family:var(--mono);font-size:11px;margin:9px 0;line-height:1.7}
+  .pop .old{color:var(--t5);text-decoration:line-through}
+  .pop .new{color:var(--ok)}
+  .pop .cap{font-size:11px;color:var(--t4);line-height:1.45}
+  .pop .pb{display:flex;justify-content:flex-end;gap:8px;margin-top:11px}
+  .ghost{background:transparent;border:0;color:var(--t4);font-size:12px;cursor:pointer;padding:0 8px}
+  .ghost:hover{color:var(--t2)}
+
+  .composer{margin-top:11px}
+  .composer textarea{width:100%;background:#101013;border:1px solid var(--line2);border-radius:6px;color:var(--t2);font-family:var(--sans);font-size:12.5px;padding:8px 10px;resize:vertical;min-height:34px}
+  .composer textarea::placeholder{color:var(--t6)}
+  .composer .cb{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+
+  .body h2{font-size:12px;font-family:var(--mono);letter-spacing:.06em;color:var(--t4);margin:22px 0 8px;text-transform:uppercase}
+  .body p,.body li{font-size:13.5px;line-height:1.65;color:var(--t2)}
+  .body ul{padding-left:20px}
+  .wik{color:var(--req);cursor:pointer}
+
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1F1F25;border:1px solid var(--pop);border-radius:8px;padding:8px 16px;font-size:12.5px;color:var(--t1);box-shadow:0 6px 18px rgba(0,0,0,.4);opacity:0;transition:opacity .25s;pointer-events:none;z-index:60}
+  .toast.show{opacity:1}
+
+  .gatechip{font-family:var(--mono);font-size:9.5px;color:var(--warn);background:var(--warnbg);border:1px solid var(--warnline);border-radius:4px;padding:1px 6px;cursor:pointer}
+  .kickrow{display:flex;gap:8px;margin:16px 0}
+  .kick{height:28px;padding:0 12px;border-radius:7px;border:1px solid var(--line2);background:var(--card2);color:var(--t2);font-size:12px;cursor:not-allowed;opacity:.4;position:relative}
+  .kick:hover .tip{display:block}
+  .tip{display:none;position:absolute;left:0;top:32px;background:#1F1F25;border:1px solid var(--pop);border-radius:6px;padding:4px 9px;font-size:11.5px;color:var(--t1);white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.4);pointer-events:none;z-index:30}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="scenarios" id="scen">
+  <button data-s="home" class="on">home</button>
+  <button data-s="review">review</button>
+  <button data-s="approved">approved</button>
+  <button data-s="gatedwo">gated-wo</button>
+</div>
+
+<div class="app">
+  <div class="topbar">
+    <span class="logo">veri</span><span class="proj">veri (self-hosted)</span>
+    <div class="search">⌕ Search docs… <span class="kbd" style="margin-left:auto">⌘K</span></div>
+    <span class="checkchip">check · 0 issues</span>
+  </div>
+  <div class="row">
+    <div class="rail">
+      <button class="active" id="railHome">⌂</button><button>▤</button><button>◉</button><button>§</button>
+      <div class="fill"></div><button class="agent">⌁</button>
+    </div>
+    <div class="side" id="side"></div>
+    <div class="main">
+      <div class="tabstrip" id="tabs"></div>
+      <div class="view" id="view"></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const S = { scenario:'home', discOpen:false, popOpen:false, composerOpen:false, approved:false };
+
+const sideRows = [
+  {sect:'REQUIREMENTS', color:'var(--req)', n:'7 living', rows:[
+    ['REQ-003','MCP context',false],['REQ-004','Desktop UI',false],['REQ-008','Document approval workflow',true]]},
+  {sect:'DECISIONS', color:'var(--dec)', n:'13 living', rows:[
+    ['DEC-002','Files are source of truth',false],['DEC-012','UI changes need design first',false],['DEC-015','Approval gate enforcement points',true]]},
+  {sect:'WORK ORDERS', color:'var(--wo)', n:'4 living', rows:[
+    ['WO-016','Approval gate core',false],['WO-017','Approval gate UI',false]]},
+];
+
+function renderSide(activeId){
+  document.getElementById('side').innerHTML = sideRows.map(g=>`
+    <div class="sect"><span class="sq" style="background:${g.color}"></span>${g.sect}<span class="n">${g.n}</span></div>
+    ${g.rows.map(([id,t,pend])=>`
+      <div class="drow ${id===activeId?'on':''}">
+        ${pend&&!(S.approved&&id==='DEC-015')?'<span class="dot" title="Awaiting review"></span>':''}
+        <span class="id" style="color:${g.color}">${id}</span><span class="ttl">${t}</span>
+      </div>`).join('')}
+    <div class="divider"></div>`).join('');
+}
+
+function tabs(list){
+  document.getElementById('tabs').innerHTML = list.map(t=>
+    `<div class="tab ${t.on?'on':''}">${t.id?`<span class="tid" style="color:${t.c}">${t.id}</span>`:''}${t.t}</div>`).join('');
+}
+
+/* ---------- HOME ---------- */
+function homeView(){
+  tabs([{t:'⌂ Home',on:true},{id:'WO-016',c:'var(--wo)',t:'Approval gate core'}]);
+  renderSide(null);
+  document.getElementById('view').innerHTML = `
+  <div class="home">
+    <h1>veri</h1><div class="meta">32 documents · 4 work orders living</div>
+
+    <div class="card review-card">
+      <div class="hd">NEEDS REVIEW<span class="m">2 pending</span></div>
+      <div class="r" onclick="go('review')"><span class="cid" style="color:var(--dec)">DEC-015</span>
+        <span>Approval gate enforcement points</span><span class="chip">proposed</span><span class="time">filed 2 d ago</span></div>
+      <div class="r"><span class="cid" style="color:var(--req)">REQ-008</span>
+        <span>Document approval workflow</span><span class="chip">draft</span><span class="time">filed 5 h ago</span></div>
+    </div>
+
+    <div class="grid">
+      <div class="card"><div class="hd">HEALTH<span class="m">0 issues</span></div>
+        <div class="r" style="color:var(--t5);cursor:default">check is clean</div></div>
+      <div class="card"><div class="hd">IN FLIGHT<span class="m">2 work orders</span></div>
+        <div class="r"><span class="cid" style="color:var(--wo)">WO-016</span><span>Approval gate core</span><span class="st" style="color:var(--t4)">backlog</span></div>
+        <div class="r" onclick="go('gatedwo')"><span class="cid" style="color:var(--wo)">WO-017</span><span>Approval gate UI</span><span class="gatechip" style="margin-left:2px">gated</span><span class="st" style="color:var(--t4)">backlog</span></div></div>
+      <div class="card"><div class="hd">AGENT ACTIVITY</div>
+        <div class="r"><span class="cid" style="color:var(--dec)">DEC-015</span><span style="color:var(--t3)">filed as proposal</span><span class="time">2 d</span></div>
+        <div class="r"><span class="cid" style="color:var(--req)">REQ-008</span><span style="color:var(--t3)">drafted</span><span class="time">5 h</span></div></div>
+      <div class="card"><div class="hd">RECENTLY CHANGED</div>
+        <div class="r"><span class="cid" style="color:var(--req)">REQ-008</span><span>Document approval workflow</span><span class="time">5 h</span></div>
+        <div class="r"><span class="cid" style="color:var(--dec)">DEC-015</span><span>Approval gate enforcement points</span><span class="time">2 d</span></div></div>
+    </div>
+  </div>`;
+}
+
+/* ---------- DOC REVIEW ---------- */
+function docView(){
+  tabs([{t:'⌂ Home'},{id:'DEC-015',c:'var(--dec)',t:'Approval gate enforcement points',on:true}]);
+  renderSide('DEC-015');
+  const approved = S.approved;
+  document.getElementById('view').innerHTML = `
+  <div class="doc">
+    <div class="dochead">
+      <div class="idl">DEC-015 · decision</div>
+      <h1>Approval gate enforcement points</h1>
+      <div class="sub">
+        <span style="color:${approved?'var(--ok)':'var(--warn)'}">${approved?'active':'proposed'}</span>
+        <span>updated 2026-08-10</span>
+        ${approved?'<span>approved 2026-08-10</span>':''}
+        <span class="pinchip" style="margin-left:auto">☆ Pin</span>
+      </div>
+    </div>
+
+    ${approved?'':`
+    <div class="banner ${S.discOpen?'open':''}" id="banner">
+      <div class="b1">◌ Awaiting your review</div>
+      <div class="b2">Filed as a proposal by an agent session on 2026-08-08. It is not yet binding —
+        context packages label it “pending” and work orders that depend on it stay gated until you approve.</div>
+      <div class="disc" onclick="S.discOpen=!S.discOpen;render()">${S.discOpen?'▾':'▸'} What approving means</div>
+      <div class="discbody">
+        <div class="col"><div class="cl">BECOMES BINDING FOR</div>
+          <div class="lr"><span class="cid" style="color:var(--wo)">WO-017</span> Approval gate UI</div>
+          <div class="lr"><span class="cid" style="color:var(--req)">REQ-008</span> Document approval workflow</div></div>
+        <div class="col"><div class="cl">ALTERNATIVES REJECTED</div>
+          <div class="lr">↓ Jump to “Alternatives” in this document</div></div>
+      </div>
+      ${S.composerOpen?`
+      <div class="composer">
+        <textarea placeholder="What should change before you’d approve this?" autofocus></textarea>
+        <div class="cb"><button class="ghost" onclick="S.composerOpen=false;render()">Cancel</button>
+        <button class="btn2" onclick="returnNote()">Return with note</button></div>
+      </div>`:`
+      <div class="actions">
+        <button class="btn2" onclick="S.composerOpen=true;render()">Request changes</button>
+        <button class="btn1" onclick="S.popOpen=true;render()">Approve…</button>
+        ${S.popOpen?`
+        <div class="pop">
+          <div class="pt">Approve DEC-015?</div>
+          <div class="diff">status: <span class="old">proposed</span> → <span class="new">active</span><br>
+          <span class="new">approved: 2026-08-10</span></div>
+          <div class="cap">Written to the markdown file. From the next context package on, agents treat this as binding.</div>
+          <div class="pb"><button class="ghost" onclick="S.popOpen=false;render()">Cancel</button>
+          <button class="btn1" onclick="approve()">Approve &amp; stamp</button></div>
+        </div>`:''}
+      </div>`}
+    </div>`}
+
+    <div class="body">
+      <h2>Choice</h2>
+      <p>The approval gate is enforced at three points: the MCP <span style="font-family:var(--mono);font-size:12px">file_decision</span>
+      tool writes <span style="font-family:var(--mono);font-size:12px">status: proposed</span> only; <span class="wik">[[REQ-008]]</span>’s
+      check rules fail any in-progress work order that depends on an unapproved document; and context assembly
+      moves pending documents into a labeled “pending proposals” block.</p>
+      <h2>Alternatives</h2>
+      <ul><li><b>Approval registry outside the files</b> — rejected: violates <span class="wik">[[DEC-002]]</span>.</li>
+      <li><b>Git hook as primary enforcement</b> — rejected for v1: environment-dependent; revisit later.</li>
+      <li><b>Hide pending docs from context</b> — rejected: invisible proposals get re-derived and contradicted.</li></ul>
+      ${S.reviewNote?`<h2>Review notes</h2><ul><li>2026-08-10 (review): ${S.reviewNote}</li></ul>`:''}
+    </div>
+  </div>`;
+}
+
+/* ---------- GATED WO ---------- */
+function gatedWoView(){
+  tabs([{t:'⌂ Home'},{id:'WO-017',c:'var(--wo)',t:'Approval gate UI',on:true}]);
+  renderSide('WO-017');
+  document.getElementById('view').innerHTML = `
+  <div class="doc">
+    <div class="dochead">
+      <div class="idl" style="color:var(--wo)">WO-017 · work order</div>
+      <h1>Approval gate UI</h1>
+      <div class="sub"><span style="color:var(--t4)">backlog</span>
+        <span class="gatechip" onclick="go('review')">gated · DEC-015</span>
+        <span class="gatechip">gated · REQ-008</span>
+        <span>updated 2026-08-10</span><span class="pinchip" style="margin-left:auto">☆ Pin</span></div>
+    </div>
+    <div class="kickrow">
+      <button class="kick">⌁ Copy kickoff prompt<span class="tip">Gated — approve DEC-015 first</span></button>
+      <button class="kick">Open agent session<span class="tip">Gated — approve DEC-015 first</span></button>
+    </div>
+    <div class="body">
+      <h2>Goal</h2>
+      <p>Implement the approval-gate UI per the SRC-006 design: NEEDS REVIEW card, review banner with
+      approve/request-changes, pending markers, gate chips. Blocked from starting until
+      <span class="wik">[[REQ-008]]</span> is accepted and <span class="wik">[[DEC-015]]</span> approved.</p>
+    </div>
+  </div>`;
+}
+
+/* ---------- wiring ---------- */
+function render(){
+  if(S.scenario==='home') homeView();
+  else if(S.scenario==='gatedwo') gatedWoView();
+  else docView();
+  document.querySelectorAll('#scen button').forEach(b=>b.classList.toggle('on',b.dataset.s===S.scenario));
+}
+function go(s){ S.scenario=s; if(s==='review'){S.approved=false;} if(s==='approved'){S.approved=true;} S.popOpen=false;S.composerOpen=false; render(); }
+function approve(){ S.popOpen=false; S.approved=true; S.scenario='approved'; render(); toast('DEC-015 approved'); }
+function returnNote(){ const t=document.querySelector('.composer textarea'); S.reviewNote=(t&&t.value.trim())||'Tighten the check rule to direct links only.'; S.composerOpen=false; render(); toast('Note added to DEC-015 — stays in your review queue'); }
+function toast(m){ const el=document.getElementById('toast'); el.textContent=m; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2200); }
+document.getElementById('scen').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) go(b.dataset.s); });
+document.getElementById('railHome').addEventListener('click',()=>go('home'));
+render();
+</script>
+</body>
+</html>
