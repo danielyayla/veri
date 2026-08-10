@@ -93,3 +93,5 @@ matcher extends the shared search module and is exported alongside
 - [x] `veri check` reports zero issues.
 
 ## Receipts
+
+- 2026-08-10 — 35d01dc — packages/mcp/src/search.ts, packages/mcp/src/search.test.ts, packages/ui/src/main.ts, packages/ui/src/preload.mts, packages/ui/src/renderer/api.ts, packages/ui/src/renderer/app.ts, packages/ui/src/renderer/dom.ts, packages/ui/src/renderer/palette.ts, packages/ui/src/renderer/palette.test.ts, packages/ui/renderer/styles.css — ⌘K command palette per SRC-005 layer 2: ranked matching in the shared @veri/mcp search library (9 new tests), palette overlay with filters/view-rows/snippets in the renderer (4 new tests), verified against the prototype via the screenshot harness; npm test 112 pass, veri check clean (agent session, Claude Code).
