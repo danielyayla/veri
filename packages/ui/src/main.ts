@@ -9,6 +9,8 @@ import { fixRootArg, mcpStatus, writeVeriEntry } from './lib/mcpconfig.ts';
 import { cleanupLaunchScripts, connectAgent, detectAgents, launchAgent } from './lib/agents.ts';
 import type { AgentId } from './lib/agents.ts';
 import { buildSnapshot } from './lib/snapshot.ts';
+import { loadWorkspaceState, saveWorkspaceState } from './lib/workspace.ts';
+import type { WorkspaceState } from './lib/workspace.ts';
 import { appendNote, setStatus } from './lib/write.ts';
 import type { ProjectInfo } from './renderer/api.ts';
 
@@ -82,6 +84,11 @@ function registerIpc(): void {
   ipcMain.handle('veri:context', (_e, id: string) => assembleContext(projectRoot, id));
   ipcMain.handle('veri:palette-search', (_e, query: string, recents: string[]) =>
     paletteSearch(projectRoot, query, recents),
+  );
+  // Pins/recents (WO-014): per-project workspace state in userData, never veri/.
+  ipcMain.handle('veri:workspace-load', () => loadWorkspaceState(getConfigDir(), projectRoot));
+  ipcMain.handle('veri:workspace-save', (_e, state: WorkspaceState) =>
+    saveWorkspaceState(getConfigDir(), projectRoot, state),
   );
   ipcMain.handle('veri:copy', (_e, text: string) => clipboard.writeText(text));
   ipcMain.handle('veri:set-status', (_e, id: string, status: string) => setStatus(projectRoot, id, status));

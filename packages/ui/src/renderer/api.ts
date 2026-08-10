@@ -2,6 +2,7 @@ import type { ContextPackage, PaletteResult } from '@veri/mcp';
 import type { AgentId, AgentInfo } from '../lib/agents.ts';
 import type { McpStatus } from '../lib/mcpconfig.ts';
 import type { Snapshot } from '../lib/snapshot.ts';
+import type { WorkspaceState } from '../lib/workspace.ts';
 
 export interface ProjectInfo {
   dir: string;
@@ -17,6 +18,9 @@ export interface VeriApi {
   context(id: string): Promise<ContextPackage>;
   /** Ranked ⌘K search (WO-013); recents feed the recency boost. */
   paletteSearch(query: string, recents: string[]): Promise<PaletteResult>;
+  /** Per-project pins/recents in userData (WO-014) — workspace state, not knowledge. */
+  workspaceLoad(): Promise<WorkspaceState>;
+  workspaceSave(state: WorkspaceState): Promise<void>;
   copyText(text: string): Promise<void>;
   setStatus(id: string, status: string): Promise<void>;
   appendNote(id: string, note: string): Promise<void>;

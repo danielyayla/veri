@@ -15,6 +15,7 @@ export interface Attrs {
   onDblclick?: (e: MouseEvent) => void;
   onMousedown?: (e: MouseEvent) => void;
   onMouseenter?: (e: MouseEvent) => void;
+  onMouseleave?: (e: MouseEvent) => void;
   onDragstart?: (e: DragEvent) => void;
   onDragover?: (e: DragEvent) => void;
   onDrop?: (e: DragEvent) => void;
@@ -35,6 +36,7 @@ export function h(tag: string, attrs: Attrs = {}, ...children: Child[]): HTMLEle
   if (attrs.onDblclick !== undefined) el.addEventListener('dblclick', attrs.onDblclick as EventListener);
   if (attrs.onMousedown !== undefined) el.addEventListener('mousedown', attrs.onMousedown as EventListener);
   if (attrs.onMouseenter !== undefined) el.addEventListener('mouseenter', attrs.onMouseenter as EventListener);
+  if (attrs.onMouseleave !== undefined) el.addEventListener('mouseleave', attrs.onMouseleave as EventListener);
   if (attrs.onDragstart !== undefined) el.addEventListener('dragstart', attrs.onDragstart as EventListener);
   if (attrs.onDragover !== undefined) el.addEventListener('dragover', attrs.onDragover as EventListener);
   if (attrs.onDrop !== undefined) el.addEventListener('drop', attrs.onDrop as EventListener);

@@ -5,7 +5,7 @@ import { TYPE_META, fmtTokens, statusColor, tint } from '../theme.ts';
 import { plainText, sections } from '../markdown.ts';
 import type { Block } from '../markdown.ts';
 import { fileActivity, receipts } from '../derive.ts';
-import { activityFeed, renderBlocks } from '../widgets.ts';
+import { activityFeed, pinChip, renderBlocks } from '../widgets.ts';
 import type { Ctx } from '../app.ts';
 
 const STATUS_SEGMENTS: Array<{ status: string; label: string }> = [
@@ -353,7 +353,13 @@ export function workOrderView(ctx: Ctx): HTMLElement {
           h('span', { class: 'crumb-sep' }, '/'),
           h('span', { style: 'color:#E8703A;' }, doc.id),
         ),
-        h('div', { class: 'wo-head' }, h('h1', { class: 'doc-title wo-title' }, doc.title), statusControl(ctx, doc)),
+        h(
+          'div',
+          { class: 'wo-head' },
+          h('h1', { class: 'doc-title wo-title' }, doc.title),
+          pinChip(ctx.state.pinned.includes(doc.id), () => ctx.togglePin(doc.id)),
+          statusControl(ctx, doc),
+        ),
         h(
           'div',
           { class: 'wo-meta' },

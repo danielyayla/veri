@@ -1,5 +1,5 @@
 /** App shell: state, topbar, sidebar, view switching, IPC wiring. */
-import type { Issue, VeriDocument } from '@veri/core';
+import type { DocType, Issue, VeriDocument } from '@veri/core';
 import type { ContextPackage, PaletteResult } from '@veri/mcp';
 import type { Snapshot } from '../lib/snapshot.ts';
 import { api } from './api.ts';
@@ -21,6 +21,7 @@ import { VIEW_META, activateTab, closeTab, cycleTab, isViewKey, openTab, pinTab,
 import type { Tab, TabState } from './tabs.ts';
 import { paletteRows } from './palette.ts';
 import type { PaletteRow } from './palette.ts';
+import { DEAD_LABEL, isLiving, pushRecent, treeSection, visibleRecents } from './sidebar.ts';
 
 export type View = 'home' | 'workorder' | 'board' | 'graph' | 'decisions' | 'mcp';
 
@@ -50,6 +51,14 @@ export interface State {
   agentLaunching: string | null;
   agentLaunchMsg: { ok: boolean; text: string } | null;
   checkOpen: boolean;
+  /** Working set (WO-014): per-project pins and recents, persisted in userData. */
+  pinned: string[];
+  recents: string[];
+  /** Sidebar session state (WO-014): per-type collapse and dead-doc expansion. */
+  sectionCollapsed: Partial<Record<DocType, boolean>>;
+  showDead: Partial<Record<DocType, boolean>>;
+  /** Which rail item's instant tooltip is showing (view key or 'mcp'). */
+  railTip: string | null;
   /** Command palette (WO-013): overlay flag, raw query, selection, ranked result. */
   paletteOpen: boolean;
   paletteQuery: string;
@@ -83,6 +92,8 @@ export interface Ctx {
   update(patch: Partial<State>): void;
   openDoc(id: string, opts?: OpenDocOpts): void;
   setView(view: View): void;
+  /** Pin/unpin a doc in the sidebar working set (WO-014). */
+  togglePin(id: string): void;
   refresh(): Promise<void>;
   loadPackage(id: string): void;
   refreshMcp(): Promise<void>;
@@ -121,6 +132,11 @@ class App implements Ctx {
     agentLaunching: null,
     agentLaunchMsg: null,
     checkOpen: false,
+    pinned: [],
+    recents: [],
+    sectionCollapsed: { source: true },
+    showDead: {},
+    railTip: null,
     paletteOpen: false,
     paletteQuery: '',
     paletteSel: 0,
@@ -137,6 +153,7 @@ class App implements Ctx {
   /** Doc-tab activation order, most recent first — drives the Documents nav. */
   private docMru: string[] = [];
   private dragIdx: number | null = null;
+  private pinDragIdx: number | null = null;
   /** The rendered palette rows' open actions, for the global Enter handler. */
   private palRowActions: Array<{ open(pinned: boolean): void }> = [];
   /** Per-tab scroll positions (SRC-004 "State Management"), saved on re-render. */
@@ -155,6 +172,10 @@ class App implements Ctx {
 
   async boot(): Promise<void> {
     this.applySnapshot(await this.api.snapshot());
+    // Workspace state must land before any openDoc call feeds the recents.
+    const ws = await this.api.workspaceLoad();
+    this.state.pinned = ws.pinned.filter((id) => this.byId.has(id));
+    this.state.recents = ws.recents.filter((id) => this.byId.has(id));
     await this.refreshMcp();
     const params = new URLSearchParams(location.search);
     const view = params.get('view');
@@ -283,13 +304,37 @@ class App implements Ctx {
   }
 
   /** Doc navigation is tab navigation (SRC-004 rules 1–4). Default is a
-      pinned link-open; browsing surfaces pass `preview`. */
+      pinned link-open; browsing surfaces pass `preview`. Every doc open
+      feeds the persisted recents (WO-014). */
   openDoc(id: string, opts: OpenDocOpts = {}): void {
     if (!this.byId.has(id)) return;
     this.applyTabs(openTab(this.tabState(), id, { ...opts, previewTabs: this.state.previewTabs }), {
       checkOpen: false,
       projectSwitcherOpen: false,
+      recents: pushRecent(this.state.recents, id),
     });
+    this.saveWorkspace();
+  }
+
+  togglePin(id: string): void {
+    const pinned = this.state.pinned.includes(id)
+      ? this.state.pinned.filter((p) => p !== id)
+      : [...this.state.pinned, id];
+    this.update({ pinned });
+    this.saveWorkspace();
+  }
+
+  private reorderPin(from: number, to: number): void {
+    if (from === to || from < 0 || to < 0 || from >= this.state.pinned.length || to >= this.state.pinned.length) return;
+    const pinned = this.state.pinned.slice();
+    const [moved] = pinned.splice(from, 1);
+    pinned.splice(to, 0, moved);
+    this.update({ pinned });
+    this.saveWorkspace();
+  }
+
+  private saveWorkspace(): void {
+    void this.api.workspaceSave({ pinned: this.state.pinned, recents: this.state.recents });
   }
 
   setView(view: View): void {
@@ -592,15 +637,15 @@ class App implements Ctx {
   /** Open semantics mirror the tabs design: Enter/click = shared preview tab,
       palette closes; ⌘Enter/⌘click = pinned tab in background, palette stays. */
   private openPaletteRow(row: PaletteRow, pinned: boolean): void {
-    const opts = { previewTabs: this.state.previewTabs };
     if (row.kind === 'view') {
-      this.applyTabs(openTab(this.tabState(), row.view, { ...opts, preview: true }), { paletteOpen: false });
-    } else if (!this.byId.has(row.hit.id)) {
-      return;
+      this.applyTabs(openTab(this.tabState(), row.view, { preview: true, previewTabs: this.state.previewTabs }), {
+        paletteOpen: false,
+      });
     } else if (pinned) {
-      this.applyTabs(openTab(this.tabState(), row.hit.id, { ...opts, background: true }));
+      this.openDoc(row.hit.id, { background: true });
     } else {
-      this.applyTabs(openTab(this.tabState(), row.hit.id, { ...opts, preview: true }), { paletteOpen: false });
+      this.openDoc(row.hit.id, { preview: true });
+      this.update({ paletteOpen: false });
     }
   }
 
@@ -692,48 +737,182 @@ class App implements Ctx {
     );
   }
 
-  private sidebar(): HTMLElement {
-    const navDefs: Array<[View, string, string]> = [
-      ['home', 'Documents', '≡'],
+  /**
+   * Icon rail (WO-014): one 32×32 button per view plus the agent-connection
+   * button after the flex filler. Custom instant tooltips — native title has
+   * a ~1s delay that hurts icon-only nav. Clicks open preview view tabs.
+   */
+  private rail(): HTMLElement {
+    const tip = (key: string, label: string): HTMLElement | null =>
+      this.state.railTip === key ? h('span', { class: 'rail-tip' }, label) : null;
+    const hover = (key: string) => ({
+      onMouseenter: () => {
+        if (this.state.railTip !== key) this.update({ railTip: key });
+      },
+      onMouseleave: () => {
+        if (this.state.railTip === key) this.update({ railTip: null });
+      },
+    });
+    const items: Array<[View, string, string]> = [
       ['board', 'Board', '▤'],
       ['graph', 'Graph', '◉'],
       ['decisions', 'Decisions', '§'],
     ];
+    const { healthy, label } = this.mcpSummary();
+    return h(
+      'div',
+      { class: 'rail' },
+      ...items.map(([key, name, glyph]) =>
+        h(
+          'div',
+          {
+            class: this.state.activeTabId === key ? 'rail-btn rail-btn-active' : 'rail-btn',
+            onClick: () => this.setView(key),
+            ...hover(key),
+          },
+          h('span', {}, glyph),
+          tip(key, name),
+        ),
+      ),
+      h('div', { class: 'rail-fill' }),
+      h(
+        'div',
+        {
+          class: this.state.activeTabId === 'mcp' ? 'rail-btn rail-agent rail-agent-active' : 'rail-btn rail-agent',
+          onClick: () => this.setView('mcp'),
+          ...hover('mcp'),
+        },
+        h('span', {}, '⌁'),
+        h('span', { class: 'rail-dot', style: `background:${healthy ? '#7FAF8A' : '#D9A03F'};` }),
+        tip('mcp', label),
+      ),
+    );
+  }
+
+  /** Honest config state of the agent connection — a static dot (no pulse:
+      a pulse would imply liveness), never live client status. */
+  private mcpSummary(): { healthy: boolean; label: string } {
+    const status = this.state.mcpStatus;
+    const notSetup = status === null || status.state === 'missing' || status.state === 'no-entry';
+    const healthy = status !== null && status.state === 'ok' && status.executableFound && status.rootMatches;
+    const label = notSetup
+      ? 'agent connection · not set up'
+      : healthy
+        ? 'agent connection · configured'
+        : 'agent connection · needs attention';
+    return { healthy, label };
+  }
+
+  /** One PINNED/RECENT row: id chip + title, plus unpin ✕ and drag reorder
+      for pins. Clicks keep preview semantics like every browsing surface. */
+  private workingSetRow(id: string, pin: { index: number } | null): HTMLElement | null {
+    const doc = this.byId.get(id);
+    if (doc === undefined) return null;
+    const meta = TYPE_META[doc.type];
+    return h(
+      'div',
+      {
+        class: 'sb-row',
+        draggable: pin !== null,
+        onClick: (e) => this.openDoc(id, { preview: true, background: e.metaKey || e.ctrlKey }),
+        ...(pin !== null
+          ? {
+              onDragstart: () => {
+                this.pinDragIdx = pin.index;
+              },
+              onDragover: (e: DragEvent) => {
+                e.preventDefault();
+                if (this.pinDragIdx !== null && this.pinDragIdx !== pin.index) {
+                  this.reorderPin(this.pinDragIdx, pin.index);
+                  this.pinDragIdx = pin.index;
+                }
+              },
+              onDrop: (e: DragEvent) => e.preventDefault(),
+            }
+          : {}),
+      },
+      h('span', { class: 'sb-row-id', style: `color:${meta.color};` }, id),
+      h('span', { class: 'sb-row-title' }, doc.title),
+      pin !== null
+        ? h(
+            'span',
+            {
+              class: 'sb-unpin',
+              title: 'Unpin',
+              onClick: (e) => {
+                e.stopPropagation();
+                this.togglePin(id);
+              },
+            },
+            '✕',
+          )
+        : null,
+    );
+  }
+
+  private sidebar(): HTMLElement {
     // Rule 9: the sidebar highlight tracks the active tab, not browsing history.
     const activeTab = this.state.activeTabId;
-    const activeNav = (key: View): boolean =>
-      key === 'home' ? activeTab !== null && !isViewKey(activeTab) : activeTab === key;
+
+    const pinnedRows = this.state.pinned.map((id, i) => this.workingSetRow(id, { index: i })).filter((r) => r !== null);
+    const recentRows = visibleRecents(this.state.recents, this.state.pinned)
+      .map((id) => this.workingSetRow(id, null))
+      .filter((r) => r !== null);
 
     const tree = TYPE_ORDER.map((type) => {
-      const docs = this.snap.documents.filter((d) => d.type === type).sort((a, b) => a.id.localeCompare(b.id));
-      if (docs.length === 0) return null;
+      const all = this.snap.documents.filter((d) => d.type === type);
+      if (all.length === 0) return null;
       const meta = TYPE_META[type];
+      const showDead = this.state.showDead[type] === true;
+      const collapsed = this.state.sectionCollapsed[type] === true;
+      const sec = treeSection(this.snap.documents, type, showDead);
+      const rows = collapsed
+        ? []
+        : sec.shown.map((d) => {
+            const active = activeTab === d.id;
+            const health = (this.issues.get(d.id) ?? []).length > 0;
+            const dead = !isLiving(d);
+            return h(
+              'div',
+              {
+                class: active ? 'sb-row sb-row-active' : 'sb-row',
+                onClick: (e) => this.openDoc(d.id, { preview: true, background: e.metaKey || e.ctrlKey }),
+              },
+              h('span', { class: 'sb-row-id', style: `color:${meta.color};` }, d.id),
+              h('span', { class: active ? 'sb-row-title sb-row-title-active' : 'sb-row-title' }, d.title),
+              health ? h('span', { class: 'sb-health' }) : null,
+              !health && dead ? h('span', { class: 'sb-done' }, '✓') : null,
+            );
+          });
+      const expander =
+        collapsed || sec.deadCount === 0
+          ? null
+          : h(
+              'div',
+              {
+                class: 'sb-more',
+                onClick: () =>
+                  this.update({ showDead: { ...this.state.showDead, [type]: !showDead } }),
+              },
+              h('span', { class: 'sb-more-chev' }, showDead ? '▾' : '▸'),
+              h('span', {}, showDead ? `hide ${DEAD_LABEL[type]}` : `${sec.deadCount} ${DEAD_LABEL[type]}`),
+            );
       return h(
         'div',
         { class: 'sb-group' },
         h(
           'div',
-          { class: 'sb-group-head' },
+          {
+            class: 'sb-group-head',
+            onClick: () =>
+              this.update({ sectionCollapsed: { ...this.state.sectionCollapsed, [type]: !collapsed } }),
+          },
           h('span', { class: 'sb-swatch', style: `background:${meta.color};` }),
           h('span', { class: 'sb-group-label' }, meta.group),
-          h('span', { class: 'sb-group-count' }, String(docs.length)),
+          h('span', { class: 'sb-group-count' }, String(sec.livingCount)),
         ),
-        ...docs.map((d) => {
-          const active = activeTab === d.id;
-          const health = (this.issues.get(d.id) ?? []).length > 0;
-          const done = d.type === 'work-order' && d.status === 'done';
-          return h(
-            'div',
-            {
-              class: active ? 'sb-row sb-row-active' : 'sb-row',
-              onClick: (e) => this.openDoc(d.id, { preview: true, background: e.metaKey || e.ctrlKey }),
-            },
-            h('span', { class: 'sb-row-id', style: `color:${meta.color};` }, d.id),
-            h('span', { class: active ? 'sb-row-title sb-row-title-active' : 'sb-row-title' }, d.title),
-            health ? h('span', { class: 'sb-health' }) : null,
-            !health && done ? h('span', { class: 'sb-done' }, '✓') : null,
-          );
-        }),
+        ...rows,
+        expander,
       );
     });
 
@@ -742,45 +921,16 @@ class App implements Ctx {
       { class: 'sidebar' },
       h(
         'div',
-        { class: 'sb-nav' },
-        ...navDefs.map(([key, label, glyph]) =>
-          h(
-            'div',
-            { class: activeNav(key) ? 'sb-nav-row sb-nav-row-active' : 'sb-nav-row', onClick: () => this.setView(key) },
-            h('span', { class: 'sb-nav-glyph' }, glyph),
-            h('span', {}, label),
-          ),
-        ),
+        { class: 'sb-tree' },
+        pinnedRows.length > 0
+          ? h('div', { class: 'sb-sec' }, h('div', { class: 'sb-sec-label' }, 'PINNED'), ...pinnedRows)
+          : null,
+        recentRows.length > 0
+          ? h('div', { class: 'sb-sec' }, h('div', { class: 'sb-sec-label' }, 'RECENT'), ...recentRows)
+          : null,
+        h('div', { class: 'sb-tree-divider' }),
+        ...tree,
       ),
-      h('div', { class: 'sb-divider' }),
-      h('div', { class: 'sb-tree' }, ...tree),
-      this.mcpFooterRow(),
-    );
-  }
-
-  /**
-   * Sidebar footer: honest config state of the agent connection — a static
-   * dot (no pulse: a pulse would imply liveness), never live client status.
-   */
-  private mcpFooterRow(): HTMLElement {
-    const status = this.state.mcpStatus;
-    const notSetup =
-      status === null || status.state === 'missing' || status.state === 'no-entry';
-    const healthy = status !== null && status.state === 'ok' && status.executableFound && status.rootMatches;
-    const label = notSetup
-      ? 'agent connection · not set up'
-      : healthy
-        ? 'agent connection · configured'
-        : 'agent connection · needs attention';
-    return h(
-      'div',
-      {
-        class: this.state.activeTabId === 'mcp' ? 'sb-mcp sb-mcp-active' : 'sb-mcp',
-        onClick: () => this.setView('mcp'),
-      },
-      h('span', { class: 'sb-mcp-dot', style: `background:${healthy ? '#7FAF8A' : '#D9A03F'};` }),
-      h('span', { class: 'sb-mcp-label' }, label),
-      h('span', { class: 'sb-mcp-arrow' }, '→'),
     );
   }
 
@@ -897,7 +1047,7 @@ class App implements Ctx {
     const palette = this.paletteEl();
     this.root.replaceChildren(
       this.topbar(),
-      h('div', { class: 'body' }, this.sidebar(), h('div', { class: 'editor-area' }, this.tabStrip(), screen)),
+      h('div', { class: 'body' }, this.rail(), this.sidebar(), h('div', { class: 'editor-area' }, this.tabStrip(), screen)),
       ...(palette !== null ? [palette] : []),
     );
     this.state.editorFocused = false;

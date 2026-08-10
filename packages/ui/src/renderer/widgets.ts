@@ -28,6 +28,21 @@ export function idChip(byId: DocsById, id: string, nav: Nav): HTMLElement {
   );
 }
 
+/** Document-header pin chip (WO-014): ☆ Pin / ★ Pinned, toggling the
+    sidebar working set. */
+export function pinChip(pinned: boolean, toggle: () => void): HTMLElement {
+  return h(
+    'div',
+    {
+      class: pinned ? 'pin-chip pin-chip-on' : 'pin-chip',
+      title: pinned ? 'Remove from the sidebar working set' : 'Keep in the sidebar working set',
+      onClick: toggle,
+    },
+    h('span', {}, pinned ? '★' : '☆'),
+    h('span', {}, pinned ? 'Pinned' : 'Pin'),
+  );
+}
+
 export function statusChip(status: string): HTMLElement {
   const color = statusColor(status);
   return h('span', { class: 'chip-status', style: `color:${color};background:${tint(color)};` }, status);

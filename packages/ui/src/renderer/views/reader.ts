@@ -3,7 +3,7 @@ import { h } from '../dom.ts';
 import { TYPE_META } from '../theme.ts';
 import { parseBlocks } from '../markdown.ts';
 import { autocomplete, connections, fileActivity, insertAutocomplete } from '../derive.ts';
-import { activityFeed, idChip, renderBlocks, statusChip, typeChip } from '../widgets.ts';
+import { activityFeed, idChip, pinChip, renderBlocks, statusChip, typeChip } from '../widgets.ts';
 import type { Ctx } from '../app.ts';
 
 function frontmatterCard(ctx: Ctx): HTMLElement {
@@ -137,7 +137,12 @@ export function readerView(ctx: Ctx): HTMLElement {
           h('span', { class: 'crumb-sep' }, '/'),
           h('span', { style: `color:${meta.color};` }, doc.id),
         ),
-        h('h1', { class: 'doc-title' }, doc.title),
+        h(
+          'div',
+          { class: 'doc-head' },
+          h('h1', { class: 'doc-title' }, doc.title),
+          pinChip(ctx.state.pinned.includes(doc.id), () => ctx.togglePin(doc.id)),
+        ),
         banner,
         frontmatterCard(ctx),
         h('div', { class: 'doc-body' }, ...renderBlocks(parseBlocks(doc.body), ctx.byId, ctx)),
