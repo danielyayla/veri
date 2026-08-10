@@ -2,7 +2,7 @@
 id: WO-015
 type: work-order
 title: Home view — the default tab that answers "what needs attention"
-status: in-progress
+status: done
 created: 2026-08-10
 updated: 2026-08-10
 links:
@@ -72,20 +72,22 @@ semantics). Visuals are pixel-specified in
 
 ## Acceptance tests
 
-- [ ] A fresh project open shows Home as the (preview) tab; Home is
+- [x] A fresh project open shows Home as the (preview) tab; Home is
       closeable, single-instance, and reopenable from rail ⌂ and the
       palette row "Home".
-- [ ] HEALTH lists each `veri check` issue with kind chip, doc id, and
+- [x] HEALTH lists each `veri check` issue with kind chip, doc id, and
       message; the topbar chip opens Home; a clean project shows a
       muted empty row.
-- [ ] IN FLIGHT lists exactly the backlog/in-progress work orders with
+- [x] IN FLIGHT lists exactly the backlog/in-progress work orders with
       REQ counts (amber at 0), receipt-derived ⌁ markers, and status.
-- [ ] AGENT ACTIVITY interleaves session actions, receipts, and filed
+- [x] AGENT ACTIVITY interleaves session actions, receipts, and filed
       decisions newest-first; RECENTLY CHANGED orders docs by `updated`
       descending.
-- [ ] Every card row opens its doc as the shared preview tab.
-- [ ] Derivation unit tests pass; `npm test` green across the
+- [x] Every card row opens its doc as the shared preview tab.
+- [x] Derivation unit tests pass; `npm test` green across the
       workspace.
-- [ ] `veri check` reports zero issues.
+- [x] `veri check` reports zero issues.
 
 ## Receipts
+
+- 2026-08-10 — 2688de9 — packages/ui/src/renderer/tabs.ts, packages/ui/src/renderer/derive.ts, packages/ui/src/renderer/derive.test.ts, packages/ui/src/renderer/views/home.ts, packages/ui/src/renderer/app.ts, packages/ui/src/renderer/palette.test.ts, packages/ui/renderer/styles.css — Home view per SRC-005 layer 4: default preview tab, rail ⌂ + palette row via VIEW_META, health-chip deep-link (check popover removed), four cards from pure tested derivations (3 new tests); default-tab and card contents verified via the screenshot harness; npm test 132 pass, veri check clean (agent session, Claude Code).
