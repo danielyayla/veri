@@ -2,7 +2,7 @@
 id: WO-012
 type: work-order
 title: Document tabs — IDE-style tab workflow in the desktop UI
-status: in-progress
+status: done
 created: 2026-08-10
 updated: 2026-08-10
 links:
@@ -65,21 +65,30 @@ the user before implementation.
 
 ## Acceptance tests
 
-- [ ] Clicking an inline `[[ID]]` chip or a Connections card opens a
+- [x] Clicking an inline `[[ID]]` chip or a Connections card opens a
       pinned tab immediately after the active tab and focuses it; the
       source tab stays open; re-clicking focuses the existing tab
       instead of duplicating (pinning it if it was the preview).
-- [ ] Sidebar tree, board cards, graph "Open doc", decision-log entries,
+- [x] Sidebar tree, board cards, graph "Open doc", decision-log entries,
       and veri-check issues share one italic preview tab that is reused
       in place; double-click pins it.
-- [ ] ⌘/Ctrl-click opens a doc's tab without focusing it.
-- [ ] × or middle-click closes a tab; closing the active tab activates
+- [x] ⌘/Ctrl-click opens a doc's tab without focusing it.
+- [x] × or middle-click closes a tab; closing the active tab activates
       the right neighbor, else the left; closing the last tab shows the
       NO OPEN TABS empty state.
-- [ ] Tabs reorder live via drag; Board / Graph / Decisions / Agent
+- [x] Tabs reorder live via drag; Board / Graph / Decisions / Agent
       connection open as tabs from the sidebar; the sidebar highlight
       follows the active tab.
-- [ ] Tab-operation unit tests pass; `npm test` green.
-- [ ] `veri check` reports zero issues.
+- [x] Tab-operation unit tests pass; `npm test` green.
+- [x] `veri check` reports zero issues.
 
 ## Receipts
+
+- 2026-08-10 · 4619ac9 · packages/ui/src/renderer/{tabs.ts,tabs.test.ts,
+  app.ts,dom.ts,widgets.ts,views/reader.ts,views/board.ts,views/graph.ts,
+  views/decisions.ts}, packages/ui/renderer/styles.css,
+  design/document-tabs/, veri/sources/SRC-004 · Tab strip and VS Code
+  open/preview/close/reorder semantics per SRC-004; 15 tab-op unit tests
+  (54 total UI tests pass), veri check clean; pinned-link, preview-reuse,
+  view-tab, and empty states verified against the prototype via the
+  screenshot harness (agent session, Claude Code).
