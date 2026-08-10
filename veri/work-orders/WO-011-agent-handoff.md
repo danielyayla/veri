@@ -87,3 +87,6 @@ the current "Serve via MCP" affordance.
 - 2026-08-10 · 7f028d8 · packages/ui/renderer/styles.css · Fixed collapsed
   button heights in the column layout (flex-basis override); re-verified
   against the prototype via screenshot.
+- 2026-08-10 · 78de2d9 · packages/ui/src/lib/agents.ts (+test), main.ts ·
+  Startup sweep deletes launch scripts older than an hour from the temp
+  dir; 7 adapter tests pass.
