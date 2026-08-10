@@ -2,7 +2,7 @@
 id: WO-016
 type: work-order
 title: Approval gate core — schema, check rules, proposal-only writeback
-status: backlog
+status: in-progress
 created: 2026-08-10
 updated: 2026-08-10
 links:

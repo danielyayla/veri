@@ -2,7 +2,8 @@
 id: REQ-008
 type: requirement
 title: Document approval workflow — proposals need Daniel's stamp to bind
-status: draft
+status: accepted
+approved: 2026-08-10
 created: 2026-08-10
 updated: 2026-08-10
 links:
