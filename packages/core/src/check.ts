@@ -75,6 +75,56 @@ export function checkWorkOrderRequirements(documents: VeriDocument[]): Issue[] {
   return issues;
 }
 
+/** A document awaiting the user's approval and therefore not binding (REQ-008). */
+export function isPending(doc: VeriDocument): boolean {
+  return (
+    (doc.type === 'requirement' && doc.status === 'draft') ||
+    (doc.type === 'decision' && doc.status === 'proposed')
+  );
+}
+
+// The gate is on starting work, not on planning: backlog work orders may cite
+// pending documents so a proposal and its work orders review as one package.
+export function checkGatedWorkOrders(documents: VeriDocument[]): Issue[] {
+  const byId = new Map(documents.map((doc) => [doc.id, doc]));
+  const issues: Issue[] = [];
+  for (const doc of documents) {
+    if (doc.type !== 'work-order' || doc.status === 'backlog') continue;
+    for (const link of doc.links) {
+      const target = byId.get(link.id);
+      if (target !== undefined && isPending(target)) {
+        issues.push({
+          kind: 'gated-wo',
+          file: doc.file,
+          id: doc.id,
+          targetId: target.id,
+          targetStatus: target.status,
+          message: `work order ${doc.id} is ${doc.status} but depends on ${target.id}, which is still ${target.status} — approve it first (veri approve ${target.id})`,
+        });
+      }
+    }
+  }
+  return issues;
+}
+
+export function checkApprovalStamps(documents: VeriDocument[]): Issue[] {
+  const issues: Issue[] = [];
+  for (const doc of documents) {
+    const promoted =
+      (doc.type === 'requirement' && doc.status === 'accepted') ||
+      (doc.type === 'decision' && doc.status === 'active');
+    if (promoted && doc.approved === undefined) {
+      issues.push({
+        kind: 'missing-approval',
+        file: doc.file,
+        id: doc.id,
+        message: `${doc.id} is ${doc.status} but has no approved: date — promotion requires the user's stamp`,
+      });
+    }
+  }
+  return issues;
+}
+
 const UNCHECKED_BOX_RE = /^\s*[-*]\s+\[ \]/m;
 const LIST_ITEM_RE = /^\s*[-*]\s+\S/m;
 
@@ -126,5 +176,7 @@ export function checkProject(load: LoadResult): Issue[] {
     ...checkBrokenLinks(load.documents),
     ...checkWorkOrderRequirements(load.documents),
     ...checkDoneWorkOrders(load.documents),
+    ...checkGatedWorkOrders(load.documents),
+    ...checkApprovalStamps(load.documents),
   ];
 }

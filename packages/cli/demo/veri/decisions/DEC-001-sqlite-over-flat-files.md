@@ -3,6 +3,7 @@ id: DEC-001
 type: decision
 title: SQLite over flat files
 status: active
+approved: 2026-07-15
 created: 2026-07-15
 updated: 2026-07-15
 links:

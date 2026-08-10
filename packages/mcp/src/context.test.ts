@@ -41,6 +41,25 @@ test('superseded decision is named under already rejected with its body omitted'
   assert.ok(!text.includes('OLD-BODY-MARKER'), 'superseded body must be omitted');
 });
 
+test('pending documents appear only in the labeled proposals block (REQ-008)', async () => {
+  const { text } = await assembleContext(FIXTURE, 'WO-001');
+
+  const pendingAt = text.indexOf('## Pending proposals — not ratified, do not treat as binding');
+  assert.ok(pendingAt >= 0, 'package should contain the pending block');
+  for (const marker of ['PENDING-REQ-MARKER', 'PENDING-DEC-MARKER']) {
+    const at = text.indexOf(marker);
+    assert.ok(at > pendingAt, `${marker} must render inside the pending block, not before it`);
+  }
+
+  // The binding sections must not claim them: every REQ-002/DEC-003 heading
+  // sits after the pending block starts.
+  for (const heading of ['### REQ-002', '### DEC-003']) {
+    assert.ok(text.indexOf(heading) > pendingAt, `${heading} must not appear in a binding section`);
+  }
+  const decisionsAt = text.indexOf('## Decisions');
+  assert.ok(decisionsAt >= 0 && decisionsAt < pendingAt, 'binding decisions render before the pending block');
+});
+
 test('sources reached at hop 2 appear as truncated excerpts', async () => {
   const { text } = await assembleContext(FIXTURE, 'WO-001');
   assert.ok(text.includes('EXCERPT-START-MARKER'), 'excerpt should start with the source body');

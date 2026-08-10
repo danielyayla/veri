@@ -3,6 +3,7 @@ id: REQ-003
 type: requirement
 title: Client data stays local
 status: accepted
+approved: 2026-07-17
 created: 2026-07-16
 updated: 2026-07-17
 links:

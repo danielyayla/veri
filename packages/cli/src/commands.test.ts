@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { check, init, list, newDoc } from './commands.ts';
+import { approve, check, init, list, newDoc } from './commands.ts';
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const FIVE_ISSUES = fileURLToPath(new URL('../fixtures/five-issues', import.meta.url));
@@ -32,6 +32,29 @@ test('init && new requirement && check succeeds end-to-end in a temp directory',
   const checked = await check(cwd);
   assert.equal(checked.code, 0, checked.lines.join('\n'));
   assert.match(checked.lines[0] ?? '', /ok — 1 documents, 0 issues/);
+});
+
+test('new documents are born unapproved and veri approve promotes them with a stamp', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+
+  init(cwd, { demo: false });
+  await newDoc(cwd, 'decision', 'Pick a widget');
+  const file = join(cwd, 'veri/decisions/DEC-001-pick-a-widget.md');
+  assert.match(readFileSync(file, 'utf8'), /^status: proposed$/m);
+
+  const approved = await approve(cwd, 'DEC-001');
+  assert.equal(approved.code, 0, approved.lines.join('\n'));
+  assert.match(approved.lines[0] ?? '', /^DEC-001 proposed → active — approved: \d{4}-\d{2}-\d{2}/);
+  const content = readFileSync(file, 'utf8');
+  assert.match(content, /^status: active$/m);
+  assert.match(content, /^approved: \d{4}-\d{2}-\d{2}$/m);
+  assert.equal((await check(cwd)).code, 0);
+
+  const again = await approve(cwd, 'DEC-001');
+  assert.equal(again.code, 1);
+  assert.match(again.lines[0] ?? '', /nothing to approve/);
+  assert.equal((await approve(cwd, undefined)).code, 1);
 });
 
 test('ids allocate sequentially per type', async (t) => {

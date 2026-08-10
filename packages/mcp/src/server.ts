@@ -59,7 +59,8 @@ server.registerTool(
   'file_decision',
   {
     description:
-      'Record a technical decision as a new document with the next free DEC id and status: active. ' +
+      'File a technical decision as a proposal — a new document with the next free DEC id and status: proposed, ' +
+      'pending the user\'s review; it is not binding until they approve it. ' +
       'Use when a non-trivial choice is made during implementation; include the rejected alternatives.',
     inputSchema: {
       title: z.string(),
@@ -75,7 +76,11 @@ server.registerTool(
   async (input) => {
     try {
       const { id, file } = await fileDecision(projectRoot, input);
-      return ok(`Filed ${id} at ${file}`);
+      return ok(
+        `Filed ${id} at ${file} as a proposal pending the user's review — not binding yet. ` +
+          `Present it to the user: what it commits them to, what it rules out, and the alternatives rejected. ` +
+          `They promote it with veri approve ${id} (or in the app).`,
+      );
     } catch (err) {
       return fail(err);
     }

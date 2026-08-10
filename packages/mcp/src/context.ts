@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { buildGraph, loadProject } from '@veri/core';
+import { buildGraph, isPending, loadProject } from '@veri/core';
 import type { VeriDocument } from '@veri/core';
 
 /** Rough token estimate per REQ-003: chars/4 is fine. */
@@ -58,8 +58,12 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
     .filter((id) => id !== workOrderId)
     .map((id) => graph.byId.get(id)!)
     .sort((a, b) => a.id.localeCompare(b.id));
-  const requirements = reached.filter((doc) => doc.type === 'requirement');
-  const activeDecisions = reached.filter((doc) => doc.type === 'decision' && doc.status !== 'superseded');
+  // Pending documents (draft REQ / proposed DEC, REQ-008) leave the binding
+  // sections for a labeled block: visible so agents don't contradict them,
+  // labeled so agents don't rely on them.
+  const pending = reached.filter(isPending);
+  const requirements = reached.filter((doc) => doc.type === 'requirement' && !isPending(doc));
+  const activeDecisions = reached.filter((doc) => doc.type === 'decision' && doc.status === 'active');
   const supersededDecisions = reached.filter((doc) => doc.type === 'decision' && doc.status === 'superseded');
   const sources = reached.filter((doc) => doc.type === 'source');
 
@@ -117,6 +121,13 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
         (doc) => `- ${doc.id} — ${doc.title}${doc.supersededBy ? ` (superseded by ${doc.supersededBy})` : ''}`,
       );
       parts.push(`### Already rejected (superseded — bodies omitted)\n\n${lines.join('\n')}\n`);
+    }
+  }
+  if (pending.length > 0) {
+    parts.push('## Pending proposals — not ratified, do not treat as binding');
+    for (const doc of pending) {
+      const { heading, text } = renderFull(doc, '###');
+      push(heading, text);
     }
   }
   if (sources.length > 0) {

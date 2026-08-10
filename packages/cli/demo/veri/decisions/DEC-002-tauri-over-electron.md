@@ -3,6 +3,7 @@ id: DEC-002
 type: decision
 title: Tauri over Electron
 status: active
+approved: 2026-07-18
 created: 2026-07-18
 updated: 2026-07-18
 links:

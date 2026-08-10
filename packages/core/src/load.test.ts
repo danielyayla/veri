@@ -8,7 +8,17 @@ import type { LoadResult } from './load.ts';
 
 const FIXTURE = new URL('../fixtures/valid/', import.meta.url);
 
-const KNOWN_KEYS = new Set(['id', 'type', 'title', 'status', 'created', 'updated', 'links', 'superseded_by']);
+const KNOWN_KEYS = new Set([
+  'id',
+  'type',
+  'title',
+  'status',
+  'created',
+  'updated',
+  'links',
+  'superseded_by',
+  'approved',
+]);
 
 /** Serializable projection of a load: documents, edges, and backlinks. */
 function snapshotOf(load: LoadResult): unknown {
@@ -24,6 +34,7 @@ function snapshotOf(load: LoadResult): unknown {
       updated: d.updated,
       links: d.links,
       supersededBy: d.supersededBy ?? null,
+      approved: d.approved ?? null,
       inlineRefs: d.inlineRefs,
       extra: Object.fromEntries(Object.entries(d.frontmatter).filter(([key]) => !KNOWN_KEYS.has(key))),
     })),

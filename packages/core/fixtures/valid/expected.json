@@ -15,6 +15,7 @@
         }
       ],
       "supersededBy": null,
+      "approved": "2026-08-01",
       "inlineRefs": [
         "DEC-002"
       ],
@@ -30,6 +31,7 @@
       "updated": "2026-08-01",
       "links": [],
       "supersededBy": "DEC-001",
+      "approved": null,
       "inlineRefs": [],
       "extra": {}
     },
@@ -48,6 +50,7 @@
         }
       ],
       "supersededBy": null,
+      "approved": "2026-08-02",
       "inlineRefs": [
         "DEC-001"
       ],
@@ -65,6 +68,7 @@
       "updated": "2026-07-19",
       "links": [],
       "supersededBy": null,
+      "approved": null,
       "inlineRefs": [],
       "extra": {}
     },
@@ -87,6 +91,7 @@
         }
       ],
       "supersededBy": null,
+      "approved": null,
       "inlineRefs": [
         "REQ-001"
       ],
@@ -111,6 +116,7 @@
         }
       ],
       "supersededBy": null,
+      "approved": null,
       "inlineRefs": [
         "WO-001",
         "SRC-001"

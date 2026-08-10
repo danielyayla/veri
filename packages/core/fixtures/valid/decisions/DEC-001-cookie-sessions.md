@@ -3,6 +3,7 @@ id: DEC-001
 type: decision
 title: Cookie sessions over JWTs
 status: active
+approved: 2026-08-01
 created: 2026-08-01
 updated: 2026-08-01
 links:

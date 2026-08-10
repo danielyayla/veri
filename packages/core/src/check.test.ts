@@ -63,6 +63,14 @@ const CASES: BrokenCase[] = [
     dir: 'done-wo-no-receipt',
     expected: [{ kind: 'done-wo-violation', id: 'WO-001', problem: 'no-receipt' }],
   },
+  {
+    dir: 'gated-wo',
+    expected: [{ kind: 'gated-wo', id: 'WO-001', targetId: 'REQ-001', targetStatus: 'draft' }],
+  },
+  {
+    dir: 'missing-approval',
+    expected: [{ kind: 'missing-approval', id: 'DEC-001', file: 'decisions/DEC-001-unstamped.md' }],
+  },
 ];
 
 for (const { dir, expected } of CASES) {
@@ -77,3 +85,9 @@ for (const { dir, expected } of CASES) {
     }
   });
 }
+
+test('a backlog work order may cite pending documents — the gate is on starting work', async () => {
+  const load = await loadProject(new URL('../fixtures/pending-ok', import.meta.url));
+  assert.equal(load.documents.length, 3);
+  assert.deepEqual(checkProject(load), []);
+});

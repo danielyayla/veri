@@ -1,11 +1,10 @@
 ---
 id: REQ-001
 type: requirement
-title: Target requirement
-status: accepted
-approved: 2026-08-01
+title: Pending requirement
+status: draft
 created: 2026-08-01
 updated: 2026-08-01
 ---
 
-Body.
+Awaiting review.

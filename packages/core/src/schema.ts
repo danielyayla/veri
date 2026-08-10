@@ -21,14 +21,20 @@ const baseFields = {
 
 // Unknown extra keys are preserved (passthrough), never rejected — see REQ-001.
 const requirementSchema = z
-  .object({ ...baseFields, type: z.literal('requirement'), status: z.enum(['draft', 'accepted', 'retired']) })
+  .object({
+    ...baseFields,
+    type: z.literal('requirement'),
+    status: z.enum(['draft', 'accepted', 'retired']),
+    approved: dateField.optional(),
+  })
   .passthrough();
 
 const decisionSchema = z
   .object({
     ...baseFields,
     type: z.literal('decision'),
-    status: z.enum(['active', 'superseded']),
+    status: z.enum(['proposed', 'active', 'superseded']),
+    approved: dateField.optional(),
     superseded_by: idField.optional(),
   })
   .passthrough();

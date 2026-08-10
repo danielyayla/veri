@@ -50,6 +50,9 @@ export function parseDocument(file: string, content: string): ParseOutcome {
     updated: fm.updated,
     links: fm.links.map(({ id, rel }): Link => ({ id, rel })),
     ...(fm.type === 'decision' && fm.superseded_by !== undefined ? { supersededBy: fm.superseded_by } : {}),
+    ...((fm.type === 'requirement' || fm.type === 'decision') && fm.approved !== undefined
+      ? { approved: fm.approved }
+      : {}),
     frontmatter: fm as Record<string, unknown>,
     body,
     file,

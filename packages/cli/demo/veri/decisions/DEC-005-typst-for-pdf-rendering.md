@@ -3,6 +3,7 @@ id: DEC-005
 type: decision
 title: Typst for PDF rendering
 status: active
+approved: 2026-08-05
 created: 2026-08-02
 updated: 2026-08-05
 links:

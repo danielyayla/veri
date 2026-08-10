@@ -3,6 +3,7 @@ id: DEC-001
 type: decision
 title: Links to a requirement that does not exist
 status: active
+approved: 2026-08-01
 created: 2026-08-01
 updated: 2026-08-01
 links:

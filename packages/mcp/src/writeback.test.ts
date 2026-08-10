@@ -35,7 +35,8 @@ test('file_decision creates a valid decision with the next free DEC id', async (
   await assertClean(root);
 
   const content = readFileSync(join(root, first.file), 'utf8');
-  assert.match(content, /^status: active$/m);
+  assert.match(content, /^status: proposed$/m); // born unapproved — REQ-008
+  assert.doesNotMatch(content, /^approved:/m);
   assert.match(content, /## Choice/);
   assert.match(content, /## Rejected alternatives/);
 
@@ -44,7 +45,7 @@ test('file_decision creates a valid decision with the next free DEC id', async (
   await assertClean(root);
 
   const hits = await searchDocs(root, 'widgets');
-  assert.ok(hits.some((hit) => hit.id === 'DEC-001' && hit.status === 'active'));
+  assert.ok(hits.some((hit) => hit.id === 'DEC-001' && hit.status === 'proposed'));
 });
 
 test('file_decision rejects links to nonexistent documents', async (t) => {

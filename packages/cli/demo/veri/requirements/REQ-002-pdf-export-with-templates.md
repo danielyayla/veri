@@ -3,6 +3,7 @@ id: REQ-002
 type: requirement
 title: PDF export with templates
 status: accepted
+approved: 2026-08-04
 created: 2026-07-16
 updated: 2026-08-04
 links:

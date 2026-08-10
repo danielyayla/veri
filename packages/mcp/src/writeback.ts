@@ -69,7 +69,7 @@ export async function fileDecision(
     `id: ${id}`,
     'type: decision',
     `title: ${JSON.stringify(input.title)}`,
-    'status: active',
+    'status: proposed', // agent-filed decisions are never born binding — REQ-008
     `created: ${date}`,
     `updated: ${date}`,
     ...(input.links && input.links.length > 0

@@ -10,6 +10,10 @@ links:
     rel: delivers
   - id: DEC-002
     rel: constrained-by
+  - id: REQ-002
+    rel: implements
+  - id: DEC-003
+    rel: constrained-by
 ---
 
 ## Summary

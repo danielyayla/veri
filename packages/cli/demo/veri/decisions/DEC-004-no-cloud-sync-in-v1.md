@@ -3,6 +3,7 @@ id: DEC-004
 type: decision
 title: No cloud sync in v1
 status: active
+approved: 2026-07-28
 created: 2026-07-28
 updated: 2026-07-28
 links:

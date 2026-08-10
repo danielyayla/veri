@@ -1,9 +1,11 @@
 import type { DocType } from '@veri/core';
 
 /** Initial status for a freshly created document of each type. */
+// Every freshly created document starts unapproved — promotion is the user's
+// act via veri approve (REQ-008).
 export const INITIAL_STATUS: Record<DocType, string> = {
   requirement: 'draft',
-  decision: 'active',
+  decision: 'proposed',
   'work-order': 'backlog',
   source: 'imported',
 };

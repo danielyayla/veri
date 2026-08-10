@@ -3,6 +3,7 @@ id: REQ-001
 type: requirement
 title: User authentication
 status: accepted
+approved: 2026-08-02
 created: 2026-08-01
 updated: 2026-08-02
 links:

@@ -3,6 +3,7 @@ id: REQ-001
 type: requirement
 title: Offline invoice creation
 status: accepted
+approved: 2026-07-25
 created: 2026-07-14
 updated: 2026-07-25
 links:

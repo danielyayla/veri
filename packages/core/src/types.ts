@@ -15,6 +15,8 @@ export interface VeriDocument {
   links: Link[];
   /** Only present on superseded decisions. */
   supersededBy?: string;
+  /** Date the user approved this document (requirements and decisions, REQ-008). */
+  approved?: string;
   /** Full validated frontmatter; unknown extra keys are preserved here. */
   frontmatter: Record<string, unknown>;
   body: string;
@@ -42,6 +44,15 @@ export type Issue =
       message: string;
     }
   | { kind: 'wo-without-requirement'; file: string; id: string; message: string }
+  | {
+      kind: 'gated-wo';
+      file: string;
+      id: string;
+      targetId: string;
+      targetStatus: string;
+      message: string;
+    }
+  | { kind: 'missing-approval'; file: string; id: string; message: string }
   | {
       kind: 'done-wo-violation';
       file: string;

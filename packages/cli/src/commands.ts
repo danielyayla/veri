@@ -1,7 +1,7 @@
 import { constants, copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DOC_TYPES, checkProject, loadProject } from '@veri/core';
+import { DOC_TYPES, approveDocument, checkProject, loadProject } from '@veri/core';
 import type { DocType, Issue } from '@veri/core';
 import { BODY_TEMPLATES, INITIAL_STATUS } from './templates.ts';
 
@@ -130,6 +130,24 @@ export async function check(cwd: string): Promise<CmdResult> {
     code: 1,
     lines: [...issues.map((issue) => `${fileOf(issue)}: ${issue.message}`), `${issues.length} issue(s)`],
   };
+}
+
+/** The user's approval act (REQ-008): draft → accepted / proposed → active, stamped with today. */
+export async function approve(cwd: string, idArg: string | undefined): Promise<CmdResult> {
+  if (idArg === undefined || idArg.trim() === '') {
+    return { code: 1, lines: ['usage: veri approve <id> (a draft requirement or proposed decision)'] };
+  }
+  const dir = requireVeriDir(cwd);
+  if (dir === null) return NO_VERI_DIR;
+  try {
+    const result = await approveDocument(dir, idArg.trim());
+    return {
+      code: 0,
+      lines: [`${result.id} ${result.from} → ${result.to} — approved: ${result.approved} (veri/${result.file})`],
+    };
+  } catch (err) {
+    return { code: 1, lines: (err as Error).message.split('\n') };
+  }
 }
 
 export async function list(cwd: string, typeArg: string | undefined): Promise<CmdResult> {
