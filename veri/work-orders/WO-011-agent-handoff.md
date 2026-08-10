@@ -90,3 +90,15 @@ the current "Serve via MCP" affordance.
 - 2026-08-10 · 78de2d9 · packages/ui/src/lib/agents.ts (+test), main.ts ·
   Startup sweep deletes launch scripts older than an hour from the temp
   dir; 7 adapter tests pass.
+- 2026-08-10 · ef5515b · no code changes (verification session) · Live
+  end-to-end tests of both launch paths: a real Claude Code session
+  launched from the picker (Terminal opened, kickoff prompt delivered,
+  process verified then closed), and Set up & launch exercised with a
+  stub cursor-agent on PATH — .cursor/mcp.json written with the
+  recognized entry, session started in the project root with the
+  kickoff prompt as argv. Codex TOML path likewise verified with a stub
+  codex and a scratch HOME: veri block appended to a pre-seeded
+  config.toml without touching existing content, prompt delivered; a
+  foreign [mcp_servers.veri] block downgraded the row to launch-only
+  and was never rewritten (DEC-011/DEC-013). Test artifacts removed
+  afterwards.
