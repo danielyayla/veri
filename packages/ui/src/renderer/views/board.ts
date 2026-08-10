@@ -41,7 +41,7 @@ export function boardView(ctx: Ctx): HTMLElement {
             ...col.cards.map((card) =>
               h(
                 'div',
-                { class: 'board-card', onClick: () => ctx.openDoc(card.id) },
+                { class: 'board-card', onClick: (e) => ctx.openDoc(card.id, { preview: true, background: e.metaKey || e.ctrlKey }) },
                 h(
                   'div',
                   { class: 'board-card-head' },

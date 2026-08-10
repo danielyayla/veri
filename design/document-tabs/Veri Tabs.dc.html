@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F0F11;}
+a{color:#E8703A;text-decoration:none;}
+a:hover{color:#F49463;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:#26262C;border-radius:5px;border:2px solid #0F0F11;}
+::-webkit-scrollbar-track{background:transparent;}
+@keyframes kilnpulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+</style>
+</helmet>
+<div style="height:100vh;display:flex;flex-direction:column;background:#0F0F11;color:#E7E4DE;font-family:'Source Sans 3',sans-serif;font-size:14px;overflow:hidden;">
+
+  <!-- ===== Top bar ===== -->
+  <div style="height:44px;flex:0 0 auto;display:flex;align-items:center;gap:16px;padding:0 14px;border-bottom:1px solid #1E1E24;background:#131316;position:relative;z-index:30;">
+    <div style="display:flex;align-items:center;gap:8px;position:relative;">
+      <div style="width:18px;height:18px;border-radius:4px;background:#E8703A;display:flex;align-items:center;justify-content:center;color:#0F0F11;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;">v</div>
+      <span style="font-weight:600;font-size:13px;letter-spacing:.2px;">Veri</span>
+      <span style="color:#4A4852;">/</span>
+      <div onClick="{{ toggleProj }}" style="display:flex;align-items:center;gap:6px;height:24px;padding:0 8px;margin-left:-4px;border-radius:6px;cursor:pointer;background:{{ projBtnBg }};" style-hover="background:#1B1B20;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#A09DA6;">{{ curProj }}</span>
+        <span style="font-size:9px;color:#6E6B76;">▾</span>
+      </div>
+      <sc-if value="{{ projOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;top:34px;left:26px;width:300px;background:#1A1A1F;border:1px solid #2B2B32;border-radius:8px;box-shadow:0 12px 32px rgba(0,0,0,.5);padding:6px;z-index:60;">
+          <div style="padding:6px 8px 8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#6E6B76;letter-spacing:.08em;">PROJECTS</div>
+          <sc-for list="{{ projList }}" as="pr" hint-placeholder-count="3">
+            <div onClick="{{ pr.go }}" style="display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:6px;cursor:pointer;background:{{ pr.bg }};" style-hover="background:#1F1F25;">
+              <span style="width:7px;height:7px;border-radius:2px;background:{{ pr.dot }};flex:0 0 auto;"></span>
+              <div style="min-width:0;">
+                <div style="display:flex;align-items:baseline;gap:8px;">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#E7E4DE;">{{ pr.name }}</span>
+                  <sc-if value="{{ pr.issues }}" hint-placeholder-val="{{ false }}">
+                    <span style="width:5px;height:5px;border-radius:50%;background:#D9A03F;"></span>
+                  </sc-if>
+                </div>
+                <div style="font-size:11px;color:#6E6B76;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ pr.meta }}</div>
+              </div>
+              <sc-if value="{{ pr.current }}" hint-placeholder-val="{{ false }}">
+                <span style="margin-left:auto;color:#7FAF8A;font-size:11px;flex:0 0 auto;">✓</span>
+              </sc-if>
+            </div>
+          </sc-for>
+          <div style="height:1px;background:#26262C;margin:6px 4px;"></div>
+          <div style="display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:6px;cursor:pointer;color:#A09DA6;font-size:12.5px;" style-hover="background:#1F1F25;">
+            <span style="width:14px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:#6E6B76;">+</span>
+            <span>Open project folder…</span>
+            <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;border:1px solid #26262C;border-radius:4px;padding:1px 5px;color:#6E6B76;">⌘O</span>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+    <div style="flex:1;display:flex;justify-content:center;">
+      <div style="display:flex;align-items:center;gap:8px;width:340px;height:26px;padding:0 10px;border:1px solid #26262C;border-radius:6px;background:#0F0F11;color:#6E6B76;font-size:12px;cursor:pointer;" style-hover="border-color:#34343C;">
+        <span>Search docs…</span>
+        <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;border:1px solid #26262C;border-radius:4px;padding:1px 5px;">⌘K</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;position:relative;">
+      <sc-if value="{{ healthOn }}" hint-placeholder-val="{{ true }}">
+        <div onClick="{{ toggleCheck }}" style="display:flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:6px;border:1px solid #3A3020;background:rgba(217,160,63,0.08);color:#D9A03F;font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;">
+          <span style="width:6px;height:6px;border-radius:50%;background:#D9A03F;"></span>
+          <span>veri check · 2 issues</span>
+        </div>
+      </sc-if>
+      <div style="display:flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:6px;border:1px solid #26262C;color:#A09DA6;font-family:'JetBrains Mono',monospace;font-size:11px;">
+        <span style="color:#7FAF8A;">⎇</span><span>main · clean</span>
+      </div>
+      <sc-if value="{{ checkOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;top:32px;right:0;width:320px;background:#1A1A1F;border:1px solid #2B2B32;border-radius:8px;box-shadow:0 12px 32px rgba(0,0,0,.5);padding:6px;z-index:50;">
+          <div style="padding:6px 8px 8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#6E6B76;letter-spacing:.08em;">VERI CHECK — 2 ISSUES</div>
+          <sc-for list="{{ healthIssues }}" as="iss" hint-placeholder-count="2">
+            <div onClick="{{ iss.go }}" style="display:flex;gap:8px;align-items:flex-start;padding:8px;border-radius:6px;cursor:pointer;" style-hover="background:#1F1F25;">
+              <span style="width:6px;height:6px;border-radius:50%;background:#D9A03F;margin-top:5px;flex:0 0 auto;"></span>
+              <div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#E7E4DE;">{{ iss.docId }}</div>
+                <div style="font-size:12px;color:#A09DA6;margin-top:1px;">{{ iss.msg }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <div style="flex:1;display:flex;min-height:0;">
+
+    <!-- ===== Sidebar ===== -->
+    <div style="width:250px;flex:0 0 auto;display:flex;flex-direction:column;border-right:1px solid #1E1E24;background:#131316;min-height:0;">
+      <div style="padding:10px 8px 6px;display:flex;flex-direction:column;gap:1px;">
+        <sc-for list="{{ navItems }}" as="nav" hint-placeholder-count="4">
+          <div onClick="{{ nav.go }}" style="display:flex;align-items:center;gap:9px;height:28px;padding:0 10px;border-radius:6px;background:{{ nav.bg }};color:{{ nav.color }};cursor:pointer;font-size:13px;font-weight:500;" style-hover="background:#1B1B20;">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;width:14px;text-align:center;opacity:.85;">{{ nav.glyph }}</span>
+            <span>{{ nav.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="height:1px;background:#1E1E24;margin:4px 14px 2px;"></div>
+      <div style="flex:1;overflow-y:auto;padding:6px 8px 16px;min-height:0;">
+        <sc-for list="{{ treeGroups }}" as="grp" hint-placeholder-count="4">
+          <div style="margin-top:10px;">
+            <div style="display:flex;align-items:center;gap:7px;padding:0 10px 4px;">
+              <span style="width:7px;height:7px;border-radius:2px;background:{{ grp.color }};"></span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#6E6B76;">{{ grp.label }}</span>
+              <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:#4A4852;">{{ grp.count }}</span>
+            </div>
+            <sc-for list="{{ grp.items }}" as="d" hint-placeholder-count="3">
+              <div onClick="{{ d.go }}" style="display:flex;align-items:center;gap:8px;height:26px;padding:0 10px;border-radius:6px;background:{{ d.bg }};cursor:pointer;" style-hover="background:#1B1B20;">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:{{ d.idColor }};flex:0 0 auto;">{{ d.id }}</span>
+                <span style="font-size:12.5px;color:{{ d.titleColor }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ d.title }}</span>
+                <sc-if value="{{ d.health }}" hint-placeholder-val="{{ false }}">
+                  <span style="margin-left:auto;width:5px;height:5px;border-radius:50%;background:#D9A03F;flex:0 0 auto;"></span>
+                </sc-if>
+                <sc-if value="{{ d.done }}" hint-placeholder-val="{{ false }}">
+                  <span style="margin-left:auto;color:#5A7F64;font-size:10px;flex:0 0 auto;">✓</span>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+      <div onClick="{{ goMcp }}" style="flex:0 0 auto;padding:9px 14px;border-top:1px solid #1E1E24;display:flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#6E6B76;cursor:pointer;background:{{ mcpFootBg }};" style-hover="background:#1B1B20;">
+        <span style="width:6px;height:6px;border-radius:50%;background:{{ mcpFootDot }};"></span>
+        <span>{{ mcpFootLabel }}</span>
+        <span style="margin-left:auto;color:#4A4852;">→</span>
+      </div>
+    </div>
+
+    <!-- ===== Editor area: tab strip + views ===== -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;">
+    <div style="height:37px;flex:0 0 auto;display:flex;align-items:stretch;background:#131316;overflow-x:auto;overflow-y:hidden;">
+      <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="3">
+        <div onClick="{{ tb.go }}" onDoubleClick="{{ tb.pin }}" onMouseDown="{{ tb.aux }}" draggable="true" onDragStart="{{ tb.dragStart }}" onDragOver="{{ tb.dragOver }}" onDrop="{{ tb.drop }}" title="{{ tb.tip }}" style="display:flex;align-items:center;gap:8px;padding:0 8px 0 13px;max-width:220px;min-width:0;cursor:pointer;border-right:1px solid #1A1A1F;background:{{ tb.bg }};box-shadow:inset 0 2px 0 {{ tb.topBar }};border-bottom:1px solid {{ tb.bottomBar }};flex:0 0 auto;user-select:none;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:{{ tb.idColor }};flex:0 0 auto;">{{ tb.glyph }}</span>
+          <span style="font-size:12.5px;color:{{ tb.titleColor }};font-style:{{ tb.fontStyle }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;">{{ tb.title }}</span>
+          <span onClick="{{ tb.close }}" title="Close tab" style="flex:0 0 auto;width:16px;height:16px;border-radius:4px;display:flex;align-items:center;justify-content:center;color:{{ tb.xColor }};font-size:12px;line-height:1;" style-hover="background:#26262C;color:#E7E4DE;">×</span>
+        </div>
+      </sc-for>
+      <div style="flex:1;min-width:24px;border-bottom:1px solid #1E1E24;"></div>
+    </div>
+
+    <!-- ===== HOME: reader + connections ===== -->
+    <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+      <div data-screen-label="Project home" style="flex:1;display:flex;min-width:0;min-height:0;">
+        <div style="flex:1;overflow-y:auto;min-width:0;">
+          <div style="max-width:740px;margin:0 auto;padding:30px 40px 60px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6E6B76;display:flex;gap:6px;align-items:center;">
+              <span>{{ docCrumb }}</span><span style="color:#3A3841;">/</span><span style="color:{{ docIdColor }};">{{ docId }}</span>
+            </div>
+            <h1 style="margin:10px 0 0;font-size:24px;font-weight:600;letter-spacing:-.01em;line-height:1.25;">{{ docTitle }}</h1>
+            <sc-if value="{{ docHealth }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:12px;display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid #3A3020;border-radius:6px;background:rgba(217,160,63,0.07);color:#D9A03F;font-size:12.5px;">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;">⚠ veri check</span><span>{{ docHealthMsg }}</span>
+              </div>
+            </sc-if>
+            <div style="margin-top:16px;border:1px solid #1F1F24;border-radius:8px;background:#151519;padding:4px 14px;">
+              <sc-for list="{{ fmRows }}" as="r" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;min-height:28px;border-bottom:1px solid #1B1B20;">
+                  <span style="width:110px;flex:0 0 auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:#6E6B76;">{{ r.k }}</span>
+                  <sc-if value="{{ r.chip }}" hint-placeholder-val="{{ false }}">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ r.color }};background:{{ r.bg }};border-radius:4px;padding:2px 7px;">{{ r.v }}</span>
+                  </sc-if>
+                  <sc-if value="{{ r.text }}" hint-placeholder-val="{{ true }}">
+                    <span style="font-family:{{ r.font }};font-size:{{ r.size }};color:{{ r.color }};">{{ r.v }}</span>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin-top:26px;">
+              <sc-for list="{{ docBlocks }}" as="b" hint-placeholder-count="6">
+                <sc-if value="{{ b.bH }}" hint-placeholder-val="{{ false }}">
+                  <h2 style="margin:26px 0 10px;font-size:15px;font-weight:600;color:#E7E4DE;letter-spacing:.01em;">{{ b.t }}</h2>
+                </sc-if>
+                <sc-if value="{{ b.bP }}" hint-placeholder-val="{{ true }}">
+                  <p style="margin:0 0 12px;line-height:1.65;color:#C9C6CF;font-size:14.5px;text-wrap:pretty;">
+                    <sc-for list="{{ b.segs }}" as="s" hint-placeholder-count="1">
+                      <sc-if value="{{ s.plain }}" hint-placeholder-val="{{ true }}"><span>{{ s.t }}</span></sc-if>
+                      <sc-if value="{{ s.link }}" hint-placeholder-val="{{ false }}"><span onClick="{{ s.go }}" style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:{{ s.color }};background:{{ s.bg }};border-radius:4px;padding:1px 5px;cursor:pointer;white-space:nowrap;">{{ s.t }}</span></sc-if>
+                      <sc-if value="{{ s.broken }}" hint-placeholder-val="{{ false }}"><span style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#D9A03F;border-bottom:1px dashed #D9A03F;padding:1px 3px;cursor:help;" title="Broken link — target not found">{{ s.t }}</span></sc-if>
+                    </sc-for>
+                  </p>
+                </sc-if>
+                <sc-if value="{{ b.bCheck }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;gap:9px;align-items:flex-start;padding:5px 0;color:#C9C6CF;font-size:14px;line-height:1.5;">
+                    <span style="width:15px;height:15px;flex:0 0 auto;margin-top:2px;border-radius:4px;border:1px solid {{ b.boxBorder }};background:{{ b.boxBg }};color:#0F0F11;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:700;">{{ b.mark }}</span>
+                    <span style="color:{{ b.checkColor }};">{{ b.t }}</span>
+                  </div>
+                </sc-if>
+              </sc-for>
+            </div>
+            <sc-if value="{{ agentOn }}" hint-placeholder-val="{{ true }}">
+              <div style="margin-top:34px;border-top:1px solid #1E1E24;padding-top:14px;">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#6E6B76;margin-bottom:8px;">ACTIVITY</div>
+                <sc-for list="{{ docActivity }}" as="a" hint-placeholder-count="2">
+                  <div style="display:flex;align-items:baseline;gap:9px;padding:4px 0;font-size:12.5px;">
+                    <span style="width:6px;height:6px;border-radius:50%;background:{{ a.dot }};flex:0 0 auto;position:relative;top:-1px;"></span>
+                    <sc-if value="{{ a.agent }}" hint-placeholder-val="{{ false }}"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#E8703A;flex:0 0 auto;">agent</span></sc-if>
+                    <span style="color:#A09DA6;">{{ a.text }}</span>
+                    <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#55525E;flex:0 0 auto;">{{ a.time }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+            <div style="margin-top:24px;position:relative;">
+              <sc-if value="{{ acOpen }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;bottom:42px;left:0;width:380px;background:#1A1A1F;border:1px solid #2B2B32;border-radius:8px;box-shadow:0 12px 32px rgba(0,0,0,.55);padding:4px;z-index:40;">
+                  <div style="padding:5px 9px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#6E6B76;">LINK TO DOC</div>
+                  <sc-for list="{{ acItems }}" as="ac" hint-placeholder-count="3">
+                    <div onClick="{{ ac.pick }}" style="display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:6px;cursor:pointer;" style-hover="background:#25252C;">
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ ac.idColor }};width:60px;flex:0 0 auto;">{{ ac.id }}</span>
+                      <span style="font-size:12.5px;color:#C9C6CF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ ac.title }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <input value="{{ editorText }}" onChange="{{ onEditorChange }}" placeholder="Append a note — type [[ to link a doc" style="width:100%;box-sizing:border-box;height:34px;padding:0 12px;border-radius:7px;border:1px solid #26262C;background:#151519;color:#E7E4DE;font-family:'JetBrains Mono',monospace;font-size:12.5px;outline:none;" style-focus="border-color:#8A4A2C;"></input>
+            </div>
+          </div>
+        </div>
+        <div style="width:300px;flex:0 0 auto;border-left:1px solid #1E1E24;background:#131316;overflow-y:auto;padding:18px 14px 30px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#6E6B76;">CONNECTIONS</div>
+          <sc-for list="{{ connGroups }}" as="cg" hint-placeholder-count="2">
+            <div style="margin-top:14px;">
+              <div style="font-size:11.5px;font-weight:600;color:#A09DA6;margin-bottom:6px;">{{ cg.label }} <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#4A4852;">{{ cg.count }}</span></div>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <sc-for list="{{ cg.items }}" as="c" hint-placeholder-count="2">
+                  <div onClick="{{ c.go }}" style="border:1px solid #1F1F24;border-radius:7px;background:#17171B;padding:8px 10px;cursor:pointer;" style-hover="border-color:#2E2E36;">
+                    <div style="display:flex;align-items:center;gap:7px;">
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:{{ c.idColor }};">{{ c.id }}</span>
+                      <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#55525E;">{{ c.typeLabel }}</span>
+                    </div>
+                    <div style="font-size:12.5px;color:#E7E4DE;margin-top:3px;line-height:1.35;">{{ c.title }}</div>
+                    <div style="font-size:11.5px;color:#6E6B76;margin-top:2px;">{{ c.why }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ===== WORK ORDER DETAIL ===== -->
+    <sc-if value="{{ isWo }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Work order detail" style="flex:1;display:flex;min-width:0;min-height:0;">
+        <div style="flex:1;overflow-y:auto;min-width:0;">
+          <div style="max-width:720px;margin:0 auto;padding:30px 40px 60px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6E6B76;">Work Orders <span style="color:#3A3841;">/</span> <span style="color:#E8703A;">WO-002</span></div>
+            <div style="display:flex;align-items:flex-start;gap:16px;margin-top:10px;">
+              <h1 style="margin:0;font-size:24px;font-weight:600;letter-spacing:-.01em;flex:1;">PDF export pipeline</h1>
+              <div style="display:flex;border:1px solid #26262C;border-radius:7px;overflow:hidden;flex:0 0 auto;margin-top:2px;">
+                <sc-for list="{{ statusOpts }}" as="st" hint-placeholder-count="3">
+                  <div onClick="{{ st.go }}" style="padding:5px 11px;font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;background:{{ st.bg }};color:{{ st.color }};border-right:1px solid #26262C;">{{ st.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="margin-top:8px;display:flex;gap:14px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#6E6B76;">
+              <span>created 2026-07-30</span><span>updated 41m ago</span><span style="color:#E8703A;">branch wo-002-pdf-export</span>
+            </div>
+
+            <sc-if value="{{ woDone }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:18px;border:1px solid #24382B;border-radius:8px;background:rgba(127,175,138,0.06);padding:14px 16px;">
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#7FAF8A;">
+                  <span>✓</span><span>Receipt</span>
+                  <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:400;color:#6E6B76;">2026-08-06 14:32</span>
+                </div>
+                <div style="margin-top:10px;display:flex;gap:10px;align-items:center;font-family:'JetBrains Mono',monospace;font-size:11.5px;">
+                  <span style="color:#6E6B76;">commit</span><span style="color:#E7E4DE;background:#1F1F25;border-radius:4px;padding:2px 7px;">9f3c2a1</span>
+                  <span style="color:#6E6B76;">session</span><span style="color:#A09DA6;">claude-code · 47 turns</span>
+                </div>
+                <div style="margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.8;color:#A09DA6;">
+                  <div>src/export/typst.rs <span style="color:#7FAF8A;">+412</span></div>
+                  <div>src/export/mapper.rs <span style="color:#7FAF8A;">+188</span></div>
+                  <div>templates/compact.typ <span style="color:#7EA6C4;">new</span></div>
+                  <div>tests/export_golden.rs <span style="color:#7FAF8A;">+96</span></div>
+                </div>
+                <div style="margin-top:8px;font-size:12.5px;color:#A09DA6;line-height:1.5;">Implemented the invoice→template mapper and golden-file tests; refactored outbox path handling into a shared helper.</div>
+              </div>
+            </sc-if>
+
+            <h2 style="margin:28px 0 8px;font-size:15px;font-weight:600;">Summary</h2>
+            <p style="margin:0;line-height:1.65;color:#C9C6CF;font-size:14.5px;text-wrap:pretty;">Wire Typst rendering into the export flow: template selection, data mapping from invoice records, and a validated PDF written to the project outbox. This closes the last acceptance gap on <span onClick="{{ goReq2 }}" style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#7EA6C4;background:rgba(126,166,196,0.1);border-radius:4px;padding:1px 5px;cursor:pointer;">REQ-002</span>.</p>
+
+            <h2 style="margin:26px 0 8px;font-size:15px;font-weight:600;">In scope</h2>
+            <div style="display:flex;flex-direction:column;gap:6px;color:#C9C6CF;font-size:14px;line-height:1.5;">
+              <div style="display:flex;gap:9px;"><span style="color:#55525E;">–</span><span>Typst template runtime with the three built-in templates (default, compact, letterhead)</span></div>
+              <div style="display:flex;gap:9px;"><span style="color:#55525E;">–</span><span>Invoice record → template data mapper with locale-aware currency and date formatting</span></div>
+              <div style="display:flex;gap:9px;"><span style="color:#55525E;">–</span><span><span style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#A09DA6;">skiff export</span> CLI command and the Export button in the invoice view</span></div>
+              <div style="display:flex;gap:9px;"><span style="color:#55525E;">–</span><span>PDF/A-2b validation step before the file lands in the outbox</span></div>
+            </div>
+
+            <h2 style="margin:26px 0 8px;font-size:15px;font-weight:600;">Out of scope</h2>
+            <div style="display:flex;flex-direction:column;gap:6px;color:#8B8893;font-size:14px;line-height:1.5;">
+              <div style="display:flex;gap:9px;"><span style="color:#3F3D47;">–</span><span>Custom user-authored templates (future work order)</span></div>
+              <div style="display:flex;gap:9px;"><span style="color:#3F3D47;">–</span><span>Batch export and email delivery</span></div>
+            </div>
+
+            <h2 style="margin:26px 0 10px;font-size:15px;font-weight:600;">Linked requirements</h2>
+            <div style="border:1px solid #1F2A33;border-radius:8px;background:#151519;overflow:hidden;">
+              <div onClick="{{ toggleReq }}" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;" style-hover="background:#17171C;">
+                <span style="color:#55525E;font-size:11px;width:10px;">{{ reqChev }}</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7EA6C4;">REQ-002</span>
+                <span style="font-size:13.5px;font-weight:500;">PDF export with templates</span>
+                <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:#7FAF8A;">accepted</span>
+              </div>
+              <sc-if value="{{ expReq }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:2px 14px 12px 34px;border-top:1px solid #1B1B20;">
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6E6B76;margin:10px 0 6px;">ACCEPTANCE CRITERIA</div>
+                  <div style="display:flex;flex-direction:column;gap:5px;font-size:13px;color:#C9C6CF;line-height:1.5;">
+                    <div style="display:flex;gap:8px;"><span style="color:#7FAF8A;">✓</span><span>Templates ship: default, compact, letterhead</span></div>
+                    <div style="display:flex;gap:8px;"><span style="color:#7FAF8A;">✓</span><span>Currency and date formats follow the client locale</span></div>
+                    <div style="display:flex;gap:8px;"><span style="color:#55525E;">○</span><span>Export completes in under 2 s for a 3-page invoice</span></div>
+                    <div style="display:flex;gap:8px;"><span style="color:#55525E;">○</span><span>Output passes PDF/A-2b validation</span></div>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+
+            <h2 style="margin:26px 0 10px;font-size:15px;font-weight:600;">Linked decisions</h2>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="border:1px solid #2A2418;border-radius:8px;background:#151519;overflow:hidden;">
+                <div onClick="{{ toggleDec5 }}" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;" style-hover="background:#17171C;">
+                  <span style="color:#55525E;font-size:11px;width:10px;">{{ dec5Chev }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#CFA83D;">DEC-005</span>
+                  <span style="font-size:13.5px;font-weight:500;">Typst for PDF rendering</span>
+                  <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:#7FAF8A;">active</span>
+                </div>
+                <sc-if value="{{ expDec5 }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:10px 14px 12px 34px;border-top:1px solid #1B1B20;font-size:13px;color:#A09DA6;line-height:1.55;">Typst compiles deterministic, print-ready PDFs offline and its layout model handles multi-page invoices cleanly. Supersedes the Handlebars-to-HTML approach in <span onClick="{{ goDec3 }}" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#CFA83D;cursor:pointer;">DEC-003</span>, which required a headless browser for print output.</div>
+                </sc-if>
+              </div>
+              <div style="border:1px solid #2A2418;border-radius:8px;background:#151519;overflow:hidden;">
+                <div onClick="{{ toggleDec2 }}" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;" style-hover="background:#17171C;">
+                  <span style="color:#55525E;font-size:11px;width:10px;">{{ dec2Chev }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#CFA83D;">DEC-002</span>
+                  <span style="font-size:13.5px;font-weight:500;">Tauri over Electron</span>
+                  <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:#7FAF8A;">active</span>
+                </div>
+                <sc-if value="{{ expDec2 }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:10px 14px 12px 34px;border-top:1px solid #1B1B20;font-size:13px;color:#A09DA6;line-height:1.55;">Rust backend means the Typst compiler links in directly — no sidecar process. Export runs in the core, not the webview.</div>
+                </sc-if>
+              </div>
+            </div>
+
+            <h2 style="margin:26px 0 8px;font-size:15px;font-weight:600;">Acceptance tests</h2>
+            <div style="display:flex;flex-direction:column;gap:6px;font-size:14px;color:#C9C6CF;line-height:1.5;">
+              <div style="display:flex;gap:9px;align-items:flex-start;"><span style="width:15px;height:15px;flex:0 0 auto;margin-top:2px;border-radius:4px;background:#7FAF8A;color:#0F0F11;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:700;">✓</span><span style="color:#8B8893;"><span style="font-family:'JetBrains Mono',monospace;font-size:12.5px;">skiff export 0042 --template compact</span> writes a valid PDF to the outbox</span></div>
+              <div style="display:flex;gap:9px;align-items:flex-start;"><span style="width:15px;height:15px;flex:0 0 auto;margin-top:2px;border-radius:4px;background:#7FAF8A;color:#0F0F11;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:700;">✓</span><span style="color:#8B8893;">Golden-file snapshot tests pass for all three templates</span></div>
+              <div style="display:flex;gap:9px;align-items:flex-start;"><span style="width:15px;height:15px;flex:0 0 auto;margin-top:2px;border-radius:4px;border:1px solid #34343C;"></span><span>Benchmark: 3-page invoice exports in under 2 s on the reference machine</span></div>
+              <div style="display:flex;gap:9px;align-items:flex-start;"><span style="width:15px;height:15px;flex:0 0 auto;margin-top:2px;border-radius:4px;border:1px solid #34343C;"></span><span>veraPDF reports PDF/A-2b conformance for every template</span></div>
+            </div>
+
+            <sc-if value="{{ agentOn }}" hint-placeholder-val="{{ true }}">
+              <div style="margin-top:34px;border-top:1px solid #1E1E24;padding-top:14px;">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#6E6B76;margin-bottom:8px;">ACTIVITY</div>
+                <sc-for list="{{ woActivity }}" as="a" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:baseline;gap:9px;padding:4px 0;font-size:12.5px;">
+                    <span style="width:6px;height:6px;border-radius:50%;background:{{ a.dot }};flex:0 0 auto;position:relative;top:-1px;"></span>
+                    <sc-if value="{{ a.agent }}" hint-placeholder-val="{{ false }}"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#E8703A;flex:0 0 auto;">agent</span></sc-if>
+                    <span style="color:#A09DA6;">{{ a.text }}</span>
+                    <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#55525E;flex:0 0 auto;">{{ a.time }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+
+        <!-- Context package panel -->
+        <div style="width:340px;flex:0 0 auto;border-left:1px solid #1E1E24;background:#131316;overflow-y:auto;padding:18px 16px 30px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#6E6B76;">CONTEXT PACKAGE</span>
+            <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:#E8703A;">~12.0k tokens</span>
+          </div>
+          <div style="margin-top:10px;border:1px solid #26262C;border-radius:8px;background:#0F0F11;overflow:hidden;">
+            <sc-for list="{{ pkgDocs }}" as="pk" hint-placeholder-count="6">
+              <div style="display:flex;align-items:center;gap:9px;padding:8px 11px;border-bottom:1px solid #1A1A1F;">
+                <span style="width:6px;height:6px;border-radius:2px;background:{{ pk.color }};flex:0 0 auto;"></span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:{{ pk.idColor }};flex:0 0 auto;">{{ pk.id }}</span>
+                <span style="font-size:12px;color:#A09DA6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ pk.title }}</span>
+                <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:#55525E;flex:0 0 auto;">{{ pk.tokens }}</span>
+              </div>
+            </sc-for>
+            <div style="padding:8px 11px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#55525E;line-height:1.5;">assembled fresh from current doc versions<br>git main @ 4e1f9d0</div>
+          </div>
+          <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;position:relative;">
+            <div onClick="{{ hoToggle }}" style="height:34px;border-radius:7px;background:#E8703A;color:#141414;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:600;cursor:pointer;" style-hover="filter:brightness(1.1);">Start agent session <span style="font-family:'JetBrains Mono',monospace;font-size:11px;">{{ hoCaret }}</span></div>
+            <div onClick="{{ hoCopyKickoff }}" style="height:30px;border-radius:7px;border:1px solid {{ hoKickBorder }};color:{{ hoKickColor }};display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:500;cursor:pointer;" style-hover="border-color:#3A3A44;">{{ hoKickLabel }}</div>
+            <div onClick="{{ hoCopyFull }}" style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#6E6B76;text-align:right;cursor:pointer;padding:2px 0;" style-hover="color:#A09DA6;">{{ hoFullLabel }}</div>
+            <sc-if value="{{ hoFeedback }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:11.5px;margin-top:2px;color:{{ hoFeedbackColor }};">{{ hoFeedback }}</div>
+            </sc-if>
+            <sc-if value="{{ hoOpen }}" hint-placeholder-val="{{ false }}">
+              <div role="menu" style="position:absolute;top:40px;left:0;right:0;background:#151519;border:1px solid #26262C;border-radius:8px;box-shadow:0 12px 32px rgba(0,0,0,.5);z-index:5;overflow:hidden;">
+                <div style="padding:10px 12px 6px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#6E6B76;">START A SESSION IN</div>
+                <sc-if value="{{ hoNoneHint }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size:11.5px;color:#D9A03F;padding:0 12px 8px;line-height:1.5;">No local agents detected — use Copy kickoff prompt with any agent.</div>
+                </sc-if>
+                <sc-for list="{{ hoRows }}" as="r" hint-placeholder-count="5">
+                  <div role="menuitem" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid #1B1B20;opacity:{{ r.opacity }};" style-hover="background:{{ r.hoverBg }};">
+                    <div style="flex:1;min-width:0;">
+                      <div style="font-size:13px;font-weight:500;color:#E7E4DE;">{{ r.name }}</div>
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;margin-top:2px;color:{{ r.detailColor }};">{{ r.detail }}</div>
+                    </div>
+                    <sc-if value="{{ r.launching }}" hint-placeholder-val="{{ false }}">
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#6E6B76;flex:0 0 auto;">launching…</span>
+                    </sc-if>
+                    <sc-if value="{{ r.hasChip }}" hint-placeholder-val="{{ false }}">
+                      <span onClick="{{ r.onChip }}" style="flex:0 0 auto;font-size:11px;font-weight:600;border-radius:6px;padding:4px 10px;cursor:pointer;background:{{ r.chipBg }};border:1px solid {{ r.chipBorder }};color:{{ r.chipColor }};" style-hover="filter:brightness(1.15);">{{ r.chipLabel }}</span>
+                    </sc-if>
+                    <sc-if value="{{ r.showDash }}" hint-placeholder-val="{{ false }}">
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#55525E;flex:0 0 auto;">—</span>
+                    </sc-if>
+                  </div>
+                </sc-for>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#55525E;border-top:1px solid #1B1B20;padding:8px 12px;">launches in ~/dev/skiff · <span onClick="{{ goMcp }}" style="color:#E8703A;cursor:pointer;">connection settings →</span></div>
+              </div>
+            </sc-if>
+          </div>
+          <div style="margin-top:22px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#6E6B76;">PACKAGE RULES</div>
+          <div style="margin-top:8px;font-size:12px;color:#8B8893;line-height:1.7;">Linked requirements and decisions in full · cited sources as excerpts · project conventions always included · superseded decisions excluded.</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ===== BOARD ===== -->
+    <sc-if value="{{ isBoard }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Board" style="flex:1;overflow:auto;min-width:0;padding:26px 28px;">
+        <div style="display:flex;align-items:baseline;gap:12px;">
+          <h1 style="margin:0;font-size:20px;font-weight:600;">Work orders</h1>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6E6B76;">5 total</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(240px,320px));gap:14px;margin-top:20px;align-items:start;">
+          <sc-for list="{{ boardCols }}" as="col" hint-placeholder-count="3">
+            <div style="border:1px solid #1E1E24;border-radius:10px;background:#131316;padding:10px;">
+              <div style="display:flex;align-items:center;gap:8px;padding:2px 4px 10px;">
+                <span style="width:7px;height:7px;border-radius:50%;background:{{ col.dot }};"></span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.09em;color:#A09DA6;">{{ col.label }}</span>
+                <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#4A4852;">{{ col.count }}</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <sc-for list="{{ col.cards }}" as="card" hint-placeholder-count="2">
+                  <div onClick="{{ card.go }}" style="border:1px solid #24242B;border-radius:8px;background:#18181D;padding:10px 12px;cursor:pointer;" style-hover="border-color:#3A3A44;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#E8703A;">{{ card.id }}</span>
+                      <sc-if value="{{ card.agent }}" hint-placeholder-val="{{ false }}">
+                        <span title="Agent execution attached" style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:#E8703A;background:rgba(232,112,58,0.1);border-radius:4px;padding:1px 6px;">⌁ agent</span>
+                      </sc-if>
+                      <sc-if value="{{ card.health }}" hint-placeholder-val="{{ false }}">
+                        <span title="veri check: no linked requirements" style="margin-left:auto;width:6px;height:6px;border-radius:50%;background:#D9A03F;"></span>
+                      </sc-if>
+                    </div>
+                    <div style="font-size:13.5px;font-weight:500;color:#E7E4DE;margin-top:5px;line-height:1.35;">{{ card.title }}</div>
+                    <div style="margin-top:7px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:{{ card.reqColor }};">{{ card.reqLabel }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ===== GRAPH ===== -->
+    <sc-if value="{{ isGraph }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Graph" style="flex:1;min-width:0;display:flex;flex-direction:column;padding:26px 28px;min-height:0;">
+        <div style="display:flex;align-items:center;gap:16px;flex:0 0 auto;">
+          <h1 style="margin:0;font-size:20px;font-weight:600;">Graph</h1>
+          <div style="display:flex;gap:14px;margin-left:auto;">
+            <sc-for list="{{ graphLegend }}" as="lg" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#8B8893;">
+                <span style="width:8px;height:8px;border-radius:50%;background:{{ lg.color }};"></span><span>{{ lg.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="flex:1;position:relative;margin-top:18px;border:1px solid #1E1E24;border-radius:12px;background:#111114;min-height:0;overflow:hidden;">
+          {{ graphSvg }}
+          <sc-for list="{{ graphNodes }}" as="n" hint-placeholder-count="8">
+            <div onClick="{{ n.pick }}" style="position:absolute;left:{{ n.x }}%;top:{{ n.y }}%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;opacity:{{ n.opacity }};">
+              <span style="width:{{ n.size }}px;height:{{ n.size }}px;border-radius:50%;background:{{ n.fill }};border:2px solid {{ n.ring }};box-shadow:0 0 0 3px rgba(0,0,0,0.25);"></span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:{{ n.labelColor }};white-space:nowrap;">{{ n.id }}</span>
+            </div>
+          </sc-for>
+          <sc-if value="{{ graphSelOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;left:{{ selX }}%;top:{{ selY }}%;transform:translate(-50%,12px);width:230px;background:#1A1A1F;border:1px solid #2B2B32;border-radius:8px;box-shadow:0 12px 32px rgba(0,0,0,.55);padding:11px 13px;z-index:20;">
+              <div style="display:flex;align-items:center;gap:7px;">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:{{ selIdColor }};">{{ selId }}</span>
+                <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#55525E;">{{ selType }}</span>
+              </div>
+              <div style="font-size:13px;font-weight:500;color:#E7E4DE;margin-top:4px;line-height:1.35;">{{ selTitle }}</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#6E6B76;margin-top:6px;">{{ selMeta }}</div>
+              <div onClick="{{ selOpen }}" style="margin-top:9px;height:26px;border-radius:6px;border:1px solid #26262C;display:flex;align-items:center;justify-content:center;font-size:11.5px;color:#C9C6CF;cursor:pointer;" style-hover="border-color:#3A3A44;">Open doc →</div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ===== DECISION LOG ===== -->
+    <sc-if value="{{ isDecisions }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Decision log" style="flex:1;overflow-y:auto;min-width:0;">
+        <div style="max-width:680px;margin:0 auto;padding:26px 40px 60px;">
+          <div style="display:flex;align-items:baseline;gap:12px;">
+            <h1 style="margin:0;font-size:20px;font-weight:600;">Decision log</h1>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6E6B76;">5 decisions · 1 superseded</span>
+          </div>
+          <div style="margin-top:22px;display:flex;flex-direction:column;gap:12px;">
+            <sc-for list="{{ decLog }}" as="dl" hint-placeholder-count="5">
+              <div style="border:1px solid #1F1F24;border-radius:9px;background:#151519;padding:14px 16px;opacity:{{ dl.opacity }};">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span onClick="{{ dl.go }}" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#CFA83D;cursor:pointer;">{{ dl.id }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#55525E;">{{ dl.date }}</span>
+                  <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:{{ dl.badgeColor }};background:{{ dl.badgeBg }};border-radius:4px;padding:2px 7px;">{{ dl.badge }}</span>
+                </div>
+                <div style="font-size:15px;font-weight:600;color:#E7E4DE;margin-top:7px;">{{ dl.title }}</div>
+                <div style="font-size:13.5px;color:#A09DA6;margin-top:4px;line-height:1.55;text-wrap:pretty;">{{ dl.choice }}</div>
+                <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#55525E;">REJECTED</span>
+                  <sc-for list="{{ dl.rejected }}" as="rj" hint-placeholder-count="2">
+                    <span style="font-size:11.5px;color:#6E6B76;text-decoration:line-through;border:1px solid #24242B;border-radius:4px;padding:2px 8px;">{{ rj.t }}</span>
+                  </sc-for>
+                </div>
+                <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#55525E;">LINKS</span>
+                  <sc-for list="{{ dl.links }}" as="lk" hint-placeholder-count="2">
+                    <span onClick="{{ lk.go }}" style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:{{ lk.color }};background:{{ lk.bg }};border-radius:4px;padding:2px 7px;cursor:pointer;">{{ lk.id }}</span>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ dl.superseded }}" hint-placeholder-val="{{ false }}">
+                  <div onClick="{{ dl.goSup }}" style="margin-top:10px;display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#D9A03F;cursor:pointer;">
+                    <span>↪ superseded by</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;">{{ dl.supId }}</span>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ===== AGENT CONNECTION ===== -->
+    <sc-if value="{{ isMcp }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Agent connection" style="flex:1;overflow-y:auto;min-width:0;">
+        <div style="max-width:640px;margin:0 auto;padding:30px 40px 60px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6E6B76;">skiff <span style="color:#3A3841;">/</span> <span style="color:#E8703A;">Agent connection</span></div>
+          <div style="display:flex;align-items:center;gap:14px;margin-top:10px;">
+            <h1 style="margin:0;font-size:24px;font-weight:600;letter-spacing:-.01em;flex:1;">Agent connection</h1>
+            <sc-if value="{{ mcpShowRecheck }}" hint-placeholder-val="{{ false }}">
+              <div onClick="{{ mcpRecheck }}" style="height:28px;padding:0 12px;border-radius:6px;border:1px solid #26262C;color:#A09DA6;display:flex;align-items:center;gap:7px;font-size:12px;font-weight:500;cursor:pointer;" style-hover="border-color:#3A3A44;">
+                <span>↻</span><span>Re-run checks</span>
+              </div>
+            </sc-if>
+          </div>
+          <p style="margin:8px 0 0;font-size:13.5px;line-height:1.6;color:#8B8893;text-wrap:pretty;">Sets up this project's <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#A09DA6;">.mcp.json</span> so agent apps like Claude Code can launch Veri's MCP server. Veri manages the file only — your agent reads it when a session starts.</p>
+
+          <sc-if value="{{ mcpExternal }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:18px;display:flex;gap:10px;align-items:flex-start;padding:11px 14px;border:1px solid #1F2A33;border-radius:8px;background:rgba(126,166,196,0.06);">
+              <span style="color:#7EA6C4;flex:0 0 auto;">↺</span>
+              <div style="font-size:12.5px;color:#A09DA6;line-height:1.55;"><span style="color:#7EA6C4;font-weight:600;">.mcp.json was changed outside Veri.</span> The file is the source of truth — checks re-ran just now and reflect what's on disk.</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ mcpWrote }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:18px;display:flex;gap:10px;align-items:flex-start;padding:11px 14px;border:1px solid #3A3020;border-radius:8px;background:rgba(217,160,63,0.07);">
+              <span style="color:#D9A03F;flex:0 0 auto;">⟳</span>
+              <div style="font-size:12.5px;color:#C9C6CF;line-height:1.55;"><span style="color:#D9A03F;font-weight:600;">Restart your agent session to apply.</span> Agent apps read .mcp.json on launch — quit and reopen Claude Code, or start a new session. This is the one step Veri can't do for you.</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ mcpNotSetup }}" hint-placeholder-val="{{ true }}">
+            <div style="margin-top:20px;border:1px solid #26262C;border-radius:10px;background:#151519;padding:20px 22px;">
+              <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#D9A03F;">NOT SET UP</div>
+              <div style="font-size:16px;font-weight:600;margin-top:8px;">Connect a coding agent to this project</div>
+              <p style="margin:7px 0 0;font-size:13.5px;color:#A09DA6;line-height:1.6;text-wrap:pretty;">One click writes <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#C9C6CF;">.mcp.json</span> next to the <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#C9C6CF;">veri/</span> directory — a plain file you can read, diff, and commit so teammates get the connection too. Nothing to type.</p>
+              <div onClick="{{ mcpSetup }}" style="margin-top:16px;display:inline-flex;height:34px;padding:0 18px;border-radius:7px;background:#E8703A;color:#141414;align-items:center;font-size:13px;font-weight:600;cursor:pointer;" style-hover="filter:brightness(1.1);">Set up connection</div>
+              <div style="margin-top:20px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#6E6B76;">WHAT WILL BE WRITTEN</div>
+              <div style="margin-top:8px;border:1px solid #1F1F24;border-radius:7px;background:#0F0F11;padding:11px 13px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.75;color:#8B8893;">
+                <div>"mcpServers": {</div>
+                <div style="padding-left:14px;"><span style="color:#E8703A;">"veri"</span>: {</div>
+                <div style="padding-left:28px;">"command": <span style="color:#C9C6CF;">"node"</span>,</div>
+                <div style="padding-left:28px;">"args": [<span style="color:#C9C6CF;">"~/dev/veri/packages/mcp/dist/server.js"</span>, <span style="color:#C9C6CF;">"~/dev/skiff"</span>]</div>
+                <div style="padding-left:14px;">}</div>
+                <div>}</div>
+              </div>
+              <div style="margin-top:8px;font-size:11.5px;color:#6E6B76;">Any other servers already in the file are left untouched.</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ mcpConflict }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:20px;border:1px solid #3A3020;border-radius:10px;background:#151519;padding:20px 22px;">
+              <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#D9A03F;">CONFLICTING ENTRY</div>
+              <div style="font-size:16px;font-weight:600;margin-top:8px;">.mcp.json has a "veri" server Veri didn't write</div>
+              <p style="margin:7px 0 0;font-size:13.5px;color:#A09DA6;line-height:1.6;text-wrap:pretty;">It may be from an older setup or a teammate's machine. Veri won't touch it without your say-so.</p>
+              <div style="margin-top:12px;border:1px solid #1F1F24;border-radius:7px;background:#0F0F11;padding:11px 13px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.75;color:#8B8893;">
+                <div><span style="color:#D9A03F;">"veri"</span>: {</div>
+                <div style="padding-left:14px;">"command": <span style="color:#C9C6CF;">"npx"</span>,</div>
+                <div style="padding-left:14px;">"args": [<span style="color:#C9C6CF;">"-y"</span>, <span style="color:#C9C6CF;">"veri-mcp@0.2.1"</span>, <span style="color:#C9C6CF;">"--port"</span>, <span style="color:#C9C6CF;">"7423"</span>]</div>
+                <div>}</div>
+              </div>
+              <div style="margin-top:14px;display:flex;align-items:center;gap:12px;">
+                <div onClick="{{ mcpReplace }}" style="height:32px;padding:0 16px;border-radius:7px;background:#E8703A;color:#141414;display:flex;align-items:center;font-size:12.5px;font-weight:600;cursor:pointer;" style-hover="filter:brightness(1.1);">Replace with Veri's entry</div>
+                <span style="font-size:11.5px;color:#6E6B76;line-height:1.5;">Rewrites only this entry — other servers stay as they are. Or leave it: Veri never overwrites it silently.</span>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ mcpHasChecks }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:20px;border:1px solid #1F1F24;border-radius:10px;background:#151519;overflow:hidden;">
+              <div style="display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid #1B1B20;">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#6E6B76;">HEALTH</span>
+                <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:{{ mcpSummaryColor }};">{{ mcpSummary }}</span>
+              </div>
+              <sc-for list="{{ mcpChecks }}" as="c" hint-placeholder-count="4">
+                <div style="border-bottom:1px solid #1B1B20;padding:10px 14px;">
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="width:16px;height:16px;flex:0 0 auto;border-radius:50%;background:{{ c.markBg }};color:{{ c.markColor }};font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:700;">{{ c.mark }}</span>
+                    <span style="font-size:13.5px;color:#E7E4DE;font-weight:500;">{{ c.name }}</span>
+                    <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#55525E;">{{ c.detail }}</span>
+                  </div>
+                  <sc-if value="{{ c.fail }}" hint-placeholder-val="{{ false }}">
+                    <div style="margin:8px 0 2px 26px;display:flex;align-items:flex-start;gap:12px;">
+                      <span style="flex:1;font-size:12.5px;color:#D9A03F;line-height:1.5;">{{ c.failMsg }}</span>
+                      <div onClick="{{ c.onFix }}" style="flex:0 0 auto;height:26px;padding:0 11px;border-radius:6px;background:rgba(217,160,63,0.12);border:1px solid #3A3020;color:#D9A03F;display:flex;align-items:center;font-size:11.5px;font-weight:600;cursor:pointer;" style-hover="background:rgba(217,160,63,0.2);">{{ c.actionLabel }}</div>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+              <div style="padding:9px 14px;font-size:11.5px;color:#55525E;line-height:1.5;">Checks read the file and disk only — they can't tell whether an agent session is currently connected.</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ mcpHealthy }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:14px;border:1px solid #1F1F24;border-radius:10px;background:#151519;padding:4px 14px;">
+              <div style="display:flex;align-items:center;min-height:30px;border-bottom:1px solid #1B1B20;"><span style="width:110px;flex:0 0 auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:#6E6B76;">config file</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#C9C6CF;">~/dev/skiff/.mcp.json</span></div>
+              <div style="display:flex;align-items:center;min-height:30px;border-bottom:1px solid #1B1B20;"><span style="width:110px;flex:0 0 auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:#6E6B76;">command</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#C9C6CF;">node</span></div>
+              <div style="display:flex;align-items:center;min-height:30px;border-bottom:1px solid #1B1B20;"><span style="width:110px;flex:0 0 auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:#6E6B76;">server</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#C9C6CF;">~/dev/veri/packages/mcp/dist/server.js</span></div>
+              <div style="display:flex;align-items:center;min-height:30px;"><span style="width:110px;flex:0 0 auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:#6E6B76;">project root</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#C9C6CF;">~/dev/skiff</span></div>
+            </div>
+            <div style="margin-top:8px;font-size:11.5px;color:#6E6B76;line-height:1.5;">Read-only here. Edit the file directly if you need to — external changes are picked up and re-checked automatically.</div>
+          </sc-if>
+
+          <div style="margin-top:32px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#6E6B76;">PREFER USER-SCOPED SETUP?</div>
+            <p style="margin:8px 0 0;font-size:12.5px;color:#8B8893;line-height:1.6;text-wrap:pretty;">Instead of a file checked into the repo, add the server to your own Claude Code config. Copy the command and run it in a terminal — Veri only fills it in, it never runs it.</p>
+            <div style="margin-top:10px;display:flex;align-items:center;gap:12px;border:1px solid #26262C;border-radius:8px;background:#0F0F11;padding:10px 13px;">
+              <span style="flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:#C9C6CF;">claude mcp add veri -- node ~/dev/veri/packages/mcp/dist/server.js ~/dev/skiff</span>
+              <div onClick="{{ mcpCopyCmd }}" style="flex:0 0 auto;height:26px;padding:0 11px;border-radius:6px;border:1px solid #26262C;color:#A09DA6;display:flex;align-items:center;font-size:11.5px;font-weight:600;cursor:pointer;" style-hover="border-color:#3A3A44;">{{ mcpCopyCmdLabel }}</div>
+            </div>
+          </div>
+
+          <div style="margin-top:32px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#6E6B76;">WHAT THE CONNECTION PROVIDES</div>
+            <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <sc-for list="{{ mcpTools }}" as="t" hint-placeholder-count="4">
+                <div style="border:1px solid #1F1F24;border-radius:8px;background:#151519;padding:11px 13px;">
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#E8703A;">{{ t.name }}</div>
+                  <div style="font-size:12px;color:#8B8893;margin-top:4px;line-height:1.5;">{{ t.desc }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ===== EMPTY: no tabs open ===== -->
+    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="No tabs open" style="flex:1;display:flex;align-items:center;justify-content:center;min-height:0;">
+        <div style="text-align:center;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;color:#55525E;">NO OPEN TABS</div>
+          <div style="margin-top:12px;font-size:13px;color:#6E6B76;line-height:2.1;">Pick a document from the sidebar<br>or press <span style="font-family:'JetBrains Mono',monospace;font-size:11px;border:1px solid #26262C;border-radius:4px;padding:1px 6px;color:#8B8893;">⌘K</span> to search</div>
+        </div>
+      </div>
+    </sc-if>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" fill="#0F0F11"/><rect x="42" y="42" width="36" height="36" rx="8" fill="#E8703A"/><text x="60" y="67" text-anchor="middle" font-family="monospace" font-size="22" font-weight="600" fill="#0F0F11">v</text></svg></template>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1560,&quot;height&quot;:980},&quot;startView&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;home&quot;,&quot;workorder&quot;,&quot;board&quot;,&quot;graph&quot;,&quot;decisions&quot;,&quot;mcp&quot;],&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Behavior&quot;},&quot;previewTabs&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behavior&quot;},&quot;agentActivity&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behavior&quot;},&quot;healthBadges&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behavior&quot;},&quot;mcpScenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;notsetup&quot;,&quot;healthy&quot;,&quot;broken&quot;,&quot;external&quot;,&quot;conflict&quot;],&quot;default&quot;:&quot;notsetup&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Agent connection&quot;},&quot;handoffScenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;mixed&quot;,&quot;all&quot;,&quot;none&quot;],&quot;default&quot;:&quot;mixed&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Agent handoff&quot;}}">
+class Component extends DCLogic {
+  state = { tabs: null, active: null, woStatus: 'inprogress', expReq: true, expDec5: false, expDec2: false, graphSel: null, editorText: '', copied: false, mcpShown: false, checkOpen: false, projOpen: false, proj: 'skiff' };
+
+  data() {
+    if (this._d) return this._d;
+    const T = { REQ: { color: '#7EA6C4', bg: 'rgba(126,166,196,0.1)', label: 'requirement' }, DEC: { color: '#CFA83D', bg: 'rgba(207,168,61,0.1)', label: 'decision' }, WO: { color: '#E8703A', bg: 'rgba(232,112,58,0.1)', label: 'work order' }, SRC: { color: '#908BA8', bg: 'rgba(144,139,168,0.1)', label: 'source' } };
+    const h = t => ({ k: 'h', t }), p = (...segs) => ({ k: 'p', segs }), tx = t => ({ t }), L = ref => ({ ref }), ck = (t, done) => ({ k: 'ck', t, done });
+    const docs = [
+      { id: 'REQ-001', type: 'REQ', title: 'Offline invoice creation', status: 'accepted', created: '2026-07-14', updated: '12d ago', links: [{ id: 'SRC-001', why: 'raw material' }, { id: 'SRC-002', why: 'survey evidence' }], gx: 18, gy: 28,
+        blocks: [p(tx('Invoices can be created, edited, and numbered with no network connection. All state lives in the local project directory. Implemented in '), L('WO-001'), tx('.')), h('Acceptance criteria'), ck('Create and edit an invoice in airplane mode', true), ck('Sequential numbering survives restart', true), ck('No network calls during CRUD operations', true)],
+        activity: [{ agent: false, text: 'Marked all criteria complete', time: '9d ago' }] },
+      { id: 'REQ-002', type: 'REQ', title: 'PDF export with templates', status: 'accepted', created: '2026-07-16', updated: '2d ago', links: [{ id: 'DEC-005', why: 'template engine' }, { id: 'WO-002', why: 'implementation' }, { id: 'SRC-001', why: 'cited' }], gx: 26, gy: 48,
+        blocks: [p(tx('Invoices must export to print-ready PDF using a user-selectable template. Rendering happens locally — no network calls, per '), L('DEC-004'), tx('.')),
+          h('Acceptance criteria'), ck('Export completes in under 2 s for a 3-page invoice', false), ck('Templates ship: default, compact, letterhead', true), ck('Output passes PDF/A-2b validation', false), ck('Currency and date formats follow the client locale', true),
+          h('Notes'), p(tx('Template engine settled in '), L('DEC-005'), tx(' after the Handlebars prototype ('), L('DEC-003'), tx(') hit layout limits on multi-page invoices. Implementation tracked in '), L('WO-002'), tx('. The template requirement came directly from '), L('SRC-001'), tx(': three of four interviewees send letterhead PDFs to agencies.'))],
+        activity: [{ agent: true, text: 'claude-code pulled this doc in a context package for WO-002', time: '38m ago' }, { agent: false, text: 'Edited acceptance criteria', time: '2d ago' }] },
+      { id: 'REQ-003', type: 'REQ', title: 'Client data stays local', status: 'accepted', created: '2026-07-16', updated: '20d ago', links: [{ id: 'DEC-004', why: 'no cloud sync' }], gx: 14, gy: 66,
+        blocks: [p(tx('No client PII ever leaves the machine. No telemetry containing document content. See '), L('DEC-004'), tx(' for the sync stance.')), h('Acceptance criteria'), ck('Network audit shows zero outbound calls with document payloads', true)], activity: [] },
+      { id: 'REQ-004', type: 'REQ', title: 'Import time entries from CSV', status: 'draft', created: '2026-07-29', updated: '5d ago', links: [], health: 'links to SRC-003, which does not exist', gx: 24, gy: 84,
+        blocks: [p(tx('Time entries exported from Toggl or Harvest import as line items. Column mapping spec lives in '), { ref: 'SRC-003', broken: true }, tx(' — '), tx('needs re-import.')), h('Acceptance criteria'), ck('Toggl CSV maps hours, rate, and description', false)], activity: [] },
+      { id: 'DEC-001', type: 'DEC', title: 'SQLite over flat files', status: 'active', created: '2026-07-15', date: '2026-07-15', updated: '22d ago', links: [{ id: 'WO-005', why: 'schema work' }], gx: 44, gy: 18,
+        choice: 'Store invoices and clients in a single SQLite file inside the project directory.', rejected: ['JSON per record', 'Markdown tables'],
+        blocks: [p(tx('One SQLite file gives us transactions, fast search, and a single artifact to back up. Schema and migrations in '), L('WO-005'), tx('.'))], activity: [] },
+      { id: 'DEC-002', type: 'DEC', title: 'Tauri over Electron', status: 'active', created: '2026-07-18', date: '2026-07-18', updated: '19d ago', links: [{ id: 'WO-002', why: 'export runs in core' }], gx: 57, gy: 30,
+        choice: 'Ship the desktop app on Tauri; core logic in Rust, thin webview UI.', rejected: ['Electron', 'Pure CLI only'],
+        blocks: [p(tx('Rust core keeps the binary small and lets the Typst compiler link in directly for '), L('WO-002'), tx('.'))], activity: [] },
+      { id: 'DEC-003', type: 'DEC', title: 'Handlebars templates', status: 'superseded', supersededBy: 'DEC-005', created: '2026-07-21', date: '2026-07-21', updated: '4d ago', links: [{ id: 'REQ-002', why: 'template engine' }], gx: 40, gy: 44,
+        choice: 'Render invoices as HTML via Handlebars, print to PDF through a headless browser.', rejected: ['LaTeX', 'Hand-built PDF writer'],
+        blocks: [p(tx('Superseded by '), L('DEC-005'), tx('. The headless-browser print step was slow, nondeterministic across platforms, and broke page-break control on multi-page invoices.'))], activity: [] },
+      { id: 'DEC-004', type: 'DEC', title: 'No cloud sync in v1', status: 'active', created: '2026-07-28', date: '2026-07-28', updated: '9d ago', links: [{ id: 'REQ-003', why: 'locality guarantee' }], gx: 50, gy: 72,
+        choice: 'v1 is strictly local. Users who want sync point the project directory at their own tool.', rejected: ['Built-in E2E sync', 'Optional cloud backup'],
+        blocks: [p(tx('Sync doubles the surface area and undermines the pitch in '), L('REQ-003'), tx('. Git or Syncthing on the project folder covers the real need.'))], activity: [] },
+      { id: 'DEC-005', type: 'DEC', title: 'Typst for PDF rendering', status: 'active', created: '2026-08-02', date: '2026-08-02', updated: '1d ago', links: [{ id: 'REQ-002', why: 'satisfies templates' }, { id: 'DEC-003', why: 'supersedes' }, { id: 'WO-002', why: 'implemented in' }], gx: 45, gy: 55,
+        choice: 'Compile invoice templates with Typst, embedded in the Rust core.', rejected: ['Handlebars + headless browser', 'LaTeX', 'wkhtmltopdf'],
+        blocks: [p(tx('Typst compiles deterministic, print-ready PDFs offline and handles multi-page layout cleanly. Replaces '), L('DEC-003'), tx('; implementation in '), L('WO-002'), tx('.'))],
+        activity: [{ agent: true, text: 'Filed by claude-code after the template-engine spike', time: '4d ago' }] },
+      { id: 'WO-001', type: 'WO', title: 'Invoice CRUD', status: 'done', created: '2026-07-17', updated: '9d ago', links: [{ id: 'REQ-001', why: 'implements' }, { id: 'DEC-001', why: 'storage' }], reqCount: 3, agent: true, gx: 70, gy: 22,
+        blocks: [p(tx('Create, edit, duplicate, and void invoices against the SQLite store from '), L('DEC-001'), tx('. Completed — receipt on file: commit '), tx('b21e88f, 14 files.'))], activity: [{ agent: true, text: 'Receipt filed: commit b21e88f · 14 files', time: '9d ago' }] },
+      { id: 'WO-003', type: 'WO', title: 'CSV time import', status: 'backlog', created: '2026-07-30', updated: '5d ago', links: [{ id: 'REQ-004', why: 'implements' }], reqCount: 2, gx: 74, gy: 72,
+        blocks: [p(tx('Blocked on '), L('REQ-004'), tx(' — the column-mapping source is missing.'))], activity: [] },
+      { id: 'WO-004', type: 'WO', title: 'Client manager', status: 'backlog', created: '2026-08-01', updated: '3d ago', links: [], reqCount: 0, health: 'no linked requirements', gx: 85, gy: 42,
+        blocks: [p(tx('Add, edit, and archive clients with locale and currency defaults. Needs a requirement written before an agent can take it.'))], activity: [] },
+      { id: 'WO-005', type: 'WO', title: 'DB schema + migrations', status: 'done', created: '2026-07-16', updated: '18d ago', links: [{ id: 'DEC-001', why: 'implements' }, { id: 'REQ-001', why: 'supports' }], reqCount: 1, agent: true, gx: 83, gy: 14,
+        blocks: [p(tx('Initial schema and the migration runner. Receipt: commit 4d0a9c2, 6 files.'))], activity: [{ agent: true, text: 'Receipt filed: commit 4d0a9c2 · 6 files', time: '18d ago' }] },
+      { id: 'SRC-001', type: 'SRC', title: 'Client interview transcript', status: 'imported', created: '2026-07-12', updated: '25d ago', links: [], gx: 34, gy: 88,
+        blocks: [p(tx('Transcript of four freelancer interviews on invoicing pain. Key pull: three of four send letterhead PDFs to agencies and re-key hours from a time tracker by hand.'))], activity: [] },
+      { id: 'SRC-002', type: 'SRC', title: 'Freelancer survey notes', status: 'imported', created: '2026-07-13', updated: '24d ago', links: [], gx: 60, gy: 88,
+        blocks: [p(tx('Notes from a 31-response survey: 84% invoice offline-capable tools as "must have"; top request is locale-correct currency formatting.'))], activity: [] },
+    ];
+    this._d = { T, docs };
+    return this._d;
+  }
+
+  static VIEWS = { board: ['Board', '▤'], graph: ['Graph', '◉'], decisions: ['Decisions', '§'], mcp: ['Agent connection', '⌁'] };
+  isView(id) { return !!Component.VIEWS[id]; }
+  resolve() {
+    if (this.state.tabs) return { tabs: this.state.tabs, active: this.state.active };
+    const sv = this.props.startView ?? 'home';
+    if (sv === 'home') return { tabs: [{ id: 'REQ-002', preview: false }, { id: 'DEC-005', preview: false }, { id: 'WO-002', preview: false }], active: 'REQ-002' };
+    const id = sv === 'workorder' ? 'WO-002' : sv;
+    return { tabs: [{ id, preview: false }], active: id };
+  }
+  setTabs(tabs, active) { this.setState({ tabs, active, checkOpen: false, projOpen: false, graphSel: null }); }
+  openTab(id, opts) {
+    const o = opts || {}; const { tabs, active } = this.resolve();
+    const preview = (this.props.previewTabs ?? true) && !!o.preview;
+    const hit = tabs.find(t => t.id === id);
+    if (hit) { if (!preview && hit.preview) hit.preview = false; this.setTabs(tabs.slice(), o.background ? active : id); return; }
+    const next = tabs.slice();
+    const pv = preview ? next.findIndex(t => t.preview) : -1;
+    if (pv >= 0) next[pv] = { id, preview: true };
+    else { const i = next.findIndex(t => t.id === active); next.splice(i < 0 ? next.length : i + 1, 0, { id, preview }); }
+    this.setTabs(next, o.background ? active : id);
+  }
+  closeTab(id) {
+    const { tabs, active } = this.resolve();
+    const i = tabs.findIndex(t => t.id === id); if (i < 0) return;
+    const next = tabs.slice(); next.splice(i, 1);
+    this.setTabs(next, active === id ? (next.length ? next[Math.min(i, next.length - 1)].id : null) : active);
+  }
+  pinTab(id) { const { tabs, active } = this.resolve(); this.setTabs(tabs.map(t => t.id === id ? { id: t.id, preview: false } : t), active); }
+  go(view) { return () => this.openTab(view, { preview: true }); }
+  openDoc(id, preview) { return e => this.openTab(id, { preview: !!preview, background: !!(e && (e.metaKey || e.ctrlKey)) }); }
+
+  handoffVals() {
+    const KICKOFF = 'Implement WO-002 — PDF export pipeline.\nBefore writing any code, fetch the full context package with the Veri MCP tool: get_context("WO-002"). Follow the linked decisions and stay inside the work order\u2019s scope.';
+    const copyTxt = t => { try { navigator.clipboard.writeText(t); } catch (e) {} };
+    const flash = (key, ms) => { this.setState({ [key]: true }); clearTimeout(this['_t' + key]); this['_t' + key] = setTimeout(() => this.setState({ [key]: false }), ms); };
+    const feedback = (msg, ok) => { this.setState({ hoFeedback: msg, hoFeedbackOk: ok }); clearTimeout(this._tfb); if (ok) this._tfb = setTimeout(() => this.setState({ hoFeedback: '' }), 4000); };
+    const logSession = text => this.setState(s => ({ hoLog: [{ agent: false, text, time: 'just now', dot: '#3A3A44' }, ...(s.hoLog || [])] }));
+    const launch = (i, name) => { this.setState({ hoLaunching: i }); setTimeout(() => { this.setState({ hoOpen: false, hoLaunching: null }); logSession('Started a ' + name + ' session'); feedback('\u2713 Launched ' + name + ' — check your terminal', true); }, 700); };
+    const scen = this.props.handoffScenario ?? 'mixed';
+    const AGENTS = {
+      mixed: [['Claude Code', 'connected', '~/.local/bin/claude'], ['Cursor', 'setup', 'mcp config: veri entry missing'], ['Codex CLI', 'missing'], ['Gemini CLI', 'missing']],
+      all: [['Claude Code', 'connected', '~/.local/bin/claude'], ['Cursor', 'connected', '/usr/local/bin/cursor'], ['Codex CLI', 'setup', 'mcp config: veri entry missing'], ['Gemini CLI', 'connected', '~/.local/bin/gemini']],
+      none: [['Claude Code', 'missing'], ['Cursor', 'missing'], ['Codex CLI', 'missing'], ['Gemini CLI', 'missing']],
+    };
+    const agents = AGENTS[scen] || AGENTS.mixed;
+    const hoRows = agents.map(([name, state, detail], i) => {
+      const launching = this.state.hoLaunching === i;
+      if (state === 'missing') return { name, detail: 'not detected on this machine', detailColor: '#55525E', opacity: 0.45, hoverBg: 'transparent', hasChip: false, showDash: true, launching: false };
+      const conn = state === 'connected';
+      return { name, detail, detailColor: conn ? '#55525E' : '#D9A03F', opacity: 1, hoverBg: '#1B1B20', launching, showDash: false, hasChip: !launching,
+        chipLabel: conn ? 'Launch' : 'Set up & launch', chipBg: conn ? 'rgba(232,112,58,0.12)' : 'rgba(217,160,63,0.12)', chipBorder: conn ? '#3A2418' : '#3A3020', chipColor: conn ? '#E8703A' : '#D9A03F', onChip: () => launch(i, name) };
+    });
+    hoRows.push({ name: 'Web chat (ChatGPT, Claude.ai, …)', detail: 'can\u2019t be launched with a local MCP server', detailColor: '#55525E', opacity: 1, hoverBg: '#1B1B20', launching: false, showDash: false, hasChip: true,
+      chipLabel: 'Copy prompt', chipBg: 'transparent', chipBorder: '#26262C', chipColor: '#A09DA6', onChip: () => { copyTxt(KICKOFF); this.setState({ hoOpen: false }); logSession('Copied the kickoff prompt'); feedback('\u2713 Kickoff prompt copied', true); } });
+    return {
+      hoOpen: !!this.state.hoOpen, hoToggle: () => this.setState(s => ({ hoOpen: !s.hoOpen })),
+      hoCaret: this.state.hoOpen ? '\u25B4' : '\u25BE',
+      hoRows, hoNoneHint: agents.every(a => a[1] === 'missing'),
+      hoCopyKickoff: () => { copyTxt(KICKOFF); logSession('Copied the kickoff prompt'); flash('hoKickCopied', 1800); },
+      hoKickLabel: this.state.hoKickCopied ? '\u2713 Copied' : 'Copy kickoff prompt',
+      hoKickColor: this.state.hoKickCopied ? '#7FAF8A' : '#A09DA6', hoKickBorder: this.state.hoKickCopied ? '#243026' : '#26262C',
+      hoCopyFull: () => { copyTxt('# Context package \u00b7 WO-002\n(6 docs \u00b7 ~12.0k tokens)'); flash('hoFullCopied', 1800); },
+      hoFullLabel: this.state.hoFullCopied ? '\u2713 copied full package' : 'copy full package',
+      hoFeedback: this.state.hoFeedback || '', hoFeedbackColor: this.state.hoFeedbackOk ? '#7FAF8A' : '#D9A03F',
+    };
+  }
+  renderVals() {
+    const { T, docs } = this.data();
+    const { tabs, active } = this.resolve();
+    const isEmpty = tabs.length === 0;
+    const view = active == null ? 'none' : this.isView(active) ? active : active === 'WO-002' ? 'workorder' : 'home';
+    const byId = {}; docs.forEach(d => byId[d.id] = d);
+    byId['WO-002'] = byId['WO-002'] || { id: 'WO-002', type: 'WO', title: 'PDF export pipeline', status: 'inprogress' };
+    const find = id => byId[id];
+    const doc = find(active) || docs[1];
+    const agentOn = this.props.agentActivity ?? true;
+    const healthOn = this.props.healthBadges ?? true;
+    const mono = "'JetBrains Mono',monospace", sans = "'Source Sans 3',sans-serif";
+
+    const goDocs = () => { const t = tabs.find(x => !this.isView(x.id)); if (t) this.setTabs(tabs, t.id); else this.openTab('REQ-002', { preview: true }); };
+    const navDefs = [['home', 'Documents', '≡'], ['board', 'Board', '▤'], ['graph', 'Graph', '◉'], ['decisions', 'Decisions', '§']];
+    const navItems = navDefs.map(([key, label, glyph]) => ({ label, glyph, go: key === 'home' ? goDocs : this.go(key), bg: view === key || (key === 'home' && view === 'workorder') ? 'rgba(232,112,58,0.09)' : 'transparent', color: view === key || (key === 'home' && view === 'workorder') ? '#F0A87E' : '#C9C6CF' }));
+
+    const groups = [['REQ', 'REQUIREMENTS'], ['DEC', 'DECISIONS'], ['WO', 'WORK ORDERS'], ['SRC', 'SOURCES']];
+    const woOrder = ['WO-001', 'WO-002', 'WO-003', 'WO-004', 'WO-005'];
+    const treeGroups = groups.map(([type, label]) => {
+      let items = docs.filter(d => d.type === type);
+      if (type === 'WO') { items = items.slice(); items.splice(1, 0, { id: 'WO-002', type: 'WO', title: 'PDF export pipeline', status: 'inprogress' }); }
+      return { label, color: T[type].color, count: items.length, items: items.map(d => {
+        const active = (view === 'home' && doc.id === d.id) || (view === 'workorder' && d.id === 'WO-002');
+        return { id: d.id, idColor: T[type].color, title: d.title, go: this.openDoc(d.id, true), bg: active ? 'rgba(232,112,58,0.08)' : 'transparent', titleColor: active ? '#E7E4DE' : '#A8A5AF', health: healthOn && !!(byId[d.id] && byId[d.id].health), done: d.status === 'done' } }) };
+    });
+
+    const healthIssues = [
+      { docId: 'WO-004', msg: 'Work order has no linked requirements', go: this.openDoc('WO-004', true) },
+      { docId: 'REQ-004', msg: 'Broken link: [[SRC-003]] not found', go: this.openDoc('REQ-004', true) }];
+
+    // reader
+    const statusColors = { accepted: '#7FAF8A', active: '#7FAF8A', draft: '#A09DA6', superseded: '#D9A03F', done: '#7FAF8A', backlog: '#A09DA6', inprogress: '#E8703A', imported: '#908BA8' };
+    const sc = statusColors[doc.status] || '#A09DA6';
+    const fmRows = [
+      { k: 'id', v: doc.id, text: true, font: mono, size: '12px', color: T[doc.type].color },
+      { k: 'type', v: T[doc.type].label, chip: true, color: T[doc.type].color, bg: T[doc.type].bg },
+      { k: 'status', v: doc.status, chip: true, color: sc, bg: sc.replace(')', ',0.1)').replace('#', 'rgba(').length ? hexBg(sc) : '' },
+      { k: 'created', v: doc.created, text: true, font: mono, size: '12px', color: '#A09DA6' },
+      { k: 'updated', v: doc.updated, text: true, font: mono, size: '12px', color: '#A09DA6' },
+      { k: 'links', v: String((doc.links || []).length) + ' outbound', text: true, font: mono, size: '12px', color: '#A09DA6' }];
+    function hexBg(hex) { const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16); return `rgba(${r},${g},${b},0.1)`; }
+    fmRows[2].bg = hexBg(sc);
+
+    const docBlocks = (doc.blocks || []).map(b => {
+      if (b.k === 'h') return { bH: true, t: b.t };
+      if (b.k === 'ck') return { bCheck: true, t: b.t, mark: b.done ? '✓' : '', done: b.done, boxBg: b.done ? '#7FAF8A' : 'transparent', boxBorder: b.done ? '#7FAF8A' : '#34343C', checkColor: b.done ? '#8B8893' : '#C9C6CF' };
+      return { bP: true, segs: b.segs.map(s => {
+        if (s.broken) return { broken: true, t: '[[' + s.ref + ']]' };
+        if (s.ref) { const tg = find(s.ref); if (!tg) return { broken: true, t: '[[' + s.ref + ']]' }; return { link: true, t: s.ref, color: T[tg.type].color, bg: T[tg.type].bg, go: this.openDoc(s.ref) }; }
+        return { plain: true, t: s.t }; }) };
+    });
+
+    const docActivity = (doc.activity && doc.activity.length ? doc.activity : [{ agent: false, text: 'No activity yet', time: '' }]).map(a => ({ ...a, dot: a.agent ? '#E8703A' : '#3A3A44' }));
+
+    // connections
+    const outbound = (doc.links || []).map(l => { const tg = find(l.id); return { id: l.id, idColor: T[tg.type].color, title: tg.title, why: l.why, typeLabel: T[tg.type].label, go: this.openDoc(l.id) }; });
+    const inbound = docs.filter(d => d.id !== doc.id && (d.links || []).some(l => l.id === doc.id)).map(d => { const why = d.links.find(l => l.id === doc.id).why; return { id: d.id, idColor: T[d.type].color, title: d.title, why, typeLabel: T[d.type].label, go: this.openDoc(d.id) }; });
+    if (doc.id === 'REQ-002') inbound.push({ id: 'WO-002', idColor: T.WO.color, title: 'PDF export pipeline', why: 'implements', typeLabel: 'work order', go: this.openDoc('WO-002') });
+    const connGroups = [{ label: 'Outbound · links to', count: outbound.length, items: outbound }, { label: 'Inbound · linked from', count: inbound.length, items: inbound }].filter(g => g.items.length);
+
+    // editor autocomplete
+    const text = this.state.editorText;
+    const m = text.match(/\[\[([^\]]*)$/);
+    const q = m ? m[1].toLowerCase() : '';
+    const allForAc = docs.concat([{ id: 'WO-002', type: 'WO', title: 'PDF export pipeline' }]);
+    const acItems = m ? allForAc.filter(d => (d.id + ' ' + d.title).toLowerCase().includes(q)).slice(0, 5).map(d => ({ id: d.id, idColor: T[d.type].color, title: d.title, pick: () => this.setState({ editorText: text.replace(/\[\[([^\]]*)$/, '[[' + d.id + ']] ') }) })) : [];
+
+    // WO detail
+    const woStatus = this.state.woStatus;
+    const stDefs = [['backlog', 'backlog', '#A09DA6'], ['inprogress', 'in progress', '#E8703A'], ['done', 'done', '#7FAF8A']];
+    const statusOpts = stDefs.map(([key, label, color]) => ({ label, go: () => this.setState({ woStatus: key }), bg: woStatus === key ? hexBg(color).replace('0.1', '0.14') : 'transparent', color: woStatus === key ? color : '#6E6B76' }));
+    const pkgDocs = [
+      ['WO-002', 'PDF export pipeline', 'WO', '1.8k'], ['REQ-002', 'PDF export with templates', 'REQ', '2.4k'], ['DEC-005', 'Typst for PDF rendering', 'DEC', '1.1k'], ['DEC-002', 'Tauri over Electron', 'DEC', '0.9k'], ['SRC-001', 'Client interviews · excerpt', 'SRC', '4.2k'], ['CLAUDE.md', 'Project conventions', 'SRC', '1.6k']
+    ].map(([id, title, type, tokens]) => ({ id, title, tokens, color: T[type].color, idColor: T[type].color }));
+    const woActivity = [
+      { agent: true, text: 'claude-code pulled the context package', time: '38m ago' },
+      { agent: true, text: 'claude-code filed DEC-005 from the template spike', time: '4d ago' },
+      { agent: false, text: 'Scoped out batch export after review', time: '5d ago' }].map(a => ({ ...a, dot: a.agent ? '#E8703A' : '#3A3A44' }));
+
+    // board
+    const mkCard = (id, title, reqCount, agent, health, status) => ({ id, title, agent: agentOn && !!agent, health: healthOn && !!health, go: this.openDoc(id, true), reqLabel: reqCount + (reqCount === 1 ? ' linked REQ' : ' linked REQs'), reqColor: reqCount === 0 ? '#D9A03F' : '#6E6B76' });
+    const boardCols = [
+      { label: 'BACKLOG', dot: '#55525E', count: 2, cards: [mkCard('WO-003', 'CSV time import', 2, false, false), mkCard('WO-004', 'Client manager', 0, false, true)] },
+      { label: 'IN PROGRESS', dot: '#E8703A', count: 1, cards: [mkCard('WO-002', 'PDF export pipeline', 2, true, false)] },
+      { label: 'DONE', dot: '#7FAF8A', count: 2, cards: [mkCard('WO-001', 'Invoice CRUD', 3, true, false), mkCard('WO-005', 'DB schema + migrations', 1, true, false)] }];
+
+    // graph
+    const gDocs = docs.concat([{ id: 'WO-002', type: 'WO', title: 'PDF export pipeline', status: 'inprogress', gx: 66, gy: 50, links: [] }]);
+    const gById = {}; gDocs.forEach(d => gById[d.id] = d);
+    const edges = [['WO-002', 'REQ-002'], ['WO-002', 'DEC-005'], ['WO-002', 'DEC-002'], ['REQ-002', 'DEC-005'], ['REQ-002', 'DEC-004'], ['DEC-005', 'DEC-003'], ['REQ-002', 'SRC-001'], ['REQ-001', 'SRC-001'], ['REQ-001', 'SRC-002'], ['WO-001', 'REQ-001'], ['WO-001', 'DEC-001'], ['WO-005', 'DEC-001'], ['WO-005', 'REQ-001'], ['REQ-003', 'DEC-004'], ['WO-003', 'REQ-004'], ['DEC-003', 'REQ-002']];
+    const degree = {}; edges.forEach(([a, b]) => { degree[a] = (degree[a] || 0) + 1; degree[b] = (degree[b] || 0) + 1; });
+    const sel = this.state.graphSel ? gById[this.state.graphSel] : null;
+    const graphNodes = gDocs.map(d => {
+      const dim = d.status === 'superseded';
+      const active = sel && sel.id === d.id;
+      return { id: d.id, x: d.gx, y: d.gy, size: 10 + Math.min(degree[d.id] || 0, 5) * 2.4, fill: T[d.type].color, ring: active ? '#E7E4DE' : '#111114', opacity: dim ? 0.45 : 1, labelColor: active ? '#E7E4DE' : '#6E6B76', pick: () => this.setState({ graphSel: active ? null : d.id }) };
+    });
+    const graphSvg = React.createElement('svg', { viewBox: '0 0 100 100', preserveAspectRatio: 'none', style: { position: 'absolute', inset: 0, width: '100%', height: '100%' } },
+      edges.map(([a, b], i) => { const A = gById[a], B = gById[b]; const hot = sel && (a === sel.id || b === sel.id); return React.createElement('line', { key: i, x1: A.gx, y1: A.gy, x2: B.gx, y2: B.gy, stroke: hot ? '#E8703A' : '#26262C', strokeWidth: hot ? 0.35 : 0.22, vectorEffect: 'none' }); }));
+    const graphLegend = [['requirement', T.REQ.color], ['decision', T.DEC.color], ['work order', T.WO.color], ['source', T.SRC.color]].map(([label, color]) => ({ label, color }));
+    const selLinks = sel ? edges.filter(([a, b]) => a === sel.id || b === sel.id).length : 0;
+
+    // decision log
+    const decs = docs.filter(d => d.type === 'DEC').sort((a, b) => b.date < a.date ? -1 : 1);
+    const decLog = decs.map(d => {
+      const sup = d.status === 'superseded';
+      return { id: d.id, date: d.date, title: d.title, choice: d.choice, go: this.openDoc(d.id, true), opacity: sup ? 0.55 : 1,
+        badge: d.status, badgeColor: sup ? '#D9A03F' : '#7FAF8A', badgeBg: sup ? 'rgba(217,160,63,0.1)' : 'rgba(127,175,138,0.1)',
+        rejected: d.rejected.map(t => ({ t })), superseded: sup, supId: d.supersededBy, goSup: this.openDoc(d.supersededBy || d.id),
+        links: (d.links || []).map(l => { const tg = gById[l.id]; return { id: l.id, color: T[tg.type].color, bg: T[tg.type].bg, go: this.openDoc(l.id) }; }) };
+    });
+
+    // agent connection panel
+    const propScen = this.props.mcpScenario ?? 'notsetup';
+    if (this._mcpProp !== propScen) { this._mcpProp = propScen; this._mcp = null; }
+    const scenDefs = { notsetup: { cfg: false, entry: false, exe: false, root: false }, healthy: { cfg: true, entry: true, exe: true, root: true }, broken: { cfg: true, entry: true, exe: false, root: false }, external: { cfg: true, entry: true, exe: true, root: true, ext: true }, conflict: { cfg: true, entry: false, exe: true, root: true, conflict: true } };
+    const mcp = this._mcp || Object.assign({ wrote: false, builtCopied: false, ext: false, conflict: false }, scenDefs[propScen] || scenDefs.notsetup);
+    const setM = patch => { this._mcp = Object.assign({}, mcp, patch); this.forceUpdate(); };
+    const copyTxt = t => { try { navigator.clipboard.writeText(t); } catch (e) {} };
+    const mcpNotSetup = !mcp.cfg || (!mcp.entry && !mcp.conflict);
+    const mcpConflict = !!mcp.conflict;
+    const mcpHasChecks = mcp.cfg && mcp.entry && !mcp.conflict;
+    const mcpHealthy = mcpHasChecks && mcp.exe && mcp.root;
+    const failCount = mcpHasChecks ? (mcp.exe ? 0 : 1) + (mcp.root ? 0 : 1) : 0;
+    const mcpChecks = mcpHasChecks ? [
+      { name: '.mcp.json exists', ok: true, detail: '~/dev/skiff/.mcp.json' },
+      { name: 'Veri server entry present', ok: true, detail: 'mcpServers.veri' },
+      { name: 'Server executable found', ok: mcp.exe, detail: mcp.exe ? '…/mcp/dist/server.js' : '', failMsg: 'Nothing at ~/dev/veri/packages/mcp/dist/server.js — the server hasn\u2019t been built on this machine.', actionLabel: mcp.builtCopied ? '\u2713 Copied — build, then re-run checks' : 'Copy build command', onFix: () => { copyTxt('npm run build -w packages/mcp'); setM({ builtCopied: true }); } },
+      { name: 'Project root matches this project', ok: mcp.root, detail: mcp.root ? '~/dev/skiff' : '', failMsg: 'Points at /Users/tom/dev/skiff — a path from another machine, likely a teammate\u2019s commit.', actionLabel: 'Fix path', onFix: () => setM({ root: true, wrote: true, ext: false }) },
+    ].map(c => Object.assign({ failMsg: '', actionLabel: '', onFix: () => {} }, c, { fail: !c.ok, mark: c.ok ? '\u2713' : '!', markBg: c.ok ? 'rgba(127,175,138,0.15)' : 'rgba(217,160,63,0.15)', markColor: c.ok ? '#7FAF8A' : '#D9A03F' })) : [];
+    const mcpVals = {
+      isMcp: view === 'mcp', goMcp: this.go('mcp'),
+      mcpFootBg: view === 'mcp' ? '#1B1B20' : 'transparent',
+      mcpFootDot: mcpHealthy ? '#7FAF8A' : '#D9A03F',
+      mcpFootLabel: mcpNotSetup ? 'agent connection · not set up' : mcpHealthy ? 'agent connection · configured' : 'agent connection · needs attention',
+      mcpNotSetup, mcpConflict, mcpHasChecks, mcpHealthy, mcpChecks,
+      mcpExternal: !!mcp.ext, mcpWrote: !!mcp.wrote, mcpShowRecheck: !mcpNotSetup,
+      mcpSummary: mcpHealthy ? 'all 4 checks pass' : failCount + (failCount === 1 ? ' check failing' : ' checks failing'),
+      mcpSummaryColor: mcpHealthy ? '#7FAF8A' : '#D9A03F',
+      mcpSetup: () => setM({ cfg: true, entry: true, exe: true, root: true, conflict: false, wrote: true }),
+      mcpReplace: () => setM({ conflict: false, entry: true, wrote: true }),
+      mcpRecheck: () => setM({ ext: false, exe: mcp.exe || mcp.builtCopied, builtCopied: false }),
+      mcpCopyCmd: () => { copyTxt('claude mcp add veri -- node ~/dev/veri/packages/mcp/dist/server.js ~/dev/skiff'); this.setState({ mcpCopiedCmd: true }); clearTimeout(this._mt); this._mt = setTimeout(() => this.setState({ mcpCopiedCmd: false }), 1800); },
+      mcpCopyCmdLabel: this.state.mcpCopiedCmd ? '\u2713 Copied' : 'Copy',
+      mcpTools: [
+        { name: 'get_context', desc: 'Pulls the assembled context package for a work order' },
+        { name: 'search', desc: 'Finds requirements, decisions, and sources by id or text' },
+        { name: 'file_decision', desc: 'Lets the agent file a decision doc mid-session' },
+        { name: 'file_receipt', desc: 'Records commit, files, and summary when work completes' },
+      ],
+    };
+    const reorder = (from, to) => { const next = tabs.slice(); const [mv] = next.splice(from, 1); next.splice(to, 0, mv); this.setState({ tabs: next, active }); };
+    const tabsVals = tabs.map((t, i) => {
+      const isV = this.isView(t.id);
+      const d = isV ? null : find(t.id);
+      const isActive = t.id === active;
+      return {
+        glyph: isV ? Component.VIEWS[t.id][1] : t.id,
+        idColor: isV ? '#8B8893' : T[d.type].color,
+        title: isV ? Component.VIEWS[t.id][0] : d.title,
+        tip: (isV ? Component.VIEWS[t.id][0] : t.id + ' — ' + d.title) + (t.preview ? ' · preview — double-click to keep open' : ''),
+        fontStyle: t.preview ? 'italic' : 'normal',
+        bg: isActive ? '#0F0F11' : 'transparent',
+        topBar: isActive ? '#E8703A' : 'transparent',
+        bottomBar: isActive ? 'transparent' : '#1E1E24',
+        titleColor: isActive ? '#E7E4DE' : '#8B8893',
+        xColor: isActive ? '#55525E' : '#3F3D47',
+        go: () => this.setTabs(tabs, t.id),
+        close: e => { e.stopPropagation(); this.closeTab(t.id); },
+        aux: e => { if (e.button === 1) { e.preventDefault(); this.closeTab(t.id); } },
+        pin: () => this.pinTab(t.id),
+        dragStart: e => { this._dragIdx = i; try { e.dataTransfer.effectAllowed = 'move'; } catch (x) {} },
+        dragOver: e => { e.preventDefault(); const f = this._dragIdx; if (f != null && f !== i) { reorder(f, i); this._dragIdx = i; } },
+        drop: e => e.preventDefault(),
+      };
+    });
+    return Object.assign(mcpVals, {
+      tabs: tabsVals, isEmpty,
+      isHome: view === 'home', isWo: view === 'workorder', isBoard: view === 'board', isGraph: view === 'graph', isDecisions: view === 'decisions',
+      agentOn, healthOn, navItems, treeGroups, healthIssues, checkOpen: this.state.checkOpen, toggleCheck: () => this.setState(s => ({ checkOpen: !s.checkOpen, projOpen: false })),
+      projOpen: this.state.projOpen, toggleProj: () => this.setState(s => ({ projOpen: !s.projOpen, checkOpen: false })),
+      projBtnBg: this.state.projOpen ? '#1B1B20' : 'transparent', curProj: this.state.proj,
+      projList: [
+        { name: 'skiff', meta: '~/dev/skiff · 14 docs · 2 issues', dot: '#E8703A', issues: true },
+        { name: 'harbormaster', meta: '~/dev/harbormaster · 31 docs', dot: '#7EA6C4', issues: false },
+        { name: 'ledgerline', meta: '~/work/ledgerline · 8 docs', dot: '#CFA83D', issues: false },
+      ].map(pr => Object.assign(pr, { current: pr.name === this.state.proj, bg: pr.name === this.state.proj ? '#1F1F25' : 'transparent', go: () => this.setState({ proj: pr.name, projOpen: false }) })),
+      docCrumb: T[doc.type].label.replace(/^./, c => c.toUpperCase()) + 's', docId: doc.id, docIdColor: T[doc.type].color, docTitle: doc.title,
+      docHealth: healthOn && !!doc.health, docHealthMsg: doc.health || '', fmRows, docBlocks, docActivity, connGroups,
+      editorText: text, onEditorChange: e => this.setState({ editorText: e.target.value }), acOpen: acItems.length > 0, acItems,
+      statusOpts, woDone: woStatus === 'done', expReq: this.state.expReq, expDec5: this.state.expDec5, expDec2: this.state.expDec2,
+      reqChev: this.state.expReq ? '▾' : '▸', dec5Chev: this.state.expDec5 ? '▾' : '▸', dec2Chev: this.state.expDec2 ? '▾' : '▸',
+      toggleReq: () => this.setState(s => ({ expReq: !s.expReq })), toggleDec5: () => this.setState(s => ({ expDec5: !s.expDec5 })), toggleDec2: () => this.setState(s => ({ expDec2: !s.expDec2 })),
+      goReq2: this.openDoc('REQ-002'), goDec3: this.openDoc('DEC-003'),
+      pkgDocs, woActivity: [...(this.state.hoLog || []), ...woActivity],
+      ...this.handoffVals(),
+      boardCols, graphNodes, graphSvg, graphLegend,
+      graphSelOpen: !!sel, selX: sel ? sel.gx : 0, selY: sel ? sel.gy : 0, selId: sel ? sel.id : '', selIdColor: sel ? T[sel.type].color : '#fff', selType: sel ? T[sel.type].label : '', selTitle: sel ? sel.title : '', selMeta: sel ? selLinks + ' links · ' + (sel.status || '') : '', selOpen: sel ? this.openDoc(sel.id, true) : () => {},
+      decLog,
+    });
+  }
+}
+</script>
+</body>
+</html>

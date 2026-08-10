@@ -78,7 +78,7 @@ function connectionsPanel(ctx: Ctx): HTMLElement {
   const card = (c: { id: string; title: string; type: keyof typeof TYPE_META; why: string }): HTMLElement =>
     h(
       'div',
-      { class: 'conn-card', onClick: () => ctx.openDoc(c.id) },
+      { class: 'conn-card', onClick: (e) => ctx.openDoc(c.id, { background: e.metaKey || e.ctrlKey }) },
       h(
         'div',
         { class: 'conn-head' },

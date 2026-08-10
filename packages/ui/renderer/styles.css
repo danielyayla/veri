@@ -216,6 +216,45 @@ a:hover { color: #F49463; }
 .sb-mcp-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sb-mcp-arrow { margin-left: auto; color: var(--ghost-2); }
 
+/* ===== Editor area + tab strip (WO-012, tokens per SRC-004) ===== */
+.editor-area { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.tabstrip {
+  height: 37px; flex: 0 0 auto; display: flex; align-items: stretch;
+  background: var(--panel); overflow-x: auto; overflow-y: hidden;
+}
+.tab {
+  display: flex; align-items: center; gap: 8px; padding: 0 8px 0 13px;
+  max-width: 220px; min-width: 0; flex: 0 0 auto; cursor: pointer; user-select: none;
+  border-right: 1px solid #1A1A1F; border-bottom: 1px solid var(--hair);
+}
+.tab-active {
+  background: var(--bg); border-bottom-color: transparent;
+  box-shadow: inset 0 2px 0 var(--ember);
+}
+.tab-id { font-family: var(--mono); font-size: 10px; flex: 0 0 auto; }
+.tab-title {
+  font-size: 12.5px; color: var(--muted); max-width: 130px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tab-active .tab-title { color: var(--text); }
+.tab-preview .tab-title { font-style: italic; }
+.tab-close {
+  flex: 0 0 auto; width: 16px; height: 16px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  color: #3F3D47; font-size: 12px; line-height: 1;
+}
+.tab-active .tab-close { color: var(--ghost); }
+.tab-close:hover { background: var(--int-border); color: var(--text); }
+.tabstrip-fill { flex: 1; min-width: 24px; border-bottom: 1px solid var(--hair); }
+
+.empty-tabs { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; text-align: center; }
+.empty-tabs-label { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; color: var(--ghost); }
+.empty-tabs-hint { margin-top: 12px; font-size: 13px; color: var(--faint); line-height: 2.1; }
+.empty-tabs-kbd {
+  font-family: var(--mono); font-size: 11px; border: 1px solid var(--int-border);
+  border-radius: 4px; padding: 1px 6px; color: var(--muted);
+}
+
 /* ===== Reader (home + work order) ===== */
 .screen-home, .screen-wo { flex: 1; display: flex; min-width: 0; min-height: 0; }
 .reader { flex: 1; overflow-y: auto; min-width: 0; }

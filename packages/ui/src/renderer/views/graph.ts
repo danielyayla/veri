@@ -58,7 +58,7 @@ export function graphView(ctx: Ctx): HTMLElement {
           ),
           h('div', { class: 'gr-pop-title' }, selNode.title),
           h('div', { class: 'gr-pop-meta' }, `${selNode.degree} link${selNode.degree === 1 ? '' : 's'} · ${selNode.status}`),
-          h('div', { class: 'gr-pop-open', onClick: () => ctx.openDoc(selNode.id) }, 'Open doc →'),
+          h('div', { class: 'gr-pop-open', onClick: (e) => ctx.openDoc(selNode.id, { preview: true, background: e.metaKey || e.ctrlKey }) }, 'Open doc →'),
         )
       : null;
 

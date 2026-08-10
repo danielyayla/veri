@@ -7,7 +7,7 @@ import type { Block, Seg } from './markdown.ts';
 import type { ActivityRow, DocsById } from './derive.ts';
 
 export interface Nav {
-  openDoc(id: string): void;
+  openDoc(id: string, opts?: { preview?: boolean; background?: boolean }): void;
 }
 
 export function idChip(byId: DocsById, id: string, nav: Nav): HTMLElement {
@@ -21,7 +21,8 @@ export function idChip(byId: DocsById, id: string, nav: Nav): HTMLElement {
     {
       class: 'chip-ref',
       style: `color:${meta.color};background:${tint(meta.color)};`,
-      onClick: () => nav.openDoc(id),
+      // SRC-004 rule 1: inline links open pinned tabs; ⌘-click stays in the background.
+      onClick: (e) => nav.openDoc(id, { background: e.metaKey || e.ctrlKey }),
     },
     id,
   );

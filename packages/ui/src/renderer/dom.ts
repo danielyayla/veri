@@ -10,7 +10,13 @@ export interface Attrs {
   value?: string;
   id?: string;
   html?: never;
+  draggable?: boolean;
   onClick?: (e: MouseEvent) => void;
+  onDblclick?: (e: MouseEvent) => void;
+  onMousedown?: (e: MouseEvent) => void;
+  onDragstart?: (e: DragEvent) => void;
+  onDragover?: (e: DragEvent) => void;
+  onDrop?: (e: DragEvent) => void;
   onInput?: (e: Event) => void;
   onKeydown?: (e: KeyboardEvent) => void;
 }
@@ -23,7 +29,13 @@ export function h(tag: string, attrs: Attrs = {}, ...children: Child[]): HTMLEle
   if (attrs.id !== undefined) el.id = attrs.id;
   if (attrs.placeholder !== undefined) (el as HTMLInputElement).placeholder = attrs.placeholder;
   if (attrs.value !== undefined) (el as HTMLInputElement).value = attrs.value;
+  if (attrs.draggable === true) el.draggable = true;
   if (attrs.onClick !== undefined) el.addEventListener('click', attrs.onClick as EventListener);
+  if (attrs.onDblclick !== undefined) el.addEventListener('dblclick', attrs.onDblclick as EventListener);
+  if (attrs.onMousedown !== undefined) el.addEventListener('mousedown', attrs.onMousedown as EventListener);
+  if (attrs.onDragstart !== undefined) el.addEventListener('dragstart', attrs.onDragstart as EventListener);
+  if (attrs.onDragover !== undefined) el.addEventListener('dragover', attrs.onDragover as EventListener);
+  if (attrs.onDrop !== undefined) el.addEventListener('drop', attrs.onDrop as EventListener);
   if (attrs.onInput !== undefined) el.addEventListener('input', attrs.onInput);
   if (attrs.onKeydown !== undefined) el.addEventListener('keydown', attrs.onKeydown as EventListener);
   for (const child of children) {

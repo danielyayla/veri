@@ -31,7 +31,8 @@ export function decisionsView(ctx: Ctx): HTMLElement {
             h(
               'div',
               { class: 'dl-head' },
-              h('span', { class: 'dl-id', onClick: () => ctx.openDoc(e.id) }, e.id),
+              // Log entries browse (preview); the link chips below are links (pinned).
+              h('span', { class: 'dl-id', onClick: (ev) => ctx.openDoc(e.id, { preview: true, background: ev.metaKey || ev.ctrlKey }) }, e.id),
               h('span', { class: 'dl-date' }, e.date),
               h(
                 'span',
@@ -65,7 +66,7 @@ export function decisionsView(ctx: Ctx): HTMLElement {
                       {
                         class: 'dl-link',
                         style: `color:${TYPE_META[l.type].color};background:${tint(TYPE_META[l.type].color)};`,
-                        onClick: () => ctx.openDoc(l.id),
+                        onClick: (ev) => ctx.openDoc(l.id, { background: ev.metaKey || ev.ctrlKey }),
                       },
                       l.id,
                     ),
@@ -75,7 +76,7 @@ export function decisionsView(ctx: Ctx): HTMLElement {
             sup && e.supersededBy !== null
               ? h(
                   'div',
-                  { class: 'dl-sup', onClick: () => ctx.openDoc(e.supersededBy!) },
+                  { class: 'dl-sup', onClick: (ev) => ctx.openDoc(e.supersededBy!, { background: ev.metaKey || ev.ctrlKey }) },
                   h('span', {}, '↪ superseded by'),
                   h('span', { class: 'dl-sup-id' }, e.supersededBy),
                 )
