@@ -2,7 +2,8 @@
 id: DEC-015
 type: decision
 title: Approve is a line-targeted frontmatter edit living in core
-status: proposed
+status: active
+approved: 2026-08-10
 created: 2026-08-10
 updated: 2026-08-10
 links:

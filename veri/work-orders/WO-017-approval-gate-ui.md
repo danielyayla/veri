@@ -2,7 +2,7 @@
 id: WO-017
 type: work-order
 title: Approval gate UI — review queue, approve flow, gated work orders
-status: backlog
+status: in-progress
 created: 2026-08-10
 updated: 2026-08-10
 links:
