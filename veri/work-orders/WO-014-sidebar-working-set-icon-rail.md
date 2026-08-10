@@ -2,7 +2,7 @@
 id: WO-014
 type: work-order
 title: Sidebar working set + icon rail — pins, recents, lifecycle-filtered tree
-status: in-progress
+status: done
 created: 2026-08-10
 updated: 2026-08-10
 links:
@@ -105,3 +105,5 @@ search, this sidebar) reads directory position for meaning.
 - [x] `veri check` reports zero issues.
 
 ## Receipts
+
+- 2026-08-10 — e9badd6 — packages/ui/src/lib/workspace.ts, packages/ui/src/lib/workspace.test.ts, packages/ui/src/main.ts, packages/ui/src/preload.mts, packages/ui/src/renderer/api.ts, packages/ui/src/renderer/app.ts, packages/ui/src/renderer/sidebar.ts, packages/ui/src/renderer/sidebar.test.ts, packages/ui/src/renderer/dom.ts, packages/ui/src/renderer/widgets.ts, packages/ui/src/renderer/views/reader.ts, packages/ui/src/renderer/views/workorder.ts, packages/ui/renderer/styles.css, veri/decisions/DEC-014 — Icon rail + working-set sidebar per SRC-005 layer 3: pins/recents persisted per project in userData (DEC-014, 3 tests), lifecycle-filtered tree derivations (5 tests), pin chips in doc headers; persistence across restart, tooltips, expanders, and live filtering verified via the screenshot harness; npm test 128 pass, veri check clean (agent session, Claude Code).
