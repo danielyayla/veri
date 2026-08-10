@@ -559,6 +559,10 @@ a:hover { color: #F49463; }
 
 /* ===== Agent handoff (WO-011 / SRC-003) ===== */
 .pkg-buttons-col { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; position: relative; }
+/* In the column, flex:1's zero basis overrides height and collapses the
+   buttons — pin them to the SRC-003 heights instead. */
+.pkg-buttons-col .btn-primary { flex: none; height: 34px; }
+.pkg-buttons-col .btn-secondary { flex: none; height: 30px; }
 .ap-caret { font-family: var(--mono); font-size: 11px; margin-left: 6px; }
 .pkg-ghost { font-family: var(--mono); font-size: 10.5px; color: var(--faint); text-align: right; cursor: pointer; padding: 2px 0; }
 .pkg-ghost:hover { color: var(--secondary); }
