@@ -2,7 +2,7 @@
 id: WO-017
 type: work-order
 title: Approval gate UI — review queue, approve flow, gated work orders
-status: in-progress
+status: done
 created: 2026-08-10
 updated: 2026-08-10
 links:
@@ -49,13 +49,15 @@ accepted — this work order is itself gated by the gate it builds.
 
 ## Acceptance criteria
 
-- [ ] All four SRC-006 scenarios reproduced against real project files
+- [x] All four SRC-006 scenarios reproduced against real project files
       (home queue, review, approved, gated WO).
-- [ ] Approve writes the stamp-and-flip edit and the app re-renders
+- [x] Approve writes the stamp-and-flip edit and the app re-renders
       from the re-parsed file, not from cached UI state.
-- [ ] Approve disabled (with tooltip) on documents with check issues.
-- [ ] Request changes appends the dated review note; doc stays queued.
-- [ ] Pending docs marked everywhere they appear; never filtered out.
-- [ ] `npm test` and `veri check` clean.
+- [x] Approve disabled (with tooltip) on documents with check issues.
+- [x] Request changes appends the dated review note; doc stays queued.
+- [x] Pending docs marked everywhere they appear; never filtered out.
+- [x] `npm test` and `veri check` clean.
 
 ## Receipts
+
+- 2026-08-11 — 48944a5 — packages/ui (write lib + IPC, app shell, derive, sidebar, theme, home/reader/workorder views, new views/review.ts, styles), packages/mcp/src/search.ts (is:proposed) — approval-gate UI shipped per SRC-006; all four scenarios + in-app approve/review-note verified live via the screenshot harness; 143 tests green, veri check clean.
