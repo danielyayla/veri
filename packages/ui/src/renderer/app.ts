@@ -72,6 +72,10 @@ export interface State {
   paletteResult: PaletteResult | null;
   projectSwitcherOpen: boolean;
   projectError: string | null;
+  /** Non-null while the New project sheet is up (WO-018, SRC-007). */
+  newProject: NewProjectState | null;
+  /** Green "opened the existing project" chip, shown after the reload. */
+  projectNotice: string | null;
   mcpStatus: McpStatus | null;
   /** Drives the restart banner; cleared by re-run checks or leaving the panel. */
   mcpWrote: boolean;
@@ -79,6 +83,15 @@ export interface State {
   mcpExternal: boolean;
   mcpBuildCopied: boolean;
   mcpCmdCopied: boolean;
+}
+
+/** The New project sheet's own state — one directory, one toggle, one error. */
+export interface NewProjectState {
+  dir: string;
+  name: string;
+  demo: boolean;
+  busy: boolean;
+  error: string | null;
 }
 
 export interface CachedPackage {
@@ -155,6 +168,8 @@ class App implements Ctx {
     paletteResult: null,
     projectSwitcherOpen: false,
     projectError: null,
+    newProject: null,
+    projectNotice: null,
     mcpStatus: null,
     mcpWrote: false,
     mcpExternal: false,
@@ -194,6 +209,14 @@ class App implements Ctx {
     const params = new URLSearchParams(location.search);
     const view = params.get('view');
     const doc = params.get('doc');
+    // "New project…" on a folder that already had veri/: it was opened, not
+    // scaffolded, and the reload is the only channel that survives (SRC-007).
+    if (params.get('notice') === 'existing') {
+      this.state.projectNotice = 'Opened the existing project — veri/ was already here, nothing was written.';
+      setTimeout(() => {
+        if (this.state.projectNotice !== null) this.update({ projectNotice: null });
+      }, 5000);
+    }
     if (doc !== null && this.byId.has(doc)) this.openDoc(doc);
     if (view !== null && isViewKey(view)) this.applyTabs(openTab(this.tabState(), view));
     if (this.state.tabs.length === 0) {
@@ -213,6 +236,11 @@ class App implements Ctx {
       } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'o') {
         e.preventDefault();
         this.surfaceProjectError(this.api.openProjectFolder());
+      } else if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        if (this.state.newProject === null) void this.startNewProject();
+      } else if (e.key === 'Escape' && this.state.newProject !== null) {
+        this.closeNewProject();
       } else if (e.ctrlKey && !e.metaKey && e.key === 'Tab') {
         // ⌃Tab / ⌃⇧Tab: cycle through the strip in order (SRC-004 recommended).
         e.preventDefault();
@@ -236,14 +264,20 @@ class App implements Ctx {
         e.key === 'Escape' &&
         (this.state.projectSwitcherOpen ||
           this.state.agentsOpen ||
-          this.state.projectError !== null)
+          this.state.projectError !== null ||
+          this.state.projectNotice !== null)
       ) {
-        this.update({ projectSwitcherOpen: false, agentsOpen: false, projectError: null });
+        this.update({ projectSwitcherOpen: false, agentsOpen: false, projectError: null, projectNotice: null });
       }
     });
     document.addEventListener('click', () => {
-      if (this.state.projectSwitcherOpen || this.state.agentsOpen || this.state.projectError !== null) {
-        this.update({ projectSwitcherOpen: false, agentsOpen: false, projectError: null });
+      if (
+        this.state.projectSwitcherOpen ||
+        this.state.agentsOpen ||
+        this.state.projectError !== null ||
+        this.state.projectNotice !== null
+      ) {
+        this.update({ projectSwitcherOpen: false, agentsOpen: false, projectError: null, projectNotice: null });
       }
     });
     this.render();
@@ -520,6 +554,14 @@ class App implements Ctx {
               h('span', {}, this.state.projectError),
             )
           : null,
+        this.state.projectNotice !== null
+          ? h(
+              'div',
+              { class: 'proj-notice', onClick: (e) => e.stopPropagation() },
+              h('span', { class: 'proj-notice-dot' }),
+              h('span', {}, this.state.projectNotice),
+            )
+          : null,
       ),
       h(
         'div',
@@ -561,6 +603,150 @@ class App implements Ctx {
     void result.then((err) => {
       if (err !== null) this.update({ projectError: err });
     });
+  }
+
+  // ---- new project (WO-018, SRC-007) ----
+
+  /**
+   * Step 1: the native picker. A folder that already has veri/ is opened by
+   * the main process (the window reloads, so nothing more to do here); a
+   * fresh folder raises the creation sheet.
+   */
+  private async startNewProject(): Promise<void> {
+    this.update({ projectSwitcherOpen: false });
+    const pick = await this.api.newProjectPick();
+    if (pick === null || pick.kind === 'opened') return;
+    if (pick.kind === 'error') {
+      this.update({ projectError: pick.message });
+      return;
+    }
+    this.update({ newProject: { dir: pick.dir, name: pick.name, demo: false, busy: false, error: null } });
+  }
+
+  /** Step 1 again, from the sheet's "Change…" — keeps the toggle as set. */
+  private async changeNewProjectDir(): Promise<void> {
+    const pick = await this.api.newProjectPick();
+    if (pick === null || pick.kind === 'opened') return;
+    if (pick.kind === 'error') {
+      this.update({ projectError: pick.message, newProject: null });
+      return;
+    }
+    const np = this.state.newProject;
+    this.update({
+      newProject: { dir: pick.dir, name: pick.name, demo: np?.demo ?? false, busy: false, error: null },
+    });
+  }
+
+  /** Step 2: scaffold and open. On failure the sheet stays up and the MRU is
+      untouched — the main process only records the project after a good write. */
+  private async createProject(): Promise<void> {
+    const np = this.state.newProject;
+    if (np === null || np.busy) return;
+    this.update({ newProject: { ...np, busy: true, error: null } });
+    const err = await this.api.createProject(np.dir, np.demo);
+    if (err === null) return; // the window is reloading into the new project
+    const current = this.state.newProject;
+    if (current !== null) this.update({ newProject: { ...current, busy: false, error: err } });
+  }
+
+  private newProjectSheet(): HTMLElement | null {
+    const np = this.state.newProject;
+    if (np === null) return null;
+    const tree =
+      np.demo
+        ? [
+            h('span', {}, 'veri/  ·  the skiff demo project\n'),
+            h('span', {}, 'README.md      '),
+            h('span', { class: 'np-skip' }, '← skipped if one already exists\n'),
+            h('span', {}, 'CLAUDE.md      '),
+            h('span', { class: 'np-skip' }, '← skipped if one already exists'),
+          ]
+        : [h('span', {}, 'veri/requirements/\nveri/decisions/\nveri/work-orders/\nveri/sources/')];
+    return h(
+      'div',
+      { class: 'np-scrim', onClick: () => this.closeNewProject() },
+      h(
+        'div',
+        { class: 'np-sheet', onClick: (e) => e.stopPropagation() },
+        h('div', { class: 'micro-label' }, 'NEW PROJECT'),
+        h(
+          'div',
+          { class: 'np-loc' },
+          h('span', { class: 'np-path' }, h('bdi', {}, np.dir)),
+          h(
+            'span',
+            {
+              class: np.busy ? 'np-change np-disabled' : 'np-change',
+              onClick: () => {
+                if (!np.busy) void this.changeNewProjectDir();
+              },
+            },
+            'Change…',
+          ),
+        ),
+        h(
+          'div',
+          { class: 'np-name-line' },
+          h('span', { class: 'np-name-label' }, 'Project name'),
+          h('span', { class: 'np-name-val' }, np.name),
+        ),
+        h(
+          'div',
+          {
+            class: np.busy ? 'np-toggle np-disabled' : 'np-toggle',
+            onClick: () => {
+              if (!np.busy) this.update({ newProject: { ...np, demo: !np.demo } });
+            },
+          },
+          h('span', { class: np.demo ? 'np-sw np-sw-on' : 'np-sw' }, h('i', {})),
+          h(
+            'div',
+            {},
+            h('div', { class: 'np-toggle-main' }, 'Seed with the skiff demo project'),
+            h(
+              'div',
+              { class: 'np-toggle-sub' },
+              '16 documents from a sample invoicing app — the same content ',
+              h('code', {}, 'veri init --demo'),
+              ' installs.',
+            ),
+          ),
+        ),
+        h('div', { class: 'np-tree' }, ...tree),
+        np.error !== null
+          ? h(
+              'div',
+              { class: 'np-err' },
+              h('span', { class: 'np-err-dot' }),
+              h(
+                'div',
+                {},
+                h('span', {}, "Couldn't create the project — nothing was written, and your project list is unchanged."),
+                h('code', {}, np.error),
+              ),
+            )
+          : null,
+        h(
+          'div',
+          { class: 'np-acts' },
+          h(
+            'button',
+            { class: 'np-btn np-btn-ghost', disabled: np.busy, onClick: () => this.closeNewProject() },
+            'Cancel',
+          ),
+          h(
+            'button',
+            { class: 'np-btn np-btn-primary', disabled: np.busy, onClick: () => void this.createProject() },
+            np.busy ? 'Creating…' : 'Create project',
+          ),
+        ),
+      ),
+    );
+  }
+
+  private closeNewProject(): void {
+    if (this.state.newProject?.busy === true) return;
+    this.update({ newProject: null });
   }
 
   private projectSwitcherPopover(): HTMLElement {
@@ -606,9 +792,18 @@ class App implements Ctx {
             this.surfaceProjectError(this.api.openProjectFolder());
           },
         },
-        h('span', { class: 'proj-open-plus' }, '+'),
+        // Open keeps its position (muscle memory) but yields '+' to New
+        // project below it, where the glyph means what it says (SRC-007).
+        h('span', { class: 'proj-open-plus' }, '→'),
         h('span', {}, 'Open project folder…'),
         h('span', { class: 'proj-kbd' }, '⌘O'),
+      ),
+      h(
+        'div',
+        { class: 'proj-open-row', onClick: () => void this.startNewProject() },
+        h('span', { class: 'proj-open-plus' }, '+'),
+        h('span', {}, 'New project…'),
+        h('span', { class: 'proj-kbd' }, '⇧⌘N'),
       ),
     );
   }
@@ -634,7 +829,11 @@ class App implements Ctx {
   /** Open semantics mirror the tabs design: Enter/click = shared preview tab,
       palette closes; ⌘Enter/⌘click = pinned tab in background, palette stays. */
   private openPaletteRow(row: PaletteRow, pinned: boolean): void {
-    if (row.kind === 'view') {
+    if (row.kind === 'command') {
+      // ⌘↩ means nothing for an action row — treat it as a plain activation.
+      this.update({ paletteOpen: false });
+      void this.startNewProject();
+    } else if (row.kind === 'view') {
       this.applyTabs(openTab(this.tabState(), row.view, { preview: true, previewTabs: this.state.previewTabs }), {
         paletteOpen: false,
       });
@@ -675,7 +874,7 @@ class App implements Ctx {
           h(
             'span',
             { class: 'pal-status', style: `color:${doc !== null ? statusColor(doc.status) : '#55525E'};` },
-            doc !== null ? doc.status : 'view',
+            doc !== null ? doc.status : row.kind === 'command' ? 'command' : 'view',
           ),
         ),
         snippet !== null ? h('div', { class: 'pal-snippet' }, snippet) : null,
@@ -1050,11 +1249,13 @@ class App implements Ctx {
     else if (view === 'decisions') screen = decisionsView(this);
     else screen = readerView(this);
     const palette = this.paletteEl();
+    const sheet = this.newProjectSheet();
     const toast = this.state.toast !== null ? h('div', { class: 'toast' }, this.state.toast) : null;
     this.root.replaceChildren(
       this.topbar(),
       h('div', { class: 'body' }, this.rail(), this.sidebar(), h('div', { class: 'editor-area' }, this.tabStrip(), screen)),
       ...(palette !== null ? [palette] : []),
+      ...(sheet !== null ? [sheet] : []),
       ...(toast !== null ? [toast] : []),
     );
     this.state.editorFocused = false;

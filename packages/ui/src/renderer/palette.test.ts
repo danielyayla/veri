@@ -41,3 +41,35 @@ test('empty query lists views below docs and caps the list at 8', () => {
   assert.equal(few.length, 1 + Object.keys(VIEW_META).length); // 1 doc + every view
   assert.equal(few[0].kind, 'doc');
 });
+
+// ---- command rows (WO-018, SRC-007) ----
+
+function commands(rows: ReturnType<typeof paletteRows>): string[] {
+  return rows.filter((r) => r.kind === 'command').map((r) => (r.kind === 'command' ? r.command : ''));
+}
+
+test('the new-project command matches its terms, whole or partial', () => {
+  for (const text of ['new', 'project', 'create', 'proj', 'n']) {
+    assert.deepEqual(commands(paletteRows(result({ text }, []))), ['new-project'], `query "${text}"`);
+  }
+});
+
+test('an unrelated query does not surface the new-project command', () => {
+  assert.deepEqual(commands(paletteRows(result({ text: 'receipt' }, []))), []);
+});
+
+test('the empty palette stays a navigation surface — no command rows', () => {
+  const rows = paletteRows(result({}, []));
+  assert.deepEqual(commands(rows), []);
+  assert.ok(rows.every((r) => r.kind === 'view'), 'views still fill the empty palette');
+});
+
+test('command rows are suppressed while a type or status filter is active', () => {
+  assert.deepEqual(commands(paletteRows(result({ text: 'new', type: 'work-order' }, []))), []);
+  assert.deepEqual(commands(paletteRows(result({ text: 'new', statuses: ['proposed'] }, []))), []);
+});
+
+test('a doc hit outranks the command row at equal-ish scores', () => {
+  const rows = paletteRows(result({ text: 'new' }, [hit('WO-018', 62)]));
+  assert.equal(rows[0]?.kind, 'doc');
+});

@@ -11,6 +11,7 @@ export interface Attrs {
   id?: string;
   html?: never;
   draggable?: boolean;
+  disabled?: boolean;
   onClick?: (e: MouseEvent) => void;
   onDblclick?: (e: MouseEvent) => void;
   onMousedown?: (e: MouseEvent) => void;
@@ -32,6 +33,7 @@ export function h(tag: string, attrs: Attrs = {}, ...children: Child[]): HTMLEle
   if (attrs.placeholder !== undefined) (el as HTMLInputElement).placeholder = attrs.placeholder;
   if (attrs.value !== undefined) (el as HTMLInputElement).value = attrs.value;
   if (attrs.draggable === true) el.draggable = true;
+  if (attrs.disabled === true) (el as HTMLButtonElement).disabled = true;
   if (attrs.onClick !== undefined) el.addEventListener('click', attrs.onClick as EventListener);
   if (attrs.onDblclick !== undefined) el.addEventListener('dblclick', attrs.onDblclick as EventListener);
   if (attrs.onMousedown !== undefined) el.addEventListener('mousedown', attrs.onMousedown as EventListener);

@@ -10,9 +10,19 @@ import type { ViewKey } from './tabs.ts';
 
 export const PALETTE_MAX_ROWS = 8;
 
+export type CommandKey = 'new-project';
+
 export type PaletteRow =
   | { kind: 'doc'; hit: PaletteHit }
-  | { kind: 'view'; view: ViewKey; label: string; glyph: string };
+  | { kind: 'view'; view: ViewKey; label: string; glyph: string }
+  | { kind: 'command'; command: CommandKey; label: string; glyph: string };
+
+/** Commands are actions, not destinations (SRC-007): unlike views they never
+    show on an empty query — an empty palette is for navigation, and a
+    project-creating row there is a mis-Enter hazard. */
+const COMMAND_META: Record<CommandKey, { label: string; glyph: string; terms: string[] }> = {
+  'new-project': { label: 'New project…', glyph: '+', terms: ['new', 'project', 'create'] },
+};
 
 /** Views surface by label match, and are suppressed while a type/status
     filter is active (filters talk about documents, not views). */
@@ -28,6 +38,12 @@ export function paletteRows(result: PaletteResult): PaletteRow[] {
       if (text === '') scored.push({ row: { kind: 'view', view, label: meta.label, glyph: meta.glyph }, score: 0.5 });
       else if (label.includes(text))
         scored.push({ row: { kind: 'view', view, label: meta.label, glyph: meta.glyph }, score: 58 });
+    }
+    for (const [command, meta] of Object.entries(COMMAND_META) as Array<
+      [CommandKey, (typeof COMMAND_META)[CommandKey]]
+    >) {
+      if (text !== '' && meta.terms.some((term) => term.includes(text)))
+        scored.push({ row: { kind: 'command', command, label: meta.label, glyph: meta.glyph }, score: 58 });
     }
   }
   return scored

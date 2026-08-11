@@ -24,6 +24,8 @@ contextBridge.exposeInMainWorld('veri', {
   listRecentProjects: () => ipcRenderer.invoke('veri:list-recent-projects'),
   switchProject: (dir: string) => ipcRenderer.invoke('veri:switch-project', dir),
   openProjectFolder: () => ipcRenderer.invoke('veri:open-project-folder'),
+  newProjectPick: () => ipcRenderer.invoke('veri:new-project-pick'),
+  createProject: (dir: string, demo: boolean) => ipcRenderer.invoke('veri:create-project', dir, demo),
   onChanged: (cb: () => void) => {
     ipcRenderer.on('veri:changed', () => cb());
   },

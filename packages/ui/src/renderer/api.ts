@@ -43,8 +43,22 @@ export interface VeriApi {
   /** Both resolve to an error message to show the user, or null on success/cancel. */
   switchProject(dir: string): Promise<string | null>;
   openProjectFolder(): Promise<string | null>;
+  /**
+   * New project, step 1 (WO-018): native directory picker. A folder that
+   * already holds veri/ is opened here and reports `opened`; anything else
+   * comes back as `new` for the creation sheet.
+   */
+  newProjectPick(): Promise<NewProjectPick>;
+  /** New project, step 2: scaffold `dir` then open it. Error message or null. */
+  createProject(dir: string, demo: boolean): Promise<string | null>;
   onChanged(cb: () => void): void;
 }
+
+export type NewProjectPick =
+  | null
+  | { kind: 'opened' }
+  | { kind: 'error'; message: string }
+  | { kind: 'new'; dir: string; name: string };
 
 declare global {
   interface Window {

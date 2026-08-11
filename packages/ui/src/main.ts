@@ -1,8 +1,10 @@
 import { watch } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BrowserWindow, app, clipboard, dialog, ipcMain } from 'electron';
+import { ProjectExistsError, scaffoldProject } from '@veri/core';
+import { DEMO_ROOT } from '@veri/cli';
 import { assembleContext, paletteSearch } from '@veri/mcp';
 import { findProjectRoot, isVeriProject } from './lib/root.ts';
 import { fixRootArg, mcpStatus, writeVeriEntry } from './lib/mcpconfig.ts';
@@ -132,7 +134,42 @@ function registerIpc(): void {
     const dir = result.filePaths[0];
     return dir !== undefined ? pointAppAt(dir) : null;
   });
+  // New project (WO-018, SRC-007): the picker comes first — the directory is
+  // the only required input — and a folder that already has veri/ opens
+  // straight away instead of reaching the creation sheet at all.
+  ipcMain.handle('veri:new-project-pick', async (): Promise<NewProjectPick> => {
+    if (mainWin === null) return null;
+    const result = await dialog.showOpenDialog(mainWin, {
+      properties: ['openDirectory', 'createDirectory'],
+      title: 'Choose a folder for the new project',
+      buttonLabel: 'Choose',
+    });
+    const dir = result.canceled ? undefined : result.filePaths[0];
+    if (dir === undefined) return null;
+    if (isVeriProject(dir)) {
+      const err = await pointAppAt(dir, 'existing');
+      return err === null ? { kind: 'opened' } : { kind: 'error', message: err };
+    }
+    return { kind: 'new', dir, name: basename(dir) };
+  });
+  // Scaffold, then open. Order matters: scaffoldProject throws before
+  // pointAppAt runs, so a failed create never touches the MRU list.
+  ipcMain.handle('veri:create-project', async (_e, dir: string, demo: boolean): Promise<string | null> => {
+    try {
+      scaffoldProject(dir, { demo, demoRoot: DEMO_ROOT });
+    } catch (err) {
+      if (err instanceof ProjectExistsError) return `${dir} already contains a veri/ directory.`;
+      return err instanceof Error ? err.message : String(err);
+    }
+    return pointAppAt(dir);
+  });
 }
+
+export type NewProjectPick =
+  | null
+  | { kind: 'opened' }
+  | { kind: 'error'; message: string }
+  | { kind: 'new'; dir: string; name: string };
 
 /**
  * Re-point the whole app at a project directory. Validates before mutating
@@ -140,13 +177,17 @@ function registerIpc(): void {
  * the watchers exactly as they were. Returns an error message, or null on
  * success (and on cancel — the renderer only surfaces non-null).
  */
-async function pointAppAt(dir: string): Promise<string | null> {
+async function pointAppAt(dir: string, notice?: 'existing'): Promise<string | null> {
   if (mainWin === null) return null;
   if (!isVeriProject(dir)) return `Not a Veri project — no veri/ directory inside ${dir}`;
   projectRoot = dir;
   await addProjectToMru(dir);
   watchProject(mainWin);
-  await mainWin.loadFile(join(here, '..', 'renderer', 'index.html'));
+  // Opening reloads the renderer, so a notice about what just happened has to
+  // ride through the reload as a query param rather than as renderer state.
+  await mainWin.loadFile(join(here, '..', 'renderer', 'index.html'), {
+    query: notice === undefined ? {} : { notice },
+  });
   return null;
 }
 

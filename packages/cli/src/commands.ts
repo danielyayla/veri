@@ -1,7 +1,7 @@
-import { constants, copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DOC_TYPES, approveDocument, checkProject, loadProject } from '@veri/core';
+import { DOC_TYPES, ProjectExistsError, approveDocument, checkProject, loadProject, scaffoldProject } from '@veri/core';
 import type { DocType, Issue } from '@veri/core';
 import { BODY_TEMPLATES, INITIAL_STATUS } from './templates.ts';
 
@@ -27,31 +27,26 @@ const PREFIX: Record<DocType, string> = {
 const TYPE_LIST = DOC_TYPES.join(' | ');
 
 // The skiff demo ships as real markdown files next to dist/ — see DEC-007.
-const DEMO_ROOT = fileURLToPath(new URL('../demo/', import.meta.url));
+// Exported so the desktop app's New-project flow seeds from the same files
+// rather than carrying a second copy (WO-018, DEC-016).
+export const DEMO_ROOT = fileURLToPath(new URL('../demo/', import.meta.url));
 
 export function init(cwd: string, opts: { demo: boolean }): CmdResult {
-  const dir = join(cwd, 'veri');
-  if (existsSync(dir)) {
-    return { code: 1, lines: ['veri/ already exists here — nothing to do.'] };
+  let result;
+  try {
+    result = scaffoldProject(cwd, { demo: opts.demo, demoRoot: DEMO_ROOT });
+  } catch (err) {
+    if (err instanceof ProjectExistsError) {
+      return { code: 1, lines: ['veri/ already exists here — nothing to do.'] };
+    }
+    throw err;
   }
   if (!opts.demo) {
-    for (const sub of Object.values(SUBDIR)) {
-      mkdirSync(join(dir, sub), { recursive: true });
-      writeFileSync(join(dir, sub, '.gitkeep'), '');
-    }
     return { code: 0, lines: ['Initialized veri/ with requirements/, decisions/, work-orders/, sources/.'] };
   }
-  cpSync(join(DEMO_ROOT, 'veri'), dir, { recursive: true });
-  const docCount = readdirSync(dir, { recursive: true }).filter((entry) => String(entry).endsWith('.md')).length;
-  const lines = [`Installed the skiff demo project: ${docCount} documents in veri/.`];
-  for (const extra of ['README.md', 'CLAUDE.md']) {
-    try {
-      copyFileSync(join(DEMO_ROOT, extra), join(cwd, extra), constants.COPYFILE_EXCL);
-      lines.push(`Wrote ${extra}.`);
-    } catch {
-      lines.push(`Skipped ${extra} — one already exists here.`);
-    }
-  }
+  const lines = [`Installed the skiff demo project: ${result.docCount} documents in veri/.`];
+  for (const extra of result.filesWritten) lines.push(`Wrote ${extra}.`);
+  for (const extra of result.filesSkipped) lines.push(`Skipped ${extra} — one already exists here.`);
   lines.push('veri check reports 2 deliberate issues here — the demo README explains them.');
   return { code: 0, lines };
 }
