@@ -2,7 +2,7 @@
 id: WO-018
 type: work-order
 title: New-project flow in the UI
-status: in-progress
+status: done
 created: 2026-08-11
 updated: 2026-08-11
 links:
@@ -73,3 +73,7 @@ per [[DEC-007]]), add it to the MRU list ([[DEC-010]]), and open it.
       list unchanged.
 - [x] `veri check` and `npm test` are clean; CLI `init` tests still
       pass against the extracted core function.
+
+## Receipts
+
+- 2026-08-11 — 03ca6ab — packages/core/src/scaffold.ts, packages/core/src/scaffold.test.ts, packages/core/src/index.ts, packages/cli/src/commands.ts, packages/ui/src/main.ts, packages/ui/src/preload.mts, packages/ui/src/renderer/api.ts, packages/ui/src/renderer/app.ts, packages/ui/src/renderer/palette.ts, packages/ui/src/renderer/palette.test.ts, packages/ui/src/renderer/dom.ts, packages/ui/renderer/styles.css, packages/ui/package.json, design/new-project-flow/, veri/sources/SRC-007-new-project-flow-design.md, veri/decisions/DEC-016-...md — Scaffold extracted to core and shared with the CLI; New project… flow shipped in the switcher and palette with demo toggle, existing-project guard, and failure-safe MRU.
