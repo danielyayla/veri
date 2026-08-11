@@ -2,7 +2,8 @@
 id: DEC-016
 type: decision
 title: "Scaffolding lives in core and takes the demo root as a parameter"
-status: proposed
+status: active
+approved: 2026-08-11
 created: 2026-08-11
 updated: 2026-08-11
 links:
