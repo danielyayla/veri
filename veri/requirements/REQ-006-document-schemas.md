@@ -2,9 +2,10 @@
 id: REQ-006
 type: requirement
 title: Document schemas — one rulebook for structure, checks, and packing
-status: draft
+status: accepted
+approved: 2026-08-11
 created: 2026-08-07
-updated: 2026-08-07
+updated: 2026-08-11
 links:
   - id: REQ-001
     rel: depends-on
