@@ -614,8 +614,8 @@ class App implements Ctx {
    */
   private async startNewProject(): Promise<void> {
     this.update({ projectSwitcherOpen: false });
-    const pick = await this.api.newProjectPick();
-    if (pick === null || pick.kind === 'opened') return;
+    const pick = await this.guardIpc(() => this.api.newProjectPick());
+    if (pick === undefined || pick === null || pick.kind === 'opened') return;
     if (pick.kind === 'error') {
       this.update({ projectError: pick.message });
       return;
@@ -623,10 +623,30 @@ class App implements Ctx {
     this.update({ newProject: { dir: pick.dir, name: pick.name, demo: false, busy: false, error: null } });
   }
 
+  /**
+   * Run an IPC call so a rejection lands in the UI instead of vanishing as an
+   * unhandled promise. The case that bit: a main process older than the
+   * renderer has no handler for a new channel, and every click looks dead.
+   * Returns undefined when the call failed.
+   */
+  private async guardIpc<T>(call: () => Promise<T>): Promise<T | undefined> {
+    try {
+      return await call();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.update({
+        projectError: /No handler registered/i.test(message)
+          ? 'This window is newer than the running app — quit and reopen Veri to finish the update.'
+          : message,
+      });
+      return undefined;
+    }
+  }
+
   /** Step 1 again, from the sheet's "Change…" — keeps the toggle as set. */
   private async changeNewProjectDir(): Promise<void> {
-    const pick = await this.api.newProjectPick();
-    if (pick === null || pick.kind === 'opened') return;
+    const pick = await this.guardIpc(() => this.api.newProjectPick());
+    if (pick === undefined || pick === null || pick.kind === 'opened') return;
     if (pick.kind === 'error') {
       this.update({ projectError: pick.message, newProject: null });
       return;
@@ -643,7 +663,13 @@ class App implements Ctx {
     const np = this.state.newProject;
     if (np === null || np.busy) return;
     this.update({ newProject: { ...np, busy: true, error: null } });
-    const err = await this.api.createProject(np.dir, np.demo);
+    const err = await this.guardIpc(() => this.api.createProject(np.dir, np.demo));
+    if (err === undefined) {
+      // guardIpc already surfaced it; just release the sheet's controls.
+      const stuck = this.state.newProject;
+      if (stuck !== null) this.update({ newProject: { ...stuck, busy: false } });
+      return;
+    }
     if (err === null) return; // the window is reloading into the new project
     const current = this.state.newProject;
     if (current !== null) this.update({ newProject: { ...current, busy: false, error: err } });
