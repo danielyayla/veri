@@ -2,7 +2,7 @@
 id: WO-019
 type: work-order
 title: veri open — launch the desktop app from the CLI
-status: backlog
+status: done
 created: 2026-08-11
 updated: 2026-08-11
 links:
@@ -51,3 +51,7 @@ project directory, detached from the terminal.
 - [x] `veri open` where the UI package is unavailable prints an
       actionable error and exits non-zero.
 - [x] `veri check` and `npm test` are clean.
+
+## Receipts
+
+- 2026-08-11 — fe70767 — packages/cli/src/cli.ts, packages/cli/src/commands.ts, packages/cli/src/commands.test.ts — veri open subcommand: resolves the project dir, launches @veri/ui via its electron binary detached, with actionable errors for missing project or unbuilt/absent UI.
