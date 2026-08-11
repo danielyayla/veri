@@ -2,7 +2,7 @@
     Agent activity, Recently changed. Every row opens its doc as a preview. */
 import { h } from '../dom.ts';
 import { TYPE_META, statusColor } from '../theme.ts';
-import { inFlight, issueDocId, projectActivity, recentlyChanged } from '../derive.ts';
+import { inFlight, issueDocId, pendingDocs, projectActivity, recentlyChanged } from '../derive.ts';
 import { isLiving } from '../sidebar.ts';
 import type { Ctx } from '../app.ts';
 
@@ -27,6 +27,33 @@ export function homeView(ctx: Ctx): HTMLElement {
     const doc = ctx.byId.get(id);
     return doc !== undefined ? TYPE_META[doc.type].color : '#A09DA6';
   };
+
+  // NEEDS REVIEW (SRC-006): full-width above the grid, hidden when empty.
+  const pending = pendingDocs(ctx.snap);
+  const reviewCard =
+    pending.length === 0
+      ? null
+      : h(
+          'div',
+          { class: 'hv-card hv-card-review' },
+          h(
+            'div',
+            { class: 'hv-card-head' },
+            dot('#D9A03F'),
+            h('span', { class: 'hv-label', style: 'color:#D9A03F;' }, 'NEEDS REVIEW'),
+            h('span', { class: 'hv-meta' }, `${pending.length} pending`),
+          ),
+          ...pending.map((d) =>
+            h(
+              'div',
+              { class: 'hv-row', onClick: open(d.id) },
+              h('span', { class: 'hv-id', style: `color:${TYPE_META[d.type].color};` }, d.id),
+              h('span', { class: 'hv-flight-title' }, d.title),
+              h('span', { class: 'gate-chip gate-chip-static' }, d.status),
+              h('span', { class: 'hv-time' }, `filed ${ctx.rel(d.created)}`),
+            ),
+          ),
+        );
 
   const issues = ctx.snap.issues;
   const health = card(
@@ -69,6 +96,9 @@ export function homeView(ctx: Ctx): HTMLElement {
         { class: 'hv-row', onClick: open(wo.id) },
         h('span', { class: 'hv-id hv-id-wo' }, wo.id),
         h('span', { class: 'hv-flight-title' }, wo.title),
+        wo.gates.length > 0
+          ? h('span', { class: 'gate-chip gate-chip-static', title: `Approve ${wo.gates.join(', ')} first` }, 'gated')
+          : null,
         wo.agent ? h('span', { class: 'hv-agent', title: 'Agent execution attached' }, '⌁') : null,
         h(
           'span',
@@ -128,6 +158,7 @@ export function homeView(ctx: Ctx): HTMLElement {
         h('h1', { class: 'hv-title' }, ctx.snap.projectName),
         h('span', { class: 'hv-count' }, `${docs.length} docs · ${living} living`),
       ),
+      reviewCard,
       h('div', { class: 'hv-grid' }, health, inFlightCard, activityCard, changedCard),
     ),
   );

@@ -6,7 +6,7 @@ import { api } from './api.ts';
 import type { ProjectInfo, VeriApi } from './api.ts';
 import { h } from './dom.ts';
 import { TYPE_META, relTime, statusColor, tint } from './theme.ts';
-import { docsById, issuesByDoc, packageSummary } from './derive.ts';
+import { docsById, isPending, issuesByDoc, packageSummary } from './derive.ts';
 import type { ActivityRow, DocsById, PackageSummary } from './derive.ts';
 import type { McpStatus } from '../lib/mcpconfig.ts';
 import type { AgentInfo } from '../lib/agents.ts';
@@ -59,6 +59,12 @@ export interface State {
   showDead: Partial<Record<DocType, boolean>>;
   /** Which rail item's instant tooltip is showing (view key or 'mcp'). */
   railTip: string | null;
+  /** Review banner (SRC-006): approve-confirm popover and note composer. */
+  reviewPop: boolean;
+  /** Non-null while the request-changes composer is open; holds its draft. */
+  reviewText: string | null;
+  /** Transient bottom-center toast (SRC-006 approve/return feedback). */
+  toast: string | null;
   /** Command palette (WO-013): overlay flag, raw query, selection, ranked result. */
   paletteOpen: boolean;
   paletteQuery: string;
@@ -101,6 +107,8 @@ export interface Ctx {
   launchAgent(info: AgentInfo): void;
   copyKickoff(): void;
   flashCopied(): void;
+  /** Show a transient bottom-center toast (auto-dismissed). */
+  flashToast(text: string): void;
   flashMcpCmdCopied(): void;
   sessionLog(id: string, row: ActivityRow): void;
   sessionRows(id: string): ActivityRow[];
@@ -138,6 +146,9 @@ class App implements Ctx {
     sectionCollapsed: { source: true },
     showDead: {},
     railTip: null,
+    reviewPop: false,
+    reviewText: null,
+    toast: null,
     paletteOpen: false,
     paletteQuery: '',
     paletteSel: 0,
@@ -163,6 +174,7 @@ class App implements Ctx {
   private sidebarScroll = 0;
   private renderedTabId: string | null = null;
   private copyTimer: ReturnType<typeof setTimeout> | undefined;
+  private toastTimer: ReturnType<typeof setTimeout> | undefined;
   private kickoffTimer: ReturnType<typeof setTimeout> | undefined;
   private mcpCmdTimer: ReturnType<typeof setTimeout> | undefined;
   private root: HTMLElement;
@@ -277,6 +289,8 @@ class App implements Ctx {
         kickoffCopied: false,
         agentsOpen: false,
         agentLaunchMsg: null,
+        reviewPop: false,
+        reviewText: null,
       });
       if (active !== 'mcp') Object.assign(patch, this.leaveMcpPatch());
     }
@@ -380,6 +394,12 @@ class App implements Ctx {
     clearTimeout(this.copyTimer);
     this.update({ copied: true });
     this.copyTimer = setTimeout(() => this.update({ copied: false }), 1800);
+  }
+
+  flashToast(text: string): void {
+    clearTimeout(this.toastTimer);
+    this.update({ toast: text });
+    this.toastTimer = setTimeout(() => this.update({ toast: null }), 2400);
   }
 
   /** Open = re-detect from disk/PATH right now (DEC-002: nothing cached). */
@@ -641,6 +661,9 @@ class App implements Ctx {
           if (this.state.paletteSel !== i) this.update({ paletteSel: i });
         },
       },
+      doc !== null && (doc.status === 'proposed' || (doc.type === 'requirement' && doc.status === 'draft'))
+        ? h('span', { class: 'sb-pending', title: 'Awaiting review' })
+        : null,
       h('span', { class: 'pal-chip', style: chipStyle }, doc !== null ? doc.id : (row as { glyph: string }).glyph),
       h(
         'div',
@@ -708,7 +731,7 @@ class App implements Ctx {
           h('span', {}, '↑↓ navigate'),
           h('span', {}, '↩ open'),
           h('span', {}, '⌘↩ open pinned tab'),
-          h('span', { class: 'pal-foot-grammar' }, 'req: dec: wo: src: · is:done is:active is:backlog'),
+          h('span', { class: 'pal-foot-grammar' }, 'req: dec: wo: src: · is:proposed is:active is:done'),
         ),
       ),
     );
@@ -850,12 +873,15 @@ class App implements Ctx {
             const active = activeTab === d.id;
             const health = (this.issues.get(d.id) ?? []).length > 0;
             const dead = !isLiving(d);
+            const pending = isPending(d);
             return h(
               'div',
               {
                 class: active ? 'sb-row sb-row-active' : 'sb-row',
+                title: pending ? 'Awaiting review' : undefined,
                 onClick: (e) => this.openDoc(d.id, { preview: true, background: e.metaKey || e.ctrlKey }),
               },
+              pending ? h('span', { class: 'sb-pending' }) : null,
               h('span', { class: 'sb-row-id', style: `color:${meta.color};` }, d.id),
               h('span', { class: active ? 'sb-row-title sb-row-title-active' : 'sb-row-title' }, d.title),
               health ? h('span', { class: 'sb-health' }) : null,
@@ -1024,10 +1050,12 @@ class App implements Ctx {
     else if (view === 'decisions') screen = decisionsView(this);
     else screen = readerView(this);
     const palette = this.paletteEl();
+    const toast = this.state.toast !== null ? h('div', { class: 'toast' }, this.state.toast) : null;
     this.root.replaceChildren(
       this.topbar(),
       h('div', { class: 'body' }, this.rail(), this.sidebar(), h('div', { class: 'editor-area' }, this.tabStrip(), screen)),
       ...(palette !== null ? [palette] : []),
+      ...(toast !== null ? [toast] : []),
     );
     this.state.editorFocused = false;
 

@@ -44,7 +44,11 @@ const TYPE_PREFIX: Record<string, DocType> = {
 };
 
 /** `is:active` means living (SRC-005: lifecycle is the scale lever). */
-const LIVING = new Set(['draft', 'accepted', 'active', 'backlog', 'inprogress']);
+const LIVING = new Set(['draft', 'accepted', 'active', 'backlog', 'inprogress', 'proposed']);
+
+/** `is:proposed` means awaiting review — proposed decisions AND draft
+    requirements, one filter for the whole approval queue (SRC-006). */
+const PENDING = new Set(['proposed', 'draft']);
 
 export interface PaletteQuery {
   /** Free text, lowercased, with filter prefixes stripped. */
@@ -101,7 +105,12 @@ export function rankDocs(documents: VeriDocument[], query: PaletteQuery, recents
   for (const doc of documents) {
     if (query.type !== null && doc.type !== query.type) continue;
     const status = doc.status.toLowerCase().replace(/[^a-z]/g, '');
-    if (!query.statuses.every((f) => status === f || (f === 'active' && LIVING.has(status)))) continue;
+    if (
+      !query.statuses.every(
+        (f) => status === f || (f === 'active' && LIVING.has(status)) || (f === 'proposed' && PENDING.has(status)),
+      )
+    )
+      continue;
     const idNorm = doc.id.toLowerCase().replace(/[^a-z0-9]/g, '');
     const idShort = idNorm.replace(/0+(\d)/, '$1');
     const title = doc.title.toLowerCase();

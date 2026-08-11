@@ -716,3 +716,105 @@ a:hover { color: #F49463; }
 .hv-changed-title { font-size: 12.5px; color: var(--body-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hv-time { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--ghost); flex: 0 0 auto; }
 .hv-empty { padding: 14px; font-size: 12px; color: var(--faint); }
+
+/* ===== Approval gate (WO-017, SRC-006) ===== */
+
+/* Pending marker: 6px amber dot left of the id (sidebar + palette rows). */
+.sb-pending { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); flex: 0 0 auto; margin-right: -2px; }
+
+/* Home: NEEDS REVIEW card, full-width above the grid; hidden when empty (view omits it). */
+.hv-card-review { margin-bottom: 14px; }
+
+/* Gate chip: `gated · REQ-008` on WO headers and Home rows. */
+.gate-chip {
+  font-family: var(--mono); font-size: 9.5px; color: var(--amber);
+  background: rgba(217, 160, 63, 0.08); border: 1px solid #3A3020; border-radius: 4px;
+  padding: 1px 6px; cursor: pointer; flex: 0 0 auto;
+}
+.gate-chip-static { cursor: default; }
+
+/* Gated kickoff actions: visually disabled, custom instant tooltip on hover. */
+.btn-gated { opacity: 0.4; cursor: not-allowed; position: relative; }
+.btn-gated:hover .rv-tip { display: block; }
+
+/* Review banner. */
+.rv-banner {
+  margin: 14px 0 4px; background: rgba(217, 160, 63, 0.06);
+  border: 1px solid #3A3020; border-radius: 8px; padding: 12px 14px;
+}
+.rv-title { font-size: 13px; font-weight: 600; color: var(--amber); }
+.rv-prov { font-size: 11.5px; color: var(--secondary); margin-top: 5px; line-height: 1.5; }
+.rv-disc { margin-top: 9px; font-size: 11.5px; color: var(--muted); cursor: pointer; user-select: none; }
+.rv-disc:hover { color: var(--body-text); }
+.rv-disc-chev { display: inline-block; width: 12px; }
+.rv-disc-body { display: flex; gap: 24px; margin-top: 9px; padding-top: 9px; border-top: 1px solid #3A3020; }
+.rv-col { flex: 1; min-width: 0; }
+.rv-col-label { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.07em; color: var(--faint); margin-bottom: 6px; }
+.rv-link-row { display: flex; gap: 8px; font-size: 12px; color: var(--secondary); padding: 2px 0; cursor: pointer; }
+.rv-link-row:hover { color: var(--text); }
+.rv-link-id { font-family: var(--mono); font-size: 10px; flex: 0 0 auto; min-width: 46px; }
+.rv-link-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rv-link-none { font-size: 12px; color: var(--faint); }
+
+/* Action row: Request changes (secondary) · Approve… (positive, green). */
+.rv-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 11px; position: relative; }
+.rv-request {
+  height: 28px; display: flex; align-items: center; padding: 0 12px; border-radius: 7px;
+  border: 1px solid var(--int-border); color: var(--body-text); font-size: 12px; cursor: pointer;
+}
+.rv-request:hover { border-color: #2B2B32; }
+.rv-approve {
+  height: 28px; display: flex; align-items: center; padding: 0 14px; border-radius: 7px;
+  background: var(--green); color: #0F0F11; font-weight: 600; font-size: 12px; cursor: pointer;
+}
+.rv-approve:hover { filter: brightness(1.07); }
+.rv-approve-disabled { opacity: 0.4; cursor: not-allowed; position: relative; }
+.rv-approve-disabled:hover { filter: none; }
+.rv-approve-disabled:hover .rv-tip { display: block; }
+
+/* Custom instant tooltip (rail-tip styling, anchored below). */
+.rv-tip {
+  display: none; position: absolute; left: 0; top: 32px; z-index: 30;
+  background: #1F1F25; border: 1px solid #2B2B32; border-radius: 6px; padding: 4px 9px;
+  font-size: 11.5px; font-weight: 400; color: var(--text); white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4); pointer-events: none;
+}
+
+/* Approve confirm popover: the exact frontmatter diff. */
+.rv-pop {
+  position: absolute; top: 34px; right: 0; width: 320px; z-index: 20; text-align: left;
+  background: #1F1F25; border: 1px solid #2B2B32; border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4); padding: 13px 14px; cursor: default;
+}
+.rv-pop-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.rv-pop-diff { font-family: var(--mono); font-size: 11px; margin: 9px 0; line-height: 1.7; color: var(--secondary); }
+.rv-diff-old { color: var(--faint); text-decoration: line-through; }
+.rv-diff-new { color: var(--green); }
+.rv-pop-cap { font-size: 11px; color: var(--muted); line-height: 1.45; }
+.rv-pop-btns { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 11px; }
+.rv-ghost { color: var(--muted); font-size: 12px; cursor: pointer; padding: 0 8px; }
+.rv-ghost:hover { color: var(--body-text); }
+
+/* Request-changes composer. */
+.rv-composer { margin-top: 11px; }
+.rv-composer-input {
+  width: 100%; box-sizing: border-box; background: #101013; border: 1px solid var(--int-border);
+  border-radius: 6px; color: var(--body-text); font-family: var(--sans); font-size: 12.5px;
+  padding: 8px 10px; resize: vertical; min-height: 34px; outline: none;
+}
+.rv-composer-input::placeholder { color: var(--faint); }
+.rv-composer-input:focus { border-color: #2B2B32; }
+.rv-composer-btns { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 8px; }
+.rv-return {
+  height: 28px; display: flex; align-items: center; padding: 0 12px; border-radius: 7px;
+  border: 1px solid var(--int-border); color: var(--body-text); font-size: 12px; cursor: pointer;
+}
+.rv-return:hover { border-color: #2B2B32; }
+
+/* Transient bottom-center toast. */
+.toast {
+  position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 60;
+  background: #1F1F25; border: 1px solid #2B2B32; border-radius: 8px; padding: 8px 16px;
+  font-size: 12.5px; color: var(--text); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}

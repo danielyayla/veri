@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('veri', {
   copyText: (text: string) => ipcRenderer.invoke('veri:copy', text),
   setStatus: (id: string, status: string) => ipcRenderer.invoke('veri:set-status', id, status),
   appendNote: (id: string, note: string) => ipcRenderer.invoke('veri:append-note', id, note),
+  approve: (id: string) => ipcRenderer.invoke('veri:approve', id),
+  reviewNote: (id: string, note: string) => ipcRenderer.invoke('veri:review-note', id, note),
   mcpStatus: () => ipcRenderer.invoke('veri:mcp-status'),
   mcpSetup: () => ipcRenderer.invoke('veri:mcp-setup'),
   mcpFixRoot: () => ipcRenderer.invoke('veri:mcp-fix-root'),

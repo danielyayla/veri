@@ -68,3 +68,11 @@ test('pushRecent fronts, dedupes, and caps at 10', () => {
   assert.equal(next[0], 'NEW');
   assert.ok(!next.includes('D9'));
 });
+
+test('proposed decisions are living — pending docs stay visible (SRC-006)', () => {
+  const docs = [doc('DEC-001', 'decision', 'active'), doc('DEC-002', 'decision', 'proposed'), doc('DEC-003', 'decision', 'superseded')];
+  const sec = treeSection(docs, 'decision', false);
+  assert.deepEqual(sec.shown.map((d) => d.id), ['DEC-001', 'DEC-002']);
+  assert.equal(sec.livingCount, 2);
+  assert.equal(sec.deadCount, 1);
+});

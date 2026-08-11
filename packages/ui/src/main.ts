@@ -11,7 +11,7 @@ import type { AgentId } from './lib/agents.ts';
 import { buildSnapshot } from './lib/snapshot.ts';
 import { loadWorkspaceState, saveWorkspaceState } from './lib/workspace.ts';
 import type { WorkspaceState } from './lib/workspace.ts';
-import { appendNote, setStatus } from './lib/write.ts';
+import { appendNote, appendReviewNote, approveDoc, setStatus } from './lib/write.ts';
 import type { ProjectInfo } from './renderer/api.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -93,6 +93,8 @@ function registerIpc(): void {
   ipcMain.handle('veri:copy', (_e, text: string) => clipboard.writeText(text));
   ipcMain.handle('veri:set-status', (_e, id: string, status: string) => setStatus(projectRoot, id, status));
   ipcMain.handle('veri:append-note', (_e, id: string, note: string) => appendNote(projectRoot, id, note));
+  ipcMain.handle('veri:approve', (_e, id: string) => approveDoc(projectRoot, id));
+  ipcMain.handle('veri:review-note', (_e, id: string, note: string) => appendReviewNote(projectRoot, id, note));
   ipcMain.handle('veri:mcp-status', () => mcpStatus(projectRoot, mcpServerJs));
   ipcMain.handle('veri:mcp-setup', () => mcpWrite(() => writeVeriEntry(projectRoot, mcpServerJs)));
   ipcMain.handle('veri:mcp-fix-root', () => mcpWrite(() => fixRootArg(projectRoot)));

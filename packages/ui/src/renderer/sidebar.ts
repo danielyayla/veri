@@ -8,7 +8,7 @@ import type { DocType, VeriDocument } from '@veri/core';
 /** Living statuses per type; null means no lifecycle (sources). */
 const LIVING: Record<DocType, string[] | null> = {
   requirement: ['draft', 'accepted'],
-  decision: ['active'],
+  decision: ['proposed', 'active'],
   'work-order': ['backlog', 'in-progress'],
   source: null,
 };

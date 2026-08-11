@@ -101,3 +101,30 @@ test('recently opened docs get a fading rank boost', () => {
   const later = rankDocs(DOCS, parsePaletteQuery('export'), ['X', 'X', 'X', 'X', 'X', 'X', 'WO-002']);
   assert.equal(later.find((h) => h.id === 'WO-002')?.score, 55); // boost fades to zero
 });
+
+test('is:proposed means awaiting review: proposed decisions and draft requirements (SRC-006)', () => {
+  const pendingDocs = [
+    doc({ id: 'REQ-020', type: 'requirement', title: 'Draft req', status: 'draft' }),
+    doc({ id: 'REQ-021', type: 'requirement', title: 'Accepted req', status: 'accepted' }),
+    doc({ id: 'DEC-020', type: 'decision', title: 'Proposed dec', status: 'proposed' }),
+    doc({ id: 'DEC-021', type: 'decision', title: 'Active dec', status: 'active' }),
+    doc({ id: 'WO-020', type: 'work-order', title: 'Backlog wo', status: 'backlog' }),
+  ];
+  assert.deepEqual(
+    rankDocs(pendingDocs, parsePaletteQuery('is:proposed'))
+      .map((h) => h.id)
+      .sort(),
+    ['DEC-020', 'REQ-020'],
+  );
+});
+
+test('is:active treats proposed decisions as living', () => {
+  const docs = [
+    doc({ id: 'DEC-020', type: 'decision', title: 'Proposed dec', status: 'proposed' }),
+    doc({ id: 'DEC-021', type: 'decision', title: 'Superseded dec', status: 'superseded' }),
+  ];
+  assert.deepEqual(
+    rankDocs(docs, parsePaletteQuery('dec: is:active')).map((h) => h.id),
+    ['DEC-020'],
+  );
+});

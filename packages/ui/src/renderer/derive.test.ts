@@ -8,10 +8,13 @@ import {
   boardColumns,
   connections,
   decisionLog,
+  docsById,
+  gatingDocs,
   graphLayout,
   inFlight,
   insertAutocomplete,
   issuesByDoc,
+  pendingDocs,
   projectActivity,
   recentlyChanged,
   kickoffPrompt,
@@ -229,4 +232,60 @@ test('recentlyChanged orders by updated desc and caps', () => {
   ]);
   assert.deepEqual(recentlyChanged(s, (d) => d).map((r) => r.id), ['DEC-001', 'SRC-001', 'REQ-001']);
   assert.equal(recentlyChanged(s, (d) => d, 1).length, 1);
+});
+
+// ---- approval gate (WO-017, SRC-006) ----
+
+test('pendingDocs lists draft REQs and proposed DECs oldest-first', () => {
+  const s = snap([
+    doc({ id: 'REQ-001', type: 'requirement', title: 'Accepted', status: 'accepted' }),
+    doc({ id: 'REQ-002', type: 'requirement', title: 'Newer draft', status: 'draft', created: '2026-08-09' }),
+    doc({ id: 'DEC-001', type: 'decision', title: 'Older proposal', status: 'proposed', created: '2026-08-03' }),
+    doc({ id: 'DEC-002', type: 'decision', title: 'Active', status: 'active' }),
+    doc({ id: 'WO-001', type: 'work-order', title: 'Backlog', status: 'backlog' }),
+  ]);
+  assert.deepEqual(
+    pendingDocs(s).map((d) => d.id),
+    ['DEC-001', 'REQ-002'],
+  );
+});
+
+test('gatingDocs returns only pending direct link targets of a work order', () => {
+  const s = snap([
+    doc({
+      id: 'WO-001',
+      type: 'work-order',
+      title: 'Gated',
+      status: 'in-progress',
+      links: [
+        { id: 'REQ-001', rel: 'implements' },
+        { id: 'DEC-001', rel: 'constrained-by' },
+        { id: 'DEC-002', rel: 'constrained-by' },
+        { id: 'REQ-999', rel: 'implements' },
+      ],
+    }),
+    doc({ id: 'REQ-001', type: 'requirement', title: 'Draft', status: 'draft' }),
+    doc({ id: 'DEC-001', type: 'decision', title: 'Proposed', status: 'proposed' }),
+    doc({ id: 'DEC-002', type: 'decision', title: 'Active', status: 'active' }),
+  ]);
+  const byId = docsById(s);
+  assert.deepEqual(
+    gatingDocs(byId, byId.get('WO-001')!).map((d) => d.id),
+    ['REQ-001', 'DEC-001'],
+  );
+  assert.deepEqual(gatingDocs(byId, byId.get('REQ-001')!), []);
+});
+
+test('inFlight rows carry their gate ids', () => {
+  const s = snap([
+    doc({
+      id: 'WO-001',
+      type: 'work-order',
+      title: 'Gated',
+      status: 'backlog',
+      links: [{ id: 'REQ-001', rel: 'implements' }],
+    }),
+    doc({ id: 'REQ-001', type: 'requirement', title: 'Draft', status: 'draft' }),
+  ]);
+  assert.deepEqual(inFlight(s)[0].gates, ['REQ-001']);
 });

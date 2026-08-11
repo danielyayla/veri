@@ -4,7 +4,7 @@ import { h } from '../dom.ts';
 import { TYPE_META, fmtTokens, statusColor, tint } from '../theme.ts';
 import { plainText, sections } from '../markdown.ts';
 import type { Block } from '../markdown.ts';
-import { fileActivity, receipts } from '../derive.ts';
+import { fileActivity, gatingDocs, receipts } from '../derive.ts';
 import { activityFeed, pinChip, renderBlocks } from '../widgets.ts';
 import type { Ctx } from '../app.ts';
 
@@ -220,10 +220,29 @@ function agentPicker(ctx: Ctx): HTMLElement {
   );
 }
 
+/** SRC-006 gate chip: `gated · REQ-008`, one per pending direct link. */
+function gateChip(ctx: Ctx, id: string): HTMLElement {
+  return h(
+    'span',
+    {
+      class: 'gate-chip',
+      title: 'Depends on a document awaiting review',
+      onClick: (e) => {
+        e.stopPropagation();
+        ctx.openDoc(id, { background: e.metaKey || e.ctrlKey });
+      },
+    },
+    `gated · ${id}`,
+  );
+}
+
 function contextPanel(ctx: Ctx, doc: VeriDocument): HTMLElement {
   const pkg = ctx.pkg.get(doc.id);
   if (pkg === undefined) ctx.loadPackage(doc.id);
   const git = ctx.snap.git;
+  // Gated WOs (SRC-006): agent kickoff is disabled until the gates clear.
+  const gates = gatingDocs(ctx.byId, doc);
+  const gateTip = gates.length > 0 ? h('span', { class: 'rv-tip' }, `Gated — approve ${gates[0].id} first`) : null;
 
   const rows =
     pkg?.summary.rows.map((row) => {
@@ -240,28 +259,34 @@ function contextPanel(ctx: Ctx, doc: VeriDocument): HTMLElement {
 
   // Agent handoff (WO-011 / SRC-003): Start agent session picker, kickoff
   // prompt copy, and the full-package copy demoted to a ghost link.
-  const start = h(
-    'div',
-    {
-      class: 'btn-primary',
-      onClick: (e) => {
-        e.stopPropagation();
-        ctx.toggleAgentPicker();
-      },
-    },
-    'Start agent session ',
-    h('span', { class: 'ap-caret' }, ctx.state.agentsOpen ? '▴' : '▾'),
-  );
+  const start =
+    gates.length > 0
+      ? h('div', { class: 'btn-primary btn-gated' }, 'Start agent session ', h('span', { class: 'ap-caret' }, '▾'), gateTip)
+      : h(
+          'div',
+          {
+            class: 'btn-primary',
+            onClick: (e) => {
+              e.stopPropagation();
+              ctx.toggleAgentPicker();
+            },
+          },
+          'Start agent session ',
+          h('span', { class: 'ap-caret' }, ctx.state.agentsOpen ? '▴' : '▾'),
+        );
 
-  const kickoff = h(
-    'div',
-    {
-      class: 'btn-secondary',
-      style: ctx.state.kickoffCopied ? 'color:#7FAF8A;border-color:#243026;' : '',
-      onClick: () => ctx.copyKickoff(),
-    },
-    ctx.state.kickoffCopied ? '✓ Copied' : 'Copy kickoff prompt',
-  );
+  const kickoff =
+    gates.length > 0
+      ? h('div', { class: 'btn-secondary btn-gated' }, 'Copy kickoff prompt', gateTip?.cloneNode(true) as HTMLElement)
+      : h(
+          'div',
+          {
+            class: 'btn-secondary',
+            style: ctx.state.kickoffCopied ? 'color:#7FAF8A;border-color:#243026;' : '',
+            onClick: () => ctx.copyKickoff(),
+          },
+          ctx.state.kickoffCopied ? '✓ Copied' : 'Copy kickoff prompt',
+        );
 
   const fullCopy = h(
     'div',
@@ -363,6 +388,7 @@ export function workOrderView(ctx: Ctx): HTMLElement {
         h(
           'div',
           { class: 'wo-meta' },
+          ...gatingDocs(ctx.byId, doc).map((g) => gateChip(ctx, g.id)),
           h('span', {}, `created ${doc.created}`),
           h('span', {}, `updated ${ctx.rel(doc.updated)}`),
           ctx.snap.git !== null ? h('span', { style: 'color:#E8703A;' }, `branch ${ctx.snap.git.branch}`) : null,

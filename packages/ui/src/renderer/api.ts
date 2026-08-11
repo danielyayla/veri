@@ -1,3 +1,4 @@
+import type { ApproveResult } from '@veri/core';
 import type { ContextPackage, PaletteResult } from '@veri/mcp';
 import type { AgentId, AgentInfo } from '../lib/agents.ts';
 import type { McpStatus } from '../lib/mcpconfig.ts';
@@ -24,6 +25,10 @@ export interface VeriApi {
   copyText(text: string): Promise<void>;
   setStatus(id: string, status: string): Promise<void>;
   appendNote(id: string, note: string): Promise<void>;
+  /** The approval act (REQ-008): stamp-and-flip via core's shared write path. */
+  approve(id: string): Promise<ApproveResult>;
+  /** Return a pending doc with a dated entry under "## Review notes". */
+  reviewNote(id: string, note: string): Promise<void>;
   mcpStatus(): Promise<McpStatus>;
   /** Setup and "Replace with Veri's entry" are the same write. */
   mcpSetup(): Promise<void>;

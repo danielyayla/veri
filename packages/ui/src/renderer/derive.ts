@@ -361,17 +361,48 @@ export function fileActivity(doc: VeriDocument, rel: (date: string) => string): 
 
 // ---- Home view derivations (WO-015, SRC-005 layer 4) ---------------------
 
+/** Awaiting the user's approval, so not binding (REQ-008). Renderer-local
+    mirror of core's isPending — the browser can't import @veri/core at
+    runtime (bare specifier, CSP 'self'); core's self-tests keep them in sync. */
+export function isPending(doc: VeriDocument): boolean {
+  return (
+    (doc.type === 'requirement' && doc.status === 'draft') ||
+    (doc.type === 'decision' && doc.status === 'proposed')
+  );
+}
+
+/** NEEDS REVIEW (SRC-006): pending docs, oldest first — the longest-waiting
+    proposal is the most urgent, it may be gating work. */
+export function pendingDocs(snap: Snapshot): VeriDocument[] {
+  return snap.documents
+    .filter(isPending)
+    .sort((a, b) => (a.created === b.created ? a.id.localeCompare(b.id) : a.created.localeCompare(b.created)));
+}
+
+/** The pending documents gating a work order: direct frontmatter link
+    targets only, per REQ-008. Empty for backlog WOs' purposes too — the
+    caller decides what gated means for its status. */
+export function gatingDocs(byId: DocsById, doc: VeriDocument): VeriDocument[] {
+  if (doc.type !== 'work-order') return [];
+  return doc.links
+    .map((l) => byId.get(l.id))
+    .filter((d): d is VeriDocument => d !== undefined && isPending(d));
+}
+
 export interface HomeFlightRow {
   id: string;
   title: string;
   status: string;
   reqCount: number;
   agent: boolean;
+  /** Ids of pending docs this WO links to (SRC-006 gate chip). */
+  gates: string[];
 }
 
 /** IN FLIGHT: work orders in backlog/in-progress, id order, with the
     Board's receipt-derived agent marker and linked-REQ count. */
 export function inFlight(snap: Snapshot): HomeFlightRow[] {
+  const byId = docsById(snap);
   return snap.documents
     .filter((d) => d.type === 'work-order' && (d.status === 'backlog' || d.status === 'in-progress'))
     .sort((a, b) => a.id.localeCompare(b.id))
@@ -381,6 +412,7 @@ export function inFlight(snap: Snapshot): HomeFlightRow[] {
       status: wo.status,
       reqCount: wo.links.filter((l) => l.id.startsWith('REQ-')).length,
       agent: receipts(wo).some((r) => r.agent),
+      gates: gatingDocs(byId, wo).map((d) => d.id),
     }));
 }
 

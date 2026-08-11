@@ -4,6 +4,7 @@ import { TYPE_META } from '../theme.ts';
 import { parseBlocks } from '../markdown.ts';
 import { autocomplete, connections, fileActivity, insertAutocomplete } from '../derive.ts';
 import { activityFeed, idChip, pinChip, renderBlocks, statusChip, typeChip } from '../widgets.ts';
+import { reviewBanner } from './review.ts';
 import type { Ctx } from '../app.ts';
 
 function frontmatterCard(ctx: Ctx): HTMLElement {
@@ -17,6 +18,7 @@ function frontmatterCard(ctx: Ctx): HTMLElement {
     row('id', h('span', { class: 'fm-mono', style: `color:${meta.color};` }, doc.id)),
     row('type', typeChip(doc.type)),
     row('status', statusChip(doc.status)),
+    ...(doc.approved !== undefined ? [row('approved', h('span', { class: 'fm-mono' }, doc.approved))] : []),
     row('created', h('span', { class: 'fm-mono' }, doc.created)),
     row('updated', h('span', { class: 'fm-mono' }, ctx.rel(doc.updated))),
     row('links', h('span', { class: 'fm-mono' }, `${doc.links.length} outbound`)),
@@ -144,6 +146,7 @@ export function readerView(ctx: Ctx): HTMLElement {
           pinChip(ctx.state.pinned.includes(doc.id), () => ctx.togglePin(doc.id)),
         ),
         banner,
+        reviewBanner(ctx, doc),
         frontmatterCard(ctx),
         h('div', { class: 'doc-body' }, ...renderBlocks(parseBlocks(doc.body), ctx.byId, ctx)),
         activityFeed([...ctx.sessionRows(doc.id), ...fileActivity(doc, ctx.rel)]),
