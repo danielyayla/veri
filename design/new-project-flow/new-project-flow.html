@@ -78,9 +78,13 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);fon
 .loc-path bdi{direction:ltr}
 .loc-change{font-size:11.5px;color:var(--faint);cursor:pointer;flex:0 0 auto}
 .loc-change:hover{color:var(--secondary)}
-.name-line{display:flex;align-items:baseline;gap:10px;margin:12px 0 16px}
-.name-label{font-size:11.5px;color:var(--muted)}
-.name-val{font-family:var(--mono);font-size:12px;color:var(--text)}
+.name-line{display:flex;align-items:baseline;gap:10px;margin:12px 0 4px}
+.name-label{font-size:11.5px;color:var(--muted);flex:0 0 auto}
+/* WO-020 addendum: the name is editable; borderless at rest, underline on focus. */
+.name-input{flex:1;font-family:var(--mono);font-size:12px;color:var(--text);background:transparent;border:0;border-bottom:1px solid transparent;outline:0;padding:0 0 1px}
+.name-input:focus{border-bottom-color:var(--int-border)}
+.name-input:disabled{opacity:.55}
+.name-help{font-size:11.5px;color:var(--muted);margin:0 0 16px}
 .toggle-row{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
 .sw{width:28px;height:16px;border-radius:8px;background:var(--int-border);position:relative;flex:0 0 auto;margin-top:1px;transition:background .12s ease}
 .sw i{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#D8D5CE;transition:left .12s ease}
@@ -173,7 +177,8 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);fon
         <span class="loc-path"><bdi>/Users/daniel/Projects/veri-scratch/clients/harbor</bdi></span>
         <span class="loc-change">Change…</span>
       </div>
-      <div class="name-line"><span class="name-label">Project name</span><span class="name-val">harbor</span></div>
+      <div class="name-line"><span class="name-label">Project name</span><input class="name-input" id="nameInput" value="harbor" spellcheck="false"></div>
+      <div class="name-help">A different name creates a new folder inside the chosen location.</div>
       <div class="toggle-row" id="tg">
         <span class="sw" id="sw"><i></i></span>
         <div>
@@ -202,23 +207,40 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);fon
 </div>
 
 <script>
-const TREE_EMPTY = 'veri/requirements/\nveri/decisions/\nveri/work-orders/\nveri/sources/';
-const TREE_DEMO  = 'veri/  ·  16 documents\nREADME.md      <em>← skipped if one already exists</em>\nCLAUDE.md      <em>← skipped if one already exists</em>';
-
 const panes = ['s-switcher','s-palette','s-sheet','s-notice'];
 const sw = document.getElementById('sw');
 const tree = document.getElementById('tree');
 const err = document.getElementById('err');
 const create = document.getElementById('create');
 const cancel = document.getElementById('cancel');
+const pathEl = document.querySelector('.loc-path bdi');
+const nameInput = document.getElementById('nameInput');
 
+// WO-020 addendum: the name composes the target path; it is never stored.
+let picked = '/Users/daniel/Projects';
+const base = () => picked.split('/').pop();
+const validName = (n) => n !== '' && n !== '.' && n !== '..' && !/[\/\\\0]/.test(n);
+const targetPath = () => {
+  const n = nameInput.value.trim();
+  return (!validName(n) || n === base()) ? picked : picked + '/' + n;
+};
+function recompute(){
+  const n = nameInput.value.trim();
+  const composing = validName(n) && n !== base();
+  const prefix = composing ? n + '/' : '';
+  pathEl.textContent = targetPath();
+  tree.innerHTML = sw.hasAttribute('data-on')
+    ? prefix + 'veri/  \u00b7  16 documents\n' + prefix + 'README.md      <em>\u2190 skipped if one already exists</em>\n' + prefix + 'CLAUDE.md      <em>\u2190 skipped if one already exists</em>'
+    : ['veri/requirements/','veri/decisions/','veri/work-orders/','veri/sources/'].map(l => prefix + l).join('\n');
+  create.disabled = !validName(n);
+}
 function setDemo(on){
   if (on) sw.setAttribute('data-on',''); else sw.removeAttribute('data-on');
-  tree.innerHTML = on ? TREE_DEMO : TREE_EMPTY;
+  recompute();
 }
 function setBusy(on){
-  create.textContent = on ? 'Creating…' : 'Create project';
-  create.disabled = on; cancel.disabled = on;
+  create.textContent = on ? 'Creating\u2026' : 'Create project';
+  create.disabled = on; cancel.disabled = on; nameInput.disabled = on;
   document.getElementById('tg').style.pointerEvents = on ? 'none' : '';
   document.getElementById('tg').style.opacity = on ? '.55' : '';
 }
@@ -226,6 +248,11 @@ function show(scenario){
   for (const id of panes) document.getElementById(id).classList.add('hidden');
   err.classList.add('hidden');
   setBusy(false);
+  // Scenario 3 showcases composing (~/Projects + "harbor" \u2192 ~/Projects/harbor);
+  // 4\u20136 keep the picked-folder-is-the-project case.
+  if (scenario === 'sheet') { picked = '/Users/daniel/Projects'; nameInput.value = 'harbor'; }
+  else { picked = '/Users/daniel/Projects/veri-scratch/clients/harbor'; nameInput.value = 'harbor'; }
+  if (scenario === 'sheet-error') { picked = '/Users/daniel/Projects'; }
   setDemo(scenario === 'sheet-demo');
   if (scenario === 'switcher') document.getElementById('s-switcher').classList.remove('hidden');
   if (scenario === 'palette')  document.getElementById('s-palette').classList.remove('hidden');
@@ -239,13 +266,14 @@ function show(scenario){
 for (const b of document.querySelectorAll('.scen button'))
   b.addEventListener('click', () => show(b.dataset.s));
 
-// live bits: the toggle flips the preview, Create runs the busy state.
+// live bits: name and toggle recompose the preview, Create runs the busy state.
+nameInput.addEventListener('input', recompute);
 document.getElementById('tg').addEventListener('click', () => setDemo(!sw.hasAttribute('data-on')));
 create.addEventListener('click', () => { setBusy(true); setTimeout(() => setBusy(false), 900); });
 
 // Deep-link a state for review: ...new-project-flow.html?s=sheet-demo
 const wanted = new URLSearchParams(location.search).get('s');
-show(panes.length && wanted && document.querySelector(`.scen button[data-s="${CSS.escape(wanted)}"]`) ? wanted : 'switcher');
+show(wanted && document.querySelector(`.scen button[data-s="${CSS.escape(wanted)}"]`) ? wanted : 'switcher');
 </script>
 </body>
 </html>

@@ -10,10 +10,19 @@ links:
     rel: designs
   - id: REQ-004
     rel: designs
+  - id: WO-020
+    rel: designs
 ---
 
 Design approved by Daniel on 2026-08-11 (in-session review of the
 prototype), satisfying the [[DEC-012]] gate for [[WO-018]].
+
+> **Addendum (2026-08-11, awaiting approval):** the bundle README gains
+> an addendum section — an editable project-name field with
+> create-subfolder path composition — as the [[DEC-012]] gate for
+> [[WO-020]]. The addendum is drafted in `design/new-project-flow/`
+> (README section + live prototype behavior) and is not binding until
+> Daniel approves it; [[WO-018]]'s approved scope is unchanged by it.
 
 Design handoff for the missing creation path in the desktop UI: today the
 app can only open a project that already has a `veri/` directory, so a

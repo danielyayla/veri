@@ -246,3 +246,63 @@ git init affordance, no onboarding tour, and no changes to CLI flags or the
 MCP server. Also excluded by this design specifically: no project renaming,
 no "recent folders" list inside the sheet (the OS picker has its own), and
 no removal of projects from the MRU.
+
+---
+
+## Addendum (2026-08-11) — editable project name (WO-020)
+
+Status: **drafted, awaiting Daniel's approval.** Everything above stands;
+this section changes one row of the sheet and adds a path-composition
+rule. Motivation: the read-only name served the "add Veri to this repo"
+intent but stranded the "start a brand-new project called X" intent — a
+user who picks `~/Projects` expecting to create a project inside it would
+instead scaffold `veri/` into their entire Projects folder. The OS
+picker's New Folder button covers this in principle; in observed use it
+was not found.
+
+### The name field
+
+Row 3 (`Project name`) becomes an **editable input**: same mono 12px
+`--text`, transparent background, no border at rest; on focus a 1px
+`--int-border` bottom border (no new tokens). It defaults to the picked
+folder's basename.
+
+Helper line beneath it (11.5px `--muted`):
+`A different name creates a new folder inside the chosen location.`
+
+### Path composition — the name is never stored, it only picks the folder
+
+- **Name = picked folder's basename** → target is the picked folder
+  itself. Identical to today's behavior (the existing-repo case).
+- **Name ≠ basename** → target is `<picked>/<name>`: the folder is
+  created by the scaffold. (Creating a parent chain is already within
+  `scaffoldProject`'s recursive mkdir/cpSync behavior — no core change.)
+
+The location block always shows the **full final target path**, updating
+live as the name is edited — the sheet's show-the-write-before-it-happens
+contract is what disambiguates the two cases; there is no mode toggle.
+When composing a subfolder, the what-will-be-written preview gains the
+new folder as its first path segment (`harbor/veri/requirements/` …), so
+the write is explicit down to the directory being created.
+
+### Validation
+
+Create is disabled (existing `.np-btn` disabled treatment) while the
+name is empty, is `.` or `..`, or contains a path separator (`/`, `\`) or
+NUL. No other rules — the filesystem is the authority on what a folder
+can be called; a rejected mkdir surfaces in the existing in-sheet error.
+
+### Unchanged, stated explicitly
+
+- Picking a folder that already **is** a Veri project still opens it
+  immediately — the sheet never appears, so the name field cannot
+  target the inside of an existing project.
+- If the composed target exists and already contains `veri/`, Create
+  fails with the existing in-sheet error treatment ("already contains a
+  veri/ directory") — never a silent open, never an overwrite.
+- If the composed target exists as a plain folder, scaffolding into it
+  is fine (Veri lives alongside code) — same as picking it directly.
+- The MRU entry's name is the final target's basename (DEC-010), demo
+  toggle, outcomes, and all other sheet anatomy are untouched.
+- DEC-002 holds: the "project name" exists nowhere except as the name
+  of the folder on disk.
