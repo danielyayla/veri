@@ -115,8 +115,12 @@ function registerIpc(): void {
   });
   ipcMain.handle('veri:list-recent-projects', async () => {
     const projects = await getRecentProjects();
+    // Prune rows that are not (or no longer) Veri projects — deleted dirs and
+    // the false positives the old name-only check let in (e.g. ~/Projects).
+    const valid = projects.filter((p) => isVeriProject(p.dir));
+    if (valid.length !== projects.length) await saveRecentProjects(valid);
     const updated = await Promise.all(
-      projects.map(async (p) => {
+      valid.map(async (p) => {
         const stats = await getProjectStats(p.dir);
         return { ...p, docCount: stats.docCount, issueCount: stats.issueCount };
       }),
@@ -272,7 +276,9 @@ async function createWindow(): Promise<BrowserWindow> {
 app.whenReady().then(async () => {
   registerIpc();
   void cleanupLaunchScripts();
-  await addProjectToMru(projectRoot);
+  // findProjectRoot's result is unvalidated (explicit args pass through) —
+  // never let a non-project launch dir into the MRU.
+  if (isVeriProject(projectRoot)) await addProjectToMru(projectRoot);
   await createWindow();
 });
 

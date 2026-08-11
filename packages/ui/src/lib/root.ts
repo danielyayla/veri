@@ -1,21 +1,39 @@
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { VERI_SUBDIRS } from '@veri/core';
+
+/**
+ * A directory qualifies as a Veri project iff its `veri` entry is a directory
+ * that looks like a knowledge base: at least one of the four REQ-001
+ * subdirectories inside. The name alone is not enough — a git clone named
+ * `veri` sitting in ~/Projects made the bare existsSync check treat the whole
+ * Projects folder as a project (the WO-018 picker then "opened" it instead of
+ * offering to create). Every tree `veri init` produces passes this test; the
+ * degenerate case (a `veri/` with none of the four) is handled downstream by
+ * core's scaffold guard, which still refuses to write over any `veri` entry.
+ */
+export function isVeriProject(dir: string): boolean {
+  const veri = join(dir, 'veri');
+  try {
+    if (!statSync(veri).isDirectory()) return false;
+  } catch {
+    return false;
+  }
+  return VERI_SUBDIRS.some((sub) => existsSync(join(veri, sub)));
+}
 
 /**
  * The project root for a launch: an explicit argument wins; otherwise walk up
- * from cwd to the nearest directory containing veri/ (so `npm start -w
- * @veri/ui` — whose cwd is packages/ui — finds the repo root by itself).
+ * from cwd to the nearest Veri project (so `npm start -w @veri/ui` — whose cwd
+ * is packages/ui — finds the repo root by itself). The result is not
+ * guaranteed to be a project — callers that record or open it must gate on
+ * isVeriProject themselves.
  */
-/** A directory qualifies as a Veri project iff it contains a veri/ subdirectory. */
-export function isVeriProject(dir: string): boolean {
-  return existsSync(join(dir, 'veri'));
-}
-
 export function findProjectRoot(explicit: string | undefined, cwd: string): string {
   if (explicit !== undefined) return resolve(explicit);
   let dir = resolve(cwd);
   for (;;) {
-    if (existsSync(join(dir, 'veri'))) return dir;
+    if (isVeriProject(dir)) return dir;
     const parent = dirname(dir);
     if (parent === dir) return resolve(cwd);
     dir = parent;
