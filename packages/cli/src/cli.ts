@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { approve, check, init, list, newDoc } from './commands.ts';
+import { approve, check, init, list, newDoc, open } from './commands.ts';
 import type { CmdResult } from './commands.ts';
 
 const USAGE = `usage: veri <command>
@@ -9,6 +9,7 @@ const USAGE = `usage: veri <command>
   veri check                 report knowledge-base issues (exit 1 if any)
   veri approve <id>          approve a pending document (stamps approved: today)
   veri list [type]           list documents: id, status, title
+  veri open [dir]            open the project in the Veri desktop app
 `;
 
 const [command, ...rest] = process.argv.slice(2);
@@ -27,6 +28,9 @@ switch (command) {
     break;
   case 'approve':
     result = await approve(cwd, rest[0]);
+    break;
+  case 'open':
+    result = open(cwd, rest[0]);
     break;
   case 'list':
     result = await list(cwd, rest[0]);

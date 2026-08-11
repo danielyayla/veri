@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { approve, check, init, list, newDoc } from './commands.ts';
+import { approve, check, init, list, newDoc, open } from './commands.ts';
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const FIVE_ISSUES = fileURLToPath(new URL('../fixtures/five-issues', import.meta.url));
@@ -173,4 +173,41 @@ test('the built veri bin runs check against this repo', { skip: !existsSync(CLI_
   const run = spawnSync(process.execPath, [CLI_BIN, 'check'], { cwd: REPO_ROOT, encoding: 'utf8' });
   assert.equal(run.status, 0, run.stdout + run.stderr);
   assert.match(run.stdout, /0 issues/);
+});
+
+test('open launches electron on the resolved project directory', (t) => {
+  const dir = tempProject();
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  init(dir, { demo: false });
+  const launches: string[][] = [];
+  const result = open(dir, undefined, {
+    resolvePath: (spec) => join(REPO_ROOT, 'packages/ui', spec.replace('@veri/ui/', '')),
+    launch: (bin, args) => launches.push([bin, ...args]),
+  });
+  assert.equal(result.code, 0);
+  assert.equal(launches.length, 1);
+  assert.deepEqual(launches[0].slice(1), [join(REPO_ROOT, 'packages/ui'), dir]);
+});
+
+test('open refuses a non-project directory and reports a missing desktop app', (t) => {
+  const dir = tempProject();
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const noProject = open(dir, undefined, {
+    resolvePath: () => {
+      throw new Error('unreachable');
+    },
+    launch: () => assert.fail('must not launch'),
+  });
+  assert.equal(noProject.code, 1);
+  assert.match(noProject.lines[0], /no veri\/ directory/);
+
+  init(dir, { demo: false });
+  const noApp = open(dir, undefined, {
+    resolvePath: () => {
+      throw new Error("Cannot find module '@veri/ui/package.json'");
+    },
+    launch: () => assert.fail('must not launch'),
+  });
+  assert.equal(noApp.code, 1);
+  assert.match(noApp.lines[0], /cannot find the Veri desktop app/);
 });

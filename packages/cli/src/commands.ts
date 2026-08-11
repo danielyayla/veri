@@ -1,5 +1,7 @@
+import { spawn } from 'node:child_process';
 import { existsSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DOC_TYPES, ProjectExistsError, approveDocument, checkProject, loadProject, scaffoldProject } from '@veri/core';
 import type { DocType, Issue } from '@veri/core';
@@ -159,4 +161,45 @@ export async function list(cwd: string, typeArg: string | undefined): Promise<Cm
     code: 0,
     lines: docs.map((doc) => `${doc.id.padEnd(8)} ${doc.status.padEnd(12)} ${doc.title}`),
   };
+}
+
+// Launching the desktop app needs module resolution and a process spawn;
+// both are injectable so tests can exercise the paths without Electron.
+export interface OpenDeps {
+  resolvePath: (specifier: string) => string;
+  launch: (electronBin: string, args: string[]) => void;
+}
+
+const defaultOpenDeps: OpenDeps = {
+  resolvePath: (specifier) => createRequire(import.meta.url).resolve(specifier),
+  launch: (electronBin, args) => {
+    const child = spawn(electronBin, args, { detached: true, stdio: 'ignore' });
+    child.unref();
+  },
+};
+
+export function open(cwd: string, dirArg: string | undefined, deps: OpenDeps = defaultOpenDeps): CmdResult {
+  const target = resolve(cwd, dirArg ?? '.');
+  if (!existsSync(join(target, 'veri'))) {
+    return { code: 1, lines: [`no veri/ directory in ${target} — run "veri init" there first.`] };
+  }
+  let uiDir: string;
+  let electronBin: string;
+  try {
+    const uiPkg = deps.resolvePath('@veri/ui/package.json');
+    uiDir = dirname(uiPkg);
+    // require('electron') from Node (not inside Electron) returns the
+    // binary path; anchor resolution at the UI package, whose dep it is.
+    electronBin = createRequire(uiPkg)('electron') as string;
+  } catch {
+    return {
+      code: 1,
+      lines: ['cannot find the Veri desktop app (@veri/ui with electron installed) — is this a standalone CLI install?'],
+    };
+  }
+  if (!existsSync(join(uiDir, 'dist', 'main.js'))) {
+    return { code: 1, lines: ['@veri/ui is not built — run "npm run build" in packages/ui first.'] };
+  }
+  deps.launch(electronBin, [uiDir, target]);
+  return { code: 0, lines: [`Opening Veri on ${target}…`] };
 }
