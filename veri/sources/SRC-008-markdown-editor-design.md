@@ -16,8 +16,8 @@ High-fidelity written design handoff for the direct-editing surface
 required by [[REQ-009]], built on the CodeMirror 6 engine chosen in
 [[DEC-020]]. Files live in `design/markdown-editor/`:
 
-- `README.md` — self-sufficient written spec (no HTML prototype in this
-  bundle): read/edit mode toggle per document tab (⌘E), the CM6 source
+- `README.md` — self-sufficient written spec: read/edit mode toggle per
+  document tab (⌘E), the CM6 source
   editor's typography and syntax palette on the canon tokens, guarded
   frontmatter ranges enforcing the [[REQ-008]] approval boundary
   (`id:` / `approved:` / gate-crossing `status:` edits rejected with an
@@ -29,6 +29,10 @@ required by [[REQ-009]], built on the CodeMirror 6 engine chosen in
   cases (malformed or deleted frontmatter, deleted file, write errors),
   accessibility notes, and the tab-state extension
   (`mode` / `dirty` / `buffer` / `conflict`).
+- `editor-prototype.html` — self-contained interactive prototype of the
+  above (open in a browser; illustrative "skiff" fixture content). The
+  editor inside it is a hand-rolled stand-in for CodeMirror 6 — a
+  design reference, not production code.
 
 The spec introduces no new design tokens — every color, font, and
 radius reuses the canon in `design/README.md`, and tab behavior extends

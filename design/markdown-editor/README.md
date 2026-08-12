@@ -13,13 +13,16 @@ Also covers document **creation**: type + title in, scaffolded file out,
 straight into edit mode. No forms.
 
 ## About the Design Files
-This bundle is a **written spec** (no HTML prototype). All tokens are
-taken from the design canon (`design/README.md`) and the document-tabs
-spec (`design/document-tabs/README.md`); where this spec names a color,
-font, or size, it is final. The editor engine is CodeMirror 6 per
-DEC-020 — the spec describes intended appearance and behavior, to be
-implemented with CM6 primitives (decorations, transaction filters), not
-copied markup.
+This bundle is a written spec plus `editor-prototype.html`, a
+**self-contained interactive prototype** (open in a browser) showing the
+design's look and behavior on illustrative "skiff" fixture content. The
+prototype is a design reference, not production code — its hand-rolled
+contenteditable editor stands in for CodeMirror 6, which is the engine
+for the real implementation per DEC-020 (decorations, transaction
+filters). All tokens are taken from the design canon
+(`design/README.md`) and the document-tabs spec
+(`design/document-tabs/README.md`); where this spec names a color,
+font, or size, it is final.
 
 ## Fidelity
 **High-fidelity for tokens and interaction rules.** Layout and states
@@ -205,4 +208,11 @@ new colors, fonts, or radii**. Editor-specific applications above
 values.
 
 ## Files
-- `README.md` — this spec (self-sufficient; no prototype in this bundle)
+- `README.md` — this spec (self-sufficient; the prototype illustrates it)
+- `editor-prototype.html` — interactive prototype. Try: the read/edit
+  toggle or ⌘E; typing anywhere (dirty dot, status row, ⌘S to save);
+  typing on the `id:`/`approved:` lines (guard flash + notice); `[[`
+  in the body (autocomplete); the sidebar `+` or ⌘N (creation flow);
+  closing a dirty tab (Save/Discard/Cancel); and the "simulate external
+  edit" control bottom-right (silent reload when clean, conflict banner
+  when dirty).
