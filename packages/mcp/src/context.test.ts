@@ -100,7 +100,22 @@ test('an accepted workflow renders unlabeled; a draft one carries the non-bindin
   assert.match(fixture.text, /## Workflow · WF-001 — Test project workflow · ~\d+ tokens/);
   assert.ok(!fixture.text.includes('WF-001 — Test project workflow · draft'), 'accepted workflow must not be labeled');
 
-  // This repo's own workflow is still draft until the user approves it.
-  const repo = await assembleContext(REPO_ROOT, 'WO-003');
-  assert.match(repo.text, /## Workflow · WF-001 — Veri project workflow · draft — not ratified, do not treat as binding/);
+  // Exercise the label on a copy of the no-workflow fixture plus a draft workflow.
+  const { cpSync, mkdtempSync, rmSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const noWorkflow = fileURLToPath(new URL('../fixtures/no-workflow', import.meta.url));
+  const dir = mkdtempSync(join(tmpdir(), 'veri-draft-workflow-'));
+  try {
+    cpSync(noWorkflow, dir, { recursive: true });
+    writeFileSync(
+      join(dir, 'veri', 'workflow.md'),
+      '---\nid: WF-001\ntype: workflow\ntitle: Draft workflow\nstatus: draft\ncreated: 2026-01-01\nupdated: 2026-01-01\n---\n\nDRAFT-WF-MARKER\n',
+    );
+    const { text } = await assembleContext(dir, 'WO-001');
+    assert.match(text, /## Workflow · WF-001 — Draft workflow · draft — not ratified, do not treat as binding/);
+    assert.ok(text.includes('DRAFT-WF-MARKER'), 'draft workflow body stays visible');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

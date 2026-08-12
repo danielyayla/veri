@@ -2,7 +2,8 @@
 id: DEC-019
 type: decision
 title: The scaffolded default workflow ships accepted, not draft
-status: proposed
+status: active
+approved: 2026-08-12
 created: 2026-08-12
 updated: 2026-08-12
 links:
