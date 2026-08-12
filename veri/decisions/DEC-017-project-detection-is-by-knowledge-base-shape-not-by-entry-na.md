@@ -2,9 +2,10 @@
 id: DEC-017
 type: decision
 title: "Project detection is by knowledge-base shape, not by entry name"
-status: proposed
+status: active
+approved: 2026-08-12
 created: 2026-08-11
-updated: 2026-08-11
+updated: 2026-08-12
 links:
   - id: WO-018
     rel: constrains
