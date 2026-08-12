@@ -1,4 +1,4 @@
-import type { ApproveResult } from '@veri/core';
+import type { ApproveResult, CreateResult, DocType, SaveResult } from '@veri/core';
 import type { ContextPackage, PaletteResult } from '@veri/mcp';
 import type { AgentId, AgentInfo } from '../lib/agents.ts';
 import type { McpStatus } from '../lib/mcpconfig.ts';
@@ -24,6 +24,13 @@ export interface VeriApi {
   workspaceSave(state: WorkspaceState): Promise<void>;
   copyText(text: string): Promise<void>;
   setStatus(id: string, status: string): Promise<void>;
+  /** Raw file text for the editor (WO-022); null when the file is gone. */
+  readDoc(file: string): Promise<string | null>;
+  /** Guarded verbatim write via core (REQ-009 §4); rejects on the approval
+      boundary with the guard's reason as the error message. */
+  saveDoc(file: string, text: string): Promise<SaveResult>;
+  /** Creation flow (REQ-009 §2): scaffold via core, next free id. */
+  createDoc(type: DocType, title: string): Promise<CreateResult>;
   appendNote(id: string, note: string): Promise<void>;
   /** The approval act (REQ-008): stamp-and-flip via core's shared write path. */
   approve(id: string): Promise<ApproveResult>;

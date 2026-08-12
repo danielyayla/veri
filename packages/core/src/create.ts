@@ -1,0 +1,172 @@
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import type { DocType } from './ids.ts';
+import { loadProject } from './load.ts';
+
+/**
+ * Document creation (REQ-009 §2): type + title in, a check-passing file out.
+ * One implementation shared by `veri new` and the desktop app's creation
+ * flow, the same posture as scaffold/approve (DEC-015, DEC-016).
+ */
+
+/** Initial status for a freshly created document of each type. Every new
+    document starts unapproved — promotion is the user's act (REQ-008). */
+export const INITIAL_STATUS: Record<DocType, string> = {
+  requirement: 'draft',
+  decision: 'proposed',
+  'work-order': 'backlog',
+  source: 'imported',
+  workflow: 'draft',
+};
+
+export const TYPE_SUBDIR: Record<DocType, string> = {
+  requirement: 'requirements',
+  decision: 'decisions',
+  'work-order': 'work-orders',
+  source: 'sources',
+  // The workflow lives at the veri/ root — one per project, no collection dir.
+  workflow: '',
+};
+
+export const TYPE_PREFIX: Record<DocType, string> = {
+  requirement: 'REQ',
+  decision: 'DEC',
+  'work-order': 'WO',
+  source: 'SRC',
+  workflow: 'WF',
+};
+
+const REQUIREMENT_BODY = `
+(Describe the requirement.)
+
+## Acceptance criteria
+
+- [ ] First criterion
+`;
+
+const DECISION_BODY = `
+## Choice
+
+(What was chosen.)
+
+## Rejected alternatives
+
+- **Alternative** — why it lost
+
+## Rationale
+
+(Why this beats the alternatives.)
+`;
+
+// The six-section work-order skeleton (see WO-002).
+const WORK_ORDER_BODY = `
+## Summary
+
+(What this delivers.)
+
+## In scope
+
+- (First item)
+
+## Out of scope
+
+- (First exclusion)
+
+## Requirements
+
+(Link the requirements this delivers, e.g. [[REQ-001]].)
+
+## Acceptance tests
+
+- [ ] First test
+
+## Receipts
+
+(none yet)
+`;
+
+const SOURCE_BODY = `
+(Imported source. Paste or link the original material.)
+`;
+
+// Projects normally get their workflow from the scaffold (DEC-018); this
+// template exists so a hand-created replacement starts with the right shape.
+const WORKFLOW_BODY = `
+(How work moves through this project: sources → requirements and
+decisions → work orders → implementation with receipts.)
+
+## The path of work
+
+1. (First stage)
+
+## Rules for implementers
+
+1. (First rule)
+`;
+
+export const BODY_TEMPLATES: Record<DocType, string> = {
+  requirement: REQUIREMENT_BODY,
+  decision: DECISION_BODY,
+  'work-order': WORK_ORDER_BODY,
+  source: SOURCE_BODY,
+  workflow: WORKFLOW_BODY,
+};
+
+export function slugifyTitle(title: string): string {
+  const slug = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60)
+    .replace(/-+$/, '');
+  return slug === '' ? 'untitled' : slug;
+}
+
+export interface CreateResult {
+  id: string;
+  /** Path relative to the veri/ directory. */
+  file: string;
+  text: string;
+}
+
+/**
+ * Create a new document: next free id for the type, initial status, today's
+ * dates, the type's body template, kebab-case filename. Never overwrites —
+ * the id is free by construction and the write is `wx`.
+ */
+export async function createDocument(
+  veriDir: string | URL,
+  type: DocType,
+  title: string,
+  date: string = new Date().toISOString().slice(0, 10),
+): Promise<CreateResult> {
+  const trimmed = title.trim();
+  if (trimmed === '') throw new Error('a title is required');
+  const root = typeof veriDir === 'string' ? veriDir : fileURLToPath(veriDir);
+
+  const { documents } = await loadProject(root);
+  const prefix = TYPE_PREFIX[type];
+  const taken = documents
+    .map((doc) => doc.id)
+    .filter((id) => id.startsWith(`${prefix}-`))
+    .map((id) => Number.parseInt(id.slice(prefix.length + 1), 10));
+  const next = taken.length === 0 ? 1 : Math.max(...taken) + 1;
+  if (next > 999) throw new Error(`no free ${prefix}- id left (999 is the highest)`);
+  const id = `${prefix}-${String(next).padStart(3, '0')}`;
+
+  const frontmatter = [
+    '---',
+    `id: ${id}`,
+    `type: ${type}`,
+    `title: ${JSON.stringify(trimmed)}`,
+    `status: ${INITIAL_STATUS[type]}`,
+    `created: ${date}`,
+    `updated: ${date}`,
+    '---',
+  ].join('\n');
+  const file = join(TYPE_SUBDIR[type], `${id}-${slugifyTitle(trimmed)}.md`);
+  const text = `${frontmatter}\n${BODY_TEMPLATES[type]}`;
+  writeFileSync(join(root, file), text, { flag: 'wx' });
+  return { id, file, text };
+}

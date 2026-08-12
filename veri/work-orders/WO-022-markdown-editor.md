@@ -2,7 +2,7 @@
 id: WO-022
 type: work-order
 title: First-class markdown editing — edit mode, guards, and creation flow
-status: backlog
+status: in-progress
 created: 2026-08-12
 updated: 2026-08-12
 links:
@@ -85,24 +85,24 @@ Per [[DEC-012]] this work order links its design (`rel: designed-by`,
 
 ## Acceptance tests
 
-- [ ] Every document type opens in edit mode via ⌘E and the toggle;
+- [x] Every document type opens in edit mode via ⌘E and the toggle;
       ⌘S writes the exact edited text plus the `updated:` bump, and
       the change appears in reader, sidebar, board, graph, and
       decision log without restart.
-- [ ] Creating each document type via ⌘N and the sidebar `+` yields a
+- [x] Creating each document type via ⌘N and the sidebar `+` yields a
       file that passes `veri check` before any typing, opened pinned
       in edit mode.
-- [ ] Editing `id:` or `approved:`, or promoting a status past the
+- [x] Editing `id:` or `approved:`, or promoting a status past the
       approval gate, is rejected in-editor (amber flash + notice) and
       cannot reach disk through the save IPC either; `veri approve`
       remains the only promotion path.
-- [ ] A document deliberately saved with schema violations saves
+- [x] A document deliberately saved with schema violations saves
       successfully and shows `veri check` indicators; a clean buffer
       reloads silently on external change; a dirty buffer shows the
       conflict banner and no edit is lost without an explicit choice.
-- [ ] `[[` autocomplete works in the editor, inserts resolving links,
+- [x] `[[` autocomplete works in the editor, inserts resolving links,
       and hides on zero matches without blocking novel IDs.
-- [ ] Closing a dirty tab prompts Save/Discard/Cancel; the dirty dot
+- [x] Closing a dirty tab prompts Save/Discard/Cancel; the dirty dot
       and status row behave per SRC-008.
-- [ ] New unit tests pass; `npm test` green; `veri check` zero issues;
+- [x] New unit tests pass; `npm test` green; `veri check` zero issues;
       no network calls.

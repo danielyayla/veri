@@ -3,7 +3,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BrowserWindow, app, clipboard, dialog, ipcMain } from 'electron';
-import { ProjectExistsError, scaffoldProject } from '@veri/core';
+import { ProjectExistsError, createDocument, saveDocumentFile, scaffoldProject } from '@veri/core';
+import type { DocType } from '@veri/core';
 import { DEMO_ROOT } from '@veri/cli';
 import { assembleContext, paletteSearch } from '@veri/mcp';
 import { findProjectRoot, isVeriProject } from './lib/root.ts';
@@ -30,6 +31,11 @@ let mcpSelfWriteAt = 0;
 async function mcpWrite(action: () => Promise<void>): Promise<void> {
   mcpSelfWriteAt = Date.now();
   await action();
+}
+
+/** A read may only touch markdown inside veri/ (REQ-009 out-of-scope line). */
+function isDocPath(file: string): boolean {
+  return !file.startsWith('/') && !file.split(/[\\/]/).includes('..') && file.endsWith('.md');
 }
 
 // Config management for MRU projects.
@@ -94,6 +100,22 @@ function registerIpc(): void {
   );
   ipcMain.handle('veri:copy', (_e, text: string) => clipboard.writeText(text));
   ipcMain.handle('veri:set-status', (_e, id: string, status: string) => setStatus(projectRoot, id, status));
+  // Direct editing (WO-022): raw file in, guarded verbatim write out. The
+  // guards and the updated: bump live in core so CLI/MCP/UI can't drift.
+  ipcMain.handle('veri:read-doc', async (_e, file: string) => {
+    if (!isDocPath(file)) throw new Error(`not a veri/ document path: ${file}`);
+    try {
+      return await readFile(join(projectRoot, 'veri', file), 'utf8');
+    } catch {
+      return null; // deleted while open — the renderer shows the restore banner
+    }
+  });
+  ipcMain.handle('veri:save-doc', (_e, file: string, text: string) =>
+    saveDocumentFile(join(projectRoot, 'veri'), file, text),
+  );
+  ipcMain.handle('veri:create-doc', (_e, type: DocType, title: string) =>
+    createDocument(join(projectRoot, 'veri'), type, title),
+  );
   ipcMain.handle('veri:append-note', (_e, id: string, note: string) => appendNote(projectRoot, id, note));
   ipcMain.handle('veri:approve', (_e, id: string) => approveDoc(projectRoot, id));
   ipcMain.handle('veri:review-note', (_e, id: string, note: string) => appendReviewNote(projectRoot, id, note));

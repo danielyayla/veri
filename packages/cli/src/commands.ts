@@ -1,33 +1,15 @@
 import { spawn } from 'node:child_process';
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DOC_TYPES, ProjectExistsError, approveDocument, checkProject, loadProject, scaffoldProject } from '@veri/core';
+import { DOC_TYPES, ProjectExistsError, approveDocument, checkProject, createDocument, loadProject, scaffoldProject } from '@veri/core';
 import type { DocType, Issue } from '@veri/core';
-import { BODY_TEMPLATES, INITIAL_STATUS } from './templates.ts';
 
 export interface CmdResult {
   code: number;
   lines: string[];
 }
-
-const SUBDIR: Record<DocType, string> = {
-  requirement: 'requirements',
-  decision: 'decisions',
-  'work-order': 'work-orders',
-  source: 'sources',
-  // The workflow lives at the veri/ root — one per project, no collection dir.
-  workflow: '',
-};
-
-const PREFIX: Record<DocType, string> = {
-  requirement: 'REQ',
-  decision: 'DEC',
-  'work-order': 'WO',
-  source: 'SRC',
-  workflow: 'WF',
-};
 
 const TYPE_LIST = DOC_TYPES.join(' | ');
 
@@ -62,16 +44,6 @@ function requireVeriDir(cwd: string): string | null {
 
 const NO_VERI_DIR: CmdResult = { code: 1, lines: ['no veri/ directory here — run "veri init" first.'] };
 
-function slugify(title: string): string {
-  const slug = title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 60)
-    .replace(/-+$/, '');
-  return slug === '' ? 'untitled' : slug;
-}
-
 function isDocType(value: string): value is DocType {
   return (DOC_TYPES as readonly string[]).includes(value);
 }
@@ -86,31 +58,14 @@ export async function newDoc(cwd: string, typeArg: string | undefined, title: st
   const dir = requireVeriDir(cwd);
   if (dir === null) return NO_VERI_DIR;
 
-  const { documents } = await loadProject(dir);
-  const prefix = PREFIX[typeArg];
-  const taken = documents
-    .map((doc) => doc.id)
-    .filter((id) => id.startsWith(`${prefix}-`))
-    .map((id) => Number.parseInt(id.slice(prefix.length + 1), 10));
-  const next = taken.length === 0 ? 1 : Math.max(...taken) + 1;
-  if (next > 999) {
-    return { code: 1, lines: [`no free ${prefix}- id left (999 is the highest).`] };
+  // Creation lives in core so the CLI and the desktop app share one write
+  // path (WO-022): next free id, initial status, template, kebab filename.
+  try {
+    const { id, file } = await createDocument(dir, typeArg, title);
+    return { code: 0, lines: [`Created veri/${file} (${id})`] };
+  } catch (err) {
+    return { code: 1, lines: [`${err instanceof Error ? err.message : String(err)}.`] };
   }
-  const id = `${prefix}-${String(next).padStart(3, '0')}`;
-  const today = new Date().toISOString().slice(0, 10);
-  const frontmatter = [
-    '---',
-    `id: ${id}`,
-    `type: ${typeArg}`,
-    `title: ${JSON.stringify(title)}`,
-    `status: ${INITIAL_STATUS[typeArg]}`,
-    `created: ${today}`,
-    `updated: ${today}`,
-    '---',
-  ].join('\n');
-  const relPath = join(SUBDIR[typeArg], `${id}-${slugify(title)}.md`);
-  writeFileSync(join(dir, relPath), `${frontmatter}\n${BODY_TEMPLATES[typeArg]}`, { flag: 'wx' });
-  return { code: 0, lines: [`Created veri/${relPath} (${id})`] };
 }
 
 function fileOf(issue: Issue): string {

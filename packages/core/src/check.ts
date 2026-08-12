@@ -63,6 +63,9 @@ export function checkWorkOrderRequirements(documents: VeriDocument[]): Issue[] {
   const issues: Issue[] = [];
   for (const doc of documents) {
     if (doc.type !== 'work-order') continue;
+    // Backlog is planning, and the gate is on starting work, not planning
+    // (REQ-008, REQ-009): a freshly created WO passes check until it starts.
+    if (doc.status === 'backlog') continue;
     if (!doc.links.some((link) => link.id.startsWith('REQ-'))) {
       issues.push({
         kind: 'wo-without-requirement',

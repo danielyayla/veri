@@ -110,3 +110,31 @@ export function activityFeed(rows: ActivityRow[]): HTMLElement {
     ),
   );
 }
+
+/** The read | edit segment toggle in a document's crumb row (WO-022, ⌘E). */
+export function modeToggle(ctx: { editFor(id: string): { mode: 'read' | 'edit' } | null; setEditMode(id: string, mode: 'read' | 'edit'): void }, docId: string): HTMLElement {
+  const mode = ctx.editFor(docId)?.mode ?? 'read';
+  const seg = (m: 'read' | 'edit'): HTMLElement =>
+    h(
+      'span',
+      {
+        class: mode === m ? 'mode-seg mode-seg-on' : 'mode-seg',
+        onClick: () => {
+          if (mode !== m) ctx.setEditMode(docId, m);
+        },
+      },
+      m,
+    );
+  return h('div', { class: 'mode-toggle', title: '⌘E' }, seg('read'), seg('edit'));
+}
+
+/** Read-mode strip when the tab holds unsaved edits (SRC-008): the rendered
+    view shows the saved file, not the buffer. */
+export function dirtyStrip(ctx: { editFor(id: string): { dirty: boolean } | null }, docId: string): HTMLElement | null {
+  if (ctx.editFor(docId)?.dirty !== true) return null;
+  return h(
+    'div',
+    { class: 'ed-banner ed-banner-strip' },
+    h('span', {}, '⚠ viewing saved version — unsaved edits in edit mode'),
+  );
+}

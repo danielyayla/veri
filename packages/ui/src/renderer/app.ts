@@ -20,6 +20,9 @@ import { graphView } from './views/graph.ts';
 import { decisionsView } from './views/decisions.ts';
 import { VIEW_META, activateTab, closeTab, cycleTab, isViewKey, openTab, pinTab, reorderTab, retainTabs } from './tabs.ts';
 import type { Tab, TabState } from './tabs.ts';
+import { EditorIsland } from './editor.ts';
+import { ipcErrorMessage, reconcileDisk } from './editlogic.ts';
+import { editorScreen } from './views/editor.ts';
 import { paletteRows } from './palette.ts';
 import type { PaletteRow } from './palette.ts';
 import { DEAD_LABEL, isLiving, pushRecent, treeSection, visibleRecents } from './sidebar.ts';
@@ -74,6 +77,11 @@ export interface State {
   projectError: string | null;
   /** Non-null while the New project sheet is up (WO-018, SRC-007). */
   newProject: NewProjectState | null;
+  /** New-document popover (WO-022, SRC-008): type + title, nothing else.
+      `anchor` is the sidebar `+` position; null centers it (⌘N). */
+  newDoc: { type: DocType; title: string; anchor: { x: number; y: number } | null } | null;
+  /** Save/Discard/Cancel prompt for closing a dirty editor tab (SRC-008). */
+  closeConfirm: { id: string; x: number; y: number } | null;
   /** Green "opened the existing project" chip, shown after the reload. */
   projectNotice: string | null;
   mcpStatus: McpStatus | null;
@@ -122,6 +130,18 @@ export interface Ctx {
   flashCopied(): void;
   /** Show a transient bottom-center toast (auto-dismissed). */
   flashToast(text: string): void;
+  /** Editor state for a doc tab (WO-022): null when never opened for editing. */
+  editFor(id: string): EditState | null;
+  /** Flip a doc tab between the rendered reader and the editor (⌘E). */
+  setEditMode(id: string, mode: 'read' | 'edit'): void;
+  /** Everything the editor screen renders for the active doc. */
+  editView(): ActiveEdit | null;
+  /** ⌘S: guarded verbatim save of the active editor buffer. */
+  saveActive(): void;
+  /** Reload / Keep mine / Restore / Close tab on a conflict banner. */
+  resolveConflict(action: 'reload' | 'keep' | 'restore' | 'closetab'): void;
+  /** Sidebar `+` / ⌘N: open the type-plus-title creation popover. */
+  openNewDoc(type: DocType, anchor: { x: number; y: number } | null): void;
   flashMcpCmdCopied(): void;
   sessionLog(id: string, row: ActivityRow): void;
   sessionRows(id: string): ActivityRow[];
@@ -131,6 +151,31 @@ export interface Ctx {
 }
 
 const TYPE_ORDER = ['requirement', 'decision', 'work-order', 'source'] as const;
+
+export interface EditState {
+  mode: 'read' | 'edit';
+  dirty: boolean;
+}
+
+export interface ActiveEdit {
+  id: string;
+  dom: HTMLElement;
+  dirty: boolean;
+  conflict: 'none' | 'disk-changed' | 'deleted';
+  notice: { text: string; warn: boolean } | null;
+}
+
+/** Per-doc editing state (WO-022). The island holds the buffer, cursor, and
+    undo history; this record holds what the shell renders around it. */
+interface DocEdit {
+  file: string;
+  mode: 'read' | 'edit';
+  island: EditorIsland | null;
+  conflict: 'none' | 'disk-changed' | 'deleted';
+  dirty: boolean;
+  notice: { text: string; warn: boolean } | null;
+  noticeTimer?: ReturnType<typeof setTimeout>;
+}
 
 class App implements Ctx {
   snap!: Snapshot;
@@ -169,6 +214,8 @@ class App implements Ctx {
     projectSwitcherOpen: false,
     projectError: null,
     newProject: null,
+    newDoc: null,
+    closeConfirm: null,
     projectNotice: null,
     mcpStatus: null,
     mcpWrote: false,
@@ -176,6 +223,8 @@ class App implements Ctx {
     mcpBuildCopied: false,
     mcpCmdCopied: false,
   };
+  /** Editing state per doc tab (WO-022); islands survive re-renders here. */
+  private docEdit = new Map<string, DocEdit>();
   private sessionActivity = new Map<string, ActivityRow[]>();
   private sessionFeed: Array<{ id: string; row: ActivityRow }> = [];
   /** Doc-tab activation order, most recent first — drives the Documents nav. */
@@ -239,6 +288,20 @@ class App implements Ctx {
       } else if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'n') {
         e.preventDefault();
         if (this.state.newProject === null) void this.startNewProject();
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'n') {
+        // Plain ⌘N: new document, centered popover (SRC-008).
+        e.preventDefault();
+        if (this.state.newDoc === null) this.openNewDoc('requirement', null);
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        this.toggleEditMode();
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        this.saveActive();
+      } else if (e.key === 'Escape' && this.state.newDoc !== null) {
+        this.update({ newDoc: null });
+      } else if (e.key === 'Escape' && this.state.closeConfirm !== null) {
+        this.update({ closeConfirm: null });
       } else if (e.key === 'Escape' && this.state.newProject !== null) {
         this.closeNewProject();
       } else if (e.ctrlKey && !e.metaKey && e.key === 'Tab') {
@@ -275,9 +338,18 @@ class App implements Ctx {
         this.state.projectSwitcherOpen ||
         this.state.agentsOpen ||
         this.state.projectError !== null ||
-        this.state.projectNotice !== null
+        this.state.projectNotice !== null ||
+        this.state.newDoc !== null ||
+        this.state.closeConfirm !== null
       ) {
-        this.update({ projectSwitcherOpen: false, agentsOpen: false, projectError: null, projectNotice: null });
+        this.update({
+          projectSwitcherOpen: false,
+          agentsOpen: false,
+          projectError: null,
+          projectNotice: null,
+          newDoc: null,
+          closeConfirm: null,
+        });
       }
     });
     this.render();
@@ -288,9 +360,15 @@ class App implements Ctx {
     this.byId = docsById(snap);
     this.issues = issuesByDoc(snap);
     this.pkg.clear();
-    // Tabs for deleted docs close like a × click; no render here (callers render).
-    Object.assign(this.state, this.activationPatch(retainTabs(this.tabState(), (id) => this.byId.has(id))));
-    if (this.state.docId !== null && !this.byId.has(this.state.docId)) this.state.docId = null;
+    // Tabs for deleted docs close like a × click — except a dirty editor,
+    // whose tab stays for the Restore / Close choice (REQ-009 §5).
+    const survives = (id: string): boolean => this.byId.has(id) || this.docEdit.get(id)?.dirty === true;
+    Object.assign(this.state, this.activationPatch(retainTabs(this.tabState(), survives)));
+    if (this.state.docId !== null && !survives(this.state.docId)) this.state.docId = null;
+    // Editor state for tabs that no longer exist goes with them.
+    for (const id of this.docEdit.keys()) {
+      if (!this.state.tabs.some((t) => t.id === id)) this.dropEditor(id);
+    }
   }
 
   private tabState(): TabState {
@@ -409,6 +487,7 @@ class App implements Ctx {
 
   async refresh(): Promise<void> {
     this.applySnapshot(await this.api.snapshot());
+    await this.reconcileEditors();
     this.render();
   }
 
@@ -507,6 +586,198 @@ class App implements Ctx {
   }
 
   rel = (date: string): string => relTime(date);
+
+  // ---- direct editing (WO-022, SRC-008) ----
+
+  editFor(id: string): EditState | null {
+    const ed = this.docEdit.get(id);
+    return ed === undefined ? null : { mode: ed.mode, dirty: ed.dirty };
+  }
+
+  setEditMode(id: string, mode: 'read' | 'edit'): void {
+    const existing = this.docEdit.get(id);
+    if (existing !== undefined) {
+      existing.mode = mode;
+      this.render();
+      if (mode === 'edit') existing.island?.focus();
+      return;
+    }
+    if (mode === 'read') return;
+    const doc = this.byId.get(id);
+    if (doc === undefined) return;
+    const ed: DocEdit = { file: doc.file, mode: 'edit', island: null, conflict: 'none', dirty: false, notice: null };
+    this.docEdit.set(id, ed);
+    this.render(); // the editor column appears; the island lands when the read resolves
+    void this.guardIpc(() => this.api.readDoc(doc.file)).then((text) => {
+      if (text === undefined || !this.docEdit.has(id)) return;
+      ed.island = new EditorIsland(doc.file, text ?? '', {
+        docs: () => this.snap.documents.map((d) => ({ id: d.id, title: d.title, type: d.type })),
+        onDirty: (dirty) => {
+          ed.dirty = dirty;
+          this.render();
+        },
+        onNotice: (text) => this.editNotice(id, text, true),
+        onNavigate: (target) => this.openDoc(target, { background: true }),
+      });
+      if (text === null) ed.conflict = 'deleted';
+      this.render();
+      ed.island.focus();
+    });
+  }
+
+  private toggleEditMode(): void {
+    const id = this.state.activeTabId;
+    if (id === null || isViewKey(id)) return;
+    this.setEditMode(id, this.docEdit.get(id)?.mode === 'edit' ? 'read' : 'edit');
+  }
+
+  editView(): ActiveEdit | null {
+    const id = this.state.activeTabId;
+    if (id === null || isViewKey(id)) return null;
+    const ed = this.docEdit.get(id);
+    if (ed === undefined || ed.mode !== 'edit') return null;
+    // The island loads async; an empty host renders for the in-between tick.
+    const dom = ed.island?.view.dom ?? h('div', {});
+    return { id, dom, dirty: ed.dirty, conflict: ed.conflict, notice: ed.notice };
+  }
+
+  private editNotice(id: string, text: string, warn: boolean): void {
+    const ed = this.docEdit.get(id);
+    if (ed === undefined) return;
+    clearTimeout(ed.noticeTimer);
+    ed.notice = { text, warn };
+    ed.noticeTimer = setTimeout(() => {
+      ed.notice = null;
+      this.render();
+    }, text === 'saved' ? 1500 : 3000);
+    this.render();
+  }
+
+  saveActive(): void {
+    const id = this.state.activeTabId;
+    if (id === null || isViewKey(id)) return;
+    this.saveEditor(id);
+  }
+
+  private saveEditor(id: string, then?: () => void): void {
+    const ed = this.docEdit.get(id);
+    if (ed?.island == null || (!ed.dirty && ed.conflict === 'none')) return;
+    const island = ed.island;
+    void this.api
+      .saveDoc(ed.file, island.text)
+      .then((result) => {
+        island.markSaved(result.text);
+        ed.conflict = 'none';
+        ed.dirty = false;
+        this.sessionLog(id, { agent: false, text: 'Edited in the app', time: 'today' });
+        this.editNotice(id, 'saved', false);
+        then?.();
+      })
+      .catch((err: unknown) => this.editNotice(id, ipcErrorMessage(err), true));
+  }
+
+  resolveConflict(action: 'reload' | 'keep' | 'restore' | 'closetab'): void {
+    const id = this.state.activeTabId;
+    if (id === null) return;
+    const ed = this.docEdit.get(id);
+    if (ed?.island == null) return;
+    if (action === 'reload') {
+      void this.api.readDoc(ed.file).then((disk) => {
+        if (disk !== null) {
+          ed.island?.markSaved(disk);
+          ed.conflict = 'none';
+          ed.dirty = false;
+          this.editNotice(id, 'reloaded from disk', false);
+        }
+        this.render();
+      });
+    } else if (action === 'keep') {
+      void this.api.readDoc(ed.file).then((disk) => {
+        ed.island!.ackDisk = disk;
+        ed.conflict = 'none';
+        this.editNotice(id, 'kept your edits — ⌘S overwrites', false);
+      });
+    } else if (action === 'restore') {
+      ed.dirty = true; // the buffer is the only copy; force the write through
+      this.saveEditor(id);
+    } else {
+      this.forceCloseTab(id);
+    }
+  }
+
+  /** External changes (REQ-009 §5): silent reload when clean, banner when
+      dirty, restore offer when deleted. Runs on every snapshot refresh. */
+  private async reconcileEditors(): Promise<void> {
+    for (const [id, ed] of this.docEdit) {
+      const doc = this.byId.get(id);
+      if (doc !== undefined && doc.file !== ed.file) ed.file = doc.file; // renamed on disk
+      const island = ed.island;
+      if (island === null) continue;
+      const disk = await this.api.readDoc(ed.file).catch(() => null);
+      const action = reconcileDisk({ baseText: island.baseText, dirty: island.isDirty, ackDisk: island.ackDisk }, disk);
+      if (action === 'reload' && disk !== null) {
+        island.markSaved(disk);
+        ed.conflict = 'none';
+        ed.dirty = false;
+        if (ed.mode === 'edit') this.editNotice(id, 'reloaded from disk', false);
+      } else if (action === 'conflict') {
+        ed.conflict = 'disk-changed';
+        ed.mode = 'edit'; // the choice lives in the editor column
+      } else if (action === 'deleted') {
+        ed.conflict = 'deleted';
+        ed.mode = 'edit';
+      } else if (action === 'closed') {
+        this.dropEditor(id);
+      } else if (ed.conflict === 'deleted') {
+        ed.conflict = 'none'; // the file came back (e.g. git checkout)
+      }
+    }
+  }
+
+  private dropEditor(id: string): void {
+    const ed = this.docEdit.get(id);
+    if (ed === undefined) return;
+    clearTimeout(ed.noticeTimer);
+    ed.island?.destroy();
+    this.docEdit.delete(id);
+  }
+
+  /** Close ×/middle-click: a dirty editor gets the Save/Discard/Cancel
+      prompt (SRC-008); everything else closes like before. */
+  private requestCloseTab(id: string, anchor: DOMRect | null): void {
+    if (this.docEdit.get(id)?.dirty === true) {
+      this.update({
+        closeConfirm: { id, x: anchor?.left ?? window.innerWidth / 2 - 130, y: (anchor?.bottom ?? 60) + 8 },
+      });
+      return;
+    }
+    this.forceCloseTab(id);
+  }
+
+  private forceCloseTab(id: string): void {
+    this.dropEditor(id);
+    this.applyTabs(closeTab(this.tabState(), id), { closeConfirm: null });
+  }
+
+  // ---- document creation (REQ-009 §2, SRC-008) ----
+
+  openNewDoc(type: DocType, anchor: { x: number; y: number } | null): void {
+    this.update({ newDoc: { type, title: '', anchor }, projectSwitcherOpen: false, paletteOpen: false });
+  }
+
+  private submitNewDoc(): void {
+    const nd = this.state.newDoc;
+    if (nd === null || nd.title.trim() === '') return;
+    void this.guardIpc(() => this.api.createDoc(nd.type, nd.title)).then((result) => {
+      if (result === undefined) return;
+      void this.refresh().then(() => {
+        this.update({ newDoc: null });
+        this.openDoc(result.id); // pinned, per SRC-008
+        this.setEditMode(result.id, 'edit');
+        this.sessionLog(result.id, { agent: false, text: 'Created in the app', time: 'today' });
+      });
+    });
+  }
 
   // ---- rendering ----
 
@@ -1139,6 +1410,19 @@ class App implements Ctx {
           h('span', { class: 'sb-swatch', style: `background:${meta.color};` }),
           h('span', { class: 'sb-group-label' }, meta.group),
           h('span', { class: 'sb-group-count' }, String(sec.livingCount)),
+          h(
+            'span',
+            {
+              class: 'sb-add',
+              title: `New ${meta.label}`,
+              onClick: (e) => {
+                e.stopPropagation();
+                const rect = (e.currentTarget as Element).getBoundingClientRect();
+                this.openNewDoc(type, { x: rect.left, y: rect.bottom + 6 });
+              },
+            },
+            '+',
+          ),
         ),
         ...rows,
         expander,
@@ -1170,11 +1454,12 @@ class App implements Ctx {
     const doc = view === null ? this.byId.get(t.id) : undefined;
     const title = view?.label ?? doc?.title ?? t.id;
     const active = t.id === this.state.activeTabId;
-    const close = (): void => this.applyTabs(closeTab(this.tabState(), t.id));
+    const dirty = this.docEdit.get(t.id)?.dirty === true;
+    const close = (el: Element | null): void => this.requestCloseTab(t.id, el?.getBoundingClientRect() ?? null);
     return h(
       'div',
       {
-        class: `tab${active ? ' tab-active' : ''}${t.preview ? ' tab-preview' : ''}`,
+        class: `tab${active ? ' tab-active' : ''}${t.preview ? ' tab-preview' : ''}${dirty ? ' tab-dirty' : ''}`,
         title: (view !== null ? title : `${t.id} — ${title}`) + (t.preview ? ' · preview — double-click to keep open' : ''),
         draggable: true,
         onClick: () => this.applyTabs(activateTab(this.tabState(), t.id)),
@@ -1182,7 +1467,7 @@ class App implements Ctx {
         onMousedown: (e) => {
           if (e.button === 1) {
             e.preventDefault();
-            close();
+            close(e.currentTarget as Element);
           }
         },
         onDragstart: (e) => {
@@ -1208,13 +1493,16 @@ class App implements Ctx {
         'span',
         {
           class: 'tab-close',
-          title: 'Close tab',
+          title: dirty ? 'Unsaved changes — close tab' : 'Close tab',
           onClick: (e) => {
             e.stopPropagation();
-            close();
+            close(e.currentTarget as Element);
           },
         },
-        '×',
+        // VS Code semantics (SRC-008): the dirty dot sits where × was; CSS
+        // swaps them back on hover.
+        h('span', { class: 'tab-close-x' }, '×'),
+        h('span', { class: 'tab-dirty-dot' }),
       ),
     );
   }
@@ -1263,10 +1551,14 @@ class App implements Ctx {
         Array.from(this.root.querySelectorAll(App.SCROLL_SEL), (el) => el.scrollTop),
       );
     }
+    // Editor islands lose their scroll when replaceChildren detaches them.
+    for (const ed of this.docEdit.values()) ed.island?.saveScroll();
 
     const view = this.state.view;
+    const activeEdit = this.editView();
     let screen: HTMLElement;
     if (this.state.tabs.length === 0) screen = this.emptyState();
+    else if (activeEdit !== null) screen = editorScreen(this, activeEdit);
     else if (view === 'workorder' && this.doc()?.type === 'work-order') screen = workOrderView(this);
     else if (view === 'homeview') screen = homeView(this);
     else if (view === 'mcp') screen = mcpView(this);
@@ -1283,6 +1575,7 @@ class App implements Ctx {
       ...(palette !== null ? [palette] : []),
       ...(sheet !== null ? [sheet] : []),
       ...(toast !== null ? [toast] : []),
+      ...this.editPopovers(),
     );
     this.state.editorFocused = false;
 
@@ -1295,6 +1588,91 @@ class App implements Ctx {
         if (saved[i] !== undefined) el.scrollTop = saved[i];
       });
     }
+    if (activeEdit !== null) this.docEdit.get(activeEdit.id)?.island?.restoreScroll();
+  }
+
+  /** The creation popover and the dirty-close prompt (WO-022, SRC-008). */
+  private editPopovers(): HTMLElement[] {
+    const out: HTMLElement[] = [];
+    const nd = this.state.newDoc;
+    if (nd !== null) {
+      const input = h('input', {
+        class: 'nd-title',
+        placeholder: 'Title',
+        value: nd.title,
+        onInput: (e) => {
+          // No render: the popover stays put while the user types.
+          nd.title = (e.target as HTMLInputElement).value;
+        },
+        onKeydown: (e) => {
+          if (e.key === 'Enter') this.submitNewDoc();
+        },
+      }) as HTMLInputElement;
+      queueMicrotask(() => input.focus());
+      const prefixes = { requirement: 'REQ', decision: 'DEC', 'work-order': 'WO', source: 'SRC' } as const;
+      const segs = (['requirement', 'decision', 'work-order', 'source'] as const).map((type) => {
+        const meta = TYPE_META[type];
+        const on = nd.type === type;
+        return h(
+          'span',
+          {
+            class: on ? 'nd-seg nd-seg-on' : 'nd-seg',
+            style: on ? `color:${meta.color};background:${tint(meta.color)};` : undefined,
+            onClick: () => this.update({ newDoc: { ...nd, title: input.value, type } }),
+          },
+          prefixes[type],
+        );
+      });
+      const style =
+        nd.anchor !== null
+          ? `top:${Math.min(nd.anchor.y, window.innerHeight - 220)}px;left:${Math.min(nd.anchor.x, window.innerWidth - 340)}px;`
+          : 'top:30%;left:calc(50% - 160px);';
+      out.push(
+        h(
+          'div',
+          { class: 'nd-pop', style, onClick: (e) => e.stopPropagation() },
+          h('div', { class: 'micro-label' }, 'NEW DOCUMENT'),
+          h('div', { class: 'nd-segs' }, ...segs),
+          input,
+          h(
+            'div',
+            { class: 'nd-acts' },
+            h('button', { class: 'nd-btn-ghost', onClick: () => this.update({ newDoc: null }) }, 'Cancel'),
+            h('button', { class: 'nd-btn-primary', onClick: () => this.submitNewDoc() }, 'Create'),
+          ),
+        ),
+      );
+    }
+    const cc = this.state.closeConfirm;
+    if (cc !== null) {
+      const style = `top:${cc.y}px;left:${Math.max(8, Math.min(cc.x - 120, window.innerWidth - 268))}px;`;
+      out.push(
+        h(
+          'div',
+          { class: 'cc-pop', style, onClick: (e) => e.stopPropagation() },
+          h('div', { class: 'cc-title' }, 'Unsaved changes'),
+          h('div', { class: 'cc-text' }, `${cc.id} has edits that aren't saved.`),
+          h(
+            'div',
+            { class: 'cc-acts' },
+            h('button', { class: 'nd-btn-ghost', onClick: () => this.update({ closeConfirm: null }) }, 'Cancel'),
+            h('button', { class: 'nd-btn-ghost', onClick: () => this.forceCloseTab(cc.id) }, 'Discard'),
+            h(
+              'button',
+              {
+                class: 'nd-btn-primary',
+                onClick: () => {
+                  this.update({ closeConfirm: null });
+                  this.saveEditor(cc.id, () => this.forceCloseTab(cc.id));
+                },
+              },
+              'Save',
+            ),
+          ),
+        ),
+      );
+    }
+    return out;
   }
 }
 

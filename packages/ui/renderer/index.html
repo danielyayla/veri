@@ -11,6 +11,8 @@
 </head>
 <body>
   <div id="app"></div>
-  <script type="module" src="../dist/renderer/app.js"></script>
+  <!-- Bundled by esbuild (DEC-021) so the CodeMirror packages resolve under
+       script-src 'self'; dist/renderer/app.js is the unbundled tsc input. -->
+  <script type="module" src="../dist/renderer/app.bundle.js"></script>
 </body>
 </html>

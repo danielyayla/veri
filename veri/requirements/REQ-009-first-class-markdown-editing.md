@@ -2,7 +2,8 @@
 id: REQ-009
 type: requirement
 title: First-class markdown editing in the desktop UI
-status: draft
+status: accepted
+approved: 2026-08-12
 created: 2026-08-12
 updated: 2026-08-12
 links:

@@ -2,7 +2,7 @@
 id: WO-004
 type: work-order
 title: Client manager
-status: backlog
+status: in-progress
 created: 2026-08-01
 updated: 2026-08-03
 links: []
@@ -10,8 +10,8 @@ links: []
 
 ## Summary
 
-Add, edit, and archive clients with locale and currency defaults. Needs a
-requirement written before an agent can take it.
+Add, edit, and archive clients with locale and currency defaults. Work has
+started without a requirement written — exactly what `veri check` flags.
 
 ## In scope
 

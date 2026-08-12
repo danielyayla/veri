@@ -15,7 +15,7 @@ function result(query: Partial<PaletteQuery>, hits: PaletteHit[]): PaletteResult
 test('typing a view name surfaces the view row among doc hits by score', () => {
   const rows = paletteRows(result({ text: 'board' }, [hit('WO-001', 62), hit('WO-002', 55)]));
   assert.deepEqual(
-    rows.map((r) => (r.kind === 'view' ? r.view : r.hit.id)),
+    rows.map((r) => (r.kind === 'view' ? r.view : r.kind === 'doc' ? r.hit.id : r.label)),
     ['WO-001', 'board', 'WO-002'],
   );
 });

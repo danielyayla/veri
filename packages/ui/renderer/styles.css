@@ -885,3 +885,152 @@ a:hover { color: #F49463; }
 .np-btn-primary:hover { background: #F0854F; border-color: #F0854F; }
 .np-btn:disabled { opacity: .5; cursor: default; }
 .np-disabled { opacity: .55; pointer-events: none; }
+
+/* ===== Direct editing (WO-022, SRC-008) ===== */
+
+/* Crumb rows that carry the read|edit toggle. */
+.crumb-row { width: 100%; }
+.mode-toggle {
+  margin-left: auto; display: flex; border: 1px solid var(--int-border);
+  border-radius: 6px; overflow: hidden;
+}
+.mode-seg {
+  font-family: var(--mono); font-size: 11px; padding: 3px 10px;
+  color: var(--muted); cursor: pointer; user-select: none;
+}
+.mode-seg-on { background: rgba(232,112,58,0.1); color: var(--ember-light); }
+
+/* Editor column: same geometry as the reader column, plus the status row. */
+.ed-col { display: flex; flex-direction: column; min-height: 0; height: 100%; padding-bottom: 0; }
+.ed-host { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: 14px; }
+.ed-host .cm-editor { flex: 1; min-height: 0; outline: none; }
+
+/* Amber warning banners: conflict, deleted, viewing-saved-version strip. */
+.ed-banner {
+  display: flex; align-items: center; gap: 10px; margin: 12px 0 0;
+  background: rgba(217,160,63,0.08); border: 1px solid #3A3020; border-radius: 8px;
+  padding: 9px 12px; font-size: 12px; color: var(--amber);
+}
+.ed-banner-strip { margin: 0 0 14px; }
+.ed-banner-acts { margin-left: auto; display: flex; gap: 8px; }
+.ed-banner-btn {
+  font: 500 11px var(--mono); padding: 4px 10px; border-radius: 6px;
+  border: 1px solid #3A3020; background: transparent; color: var(--amber); cursor: pointer;
+}
+.ed-banner-btn:hover { background: rgba(217,160,63,0.12); }
+
+/* Status row pinned to the bottom of the editor column. */
+.ed-status {
+  flex: 0 0 auto; height: 28px; display: flex; align-items: center; gap: 8px;
+  border-top: 1px solid var(--hair); font-family: var(--mono); font-size: 10.5px;
+  color: var(--faint);
+}
+.ed-status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ember); flex: 0 0 auto; }
+.ed-status-note { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ed-status-warn { color: var(--amber); }
+.ed-status-hints { margin-left: auto; font-size: 10px; color: var(--ghost); flex: 0 0 auto; }
+
+/* Tab dirty state: the ember dot sits where × was; hover swaps them back. */
+.tab-dirty-dot { display: none; width: 8px; height: 8px; border-radius: 50%; background: var(--ember); }
+.tab-dirty .tab-close .tab-close-x { display: none; }
+.tab-dirty .tab-close .tab-dirty-dot { display: inline-block; }
+.tab-dirty .tab-close:hover .tab-close-x { display: inline; }
+.tab-dirty .tab-close:hover .tab-dirty-dot { display: none; }
+
+/* Sidebar + (new document), visible on group-header hover. */
+.sb-add {
+  margin-left: auto; color: var(--ghost); font-size: 14px; line-height: 1;
+  padding: 1px 5px; border-radius: 4px; visibility: hidden; cursor: pointer;
+}
+.sb-group-head:hover .sb-add { visibility: visible; }
+.sb-add:hover { color: var(--text); background: var(--int-border); }
+
+/* New-document popover (type segments + title) and dirty-close prompt. */
+.nd-pop, .cc-pop {
+  position: fixed; z-index: 60; background: var(--pop); border: 1px solid var(--int-border);
+  border-radius: 8px; box-shadow: 0 12px 32px rgba(0,0,0,.5); padding: 14px; width: 320px;
+}
+.cc-pop { width: 260px; }
+.nd-segs { display: flex; border: 1px solid var(--int-border); border-radius: 6px; overflow: hidden; margin: 10px 0; }
+.nd-seg {
+  flex: 1; text-align: center; font-family: var(--mono); font-size: 11px;
+  padding: 5px 0; color: var(--muted); cursor: pointer; user-select: none;
+}
+.nd-title {
+  width: 100%; height: 34px; background: var(--bg); border: 1px solid var(--int-border);
+  border-radius: 6px; color: var(--text); font: 13px var(--sans); padding: 0 10px;
+  outline: none; margin-bottom: 10px;
+}
+.nd-title:focus { border-color: #8A4A2C; }
+.nd-acts, .cc-acts { display: flex; justify-content: flex-end; gap: 8px; }
+.nd-btn-primary {
+  font: 500 12px var(--sans); border: none; border-radius: 6px; padding: 7px 14px;
+  cursor: pointer; background: var(--ember); color: #16110D;
+}
+.nd-btn-primary:hover { background: var(--ember-light); }
+.nd-btn-ghost {
+  font: 500 12px var(--sans); border: none; border-radius: 6px; padding: 7px 10px;
+  cursor: pointer; background: transparent; color: var(--muted);
+}
+.nd-btn-ghost:hover { color: var(--text); }
+.cc-title { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.cc-text { font-size: 12px; color: var(--body-text); margin: 4px 0 10px; }
+
+/* ===== CodeMirror island (DEC-020): tokens per SRC-008 ===== */
+.cm-editor { background: transparent; }
+.cm-editor .cm-content {
+  font-family: var(--sans); font-size: 14.5px; line-height: 1.65;
+  color: var(--body-text); caret-color: var(--ember); padding: 4px 0 40px;
+}
+.cm-editor .cm-line { padding: 0 4px; }
+.cm-editor .cm-cursor { border-left-color: var(--ember); }
+.cm-editor .cm-scroller { overflow-y: auto; }
+.cm-editor .cm-selectionBackground,
+.cm-editor .cm-content ::selection { background: rgba(232,112,58,0.18) !important; }
+.cm-editor.cm-focused .cm-selectionBackground { background: rgba(232,112,58,0.18) !important; }
+.cm-editor .cm-activeLine { background: rgba(19,19,22,0.6); }
+
+/* Frontmatter machine zone; guarded lines ghosted (REQ-009 §4). */
+.cm-editor .cm-fm {
+  font-family: var(--mono); font-size: 12px; line-height: 1.7;
+  border-left: 2px solid var(--hair); padding-left: 10px;
+}
+.cm-editor .cm-fm-fence { color: var(--ghost); }
+.cm-editor .cm-fm-key { color: var(--muted); }
+.cm-editor .cm-fm-guarded, .cm-editor .cm-fm-guarded .cm-fm-key { color: var(--faint); }
+.cm-guard-flash { animation: guard-flash .3s ease-out; }
+@keyframes guard-flash {
+  0% { background: rgba(217,160,63,0.15); }
+  100% { background: transparent; }
+}
+
+/* [[ID]] wiki links: type-colored ids, faint brackets, amber unresolved. */
+.cm-wl-mark { color: var(--ghost); }
+.cm-wl { cursor: default; }
+.cm-wl-req { color: #7EA6C4; }
+.cm-wl-dec { color: #CFA83D; }
+.cm-wl-wo { color: var(--ember); }
+.cm-wl-src { color: #908BA8; }
+.cm-wl-wf { color: var(--green); }
+.cm-wl-bad { color: var(--amber); text-decoration: underline dashed; text-underline-offset: 3px; }
+
+/* [[ autocomplete popover on the app's popover tokens. */
+.cm-tooltip.cm-tooltip-autocomplete {
+  background: var(--pop); border: 1px solid var(--int-border); border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.5); padding: 4px;
+}
+.cm-tooltip-autocomplete > ul { font-family: var(--sans); max-height: 230px; }
+.cm-tooltip-autocomplete > ul > li { display: flex; align-items: baseline; gap: 9px; padding: 5px 9px; border-radius: 6px; }
+/* !important: CM's injected base theme lands after this sheet and would win
+   the specificity tie with its own selected-row blue. */
+.cm-tooltip-autocomplete > ul > li[aria-selected] { background: #1B1B20 !important; color: inherit !important; }
+.cm-tooltip-autocomplete .cm-completionLabel { font-family: var(--mono); font-size: 11px; flex: 0 0 auto; }
+.cm-tooltip-autocomplete .cm-completionDetail {
+  font-style: normal; font-size: 12.5px; color: var(--body-text); margin-left: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cm-ac-requirement .cm-completionLabel { color: #7EA6C4; }
+.cm-ac-decision .cm-completionLabel { color: #CFA83D; }
+.cm-ac-work-order .cm-completionLabel { color: var(--ember); }
+.cm-ac-source .cm-completionLabel { color: #908BA8; }
+.cm-ac-workflow .cm-completionLabel { color: var(--green); }

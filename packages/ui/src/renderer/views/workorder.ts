@@ -5,7 +5,7 @@ import { TYPE_META, fmtTokens, statusColor, tint } from '../theme.ts';
 import { plainText, sections } from '../markdown.ts';
 import type { Block } from '../markdown.ts';
 import { fileActivity, gatingDocs, receipts } from '../derive.ts';
-import { activityFeed, pinChip, renderBlocks } from '../widgets.ts';
+import { activityFeed, dirtyStrip, modeToggle, pinChip, renderBlocks } from '../widgets.ts';
 import type { Ctx } from '../app.ts';
 
 const STATUS_SEGMENTS: Array<{ status: string; label: string }> = [
@@ -373,10 +373,11 @@ export function workOrderView(ctx: Ctx): HTMLElement {
         { class: 'reader-col reader-col-wo' },
         h(
           'div',
-          { class: 'crumb' },
+          { class: 'crumb crumb-row' },
           h('span', {}, 'Work Orders'),
           h('span', { class: 'crumb-sep' }, '/'),
           h('span', { style: 'color:#E8703A;' }, doc.id),
+          modeToggle(ctx, doc.id),
         ),
         h(
           'div',
@@ -385,6 +386,7 @@ export function workOrderView(ctx: Ctx): HTMLElement {
           pinChip(ctx.state.pinned.includes(doc.id), () => ctx.togglePin(doc.id)),
           statusControl(ctx, doc),
         ),
+        dirtyStrip(ctx, doc.id),
         h(
           'div',
           { class: 'wo-meta' },

@@ -3,7 +3,7 @@ import { h } from '../dom.ts';
 import { TYPE_META } from '../theme.ts';
 import { parseBlocks } from '../markdown.ts';
 import { autocomplete, connections, fileActivity, insertAutocomplete } from '../derive.ts';
-import { activityFeed, idChip, pinChip, renderBlocks, statusChip, typeChip } from '../widgets.ts';
+import { activityFeed, dirtyStrip, idChip, modeToggle, pinChip, renderBlocks, statusChip, typeChip } from '../widgets.ts';
 import { reviewBanner } from './review.ts';
 import type { Ctx } from '../app.ts';
 
@@ -74,7 +74,7 @@ function noteEditor(ctx: Ctx): HTMLElement {
   return h('div', { class: 'note-wrap' }, popover, input);
 }
 
-function connectionsPanel(ctx: Ctx): HTMLElement {
+export function connectionsPanel(ctx: Ctx): HTMLElement {
   const doc = ctx.doc()!;
   const groups = connections(ctx.snap, doc.id);
   const card = (c: { id: string; title: string; type: keyof typeof TYPE_META; why: string }): HTMLElement =>
@@ -134,10 +134,11 @@ export function readerView(ctx: Ctx): HTMLElement {
         { class: 'reader-col' },
         h(
           'div',
-          { class: 'crumb' },
+          { class: 'crumb crumb-row' },
           h('span', {}, meta.crumb),
           h('span', { class: 'crumb-sep' }, '/'),
           h('span', { style: `color:${meta.color};` }, doc.id),
+          modeToggle(ctx, doc.id),
         ),
         h(
           'div',
@@ -145,6 +146,7 @@ export function readerView(ctx: Ctx): HTMLElement {
           h('h1', { class: 'doc-title' }, doc.title),
           pinChip(ctx.state.pinned.includes(doc.id), () => ctx.togglePin(doc.id)),
         ),
+        dirtyStrip(ctx, doc.id),
         banner,
         reviewBanner(ctx, doc),
         frontmatterCard(ctx),

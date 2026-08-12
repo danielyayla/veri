@@ -2,7 +2,8 @@
 id: DEC-020
 type: decision
 title: "CodeMirror 6 is the editor engine for first-class markdown editing"
-status: proposed
+status: active
+approved: 2026-08-12
 created: 2026-08-12
 updated: 2026-08-12
 links:
