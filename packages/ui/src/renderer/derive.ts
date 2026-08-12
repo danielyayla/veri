@@ -242,11 +242,12 @@ export function graphLayout(snap: Snapshot): GraphLayout {
     decision: { x: [40, 58], y: [12, 86] },
     'work-order': { x: [68, 86], y: [14, 80] },
     source: { x: [30, 64], y: [88, 90] },
+    workflow: { x: [30, 64], y: [5, 8] },
   };
 
   const nodes: GraphNode[] = [];
   const pos = new Map<string, { x: number; y: number }>();
-  for (const type of ['requirement', 'decision', 'work-order', 'source'] as const) {
+  for (const type of ['requirement', 'decision', 'work-order', 'source', 'workflow'] as const) {
     const docs = snap.documents.filter((d) => d.type === type).sort((a, b) => a.id.localeCompare(b.id));
     const band = bands[type];
     docs.forEach((d, i) => {

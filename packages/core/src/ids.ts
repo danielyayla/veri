@@ -1,13 +1,14 @@
-export const DOC_TYPES = ['requirement', 'decision', 'work-order', 'source'] as const;
+export const DOC_TYPES = ['requirement', 'decision', 'work-order', 'source', 'workflow'] as const;
 export type DocType = (typeof DOC_TYPES)[number];
 
-export const ID_RE = /^(REQ|DEC|WO|SRC)-\d{3}$/;
+export const ID_RE = /^(REQ|DEC|WO|SRC|WF)-\d{3}$/;
 
 const PREFIX_TO_TYPE: Record<string, DocType> = {
   REQ: 'requirement',
   DEC: 'decision',
   WO: 'work-order',
   SRC: 'source',
+  WF: 'workflow',
 };
 
 /** The document type an id's prefix implies, or undefined for a malformed id. */
@@ -16,7 +17,7 @@ export function typeOfId(id: string): DocType | undefined {
   return prefix ? PREFIX_TO_TYPE[prefix] : undefined;
 }
 
-const INLINE_REF_RE = /\[\[((?:REQ|DEC|WO|SRC)-\d{3})\]\]/g;
+const INLINE_REF_RE = /\[\[((?:REQ|DEC|WO|SRC|WF)-\d{3})\]\]/g;
 
 /** All [[ID]] references in a body, deduplicated, in order of first appearance. */
 export function extractInlineRefs(body: string): string[] {

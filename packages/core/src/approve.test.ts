@@ -64,8 +64,23 @@ test('approve refuses documents that are not pending', async (t) => {
 
 test('approve refuses non-approvable types and unknown ids', async (t) => {
   const dir = sandbox(t);
-  await assert.rejects(() => approveDocument(dir, 'WO-001'), /is a work-order — only requirements and decisions/);
+  await assert.rejects(() => approveDocument(dir, 'WO-001'), /is a work-order — only requirements, decisions and workflows/);
   await assert.rejects(() => approveDocument(dir, 'REQ-999'), /no document with id REQ-999/);
+});
+
+test('approving a draft workflow makes it accepted (DEC-018)', async (t) => {
+  const dir = sandbox(t);
+  const result = await approveDocument(dir, 'WF-001', '2026-08-12');
+  assert.deepEqual(result, {
+    id: 'WF-001',
+    file: 'workflow.md',
+    from: 'draft',
+    to: 'accepted',
+    approved: '2026-08-12',
+  });
+  const after = readFileSync(join(dir, 'workflow.md'), 'utf8');
+  assert.match(after, /^status: accepted$/m);
+  assert.match(after, /^approved: 2026-08-12$/m);
 });
 
 test('approve refuses a document with outstanding check issues', async (t) => {

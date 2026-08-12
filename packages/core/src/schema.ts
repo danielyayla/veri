@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ID_RE, typeOfId } from './ids.ts';
 
-const idField = z.string().regex(ID_RE, 'must be REQ-, DEC-, WO- or SRC- plus a zero-padded 3-digit number (e.g. REQ-001)');
+const idField = z.string().regex(ID_RE, 'must be REQ-, DEC-, WO-, SRC- or WF- plus a zero-padded 3-digit number (e.g. REQ-001)');
 const dateField = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a YYYY-MM-DD date');
 
 const linkSchema = z
@@ -47,8 +47,18 @@ const sourceSchema = z
   .object({ ...baseFields, type: z.literal('source'), status: z.literal('imported') })
   .passthrough();
 
+// The project workflow document (DEC-018): same lifecycle as a requirement.
+const workflowSchema = z
+  .object({
+    ...baseFields,
+    type: z.literal('workflow'),
+    status: z.enum(['draft', 'accepted', 'retired']),
+    approved: dateField.optional(),
+  })
+  .passthrough();
+
 export const frontmatterSchema = z
-  .discriminatedUnion('type', [requirementSchema, decisionSchema, workOrderSchema, sourceSchema])
+  .discriminatedUnion('type', [requirementSchema, decisionSchema, workOrderSchema, sourceSchema, workflowSchema])
   .superRefine((fm, ctx) => {
     const implied = typeOfId(fm.id);
     if (implied && implied !== fm.type) {

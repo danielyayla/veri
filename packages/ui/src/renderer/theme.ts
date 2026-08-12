@@ -14,6 +14,7 @@ export const TYPE_META: Record<DocType, TypeMeta> = {
   decision: { color: '#CFA83D', label: 'decision', crumb: 'Decisions', group: 'DECISIONS' },
   'work-order': { color: '#E8703A', label: 'work order', crumb: 'Work Orders', group: 'WORK ORDERS' },
   source: { color: '#908BA8', label: 'source', crumb: 'Sources', group: 'SOURCES' },
+  workflow: { color: '#7FAF8A', label: 'workflow', crumb: 'Workflow', group: 'WORKFLOW' },
 };
 
 export const STATUS_COLORS: Record<string, string> = {

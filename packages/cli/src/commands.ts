@@ -17,6 +17,8 @@ const SUBDIR: Record<DocType, string> = {
   decision: 'decisions',
   'work-order': 'work-orders',
   source: 'sources',
+  // The workflow lives at the veri/ root — one per project, no collection dir.
+  workflow: '',
 };
 
 const PREFIX: Record<DocType, string> = {
@@ -24,6 +26,7 @@ const PREFIX: Record<DocType, string> = {
   decision: 'DEC',
   'work-order': 'WO',
   source: 'SRC',
+  workflow: 'WF',
 };
 
 const TYPE_LIST = DOC_TYPES.join(' | ');
@@ -43,13 +46,12 @@ export function init(cwd: string, opts: { demo: boolean }): CmdResult {
     }
     throw err;
   }
-  if (!opts.demo) {
-    return { code: 0, lines: ['Initialized veri/ with requirements/, decisions/, work-orders/, sources/.'] };
-  }
-  const lines = [`Installed the skiff demo project: ${result.docCount} documents in veri/.`];
+  const lines = opts.demo
+    ? [`Installed the skiff demo project: ${result.docCount} documents in veri/.`]
+    : ['Initialized veri/ with requirements/, decisions/, work-orders/, sources/, and the default workflow (veri/workflow.md).'];
   for (const extra of result.filesWritten) lines.push(`Wrote ${extra}.`);
   for (const extra of result.filesSkipped) lines.push(`Skipped ${extra} — one already exists here.`);
-  lines.push('veri check reports 2 deliberate issues here — the demo README explains them.');
+  if (opts.demo) lines.push('veri check reports 2 deliberate issues here — the demo README explains them.');
   return { code: 0, lines };
 }
 

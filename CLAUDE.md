@@ -8,31 +8,11 @@ This repo is self-hosted: Veri is built by executing Veri work orders.
 
 ## How to work in this repo
 
-1. Never start coding from a chat prompt alone. Find the relevant work order
-   in `veri/work-orders/`. If none exists, say so and propose one.
-2. Before implementing a work order, read every document it links to
-   (requirements, decisions) in full. Respect linked decisions — if you
-   believe a decision is wrong, stop and say so instead of silently
-   deviating.
-3. Stay inside the work order's "In scope" section. Anything in
-   "Out of scope" is forbidden, even if it seems easy or obvious.
-4. When you make a non-trivial technical choice during implementation
-   (library selection, algorithm, schema shape), file it as a new decision
-   in `veri/decisions/` using the next free DEC id, status `proposed`,
-   with the alternatives you rejected. Never promote a document yourself:
-   `active`/`accepted` (with the `approved:` stamp) is the user's act,
-   via `veri approve` or the app (see REQ-008).
-5. When you finish a work session on a work order, append a receipt to the
-   work order file under `## Receipts`: date, commit SHA, files touched,
-   one-line summary. A work order is `done` only when all acceptance
-   criteria are checked AND at least one receipt exists.
-6. Run `veri check` (once WO-002 is done) before declaring any work
-   complete. Zero issues is the bar.
-7. Any work order touching `packages/ui` must link a design document
-   (`rel: designed-by`) before implementation (see DEC-012). If none
-   exists, produce the design first with Claude Design, commit it as a
-   `source` document in `veri/`, and stop for user approval before
-   writing code.
+The workflow is a first-class document: `veri/workflow.md` (WF-001,
+per DEC-018). It arrives as the first section of every context
+package — read it and follow it. In short: work order first, read
+every linked document, stay in scope, file choices as proposed
+decisions, append receipts, `veri check` before done.
 
 ## Document format
 

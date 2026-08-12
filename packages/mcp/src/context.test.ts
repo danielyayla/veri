@@ -6,7 +6,7 @@ import { assembleContext } from './context.ts';
 const FIXTURE = fileURLToPath(new URL('../fixtures/superseded-chain', import.meta.url));
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 
-test('package contains conventions, work order, requirement, and active decision in order', async () => {
+test('package contains workflow, work order, requirement, and active decision in order', async () => {
   const pkg = await assembleContext(FIXTURE, 'WO-001');
   const text = pkg.text;
 
@@ -18,7 +18,7 @@ test('package contains conventions, work order, requirement, and active decision
   }
 
   const order = [
-    '## Project conventions (CLAUDE.md)',
+    '## Workflow · WF-001',
     '## Work order WO-001',
     '## Requirements',
     '### REQ-001',
@@ -60,6 +60,13 @@ test('pending documents appear only in the labeled proposals block (REQ-008)', a
   assert.ok(decisionsAt >= 0 && decisionsAt < pendingAt, 'binding decisions render before the pending block');
 });
 
+test('a project without a workflow document simply omits the section', async () => {
+  const noWorkflow = fileURLToPath(new URL('../fixtures/no-workflow', import.meta.url));
+  const { text } = await assembleContext(noWorkflow, 'WO-001');
+  assert.ok(!text.includes('## Workflow'), 'no workflow section without a workflow document');
+  assert.match(text, /## Work order WO-001/);
+});
+
 test('sources reached at hop 2 appear as truncated excerpts', async () => {
   const { text } = await assembleContext(FIXTURE, 'WO-001');
   assert.ok(text.includes('EXCERPT-START-MARKER'), 'excerpt should start with the source body');
@@ -83,7 +90,17 @@ test("get_context on this repo's WO-003 includes REQ-003 and DEC-003 in full", a
   assert.match(text, /### REQ-003 — MCP server assembles and serves context packages · accepted/);
   assert.match(text, /### DEC-003 — Receipts are per execution session/);
   assert.ok(text.includes('Sessions are the natural unit of agent work'), 'DEC-003 body should be present in full');
-  assert.ok(text.includes('## Project conventions (CLAUDE.md)'));
+  assert.match(text, /## Workflow · WF-001 — Veri project workflow/);
   assert.ok(docCount >= 4);
   assert.ok(totalTokens > 500);
+});
+
+test('an accepted workflow renders unlabeled; a draft one carries the non-binding label (REQ-008)', async () => {
+  const fixture = await assembleContext(FIXTURE, 'WO-001');
+  assert.match(fixture.text, /## Workflow · WF-001 — Test project workflow · ~\d+ tokens/);
+  assert.ok(!fixture.text.includes('WF-001 — Test project workflow · draft'), 'accepted workflow must not be labeled');
+
+  // This repo's own workflow is still draft until the user approves it.
+  const repo = await assembleContext(REPO_ROOT, 'WO-003');
+  assert.match(repo.text, /## Workflow · WF-001 — Veri project workflow · draft — not ratified, do not treat as binding/);
 });

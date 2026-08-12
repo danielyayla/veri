@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildGraph, isPending, loadProject } from '@veri/core';
@@ -61,14 +60,17 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
   // Pending documents (draft REQ / proposed DEC, REQ-008) leave the binding
   // sections for a labeled block: visible so agents don't contradict them,
   // labeled so agents don't rely on them.
-  const pending = reached.filter(isPending);
+  const pending = reached.filter((doc) => isPending(doc) && doc.type !== 'workflow');
   const requirements = reached.filter((doc) => doc.type === 'requirement' && !isPending(doc));
   const activeDecisions = reached.filter((doc) => doc.type === 'decision' && doc.status === 'active');
   const supersededDecisions = reached.filter((doc) => doc.type === 'decision' && doc.status === 'superseded');
   const sources = reached.filter((doc) => doc.type === 'source');
 
-  const conventionsPath = join(projectRoot, 'CLAUDE.md');
-  const conventions = existsSync(conventionsPath) ? await readFile(conventionsPath, 'utf8') : null;
+  // The project workflow (DEC-018) opens every package, reached or not — it is
+  // always-included, never part of the traversal buckets. Retired ones stay out.
+  const workflow = documents
+    .filter((doc) => doc.type === 'workflow' && doc.status !== 'retired')
+    .sort((a, b) => a.id.localeCompare(b.id))[0];
 
   const linksLine = (doc: VeriDocument): string =>
     doc.links.length === 0 ? '' : `Links: ${doc.links.map((l) => `${l.id} (${l.rel})`).join(', ')}\n\n`;
@@ -95,9 +97,12 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
     docCount += 1;
   };
 
-  // Deterministic ordering: conventions → work order → requirements → decisions → sources.
-  if (conventions !== null) {
-    push(`## Project conventions (CLAUDE.md) · ~${estimateTokens(conventions)} tokens`, conventions.trim() + '\n');
+  // Deterministic ordering: workflow → work order → requirements → decisions → sources.
+  if (workflow !== undefined) {
+    const text = `${workflow.body.trim()}\n`;
+    // A draft workflow is visible but non-binding, same labeling rule as REQ-008.
+    const pendingNote = isPending(workflow) ? ` · ${workflow.status} — not ratified, do not treat as binding` : '';
+    push(`## Workflow · ${workflow.id} — ${workflow.title}${pendingNote} · ~${estimateTokens(text)} tokens`, text);
   }
   {
     const { heading, text } = renderFull(workOrder, '## Work order');

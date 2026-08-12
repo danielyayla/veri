@@ -11,6 +11,7 @@ const LIVING: Record<DocType, string[] | null> = {
   decision: ['proposed', 'active'],
   'work-order': ['backlog', 'in-progress'],
   source: null,
+  workflow: ['draft', 'accepted'],
 };
 
 /** What a section's dead docs are called in its footer expander. */
@@ -19,6 +20,7 @@ export const DEAD_LABEL: Record<DocType, string> = {
   decision: 'superseded',
   'work-order': 'done',
   source: '',
+  workflow: 'retired',
 };
 
 export function isLiving(doc: VeriDocument): boolean {

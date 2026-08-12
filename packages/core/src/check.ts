@@ -79,7 +79,8 @@ export function checkWorkOrderRequirements(documents: VeriDocument[]): Issue[] {
 export function isPending(doc: VeriDocument): boolean {
   return (
     (doc.type === 'requirement' && doc.status === 'draft') ||
-    (doc.type === 'decision' && doc.status === 'proposed')
+    (doc.type === 'decision' && doc.status === 'proposed') ||
+    (doc.type === 'workflow' && doc.status === 'draft')
   );
 }
 
@@ -112,7 +113,8 @@ export function checkApprovalStamps(documents: VeriDocument[]): Issue[] {
   for (const doc of documents) {
     const promoted =
       (doc.type === 'requirement' && doc.status === 'accepted') ||
-      (doc.type === 'decision' && doc.status === 'active');
+      (doc.type === 'decision' && doc.status === 'active') ||
+      (doc.type === 'workflow' && doc.status === 'accepted');
     if (promoted && doc.approved === undefined) {
       issues.push({
         kind: 'missing-approval',

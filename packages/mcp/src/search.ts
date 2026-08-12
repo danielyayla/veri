@@ -41,6 +41,7 @@ const TYPE_PREFIX: Record<string, DocType> = {
   dec: 'decision',
   wo: 'work-order',
   src: 'source',
+  wf: 'workflow',
 };
 
 /** `is:active` means living (SRC-005: lifecycle is the scale lever). */

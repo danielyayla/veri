@@ -31,7 +31,7 @@ test('init && new requirement && check succeeds end-to-end in a temp directory',
 
   const checked = await check(cwd);
   assert.equal(checked.code, 0, checked.lines.join('\n'));
-  assert.match(checked.lines[0] ?? '', /ok — 1 documents, 0 issues/);
+  assert.match(checked.lines[0] ?? '', /ok — 2 documents, 0 issues/); // WF-001 + REQ-001
 });
 
 test('new documents are born unapproved and veri approve promotes them with a stamp', async (t) => {
@@ -96,7 +96,7 @@ test('init --demo installs skiff; check reports exactly the 2 intended issues', 
   assert.ok(existsSync(join(cwd, 'CLAUDE.md')), 'demo CLAUDE.md should be installed');
 
   const listed = await list(cwd, undefined);
-  assert.equal(listed.lines.length, 16, listed.lines.join('\n'));
+  assert.equal(listed.lines.length, 17, listed.lines.join('\n'));
   assert.match(listed.lines.join('\n'), /WO-002 {3}in-progress {2}PDF export pipeline/);
 
   const checked = await check(cwd);
@@ -160,7 +160,7 @@ test('list prints id, status, title sorted by id', async (t) => {
   assert.equal(all.code, 0);
   assert.deepEqual(
     all.lines.map((line) => line.split(/\s+/)[0]),
-    ['DEC-001', 'REQ-001'],
+    ['DEC-001', 'REQ-001', 'WF-001'],
   );
   assert.match(all.lines[1] ?? '', /^REQ-001\s+draft\s+Zebra$/);
   const filtered = await list(cwd, 'decision');

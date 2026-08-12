@@ -17,6 +17,7 @@ export interface ApproveResult {
 const PROMOTION: Record<string, { from: string; to: string }> = {
   requirement: { from: 'draft', to: 'accepted' },
   decision: { from: 'proposed', to: 'active' },
+  workflow: { from: 'draft', to: 'accepted' },
 };
 
 /**
@@ -40,7 +41,7 @@ export async function approveDocument(
 
   const promotion = PROMOTION[doc.type];
   if (promotion === undefined) {
-    throw new Error(`${wanted} is a ${doc.type} — only requirements and decisions are approved`);
+    throw new Error(`${wanted} is a ${doc.type} — only requirements, decisions and workflows are approved`);
   }
   if (doc.status !== promotion.from) {
     throw new Error(`nothing to approve — ${wanted} is ${doc.status}, not ${promotion.from}`);

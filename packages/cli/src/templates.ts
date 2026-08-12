@@ -8,6 +8,7 @@ export const INITIAL_STATUS: Record<DocType, string> = {
   decision: 'proposed',
   'work-order': 'backlog',
   source: 'imported',
+  workflow: 'draft',
 };
 
 const REQUIREMENT_BODY = `
@@ -63,9 +64,25 @@ const SOURCE_BODY = `
 (Imported source. Paste or link the original material.)
 `;
 
+// Projects normally get their workflow from the scaffold (DEC-018); this
+// template exists so a hand-created replacement starts with the right shape.
+const WORKFLOW_BODY = `
+(How work moves through this project: sources → requirements and
+decisions → work orders → implementation with receipts.)
+
+## The path of work
+
+1. (First stage)
+
+## Rules for implementers
+
+1. (First rule)
+`;
+
 export const BODY_TEMPLATES: Record<DocType, string> = {
   requirement: REQUIREMENT_BODY,
   decision: DECISION_BODY,
   'work-order': WORK_ORDER_BODY,
   source: SOURCE_BODY,
+  workflow: WORKFLOW_BODY,
 };

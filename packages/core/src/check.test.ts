@@ -71,6 +71,14 @@ const CASES: BrokenCase[] = [
     dir: 'missing-approval',
     expected: [{ kind: 'missing-approval', id: 'DEC-001', file: 'decisions/DEC-001-unstamped.md' }],
   },
+  {
+    dir: 'workflow-missing-approval',
+    expected: [{ kind: 'missing-approval', id: 'WF-001', file: 'workflow.md' }],
+  },
+  {
+    dir: 'gated-wo-workflow',
+    expected: [{ kind: 'gated-wo', id: 'WO-001', targetId: 'WF-001', targetStatus: 'draft' }],
+  },
 ];
 
 for (const { dir, expected } of CASES) {
