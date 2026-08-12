@@ -2,7 +2,7 @@
 id: WO-021
 type: work-order
 title: Default workflow document and harness pointer files
-status: in-progress
+status: done
 created: 2026-08-12
 updated: 2026-08-12
 links:
@@ -73,14 +73,25 @@ package; harness entry files become generated pointers.
 
 ## Acceptance criteria
 
-- [ ] `veri check` passes on a scaffolded project containing the
+- [x] `veri check` passes on a scaffolded project containing the
       default `workflow.md` and on this repo after the split.
-- [ ] A scaffolded project's context package opens with the workflow
+- [x] A scaffolded project's context package opens with the workflow
       section; a project without one omits it (no failure).
-- [ ] `AGENTS.md` and `CLAUDE.md` pointers are written on scaffold
+- [x] `AGENTS.md` and `CLAUDE.md` pointers are written on scaffold
       and never overwrite existing files.
-- [ ] The default workflow text names no harness, vendor, or model.
-- [ ] Approval gate applies: a draft workflow renders with the
+- [x] The default workflow text names no harness, vendor, or model.
+- [x] Approval gate applies: a draft workflow renders with the
       pending label in packages.
 
 ## Receipts
+
+- 2026-08-12 · cceb463 · packages/core (ids, schema, parse, check,
+  approve, scaffold, workflow-default + tests/fixtures), packages/cli
+  (templates, commands, demo fixture + tests), packages/mcp (context,
+  search + tests/fixtures), packages/ui (mechanical type-completion in
+  theme/sidebar/derive), CLAUDE.md, veri/workflow.md · Workflow became
+  a first-class document delivered first in every context package;
+  scaffolds install the default plus AGENTS.md/CLAUDE.md pointers.
+  All 167 tests pass; veri check clean. Note: DEC-019 (default ships
+  accepted) is proposed and awaits review; WF-001 for this repo is
+  draft pending `veri approve WF-001`.
