@@ -2,7 +2,7 @@
 id: WO-022
 type: work-order
 title: First-class markdown editing — edit mode, guards, and creation flow
-status: in-progress
+status: done
 created: 2026-08-12
 updated: 2026-08-12
 links:
@@ -106,3 +106,7 @@ Per [[DEC-012]] this work order links its design (`rel: designed-by`,
       and status row behave per SRC-008.
 - [x] New unit tests pass; `npm test` green; `veri check` zero issues;
       no network calls.
+
+## Receipts
+
+- 2026-08-12 — 826bbd1 — packages/core/src/{save.ts,save.test.ts,create.ts,create.test.ts,check.ts,index.ts}, packages/cli/src/{commands.ts,templates.ts}, packages/cli/demo+fixtures, packages/ui/src/{main.ts,preload.mts}, packages/ui/src/renderer/{editor.ts,editlogic.ts,editlogic.test.ts,app.ts,api.ts,widgets.ts,views/editor.ts,views/reader.ts,views/workorder.ts}, packages/ui/renderer/{index.html,styles.css}, packages/ui/package.json — CM6 edit mode with guarded frontmatter, ⌘S save via core's shared write path, external-change reconciliation, [[ autocomplete, and the ⌘N/sidebar-+ creation flow; all acceptance tests exercised live via the screenshot harness, 188 tests green, veri check clean (agent session, Claude Code)
