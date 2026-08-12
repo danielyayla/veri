@@ -2,7 +2,8 @@
 id: DEC-021
 type: decision
 title: "esbuild bundles the renderer so CodeMirror ships under the app CSP"
-status: proposed
+status: active
+approved: 2026-08-12
 created: 2026-08-12
 updated: 2026-08-12
 links:

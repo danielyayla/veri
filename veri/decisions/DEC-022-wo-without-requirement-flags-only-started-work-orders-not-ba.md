@@ -2,7 +2,8 @@
 id: DEC-022
 type: decision
 title: "wo-without-requirement flags only started work orders, not backlog"
-status: proposed
+status: active
+approved: 2026-08-12
 created: 2026-08-12
 updated: 2026-08-12
 links:
