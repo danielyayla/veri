@@ -2,7 +2,8 @@
 id: DEC-026
 type: decision
 title: "Design-gate exemptions are designed-by links to note-style source documents"
-status: proposed
+status: active
+approved: 2026-08-13
 created: 2026-08-13
 updated: 2026-08-13
 links:
