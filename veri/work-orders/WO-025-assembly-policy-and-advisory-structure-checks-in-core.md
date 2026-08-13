@@ -2,7 +2,7 @@
 id: WO-025
 type: work-order
 title: Assembly policy and advisory structure checks in core
-status: in-progress
+status: done
 created: 2026-08-13
 updated: 2026-08-13
 links:
@@ -86,20 +86,26 @@ and [[DEC-002]] (no caching — structure follows the file on disk).
 
 ## Acceptance tests
 
-- [ ] Assembly policy lives as data in core; `get_context` output for
+- [x] Assembly policy lives as data in core; `get_context` output for
       this repo's work orders is byte-identical before and after
-- [ ] A document missing a `##` section its type's template has is
+- [x] A document missing a `##` section its type's template has is
       reported as an advisory with file and one-line message
-- [ ] Advisories never change the issue count or `veri check`'s exit
+- [x] Advisories never change the issue count or `veri check`'s exit
       code; a project with advisories still reports `0 issues`
-- [ ] A project with a customized template is checked against its own
+- [x] A project with a customized template is checked against its own
       headings — the built-in sections stop applying
-- [ ] A template with no `##` headings produces no structure
+- [x] A template with no `##` headings produces no structure
       advisories for its type
-- [ ] `veri check` on this repo: 0 issues, 0 advisories (backfill or
+- [x] `veri check` on this repo: 0 issues, 0 advisories (backfill or
       template adjustments included in this work order)
-- [ ] `npm test` passes with the new colocated coverage
+- [x] `npm test` passes with the new colocated coverage
 
 ## Receipts
 
-(none yet)
+- 2026-08-13 — commit 5d6c1e8 — packages/core/src/{schema,check,load,types,approve}.ts,
+  packages/mcp/src/context.ts, packages/cli/src/commands.ts,
+  packages/ui/src/lib/snapshot.ts, packages/cli/demo/veri/templates/workflow.md,
+  19 backfilled veri/ documents, colocated tests — assembly policy promoted to
+  core data (get_context byte-identical across WO-001/022/023/024/025),
+  template-derived structure checks at advisory severity, `veri check` two-tier
+  output; repo and demo advisory-clean; 205 tests pass.
