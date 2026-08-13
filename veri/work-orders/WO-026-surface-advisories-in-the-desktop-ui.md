@@ -16,6 +16,8 @@ links:
     rel: constrained-by
   - id: WO-025
     rel: depends-on
+  - id: SRC-010
+    rel: designed-by
 ---
 
 ## Summary

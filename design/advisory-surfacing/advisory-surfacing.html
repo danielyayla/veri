@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veri — advisory surfacing prototype</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --bg: #0F0F11; --panel: #131316; --card: #151519; --card2: #18181D;
+  --hair: #1E1E24; --border: #1F1F24; --border2: #26262C; --hover: #1B1B20;
+  --t1: #E7E4DE; --t2: #C9C6CF; --t3: #A09DA6; --t4: #8B8893; --t5: #6E6B76; --t6: #55525E;
+  --ember: #E8703A; --ember2: #F0A87E; --ok: #7FAF8A; --warn: #D9A03F;
+  --req: #7EA6C4; --dec: #CFA83D; --wo: #E8703A; --src: #908BA8;
+  --sans: "Source Sans 3", -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--t2); font-family: var(--sans); font-size: 14px; height: 100vh; overflow: hidden; }
+
+/* ---- shell ---- */
+.topbar { height: 44px; background: var(--panel); border-bottom: 1px solid var(--hair); display: flex; align-items: center; padding: 0 14px; gap: 10px; }
+.logo { width: 18px; height: 18px; background: var(--ember); border-radius: 4px; color: #14100D; font: 600 12px/18px var(--mono); text-align: center; }
+.wordmark { font: 600 13px var(--sans); color: var(--t1); }
+.slash { color: var(--t6); }
+.proj { font: 400 12px var(--mono); color: var(--t3); }
+.search { margin-left: auto; margin-right: auto; width: 340px; height: 26px; border: 1px solid var(--border2); border-radius: 6px; background: var(--bg); display: flex; align-items: center; padding: 0 8px; gap: 8px; color: var(--t6); font-size: 12px; }
+.kbd { margin-left: auto; font: 500 10px var(--mono); border: 1px solid var(--border2); border-radius: 4px; padding: 1px 5px; color: var(--t5); }
+.chips { display: flex; gap: 8px; align-items: center; }
+.tb-health { display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 10px; border-radius: 6px; background: rgba(217,160,63,0.08); border: 1px solid #3A3020; font: 500 11px var(--mono); color: var(--warn); cursor: pointer; }
+.tb-health-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--warn); }
+.tb-git { display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--border2); font: 400 11px var(--mono); color: var(--t4); }
+
+.shell { display: flex; height: calc(100vh - 44px); }
+.sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--hair); padding: 12px 8px; overflow-y: auto; flex-shrink: 0; }
+.nav-row { display: flex; align-items: center; gap: 9px; height: 28px; padding: 0 10px; border-radius: 6px; font-size: 13px; color: var(--t3); cursor: pointer; }
+.nav-row:hover { background: var(--hover); }
+.nav-row.active { background: rgba(232,112,58,0.09); color: var(--ember2); }
+.nav-glyph { width: 14px; text-align: center; font-size: 12px; }
+.divider { height: 1px; background: var(--hair); margin: 10px 4px; }
+.group-h { display: flex; align-items: center; gap: 7px; padding: 8px 10px 4px; font: 500 10px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--t5); }
+.swatch { width: 7px; height: 7px; border-radius: 2px; }
+.count { margin-left: auto; color: var(--t6); }
+.sb-row { display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 10px; border-radius: 6px; cursor: pointer; }
+.sb-row:hover { background: var(--hover); }
+.sb-row.active { background: rgba(232,112,58,0.09); }
+.sb-id { font: 500 10.5px var(--mono); flex-shrink: 0; }
+.sb-title { font-size: 12.5px; color: var(--t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.sb-health { width: 5px; height: 5px; border-radius: 50%; background: var(--warn); flex-shrink: 0; }
+/* THE advisory idiom: hollow ring — grey border, no fill */
+.ring { width: 5px; height: 5px; border-radius: 50%; border: 1px solid var(--t5); flex-shrink: 0; }
+.sb-done { color: var(--ok); font-size: 10px; flex-shrink: 0; }
+.mcp-foot { margin-top: 14px; padding: 8px 10px; display: flex; align-items: center; gap: 7px; font: 400 10px var(--mono); color: var(--t5); }
+.pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); animation: pulse 3s ease infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+.main { flex: 1; overflow-y: auto; }
+
+/* ---- home ---- */
+.home { max-width: 760px; margin: 0 auto; padding: 30px 40px 80px; }
+.home h1 { font: 600 20px var(--sans); color: var(--t1); margin-bottom: 4px; }
+.home-sub { font-size: 13px; color: var(--t4); margin-bottom: 24px; }
+.hv-card { border: 1px solid var(--border); border-radius: 9px; background: var(--card); margin-bottom: 16px; }
+.hv-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--hair); }
+.hv-dot { width: 6px; height: 6px; border-radius: 50%; }
+.hv-label { font: 500 10px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--t4); }
+.hv-meta { margin-left: auto; font: 500 11px var(--mono); }
+.hv-meta .adv-count { color: var(--t5); font-weight: 400; }
+.hv-empty { padding: 14px 16px; font-size: 13px; color: var(--t5); }
+.hv-row { display: flex; align-items: center; gap: 10px; padding: 9px 16px; cursor: pointer; border-bottom: 1px solid var(--hair); }
+.hv-row:last-child { border-bottom: none; }
+.hv-row:hover { background: var(--hover); }
+.hv-kind { font: 500 10px var(--mono); color: var(--warn); background: rgba(217,160,63,0.08); border: 1px solid #3A3020; border-radius: 4px; padding: 2px 7px; flex-shrink: 0; }
+.hv-id { font: 500 11px var(--mono); flex-shrink: 0; }
+.hv-msg { font-size: 12.5px; color: var(--t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* advisory sub-tier */
+.adv-divider { height: 1px; background: var(--hair); }
+.adv-label { display: flex; align-items: center; gap: 8px; padding: 10px 16px 4px; font: 500 9.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--t5); }
+.adv-row { display: flex; align-items: center; gap: 10px; padding: 7px 16px; cursor: pointer; }
+.adv-row:hover { background: var(--hover); }
+.adv-kind { font: 400 10px var(--mono); color: var(--t5); border: 1px solid var(--border2); border-radius: 4px; padding: 2px 7px; flex-shrink: 0; }
+.adv-msg { font-size: 12px; color: var(--t4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adv-pad { padding-bottom: 8px; }
+
+/* ---- reader ---- */
+.reader { max-width: 720px; margin: 0 auto; padding: 30px 40px 80px; }
+.crumb { font: 400 11px var(--mono); color: var(--t5); margin-bottom: 10px; display: flex; gap: 7px; }
+.doc-title { font: 600 24px var(--sans); color: var(--t1); margin-bottom: 16px; }
+.warn-banner { display: flex; align-items: center; gap: 10px; background: rgba(217,160,63,0.07); border: 1px solid #3A3020; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: var(--t2); }
+.warn-tag { font: 500 10.5px var(--mono); color: var(--warn); flex-shrink: 0; }
+.fm-card { border: 1px solid var(--border); border-radius: 8px; background: var(--card); padding: 6px 0; margin-bottom: 6px; }
+.fm-row { display: flex; align-items: center; height: 28px; padding: 0 16px; }
+.fm-key { width: 110px; font: 400 11px var(--mono); color: var(--t6); flex-shrink: 0; }
+.fm-val { font-size: 13px; color: var(--t2); }
+.chip { font: 500 10.5px var(--mono); border-radius: 4px; padding: 2px 8px; }
+/* the advisory strip: after frontmatter, before body — no box, no banner */
+.adv-strip { margin: 6px 0 10px; }
+.adv-line { display: flex; align-items: center; gap: 9px; padding: 4px 2px; font: 400 11px var(--mono); color: var(--t4); }
+.adv-line .ring { margin: 0 1px; }
+.adv-tpl { margin-left: auto; color: var(--t6); cursor: pointer; flex-shrink: 0; }
+.adv-tpl:hover { color: var(--t4); }
+.body { padding-top: 14px; }
+.body h2 { font: 600 15px var(--sans); color: var(--t1); margin: 22px 0 10px; }
+.body p, .body li { font-size: 14.5px; line-height: 1.65; color: var(--t2); }
+.body ul { padding-left: 22px; margin: 8px 0; }
+.wiki { font: 500 11.5px var(--mono); border-radius: 4px; padding: 1px 6px; cursor: pointer; }
+
+/* ---- prototype chrome ---- */
+.demo { position: fixed; right: 18px; bottom: 18px; background: #1A1A1F; border: 1px solid var(--border2); border-radius: 8px; padding: 12px 14px; box-shadow: 0 12px 32px rgba(0,0,0,.5); z-index: 10; width: 250px; }
+.demo-h { font: 500 9.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--t5); margin-bottom: 8px; }
+.demo label { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--t3); cursor: pointer; }
+.demo-note { font-size: 11px; color: var(--t5); margin-top: 8px; line-height: 1.5; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #1A1A1F; border: 1px solid var(--border2); border-radius: 7px; padding: 8px 14px; font: 400 11.5px var(--mono); color: var(--t3); box-shadow: 0 12px 32px rgba(0,0,0,.5); opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; }
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">v</div><span class="wordmark">Veri</span><span class="slash">/</span><span class="proj">skiff</span>
+  <div class="search">Search docs…<span class="kbd">⌘K</span></div>
+  <div class="chips">
+    <div class="tb-health" id="healthChip" onclick="go('home')" style="display:none">
+      <span class="tb-health-dot"></span><span id="chipText">veri check · 2 issues</span>
+    </div>
+    <div class="tb-git">⎇ main · clean</div>
+  </div>
+</div>
+
+<div class="shell">
+  <div class="sidebar">
+    <div class="nav-row active"><span class="nav-glyph">≡</span>Documents</div>
+    <div class="nav-row"><span class="nav-glyph">▤</span>Board</div>
+    <div class="nav-row"><span class="nav-glyph">◉</span>Graph</div>
+    <div class="nav-row"><span class="nav-glyph">§</span>Decisions</div>
+    <div class="divider"></div>
+    <div id="tree"></div>
+    <div class="mcp-foot"><span class="pulse"></span>mcp · serving on :7423</div>
+  </div>
+  <div class="main" id="main"></div>
+</div>
+
+<div class="demo">
+  <div class="demo-h">prototype controls</div>
+  <label><input type="checkbox" id="issuesToggle" onchange="setIssues(this.checked)"> two deliberate issues</label>
+  <div class="demo-note">Toggle to see that the topbar chip and health colors follow <b>issues alone</b> — the grey advisory tier never moves.</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const C = { requirement: '#7EA6C4', decision: '#CFA83D', 'work-order': '#E8703A', source: '#908BA8' };
+
+const DOCS = {
+  'REQ-001': { type: 'requirement', title: 'Invoice numbering', status: 'accepted' },
+  'REQ-002': { type: 'requirement', title: 'Client PDF export', status: 'accepted' },
+  'REQ-003': { type: 'requirement', title: 'Recurring invoices', status: 'draft' },
+  'DEC-001': { type: 'decision', title: 'SQLite over Postgres', status: 'active' },
+  'WO-001': { type: 'work-order', title: 'Invoice CRUD', status: 'done' },
+  'WO-002': { type: 'work-order', title: 'PDF export pipeline', status: 'in-progress' },
+  'SRC-001': { type: 'source', title: 'Billing kickoff notes', status: 'imported' },
+};
+
+const ADVISORIES = [
+  { id: 'REQ-002', kind: 'missing-section', msg: 'REQ-002 has no "## Acceptance criteria" section — the requirement template expects one' },
+  { id: 'DEC-001', kind: 'missing-section', msg: 'DEC-001 has no "## Rationale" section — the decision template expects one' },
+  { id: 'WO-001',  kind: 'missing-section', msg: 'WO-001 has no "## Requirements" section — the work-order template expects one' },
+];
+
+const ISSUES = [
+  { id: 'REQ-003', kind: 'broken-link', msg: 'REQ-003 links to DEC-999 (frontmatter) but no document has that id' },
+  { id: 'WO-002',  kind: 'gated-wo',    msg: 'WO-002 is in-progress but links REQ-003, which is draft — approve it first' },
+];
+
+let issuesOn = false;
+let view = 'home';
+let openDoc = 'REQ-002';
+
+const issues = () => (issuesOn ? ISSUES : []);
+const advForDoc = (id) => ADVISORIES.filter((a) => a.id === id);
+const issForDoc = (id) => issues().filter((i) => i.id === id);
+
+function setIssues(on) { issuesOn = on; render(); }
+function go(v, id) { view = v; if (id) openDoc = id; render(); }
+function toast(text) {
+  const el = document.getElementById('toast');
+  el.textContent = text; el.classList.add('show');
+  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+function renderTree() {
+  const groups = { requirement: 'Requirements', decision: 'Decisions', 'work-order': 'Work orders', source: 'Sources' };
+  let html = '';
+  for (const [type, label] of Object.entries(groups)) {
+    const ids = Object.keys(DOCS).filter((id) => DOCS[id].type === type);
+    html += `<div class="group-h"><span class="swatch" style="background:${C[type]}"></span>${label}<span class="count">${ids.length}</span></div>`;
+    for (const id of ids) {
+      const d = DOCS[id];
+      // Indicator precedence: amber issue dot > green done ✓ > hollow advisory ring.
+      let ind = '';
+      if (issForDoc(id).length > 0) ind = '<span class="sb-health"></span>';
+      else if (d.status === 'done') ind = '<span class="sb-done">✓</span>';
+      else if (advForDoc(id).length > 0) ind = `<span class="ring" title="${advForDoc(id).length} advisory — see document"></span>`;
+      const active = view === 'reader' && openDoc === id ? ' active' : '';
+      html += `<div class="sb-row${active}" onclick="go('reader','${id}')">
+        <span class="sb-id" style="color:${C[type]}">${id}</span>
+        <span class="sb-title">${d.title}</span>${ind}</div>`;
+    }
+  }
+  document.getElementById('tree').innerHTML = html;
+}
+
+function homeView() {
+  const iss = issues();
+  const meta = iss.length > 0
+    ? `<span style="color:#D9A03F">${iss.length} issues</span>`
+    : `<span style="color:#7FAF8A">clean</span>`;
+  const advMeta = ADVISORIES.length > 0 ? ` <span class="adv-count">· ${ADVISORIES.length} advisories</span>` : '';
+
+  const issueRows = iss.map((i) => `
+    <div class="hv-row" onclick="go('reader','${i.id}')">
+      <span class="hv-kind">${i.kind}</span>
+      <span class="hv-id" style="color:${C[DOCS[i.id].type]}">${i.id}</span>
+      <span class="hv-msg">${i.msg}</span>
+    </div>`).join('');
+
+  const advRows = ADVISORIES.map((a) => `
+    <div class="adv-row" onclick="go('reader','${a.id}')">
+      <span class="ring"></span>
+      <span class="adv-kind">${a.kind}</span>
+      <span class="hv-id" style="color:${C[DOCS[a.id].type]}">${a.id}</span>
+      <span class="adv-msg">${a.msg}</span>
+    </div>`).join('');
+
+  const advTier = ADVISORIES.length > 0 ? `
+    ${iss.length > 0 ? '<div class="adv-divider"></div>' : ''}
+    <div class="adv-label">Advisories · ${ADVISORIES.length}</div>
+    <div class="adv-pad">${advRows}</div>` : '';
+
+  const emptyBoth = iss.length === 0 && ADVISORIES.length === 0
+    ? '<div class="hv-empty">No issues — veri check is clean</div>' : '';
+
+  return `<div class="home">
+    <h1>skiff</h1>
+    <div class="home-sub">7 documents · invoicing for small crews</div>
+    <div class="hv-card">
+      <div class="hv-head"><span class="hv-dot" style="background:#D9A03F"></span><span class="hv-label">Health</span>
+        <span class="hv-meta">${meta}${advMeta}</span></div>
+      ${issueRows}${advTier}${emptyBoth}
+    </div>
+    <div class="hv-card">
+      <div class="hv-head"><span class="hv-dot" style="background:#E8703A"></span><span class="hv-label">In flight</span>
+        <span class="hv-meta" style="color:#8B8893">1 work order</span></div>
+      <div class="hv-row" onclick="go('reader','WO-002')">
+        <span class="hv-id" style="color:#E8703A">WO-002</span>
+        <span class="hv-msg">PDF export pipeline</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+const BODIES = {
+  'REQ-002': `<h2>Summary</h2><p>Every invoice can be exported as a print-faithful PDF. Layout follows the paper template in <span class="wiki" style="color:#908BA8;background:rgba(144,139,168,.1)">[[SRC-001]]</span>; totals must match the on-screen invoice to the cent.</p><h2>Constraints</h2><ul><li>Rendering is fully offline — no font or asset fetches.</li><li>One page per invoice up to 24 line items, then continuation pages.</li></ul>`,
+  'DEC-001': `<h2>Choice</h2><p>SQLite is the only datastore. One file per workspace, shipped with the app, no server process.</p><h2>Rejected alternatives</h2><ul><li><b>Postgres</b> — a daemon and migrations for a single-user tool.</li><li><b>JSON files</b> — no transactional writes across invoice + ledger.</li></ul>`,
+  'WO-001': `<h2>Summary</h2><p>Create, edit, void, and list invoices against the SQLite schema from <span class="wiki" style="color:#CFA83D;background:rgba(207,168,61,.1)">[[DEC-001]]</span>.</p><h2>Acceptance tests</h2><p style="color:#55525E">✓ all checked — receipt on file</p>`,
+  'REQ-003': `<h2>Summary</h2><p>Invoices can repeat on a monthly schedule, drafted automatically and held for review.</p>`,
+  'WO-002': `<h2>Summary</h2><p>Implements <span class="wiki" style="color:#7EA6C4;background:rgba(126,166,196,.1)">[[REQ-002]]</span> as a render-to-PDF pipeline.</p>`,
+  'REQ-001': `<h2>Summary</h2><p>Invoice numbers are sequential per year (2026-0001), never reused, voids leave gaps.</p>`,
+  'SRC-001': `<p>(Imported notes from the billing kickoff call.)</p>`,
+};
+
+function readerView() {
+  const d = DOCS[openDoc];
+  const iss = issForDoc(openDoc);
+  const adv = advForDoc(openDoc);
+  const banner = iss.length > 0
+    ? `<div class="warn-banner"><span class="warn-tag">⚠ veri check</span><span>${iss[0].msg}</span></div>` : '';
+  // The strip: after the frontmatter card, before the body. Mono, grey, no box.
+  const strip = adv.length > 0 ? `<div class="adv-strip">${adv.map((a) => `
+      <div class="adv-line"><span class="ring"></span><span>${a.msg}</span>
+      <span class="adv-tpl" onclick="toast('opens Templates view · ${d.type}')">template ↗</span></div>`).join('')}
+    </div>` : '';
+  const statusColor = d.status === 'done' || d.status === 'active' || d.status === 'accepted' ? '#7FAF8A'
+    : d.status === 'in-progress' ? '#E8703A' : '#D9A03F';
+  return `<div class="reader">
+    <div class="crumb"><span>${d.type}s</span><span>/</span><span style="color:${C[d.type]}">${openDoc}</span></div>
+    <div class="doc-title">${d.title}</div>
+    ${banner}
+    <div class="fm-card">
+      <div class="fm-row"><span class="fm-key">type</span><span class="chip" style="color:${C[d.type]};background:${C[d.type]}1a">${d.type}</span></div>
+      <div class="fm-row"><span class="fm-key">status</span><span class="chip" style="color:${statusColor};background:${statusColor}1a">${d.status}</span></div>
+      <div class="fm-row"><span class="fm-key">updated</span><span class="fm-val" style="font-family:var(--mono);font-size:12px;color:#A09DA6">2026-08-13</span></div>
+    </div>
+    ${strip}
+    <div class="body">${BODIES[openDoc] ?? ''}</div>
+  </div>`;
+}
+
+function render() {
+  const iss = issues();
+  const chip = document.getElementById('healthChip');
+  // The chip exists only when issues exist — advisories never summon it (DEC-025).
+  chip.style.display = iss.length > 0 ? 'flex' : 'none';
+  document.getElementById('chipText').textContent = `veri check · ${iss.length} issue${iss.length === 1 ? '' : 's'}`;
+  renderTree();
+  document.getElementById('main').innerHTML = view === 'home' ? homeView() : readerView();
+}
+render();
+</script>
+</body>
+</html>
