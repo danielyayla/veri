@@ -2,7 +2,7 @@
 id: WO-010
 type: work-order
 title: veri check enforces the design gate for UI work orders
-status: in-progress
+status: done
 created: 2026-08-08
 updated: 2026-08-13
 links:
@@ -70,4 +70,10 @@ Constrained by [[DEC-012]]. Builds on the check machinery from
 
 ## Receipts
 
-(none yet)
+- 2026-08-13 — commit 5f95d06 — packages/core/src/{check,types}.ts,
+  check.test.ts + two broken fixtures, backfill across
+  WO-005/006/007/010/019/021/025, SRC-011, DEC-026 — claude-code
+  session: ui-wo-without-design issue kind lands (body-mention
+  heuristic, backlog exempt, unresolvable designed-by doesn't count);
+  repo backfilled via direct design links (SRC-001, SRC-002) and the
+  SRC-011 exemption note; 212 tests pass, veri check clean.
