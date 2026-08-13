@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { buildGraph, isPending, loadProject } from '@veri/core';
+import { DOC_TYPES, buildGraph, getTemplate, isPending, loadProject } from '@veri/core';
 import type { VeriDocument } from '@veri/core';
 
 /** Rough token estimate per REQ-003: chars/4 is fine. */
@@ -143,6 +143,19 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
       const text = `${excerpt}\n`;
       push(`### ${doc.id} — ${doc.title} · excerpt · ~${estimateTokens(text)} tokens`, text);
     }
+  }
+
+  // Document templates close every package (REQ-010): an agent drafting a
+  // document mid-work-order follows the project's structure, not its own.
+  // Templates are not documents (DEC-023) — they add tokens, never docCount.
+  {
+    const blocks = DOC_TYPES.map((type) => {
+      const { body, source } = getTemplate(veriDir, type);
+      return `### ${type} · ${source === 'project' ? 'project template' : 'built-in default'}\n\n${body.trim()}\n`;
+    });
+    const text = blocks.join('\n');
+    totalTokens += estimateTokens(text);
+    parts.push(`## Templates — how new documents start in this project\n\nWhen you create a document, use its type's body below.\n\n${text}`);
   }
 
   const header = `# Context package · ${workOrder.id} — ${workOrder.title}\n(${docCount} docs · ~${totalTokens} tokens)`;

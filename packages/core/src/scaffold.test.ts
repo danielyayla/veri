@@ -26,10 +26,16 @@ test('empty scaffold creates the four subdirectories, the default workflow, and 
   assert.equal(result.veriDir, join(root, 'veri'));
   assert.equal(result.docCount, 1);
   assert.deepEqual(result.filesWritten, ['AGENTS.md', 'CLAUDE.md']);
-  assert.deepEqual(readdirSync(result.veriDir).sort(), [...VERI_SUBDIRS, 'workflow.md'].sort());
+  assert.deepEqual(readdirSync(result.veriDir).sort(), [...VERI_SUBDIRS, 'templates', 'workflow.md'].sort());
   for (const sub of VERI_SUBDIRS) {
     assert.deepEqual(readdirSync(join(result.veriDir, sub)), ['.gitkeep']);
   }
+  // Default templates ship as project files (REQ-010 / DEC-023), one per type,
+  // excluded from docCount — templates are not documents.
+  assert.deepEqual(
+    readdirSync(join(result.veriDir, 'templates')).sort(),
+    ['decision.md', 'requirement.md', 'source.md', 'work-order.md', 'workflow.md'],
+  );
 
   const workflow = readFileSync(join(result.veriDir, 'workflow.md'), 'utf8');
   assert.match(workflow, /^---\nid: WF-001\ntype: workflow\n/);

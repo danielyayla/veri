@@ -1,6 +1,7 @@
 import { constants, copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { writeDefaultTemplates } from './templates.ts';
 import { AGENTS_MD, CLAUDE_MD_POINTER, defaultWorkflowMd } from './workflow-default.ts';
 
 /** The four subdirectories every Veri project has (REQ-001). */
@@ -60,6 +61,7 @@ export function scaffoldProject(root: string, opts: ScaffoldOptions = {}): Scaff
       writeFileSync(join(veriDir, sub, '.gitkeep'), '');
     }
     writeFileSync(join(veriDir, 'workflow.md'), defaultWorkflowMd(today()));
+    writeDefaultTemplates(veriDir);
     const { filesWritten, filesSkipped } = writePointerFiles(root);
     return { veriDir, docCount: 1, filesWritten, filesSkipped };
   }
@@ -72,7 +74,11 @@ export function scaffoldProject(root: string, opts: ScaffoldOptions = {}): Scaff
   if (!existsSync(join(veriDir, 'workflow.md'))) {
     writeFileSync(join(veriDir, 'workflow.md'), defaultWorkflowMd(today()));
   }
-  const docCount = readdirSync(veriDir, { recursive: true }).filter((entry) => String(entry).endsWith('.md')).length;
+  // Never overwrites templates a demo ships itself (DEC-023).
+  writeDefaultTemplates(veriDir);
+  const docCount = readdirSync(veriDir, { recursive: true })
+    .map((entry) => String(entry).replaceAll('\\', '/'))
+    .filter((entry) => entry.endsWith('.md') && !entry.startsWith('templates/')).length;
 
   // COPYFILE_EXCL: the demo's README never clobbers a user's own (DEC-007).
   const filesWritten: string[] = [];

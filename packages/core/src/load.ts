@@ -19,6 +19,8 @@ export async function loadProject(veriDir: string | URL): Promise<LoadResult> {
   const files = entries
     .filter((entry) => entry.endsWith('.md'))
     .map((entry) => entry.replaceAll('\\', '/'))
+    // veri/templates/ holds body-only creation templates, not documents (DEC-023).
+    .filter((file) => !file.startsWith('templates/'))
     .sort();
 
   const documents: VeriDocument[] = [];

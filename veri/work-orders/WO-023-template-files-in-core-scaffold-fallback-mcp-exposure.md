@@ -2,7 +2,7 @@
 id: WO-023
 type: work-order
 title: Template files in core — scaffold, fallback, MCP exposure
-status: backlog
+status: in-progress
 created: 2026-08-13
 updated: 2026-08-13
 links:

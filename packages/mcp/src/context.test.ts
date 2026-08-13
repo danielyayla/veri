@@ -119,3 +119,33 @@ test('an accepted workflow renders unlabeled; a draft one carries the non-bindin
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('templates close every package, reflecting project overrides (REQ-010)', async (t) => {
+  const { mkdirSync, rmSync, writeFileSync } = await import('node:fs');
+  const { join } = await import('node:path');
+
+  const { text: withDefaults } = await assembleContext(FIXTURE, 'WO-001');
+  const templatesAt = withDefaults.indexOf('## Templates — how new documents start in this project');
+  assert.ok(templatesAt >= 0, 'package should contain the templates section');
+  assert.ok(
+    templatesAt > withDefaults.indexOf('## Sources (excerpts)'),
+    'templates render after the source excerpts',
+  );
+  for (const type of ['requirement', 'decision', 'work-order', 'source', 'workflow']) {
+    assert.ok(
+      withDefaults.includes(`### ${type} · built-in default`),
+      `templates section should cover ${type}`,
+    );
+  }
+
+  // A project file flips its type's provenance and body; read fresh, no cache.
+  const templatesDir = join(FIXTURE, 'veri', 'templates');
+  mkdirSync(templatesDir, { recursive: true });
+  writeFileSync(join(templatesDir, 'decision.md'), '\nCUSTOM-TEMPLATE-MARKER\n');
+  t.after(() => rmSync(templatesDir, { recursive: true, force: true }));
+
+  const { text } = await assembleContext(FIXTURE, 'WO-001');
+  assert.ok(text.includes('### decision · project template'), 'override changes provenance');
+  assert.ok(text.includes('CUSTOM-TEMPLATE-MARKER'), 'override body is served');
+  assert.ok(text.includes('### requirement · built-in default'), 'other types keep the default');
+});
