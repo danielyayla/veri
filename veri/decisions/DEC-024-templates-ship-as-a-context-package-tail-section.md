@@ -2,7 +2,8 @@
 id: DEC-024
 type: decision
 title: Templates ship as a context-package tail section
-status: proposed
+status: active
+approved: 2026-08-13
 created: 2026-08-13
 updated: 2026-08-13
 links:
