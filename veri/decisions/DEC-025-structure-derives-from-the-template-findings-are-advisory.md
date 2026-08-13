@@ -2,7 +2,8 @@
 id: DEC-025
 type: decision
 title: Structure derives from the template; findings are advisory
-status: proposed
+status: active
+approved: 2026-08-13
 created: 2026-08-13
 updated: 2026-08-13
 links:
