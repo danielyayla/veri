@@ -4,7 +4,7 @@ type: work-order
 title: Command palette (⌘K) — one input to any document or view
 status: done
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-13
 links:
   - id: REQ-004
     rel: extends
@@ -70,6 +70,10 @@ matcher extends the shared search module and is exported alongside
 - Everything `design/navigation-model/README.md` defers: per-type list
   views, area/epic metadata, timeline view, tab persistence across
   restarts, graph-view expansion.
+
+## Requirements
+
+Extends [[REQ-004]] — the desktop app.
 
 ## Acceptance tests
 

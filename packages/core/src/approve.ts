@@ -47,7 +47,8 @@ export async function approveDocument(
     throw new Error(`nothing to approve — ${wanted} is ${doc.status}, not ${promotion.from}`);
   }
 
-  const blocking = checkProject(load).filter((issue) =>
+  // Only issues block approval — advisories are a separate, non-gating tier (DEC-025).
+  const blocking = checkProject(load).issues.filter((issue) =>
     issue.kind === 'duplicate-id' ? issue.files.includes(doc.file) : issue.file === doc.file,
   );
   if (blocking.length > 0) {

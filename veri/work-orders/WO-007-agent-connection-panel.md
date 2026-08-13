@@ -4,7 +4,7 @@ type: work-order
 title: Agent connection panel — MCP setup screen in the desktop UI
 status: done
 created: 2026-08-07
-updated: 2026-08-07
+updated: 2026-08-13
 links:
   - id: REQ-005
     rel: delivers
@@ -60,6 +60,10 @@ connection status.
   on the user's behalf (explain + copy commands only)
 - Network calls
 - Restyling or refactoring existing screens beyond the two entry points
+
+## Requirements
+
+Delivers [[REQ-005]] — the agent connection panel.
 
 ## Acceptance tests
 

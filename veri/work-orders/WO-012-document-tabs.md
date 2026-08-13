@@ -4,7 +4,7 @@ type: work-order
 title: Document tabs — IDE-style tab workflow in the desktop UI
 status: done
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-13
 links:
   - id: REQ-004
     rel: extends
@@ -62,6 +62,10 @@ the user before implementation.
 - A settings UI for the `previewTabs` flag (the flag exists in state with
   its default; no surface to toggle it is designed).
 - Any change to `packages/core`, `packages/cli`, or the MCP server.
+
+## Requirements
+
+Extends [[REQ-004]] — the desktop app.
 
 ## Acceptance tests
 

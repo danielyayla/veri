@@ -35,8 +35,9 @@ test('every document type scaffolds a file that passes veri check untouched', as
   }
   const load = await loadProject(dir);
   assert.equal(load.documents.length, 4);
-  // A fresh WO with no linked requirement is fine in backlog; zero issues overall.
-  assert.deepEqual(checkProject(load), []);
+  // A fresh WO with no linked requirement is fine in backlog; zero issues —
+  // and zero advisories: template-born documents match their own structure (DEC-025).
+  assert.deepEqual(checkProject(load), { issues: [], advisories: [] });
 });
 
 test('ids advance past the highest taken id and titles are slugged into filenames', async (t) => {

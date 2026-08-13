@@ -1,7 +1,11 @@
 import { test } from 'node:test';
+import type { TestContext } from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { loadProject } from './load.ts';
-import { checkProject } from './check.ts';
+import { checkProject, checkStructure, expectedSections, missingSections } from './check.ts';
 
 interface BrokenCase {
   dir: string;
@@ -84,7 +88,7 @@ const CASES: BrokenCase[] = [
 for (const { dir, expected } of CASES) {
   test(`broken fixture "${dir}" yields exactly its expected issue`, async () => {
     const load = await loadProject(new URL(`../fixtures/broken/${dir}`, import.meta.url));
-    const issues = checkProject(load);
+    const issues = checkProject(load).issues;
     assert.equal(issues.length, expected.length, JSON.stringify(issues, null, 2));
     assert.partialDeepStrictEqual(issues, expected);
     for (const issue of issues) {
@@ -97,5 +101,68 @@ for (const { dir, expected } of CASES) {
 test('a backlog work order may cite pending documents — the gate is on starting work', async () => {
   const load = await loadProject(new URL('../fixtures/pending-ok', import.meta.url));
   assert.equal(load.documents.length, 3);
-  assert.deepEqual(checkProject(load), []);
+  assert.deepEqual(checkProject(load).issues, []);
+});
+
+// --- Structure advisories (REQ-006 at DEC-025's advisory severity) ---
+
+function structureSandbox(t: TestContext): string {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-structure-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  return dir;
+}
+
+const DOC = (id: string, type: string, status: string, body: string): string =>
+  `---\nid: ${id}\ntype: ${type}\ntitle: T\nstatus: ${status}\ncreated: 2026-08-13\nupdated: 2026-08-13\n---\n${body}`;
+
+test('expected sections are the ## headings of the effective template, in order', (t) => {
+  const dir = structureSandbox(t);
+  // No project file: the built-in decision template applies.
+  assert.deepEqual(expectedSections(dir, 'decision'), ['Choice', 'Rejected alternatives', 'Rationale']);
+  // A customized template replaces the built-in sections entirely (DEC-025).
+  mkdirSync(join(dir, 'templates'), { recursive: true });
+  writeFileSync(join(dir, 'templates', 'decision.md'), '## Context\n\n## Consequences\n\n### Not a section\n');
+  assert.deepEqual(expectedSections(dir, 'decision'), ['Context', 'Consequences']);
+  const doc = { type: 'decision' as const, body: '## Choice\n\nx\n\n## Consequences\n\ny\n' };
+  assert.deepEqual(missingSections(dir, doc), ['Context']);
+});
+
+test('a template with no ## headings expects nothing', (t) => {
+  const dir = structureSandbox(t);
+  // The built-in source template has no ## headings.
+  assert.deepEqual(expectedSections(dir, 'source'), []);
+  assert.deepEqual(missingSections(dir, { type: 'source', body: 'anything at all' }), []);
+});
+
+test('missing sections are advisories with file and one-line message — never issues', async (t) => {
+  const dir = structureSandbox(t);
+  mkdirSync(join(dir, 'requirements'), { recursive: true });
+  writeFileSync(join(dir, 'requirements', 'REQ-001-bare.md'), DOC('REQ-001', 'requirement', 'draft', '(prose, no sections)\n'));
+  const load = await loadProject(dir);
+  const { issues, advisories } = checkProject(load);
+  assert.deepEqual(issues, []);
+  assert.deepEqual(advisories, [
+    {
+      kind: 'missing-section',
+      file: 'requirements/REQ-001-bare.md',
+      id: 'REQ-001',
+      section: 'Acceptance criteria',
+      message: 'REQ-001 has no "## Acceptance criteria" section — the requirement template expects one',
+    },
+  ]);
+  assert.ok(!advisories[0]!.message.includes('\n'));
+});
+
+test('a custom-template project is checked against its own headings', async (t) => {
+  const dir = structureSandbox(t);
+  mkdirSync(join(dir, 'templates'), { recursive: true });
+  mkdirSync(join(dir, 'requirements'), { recursive: true });
+  writeFileSync(join(dir, 'templates', 'requirement.md'), '## Story\n\n## Verification\n');
+  writeFileSync(
+    join(dir, 'requirements', 'REQ-001-custom.md'),
+    DOC('REQ-001', 'requirement', 'draft', '## Story\n\ns\n\n## Verification\n\nv\n'),
+  );
+  const load = await loadProject(dir);
+  // Matches its own structure — the built-in "Acceptance criteria" stops applying.
+  assert.deepEqual(checkStructure(dir, load.documents), []);
 });

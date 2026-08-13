@@ -4,7 +4,7 @@ type: work-order
 title: New-project flow in the UI
 status: done
 created: 2026-08-11
-updated: 2026-08-11
+updated: 2026-08-13
 links:
   - id: SRC-007
     rel: designed-by
@@ -24,7 +24,7 @@ links:
     rel: constrained-by
 ---
 
-## Goal
+## Summary
 
 The desktop app can only open an existing Veri project; a first-time
 user without a `veri/` directory hits a dead end and must drop to the
@@ -57,6 +57,10 @@ per [[DEC-007]]), add it to the MRU list ([[DEC-010]]), and open it.
 - Project templates beyond the existing empty/demo pair.
 - Git initialization or any VCS integration in the new directory.
 - Onboarding/tour UI beyond the creation flow itself.
+
+## Requirements
+
+Extends [[REQ-004]]; depends on [[REQ-002]] for the scaffold it drives.
 
 ## Acceptance tests
 

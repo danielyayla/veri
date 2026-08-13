@@ -5,7 +5,7 @@ title: UI changes require a linked design artifact before implementation
 status: active
 approved: 2026-08-10
 created: 2026-08-08
-updated: 2026-08-08
+updated: 2026-08-13
 links:
   - id: REQ-004
     rel: constrains
@@ -36,3 +36,10 @@ HTML mockups or images sit next to it.
 - **Convention only (no linked doc)** — unenforceable; the whole point of
   Veri is that constraints ride along in the context package instead of
   living in someone's head.
+
+## Rationale
+
+A design with its own document id participates in the link graph, so
+the constraint rides into every context package an implementing agent
+receives — the same mechanism Veri uses for every other constraint.
+Reusing `source` buys that without touching core parsing or check.

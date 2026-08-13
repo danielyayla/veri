@@ -5,7 +5,7 @@ title: Recognized-entry shape gates all .mcp.json writes
 status: active
 approved: 2026-08-10
 created: 2026-08-07
-updated: 2026-08-07
+updated: 2026-08-13
 links:
   - id: WO-007
     rel: constrains
@@ -45,3 +45,11 @@ hard cases get conservative handling:
 - **Best-effort regex edit of unparseable files**: could corrupt
   neighboring servers; refusing and saying so is the only write
   strategy that keeps the never-lose-other-entries guarantee absolute.
+
+## Rationale
+
+Shape recognition puts the ownership marker in the only place that
+cannot drift: the entry itself. The file stays clean for other tools,
+a hand-written-but-correct entry is treated as Veri's own, and every
+ambiguous case fails closed to a visible conflict — the one strategy
+that keeps [[REQ-005]]'s never-lose-other-entries guarantee absolute.

@@ -52,7 +52,7 @@ test('approving a proposed decision makes it active and the project stays check-
 
   const load = await loadProject(dir);
   // REQ-002's broken link remains the fixture's only issue; the approval itself adds none.
-  const issues = checkProject(load).filter((issue) => 'file' in issue && issue.file !== 'requirements/REQ-002-broken-draft.md');
+  const issues = checkProject(load).issues.filter((issue) => 'file' in issue && issue.file !== 'requirements/REQ-002-broken-draft.md');
   assert.deepEqual(issues, []);
 });
 

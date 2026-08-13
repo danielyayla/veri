@@ -5,7 +5,7 @@ title: Sessions launch via a temp .command in Terminal.app; TOML configs get a r
 status: active
 approved: 2026-08-10
 created: 2026-08-08
-updated: 2026-08-08
+updated: 2026-08-13
 links:
   - id: WO-011
     rel: decided-during
@@ -45,3 +45,11 @@ Two implementation choices made during [[WO-011]]:
   writes Veri deliberately restricts to one self-owned block; the regex
   gate is narrower and fails closed (anything unrecognized → conflict,
   never written).
+
+## Rationale
+
+Both choices stay honest at zero cost: the `.command` launch puts the
+session in the user's real terminal with no automation permissions or
+new dependencies, and the regex-scoped TOML gate extends the
+"recognized shape or hands off" rule to a second format — anything
+unrecognized becomes a visible conflict, never a rewrite.

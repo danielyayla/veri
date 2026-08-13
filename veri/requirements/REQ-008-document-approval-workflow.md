@@ -5,7 +5,7 @@ title: Document approval workflow — proposals need Daniel's stamp to bind
 status: accepted
 approved: 2026-08-10
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-13
 links:
   - id: DEC-002
     rel: constrained-by
@@ -27,7 +27,7 @@ artifacts silently become project canon. That is the product-drift
 vector this requirement closes: authorship stays cheap, authority
 requires an explicit human act.
 
-## The workflow
+## Acceptance criteria
 
 1. **Born unapproved.** Decisions gain a `proposed` status
    (`proposed → active → superseded`); requirements already start

@@ -4,7 +4,7 @@ type: work-order
 title: Topbar project switcher
 status: done
 created: 2026-08-07
-updated: 2026-08-07
+updated: 2026-08-13
 links:
   - id: REQ-004
     rel: extends
@@ -48,6 +48,10 @@ to be recreated in the shell built by [[WO-005]].
 - Any other restyling or refactoring of the shell
 - Multi-window or side-by-side multi-project views
 - Project removal/reordering UI beyond MRU behavior
+
+## Requirements
+
+Extends [[REQ-004]] — the desktop app shell this switcher lives in.
 
 ## Acceptance tests
 

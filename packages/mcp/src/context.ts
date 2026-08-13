@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { DOC_TYPES, buildGraph, getTemplate, isPending, loadProject } from '@veri/core';
+import { ASSEMBLY_POLICY, DOC_TYPES, buildGraph, getTemplate, isPending, loadProject, packingFor } from '@veri/core';
 import type { VeriDocument } from '@veri/core';
 
 /** Rough token estimate per REQ-003: chars/4 is fine. */
@@ -8,7 +8,10 @@ export function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
-const SOURCE_EXCERPT_CHARS = 600;
+/** How this document's body ships, per core's assembly policy (DEC-025). */
+function packing(doc: VeriDocument) {
+  return packingFor(doc.type, doc.status);
+}
 
 export interface ContextPackage {
   text: string;
@@ -62,15 +65,21 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
   // labeled so agents don't rely on them.
   const pending = reached.filter((doc) => isPending(doc) && doc.type !== 'workflow');
   const requirements = reached.filter((doc) => doc.type === 'requirement' && !isPending(doc));
-  const activeDecisions = reached.filter((doc) => doc.type === 'decision' && doc.status === 'active');
-  const supersededDecisions = reached.filter((doc) => doc.type === 'decision' && doc.status === 'superseded');
+  const activeDecisions = reached.filter(
+    (doc) => doc.type === 'decision' && !isPending(doc) && packing(doc).mode === 'full',
+  );
+  const nameOnlyDecisions = reached.filter((doc) => doc.type === 'decision' && packing(doc).mode === 'name-only');
   const sources = reached.filter((doc) => doc.type === 'source');
 
-  // The project workflow (DEC-018) opens every package, reached or not — it is
-  // always-included, never part of the traversal buckets. Retired ones stay out.
-  const workflow = documents
-    .filter((doc) => doc.type === 'workflow' && doc.status !== 'retired')
-    .sort((a, b) => a.id.localeCompare(b.id))[0];
+  // The project workflow (DEC-018) opens every package, reached or not — its
+  // policy is include: 'always', never part of the traversal buckets.
+  // Retired ones stay out.
+  const workflow =
+    ASSEMBLY_POLICY.workflow.include === 'always'
+      ? documents
+          .filter((doc) => doc.type === 'workflow' && doc.status !== 'retired')
+          .sort((a, b) => a.id.localeCompare(b.id))[0]
+      : undefined;
 
   const linksLine = (doc: VeriDocument): string =>
     doc.links.length === 0 ? '' : `Links: ${doc.links.map((l) => `${l.id} (${l.rel})`).join(', ')}\n\n`;
@@ -115,14 +124,14 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
       push(heading, text);
     }
   }
-  if (activeDecisions.length > 0 || supersededDecisions.length > 0) {
+  if (activeDecisions.length > 0 || nameOnlyDecisions.length > 0) {
     parts.push('## Decisions');
     for (const doc of activeDecisions) {
       const { heading, text } = renderFull(doc, '###');
       push(heading, text);
     }
-    if (supersededDecisions.length > 0) {
-      const lines = supersededDecisions.map(
+    if (nameOnlyDecisions.length > 0) {
+      const lines = nameOnlyDecisions.map(
         (doc) => `- ${doc.id} — ${doc.title}${doc.supersededBy ? ` (superseded by ${doc.supersededBy})` : ''}`,
       );
       parts.push(`### Already rejected (superseded — bodies omitted)\n\n${lines.join('\n')}\n`);
@@ -139,7 +148,9 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
     parts.push('## Sources (excerpts)');
     for (const doc of sources) {
       const body = doc.body.trim();
-      const excerpt = body.length > SOURCE_EXCERPT_CHARS ? `${body.slice(0, SOURCE_EXCERPT_CHARS)}…` : body;
+      const mode = packing(doc);
+      const chars = mode.mode === 'excerpt' ? mode.chars : body.length;
+      const excerpt = body.length > chars ? `${body.slice(0, chars)}…` : body;
       const text = `${excerpt}\n`;
       push(`### ${doc.id} — ${doc.title} · excerpt · ~${estimateTokens(text)} tokens`, text);
     }

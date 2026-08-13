@@ -4,7 +4,7 @@ type: work-order
 title: Agent handoff — Copy Kickoff Prompt and Start Agent Session
 status: done
 created: 2026-08-08
-updated: 2026-08-08
+updated: 2026-08-13
 links:
   - id: REQ-007
     rel: delivers
@@ -62,6 +62,10 @@ the current "Serve via MCP" affordance.
   agent's behalf.
 - Changes to `packages/core`, `packages/cli`, or the MCP server —
   the server is already client-agnostic.
+
+## Requirements
+
+Delivers [[REQ-007]] — agent handoff from a work order.
 
 ## Acceptance tests
 

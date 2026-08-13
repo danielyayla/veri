@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { assembleContext } from './context.ts';
+import { ASSEMBLY_POLICY, packingFor } from '@veri/core';
 
 const FIXTURE = fileURLToPath(new URL('../fixtures/superseded-chain', import.meta.url));
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
@@ -148,4 +149,13 @@ test('templates close every package, reflecting project overrides (REQ-010)', as
   assert.ok(text.includes('### decision · project template'), 'override changes provenance');
   assert.ok(text.includes('CUSTOM-TEMPLATE-MARKER'), 'override body is served');
   assert.ok(text.includes('### requirement · built-in default'), 'other types keep the default');
+});
+
+test('core assembly policy carries the values this package used to hardcode (DEC-025)', () => {
+  assert.equal(ASSEMBLY_POLICY.workflow.include, 'always');
+  assert.deepEqual(packingFor('work-order', 'in-progress'), { mode: 'full' });
+  assert.deepEqual(packingFor('requirement', 'accepted'), { mode: 'full' });
+  assert.deepEqual(packingFor('decision', 'active'), { mode: 'full' });
+  assert.deepEqual(packingFor('decision', 'superseded'), { mode: 'name-only' });
+  assert.deepEqual(packingFor('source', 'imported'), { mode: 'excerpt', chars: 600 });
 });

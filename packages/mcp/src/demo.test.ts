@@ -35,7 +35,7 @@ test('the demo has exactly the two deliberate issues and no others', async () =>
   const { loadProject, checkProject } = await import('@veri/core');
   const load = await loadProject(join(DEMO_ROOT, 'veri'));
   assert.equal(load.documents.length, 17);
-  const issues = checkProject(load);
+  const issues = checkProject(load).issues;
   assert.deepEqual(
     issues.map((issue) => issue.kind).sort(),
     ['broken-link', 'wo-without-requirement'],

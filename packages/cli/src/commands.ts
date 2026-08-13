@@ -76,13 +76,22 @@ export async function check(cwd: string): Promise<CmdResult> {
   const dir = requireVeriDir(cwd);
   if (dir === null) return NO_VERI_DIR;
   const load = await loadProject(dir);
-  const issues = checkProject(load);
+  const { issues, advisories } = checkProject(load);
+  // Advisories print after issues and never touch the count or exit code (DEC-025).
+  const advisoryLines = advisories.map((advisory) => `(advisory) ${advisory.file}: ${advisory.message}`);
   if (issues.length === 0) {
-    return { code: 0, lines: [`ok — ${load.documents.length} documents, 0 issues`] };
+    return {
+      code: 0,
+      lines: [...advisoryLines, `ok — ${load.documents.length} documents, 0 issues · ${advisories.length} advisories`],
+    };
   }
   return {
     code: 1,
-    lines: [...issues.map((issue) => `${fileOf(issue)}: ${issue.message}`), `${issues.length} issue(s)`],
+    lines: [
+      ...issues.map((issue) => `${fileOf(issue)}: ${issue.message}`),
+      ...advisoryLines,
+      `${issues.length} issue(s) · ${advisories.length} advisories`,
+    ],
   };
 }
 

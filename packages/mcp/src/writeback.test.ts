@@ -19,7 +19,7 @@ function sandbox(t: { after(fn: () => void): void }): string {
 
 async function assertClean(root: string): Promise<void> {
   const load = await loadProject(join(root, 'veri'));
-  assert.deepEqual(checkProject(load), []);
+  assert.deepEqual(checkProject(load).issues, []);
 }
 
 test('file_decision creates a valid decision with the next free DEC id', async (t) => {

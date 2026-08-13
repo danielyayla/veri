@@ -4,7 +4,7 @@ type: work-order
 title: veri open — launch the desktop app from the CLI
 status: done
 created: 2026-08-11
-updated: 2026-08-11
+updated: 2026-08-13
 links:
   - id: REQ-002
     rel: extends
@@ -16,7 +16,7 @@ links:
     rel: constrained-by
 ---
 
-## Goal
+## Summary
 
 Opening the desktop app currently requires knowing the incantation
 (`cd packages/ui && npm run build && npm start`). Add a `veri open`
@@ -43,6 +43,10 @@ project directory, detached from the terminal.
   bundling the UI binary).
 - Windows/Linux-specific launcher polish beyond what `spawn` with
   `detached` gives for free.
+
+## Requirements
+
+Extends [[REQ-002]] — the CLI surface.
 
 ## Acceptance tests
 

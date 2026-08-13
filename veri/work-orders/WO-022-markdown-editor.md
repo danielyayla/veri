@@ -4,7 +4,7 @@ type: work-order
 title: First-class markdown editing — edit mode, guards, and creation flow
 status: done
 created: 2026-08-12
-updated: 2026-08-12
+updated: 2026-08-13
 links:
   - id: REQ-009
     rel: implements
@@ -82,6 +82,10 @@ Per [[DEC-012]] this work order links its design (`rel: designed-by`,
 - Any change to the MCP server or CLI beyond core sharing the write
   path; no new `packages/core` runtime dependencies (`yaml` + `zod`
   only — CodeMirror lands in `packages/ui`).
+
+## Requirements
+
+Implements [[REQ-009]] — first-class markdown editing.
 
 ## Acceptance tests
 

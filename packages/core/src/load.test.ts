@@ -47,7 +47,7 @@ function snapshotOf(load: LoadResult): unknown {
 
 test('the valid fixture loads with zero issues', async () => {
   const load = await loadProject(FIXTURE);
-  assert.deepEqual(checkProject(load), []);
+  assert.deepEqual(checkProject(load).issues, []);
   assert.equal(load.documents.length, 6);
 });
 

@@ -4,7 +4,7 @@ type: work-order
 title: Editable project name in the New-project sheet
 status: backlog
 created: 2026-08-11
-updated: 2026-08-11
+updated: 2026-08-13
 links:
   - id: SRC-007
     rel: designed-by
@@ -24,7 +24,7 @@ links:
     rel: constrained-by
 ---
 
-## Goal
+## Summary
 
 The New-project sheet ([[WO-018]]) derives the project name from the
 picked folder and shows it read-only. That serves "add Veri to this
@@ -61,6 +61,10 @@ target folder ([[DEC-002]]).
 - Storing a project name anywhere other than the folder's own name.
 - Changes to the picker, outcomes, demo toggle, or any other sheet
   anatomy beyond the name row and its helper line.
+
+## Requirements
+
+Extends [[REQ-004]] — the new-project sheet.
 
 ## Acceptance tests
 

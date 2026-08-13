@@ -2,7 +2,7 @@
 id: WO-025
 type: work-order
 title: Assembly policy and advisory structure checks in core
-status: backlog
+status: in-progress
 created: 2026-08-13
 updated: 2026-08-13
 links:

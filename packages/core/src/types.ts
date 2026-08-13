@@ -26,6 +26,20 @@ export interface VeriDocument {
   inlineRefs: string[];
 }
 
+/**
+ * An advisory finding (DEC-025): same file + one-line message shape as an
+ * issue, but a separate tier — advisories never affect the issue count,
+ * check's exit code, or any gate.
+ */
+export type Advisory = {
+  kind: 'missing-section';
+  file: string;
+  id: string;
+  /** The expected `##` heading text, without the `##` marker. */
+  section: string;
+  message: string;
+};
+
 export type Issue =
   | {
       kind: 'invalid-frontmatter';

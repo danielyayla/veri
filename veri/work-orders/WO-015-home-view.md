@@ -4,7 +4,7 @@ type: work-order
 title: Home view — the default tab that answers "what needs attention"
 status: done
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-13
 links:
   - id: REQ-004
     rel: extends
@@ -69,6 +69,10 @@ semantics). Visuals are pixel-specified in
 - Everything the README defers: per-type list views, area/epic
   metadata, timeline view, tab persistence across restarts, graph-view
   expansion.
+
+## Requirements
+
+Extends [[REQ-004]] — the desktop app.
 
 ## Acceptance tests
 

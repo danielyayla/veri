@@ -101,7 +101,7 @@ test('init --demo installs skiff; check reports exactly the 2 intended issues', 
 
   const checked = await check(cwd);
   assert.equal(checked.code, 1);
-  assert.equal(checked.lines.at(-1), '2 issue(s)', checked.lines.join('\n'));
+  assert.equal(checked.lines.at(-1), '2 issue(s) · 0 advisories', checked.lines.join('\n'));
   const issues = checked.lines.slice(0, -1).join('\n');
   assert.match(issues, /WO-004/, 'WO-004 must be flagged for its missing requirement');
   assert.match(issues, /SRC-003/, 'REQ-004 must be flagged for its broken SRC-003 link');
@@ -137,12 +137,32 @@ test('new rejects unknown types and missing titles', async (t) => {
 test('check on the five-issues fixture reports exactly 5 issues and exits 1', async () => {
   const result = await check(FIVE_ISSUES);
   assert.equal(result.code, 1);
-  assert.equal(result.lines.at(-1), '5 issue(s)', result.lines.join('\n'));
-  assert.equal(result.lines.length, 6);
-  for (const line of result.lines.slice(0, -1)) {
-    assert.match(line, /^\S+\.md.*: /, `issue line should start with a file: ${line}`);
-    assert.ok(!line.includes('\n'), `issue message must be one line: ${line}`);
+  assert.equal(result.lines.at(-1), '5 issue(s) · 11 advisories', result.lines.join('\n'));
+  const body = result.lines.slice(0, -1);
+  const issueLines = body.filter((line) => !line.startsWith('(advisory) '));
+  const advisoryLines = body.filter((line) => line.startsWith('(advisory) '));
+  assert.equal(issueLines.length, 5);
+  assert.equal(advisoryLines.length, 11);
+  // Advisories print after every issue (DEC-025), each one line with a file.
+  assert.deepEqual(body.slice(0, 5), issueLines);
+  for (const line of body) {
+    assert.match(line, /^(\(advisory\) )?\S+\.md.*: /, `line should carry a file: ${line}`);
+    assert.ok(!line.includes('\n'), `message must be one line: ${line}`);
   }
+});
+
+test('a project with advisories but no issues still reports ok and exits 0', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  init(cwd, { demo: false });
+  await newDoc(cwd, 'requirement', 'Bare');
+  // Strip the template-born section: an advisory fires, but never an issue (DEC-025).
+  const file = join(cwd, 'veri/requirements/REQ-001-bare.md');
+  writeFileSync(file, readFileSync(file, 'utf8').replace('## Acceptance criteria', '## Something else'));
+  const result = await check(cwd);
+  assert.equal(result.code, 0, result.lines.join('\n'));
+  assert.equal(result.lines.at(-1), 'ok — 2 documents, 0 issues · 1 advisories');
+  assert.match(result.lines[0] ?? '', /^\(advisory\) requirements\/REQ-001-bare\.md: /);
 });
 
 test('check on this repository exits 0', async () => {

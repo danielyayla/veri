@@ -7,6 +7,9 @@ import type { Issue, VeriDocument } from './types.ts';
 export interface LoadResult {
   documents: VeriDocument[];
   issues: Issue[];
+  /** Absolute path of the veri/ directory the documents came from, so
+      checks can read the effective templates fresh (DEC-002, DEC-025). */
+  dir: string;
 }
 
 /**
@@ -42,5 +45,5 @@ export async function loadProject(veriDir: string | URL): Promise<LoadResult> {
     if (outcome.document) documents.push(outcome.document);
     issues.push(...outcome.issues);
   }
-  return { documents, issues };
+  return { documents, issues, dir: root };
 }

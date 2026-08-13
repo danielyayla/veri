@@ -4,7 +4,7 @@ type: work-order
 title: Default workflow document and harness pointer files
 status: done
 created: 2026-08-12
-updated: 2026-08-12
+updated: 2026-08-13
 links:
   - id: DEC-018
     rel: constrained-by
@@ -24,7 +24,7 @@ links:
     rel: extends
 ---
 
-## Goal
+## Summary
 
 New projects and new users should inherit an opinionated workflow —
 sources → requirements/decisions → work orders → implementation →
@@ -71,7 +71,11 @@ package; harness entry files become generated pointers.
 - Any `packages/ui` change (no design document; DEC-012).
 - Migration tooling for existing projects beyond this repo.
 
-## Acceptance criteria
+## Requirements
+
+Extends [[REQ-001]], [[REQ-003]], [[REQ-006]] and [[REQ-008]].
+
+## Acceptance tests
 
 - [x] `veri check` passes on a scaffolded project containing the
       default `workflow.md` and on this repo after the split.

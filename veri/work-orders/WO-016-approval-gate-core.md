@@ -4,7 +4,7 @@ type: work-order
 title: Approval gate core — schema, check rules, proposal-only writeback
 status: done
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-13
 links:
   - id: REQ-008
     rel: implements
@@ -12,7 +12,7 @@ links:
     rel: constrained-by
 ---
 
-## Goal
+## Summary
 
 Implement the non-UI mechanics of [[REQ-008]]: the `proposed` status and
 `approved` stamp in the schema, the two new check rules, proposal-only
@@ -49,7 +49,11 @@ MCP writeback, the labeled pending block in context assembly, and a
 - Git-hook enforcement of human-only promotion.
 - Any change to requirement/work-order status enums.
 
-## Acceptance criteria
+## Requirements
+
+Implements [[REQ-008]] in core and the CLI.
+
+## Acceptance tests
 
 - [x] `file_decision` cannot produce a non-`proposed` decision.
 - [x] `veri check` flags an in-progress WO depending on a pending doc,

@@ -4,7 +4,7 @@ type: work-order
 title: Approval gate UI — review queue, approve flow, gated work orders
 status: done
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-13
 links:
   - id: REQ-008
     rel: implements
@@ -18,7 +18,7 @@ links:
     rel: constrained-by
 ---
 
-## Goal
+## Summary
 
 Implement the approval-gate UI in `packages/ui` per the [[SRC-006]]
 design handoff (`design/approval-gate/README.md` is the authoritative
@@ -47,7 +47,11 @@ accepted — this work order is itself gated by the gate it builds.
 - Comprehension quiz. Diff-since-review-note view. Git hooks.
 - Any change to core/check/MCP beyond consuming WO-016's API.
 
-## Acceptance criteria
+## Requirements
+
+Implements [[REQ-008]] in the desktop app; depends on [[REQ-004]].
+
+## Acceptance tests
 
 - [x] All four SRC-006 scenarios reproduced against real project files
       (home queue, review, approved, gated WO).

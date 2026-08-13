@@ -50,7 +50,9 @@ export async function buildSnapshot(projectRoot: string): Promise<Snapshot> {
     projectName: basename(projectRoot),
     root: projectRoot,
     documents: load.documents,
-    issues: checkProject(load),
+    // Issues only: the UI's health count must not change with the advisory
+    // tier (WO-025) — surfacing advisories needs its own design (DEC-012).
+    issues: checkProject(load).issues,
     edges: graph.edges,
     git: await gitInfo(projectRoot),
   };

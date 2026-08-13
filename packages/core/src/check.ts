@@ -1,5 +1,7 @@
-import type { Issue, VeriDocument } from './types.ts';
+import type { Advisory, Issue, VeriDocument } from './types.ts';
 import type { LoadResult } from './load.ts';
+import type { DocType } from './ids.ts';
+import { getTemplate } from './templates.ts';
 
 export function checkDuplicateIds(documents: VeriDocument[]): Issue[] {
   const filesById = new Map<string, string[]>();
@@ -173,15 +175,72 @@ export function checkDoneWorkOrders(documents: VeriDocument[]): Issue[] {
   return issues;
 }
 
-/** Every issue in the project: load-time issues plus all pure checks. */
-export function checkProject(load: LoadResult): Issue[] {
-  return [
-    ...load.issues,
-    ...checkDuplicateIds(load.documents),
-    ...checkBrokenLinks(load.documents),
-    ...checkWorkOrderRequirements(load.documents),
-    ...checkDoneWorkOrders(load.documents),
-    ...checkGatedWorkOrders(load.documents),
-    ...checkApprovalStamps(load.documents),
-  ];
+const SECTION_HEADING_RE = /^##\s+(.+?)\s*$/;
+
+function sectionHeadings(body: string): string[] {
+  return body
+    .split('\n')
+    .map((line) => SECTION_HEADING_RE.exec(line)?.[1])
+    .filter((heading): heading is string => heading !== undefined);
+}
+
+/**
+ * The `##` headings of a type's effective template, in order (DEC-025):
+ * the single structure source per project. Read fresh from disk on every
+ * call (DEC-002). A template with no `##` headings expects nothing.
+ */
+export function expectedSections(veriDir: string | URL, type: DocType): string[] {
+  return sectionHeadings(getTemplate(veriDir, type).body);
+}
+
+/** Expected sections a document's body does not have, in template order. */
+export function missingSections(veriDir: string | URL, doc: Pick<VeriDocument, 'type' | 'body'>): string[] {
+  const present = new Set(sectionHeadings(doc.body));
+  return expectedSections(veriDir, doc.type).filter((section) => !present.has(section));
+}
+
+/**
+ * Structure findings (REQ-006 at DEC-025's advisory severity): one advisory
+ * per expected-but-missing section. Never issues — template divergence must
+ * not fail a document (DEC-023).
+ */
+export function checkStructure(veriDir: string | URL, documents: VeriDocument[]): Advisory[] {
+  const advisories: Advisory[] = [];
+  for (const doc of documents) {
+    for (const section of missingSections(veriDir, doc)) {
+      advisories.push({
+        kind: 'missing-section',
+        file: doc.file,
+        id: doc.id,
+        section,
+        message: `${doc.id} has no "## ${section}" section — the ${doc.type} template expects one`,
+      });
+    }
+  }
+  return advisories;
+}
+
+export interface CheckResult {
+  issues: Issue[];
+  advisories: Advisory[];
+}
+
+/**
+ * Everything check knows about the project: load-time issues plus all pure
+ * checks, and the advisory tier (DEC-025) — reported separately so
+ * advisories can never affect the issue count, exit codes, or gates.
+ */
+export function checkProject(load: LoadResult): CheckResult {
+  return {
+    issues: [
+      ...load.issues,
+      ...checkDuplicateIds(load.documents),
+      ...checkBrokenLinks(load.documents),
+      ...checkWorkOrderRequirements(load.documents),
+      ...checkDoneWorkOrders(load.documents),
+      ...checkGatedWorkOrders(load.documents),
+      ...checkApprovalStamps(load.documents),
+    ],
+    advisories: checkStructure(load.dir, load.documents),
+  };
 }

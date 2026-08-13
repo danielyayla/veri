@@ -4,7 +4,7 @@ type: work-order
 title: Sidebar working set + icon rail — pins, recents, lifecycle-filtered tree
 status: done
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-13
 links:
   - id: REQ-004
     rel: extends
@@ -79,6 +79,10 @@ search, this sidebar) reads directory position for meaning.
 - Command-palette changes (WO-013, shipped) and everything the README
   defers (per-type list views, area/epic metadata, timeline, tab
   persistence, graph expansion).
+
+## Requirements
+
+Extends [[REQ-004]] — the desktop app.
 
 ## Acceptance tests
 

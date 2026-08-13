@@ -5,7 +5,7 @@ title: Agent handoff — kickoff prompt and agent-agnostic session start
 status: accepted
 approved: 2026-08-10
 created: 2026-08-08
-updated: 2026-08-10
+updated: 2026-08-13
 links:
   - id: SRC-003
     rel: designed-by
@@ -36,7 +36,7 @@ and any compliant client (Claude Code, Cursor, Codex CLI, Gemini CLI,
 plumbing: where each client reads its MCP configuration and how a
 session is launched with an initial prompt.
 
-## Requirements
+## Acceptance criteria
 
 1. **Copy Kickoff Prompt.** From a work order, one click copies a
    short, agent-neutral prompt (e.g. "Implement WO-008. Fetch the
