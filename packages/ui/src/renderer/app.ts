@@ -7,6 +7,7 @@ import type { ProjectInfo, TemplateInfo, VeriApi } from './api.ts';
 import { h } from './dom.ts';
 import { TYPE_META, relTime, statusColor, tint } from './theme.ts';
 import { advisoriesByDoc, docsById, isPending, issuesByDoc, packageSummary } from './derive.ts';
+import { composeTarget, isValidProjectName } from './newproject.ts';
 import type { ActivityRow, DocsById, PackageSummary } from './derive.ts';
 import type { McpStatus } from '../lib/mcpconfig.ts';
 import type { AgentInfo } from '../lib/agents.ts';
@@ -275,6 +276,8 @@ class App implements Ctx {
   private pinDragIdx: number | null = null;
   /** The rendered palette rows' open actions, for the global Enter handler. */
   private palRowActions: Array<{ open(pinned: boolean): void }> = [];
+  /** Caret position to restore after a name-edit re-render of the sheet. */
+  private npNameCaret: number | null = null;
   /** Per-tab scroll positions (SRC-004 "State Management"), saved on re-render. */
   private scrollPos = new Map<string, number[]>();
   private sidebarScroll = 0;
@@ -1179,9 +1182,12 @@ class App implements Ctx {
       untouched — the main process only records the project after a good write. */
   private async createProject(): Promise<void> {
     const np = this.state.newProject;
-    if (np === null || np.busy) return;
+    if (np === null || np.busy || !isValidProjectName(np.name)) return;
     this.update({ newProject: { ...np, busy: true, error: null } });
-    const err = await this.guardIpc(() => this.api.createProject(np.dir, np.demo));
+    // The composed target, not the picked dir (WO-020): scaffoldProject's
+    // recursive mkdir creates the subfolder, and the MRU entry is recorded
+    // for the final target — so its name is the final folder's (DEC-010).
+    const err = await this.guardIpc(() => this.api.createProject(composeTarget(np.dir, np.name), np.demo));
     if (err === undefined) {
       // guardIpc already surfaced it; just release the sheet's controls.
       const stuck = this.state.newProject;
@@ -1196,16 +1202,47 @@ class App implements Ctx {
   private newProjectSheet(): HTMLElement | null {
     const np = this.state.newProject;
     if (np === null) return null;
+    // The name only composes the target (SRC-007 addendum): the location
+    // line and the preview always show the full final write, live — that
+    // contract is what disambiguates in-place vs subfolder; no mode toggle.
+    const target = composeTarget(np.dir, np.name);
+    const validName = isValidProjectName(np.name);
+    const prefix = validName && target !== np.dir ? `${np.name}/` : '';
     const tree =
       np.demo
         ? [
-            h('span', {}, 'veri/  ·  the skiff demo project\n'),
-            h('span', {}, 'README.md      '),
+            h('span', {}, `${prefix}veri/  ·  the skiff demo project\n`),
+            h('span', {}, `${prefix}README.md      `),
             h('span', { class: 'np-skip' }, '← skipped if one already exists\n'),
-            h('span', {}, 'CLAUDE.md      '),
+            h('span', {}, `${prefix}CLAUDE.md      `),
             h('span', { class: 'np-skip' }, '← skipped if one already exists'),
           ]
-        : [h('span', {}, 'veri/requirements/\nveri/decisions/\nveri/work-orders/\nveri/sources/')];
+        : [
+            h(
+              'span',
+              {},
+              `${prefix}veri/requirements/\n${prefix}veri/decisions/\n${prefix}veri/work-orders/\n${prefix}veri/sources/`,
+            ),
+          ];
+    const nameInput = h('input', {
+      class: 'np-name-input',
+      value: np.name,
+      disabled: np.busy,
+      onInput: (e) => {
+        const el = e.target as HTMLInputElement;
+        this.npNameCaret = el.selectionStart;
+        this.update({ newProject: { ...np, name: el.value } });
+      },
+    }) as HTMLInputElement;
+    nameInput.spellcheck = false;
+    const caret = this.npNameCaret;
+    if (caret !== null) {
+      this.npNameCaret = null;
+      queueMicrotask(() => {
+        nameInput.focus();
+        nameInput.setSelectionRange(caret, caret);
+      });
+    }
     return h(
       'div',
       { class: 'np-scrim', onClick: () => this.closeNewProject() },
@@ -1216,7 +1253,7 @@ class App implements Ctx {
         h(
           'div',
           { class: 'np-loc' },
-          h('span', { class: 'np-path' }, h('bdi', {}, np.dir)),
+          h('span', { class: 'np-path' }, h('bdi', {}, target)),
           h(
             'span',
             {
@@ -1232,8 +1269,9 @@ class App implements Ctx {
           'div',
           { class: 'np-name-line' },
           h('span', { class: 'np-name-label' }, 'Project name'),
-          h('span', { class: 'np-name-val' }, np.name),
+          nameInput,
         ),
+        h('div', { class: 'np-name-help' }, 'A different name creates a new folder inside the chosen location.'),
         h(
           'div',
           {
@@ -1280,7 +1318,7 @@ class App implements Ctx {
           ),
           h(
             'button',
-            { class: 'np-btn np-btn-primary', disabled: np.busy, onClick: () => void this.createProject() },
+            { class: 'np-btn np-btn-primary', disabled: np.busy || !validName, onClick: () => void this.createProject() },
             np.busy ? 'Creating…' : 'Create project',
           ),
         ),

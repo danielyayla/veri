@@ -251,7 +251,7 @@ no removal of projects from the MRU.
 
 ## Addendum (2026-08-11) — editable project name (WO-020)
 
-Status: **drafted, awaiting Daniel's approval.** Everything above stands;
+Status: **approved by Daniel, 2026-08-13.** Everything above stands;
 this section changes one row of the sheet and adds a path-composition
 rule. Motivation: the read-only name served the "add Veri to this repo"
 intent but stranded the "start a brand-new project called X" intent — a

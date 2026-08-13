@@ -2,7 +2,7 @@
 id: WO-020
 type: work-order
 title: Editable project name in the New-project sheet
-status: backlog
+status: in-progress
 created: 2026-08-11
 updated: 2026-08-13
 links:
@@ -68,15 +68,15 @@ Extends [[REQ-004]] — the new-project sheet.
 
 ## Acceptance tests
 
-- [ ] Name unchanged → scaffold lands in the picked folder, identical
+- [x] Name unchanged → scaffold lands in the picked folder, identical
       to WO-018 behavior.
-- [ ] Name edited → `<picked>/<name>` is created and scaffolded; the
+- [x] Name edited → `<picked>/<name>` is created and scaffolded; the
       location block showed exactly that path before Create was
       pressed, and the preview showed the folder as first segment.
-- [ ] Empty and invalid names disable Create.
-- [ ] Composed target already containing `veri/` fails with the
+- [x] Empty and invalid names disable Create.
+- [x] Composed target already containing `veri/` fails with the
       existing in-sheet error; nothing is written, MRU unchanged.
-- [ ] The new project's MRU row is named after the final folder.
-- [ ] `veri check` and `npm test` are clean.
+- [x] The new project's MRU row is named after the final folder.
+- [x] `veri check` and `npm test` are clean.
 
 ## Receipts

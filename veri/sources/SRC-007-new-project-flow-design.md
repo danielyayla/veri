@@ -4,7 +4,7 @@ type: source
 title: Design handoff — New-project flow (create a Veri project from the app)
 status: imported
 created: 2026-08-11
-updated: 2026-08-11
+updated: 2026-08-13
 links:
   - id: WO-018
     rel: designs
@@ -17,12 +17,12 @@ links:
 Design approved by Daniel on 2026-08-11 (in-session review of the
 prototype), satisfying the [[DEC-012]] gate for [[WO-018]].
 
-> **Addendum (2026-08-11, awaiting approval):** the bundle README gains
-> an addendum section — an editable project-name field with
+> **Addendum (2026-08-11, approved by Daniel 2026-08-13):** the bundle
+> README gains an addendum section — an editable project-name field with
 > create-subfolder path composition — as the [[DEC-012]] gate for
-> [[WO-020]]. The addendum is drafted in `design/new-project-flow/`
-> (README section + live prototype behavior) and is not binding until
-> Daniel approves it; [[WO-018]]'s approved scope is unchanged by it.
+> [[WO-020]]. The addendum lives in `design/new-project-flow/`
+> (README section + live prototype behavior); [[WO-018]]'s approved
+> scope is unchanged by it.
 
 Design handoff for the missing creation path in the desktop UI: today the
 app can only open a project that already has a `veri/` directory, so a
