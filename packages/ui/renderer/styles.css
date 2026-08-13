@@ -1034,3 +1034,55 @@ a:hover { color: #F49463; }
 .cm-ac-work-order .cm-completionLabel { color: var(--ember); }
 .cm-ac-source .cm-completionLabel { color: #908BA8; }
 .cm-ac-workflow .cm-completionLabel { color: var(--green); }
+
+/* ---- Templates settings view (WO-024, SRC-009) ---- */
+.tpl-wrap { max-width: 920px; margin: 0 auto; padding: 28px 36px 60px; }
+.tpl-head { display: flex; align-items: baseline; }
+.tpl-path { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--faint); }
+.tpl-sub { margin-top: 5px; font-size: 13px; color: var(--muted); }
+.tpl-panes { display: flex; gap: 16px; margin-top: 22px; align-items: flex-start; }
+.tpl-list { width: 210px; flex: 0 0 auto; display: flex; flex-direction: column; gap: 2px; }
+.tpl-row {
+  height: 28px; display: flex; align-items: center; gap: 9px; padding: 0 10px;
+  border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--body-text);
+}
+.tpl-row:hover { background: #1B1B20; }
+.tpl-row-active { background: rgba(232,112,58,0.09); color: var(--ember-light); }
+.tpl-row-active:hover { background: rgba(232,112,58,0.09); }
+.tpl-row-label { flex: 1; min-width: 0; }
+.tpl-chip {
+  font-family: var(--mono); font-size: 10px; border-radius: 4px; padding: 2px 7px;
+  color: var(--faint); border: 1px solid var(--int-border);
+}
+.tpl-chip-custom { color: var(--ember-light); background: rgba(232,112,58,0.1); border-color: transparent; }
+.tpl-card {
+  flex: 1; min-width: 0; border: 1px solid var(--card-border); border-radius: 9px;
+  background: var(--panel); min-height: 480px; display: flex; flex-direction: column; overflow: hidden;
+}
+.tpl-card-head {
+  height: 44px; flex: 0 0 auto; border-bottom: 1px solid var(--hair);
+  display: flex; align-items: center; gap: 10px; padding: 0 16px;
+}
+.tpl-fname { font-family: var(--mono); font-size: 11.5px; color: var(--secondary); }
+.tpl-head-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.tpl-reset-btn {
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+  border: 1px solid var(--int-border); border-radius: 6px; padding: 4px 10px;
+  background: none; cursor: pointer;
+}
+.tpl-reset-btn:hover { color: var(--body-text); border-color: #2E2E36; }
+.tpl-reset-confirm { font-family: var(--mono); font-size: 11px; color: var(--amber); display: flex; align-items: center; gap: 8px; }
+.tpl-reset-yes, .tpl-reset-no { cursor: pointer; }
+.tpl-reset-no { color: var(--muted); }
+.tpl-save { font-family: var(--mono); font-size: 10.5px; color: var(--ghost); }
+.tpl-save-dirty { color: var(--amber); cursor: pointer; }
+.tpl-save-warn { color: var(--amber); }
+.tpl-fm { padding: 14px 16px 12px; border-bottom: 1px dashed var(--int-border); background: var(--bg); user-select: none; }
+.tpl-fm-label {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--faint); margin-bottom: 8px;
+}
+.tpl-fm-body { font-family: var(--mono); font-size: 11.5px; line-height: 1.6; color: var(--ghost); white-space: pre; }
+.tpl-ed-host { flex: 1; display: flex; min-height: 0; background: var(--bg); }
+.tpl-ed-host .cm-editor { flex: 1; }
+.tpl-loading { padding: 40px; font-family: var(--mono); font-size: 11px; color: var(--ghost); }

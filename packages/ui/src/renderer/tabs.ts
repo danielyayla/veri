@@ -6,7 +6,7 @@
  */
 
 /** View tabs alongside document tabs; ids are doc ids or these keys. */
-export type ViewKey = 'homeview' | 'board' | 'graph' | 'decisions' | 'mcp';
+export type ViewKey = 'homeview' | 'board' | 'graph' | 'decisions' | 'mcp' | 'templates';
 
 export const VIEW_META: Record<ViewKey, { label: string; glyph: string }> = {
   homeview: { label: 'Home', glyph: '⌂' },
@@ -14,6 +14,7 @@ export const VIEW_META: Record<ViewKey, { label: string; glyph: string }> = {
   graph: { label: 'Graph', glyph: '◉' },
   decisions: { label: 'Decisions', glyph: '§' },
   mcp: { label: 'Agent connection', glyph: '⌁' },
+  templates: { label: 'Templates', glyph: '⚙' },
 };
 
 export function isViewKey(id: string): id is ViewKey {

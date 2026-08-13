@@ -3,7 +3,7 @@ import type { DocType, Issue, VeriDocument } from '@veri/core';
 import type { ContextPackage, PaletteResult } from '@veri/mcp';
 import type { Snapshot } from '../lib/snapshot.ts';
 import { api } from './api.ts';
-import type { ProjectInfo, VeriApi } from './api.ts';
+import type { ProjectInfo, TemplateInfo, VeriApi } from './api.ts';
 import { h } from './dom.ts';
 import { TYPE_META, relTime, statusColor, tint } from './theme.ts';
 import { docsById, isPending, issuesByDoc, packageSummary } from './derive.ts';
@@ -25,9 +25,10 @@ import { ipcErrorMessage, reconcileDisk } from './editlogic.ts';
 import { editorScreen } from './views/editor.ts';
 import { paletteRows } from './palette.ts';
 import type { PaletteRow } from './palette.ts';
+import { TPL_TYPES, templatesView } from './views/templates.ts';
 import { DEAD_LABEL, isLiving, pushRecent, treeSection, visibleRecents } from './sidebar.ts';
 
-export type View = 'home' | 'workorder' | 'homeview' | 'board' | 'graph' | 'decisions' | 'mcp';
+export type View = 'home' | 'workorder' | 'homeview' | 'board' | 'graph' | 'decisions' | 'mcp' | 'templates';
 
 export interface OpenDocOpts {
   preview?: boolean;
@@ -82,6 +83,9 @@ export interface State {
   newDoc: { type: DocType; title: string; anchor: { x: number; y: number } | null } | null;
   /** Save/Discard/Cancel prompt for closing a dirty editor tab (SRC-008). */
   closeConfirm: { id: string; x: number; y: number } | null;
+  /** Templates settings view (WO-024, SRC-009): active type + reset confirm. */
+  tplType: DocType;
+  tplResetConfirm: boolean;
   /** Green "opened the existing project" chip, shown after the reload. */
   projectNotice: string | null;
   mcpStatus: McpStatus | null;
@@ -138,6 +142,15 @@ export interface Ctx {
   editView(): ActiveEdit | null;
   /** ⌘S: guarded verbatim save of the active editor buffer. */
   saveActive(): void;
+  /** Templates view (WO-024): chip state for a type row, null while loading. */
+  tplChip(type: DocType): boolean | null;
+  /** The active type's editor card state; null while its first read is in flight. */
+  tplView(): ActiveTpl | null;
+  tplSelect(type: DocType): void;
+  tplSave(): void;
+  tplReset(): void;
+  tplSetResetConfirm(open: boolean): void;
+  tplResolveConflict(action: 'reload' | 'keep'): void;
   /** Reload / Keep mine / Restore / Close tab on a conflict banner. */
   resolveConflict(action: 'reload' | 'keep' | 'restore' | 'closetab'): void;
   /** Sidebar `+` / ⌘N: open the type-plus-title creation popover. */
@@ -163,6 +176,25 @@ export interface ActiveEdit {
   dirty: boolean;
   conflict: 'none' | 'disk-changed' | 'deleted';
   notice: { text: string; warn: boolean } | null;
+}
+
+/** What the Templates view renders for the active type (WO-024). */
+export interface ActiveTpl {
+  type: DocType;
+  dom: HTMLElement;
+  dirty: boolean;
+  customized: boolean;
+  conflict: 'none' | 'disk-changed';
+  notice: { text: string; warn: boolean } | null;
+}
+
+/** Per-type template editing state; the island holds buffer and history. */
+interface TplEdit {
+  island: EditorIsland | null;
+  dirty: boolean;
+  conflict: 'none' | 'disk-changed';
+  notice: { text: string; warn: boolean } | null;
+  noticeTimer?: ReturnType<typeof setTimeout>;
 }
 
 /** Per-doc editing state (WO-022). The island holds the buffer, cursor, and
@@ -216,6 +248,8 @@ class App implements Ctx {
     newProject: null,
     newDoc: null,
     closeConfirm: null,
+    tplType: 'requirement',
+    tplResetConfirm: false,
     projectNotice: null,
     mcpStatus: null,
     mcpWrote: false,
@@ -225,6 +259,12 @@ class App implements Ctx {
   };
   /** Editing state per doc tab (WO-022); islands survive re-renders here. */
   private docEdit = new Map<string, DocEdit>();
+  /** Template settings (WO-024): per-type buffers and the last-read info.
+      Info comes from core over IPC on every read — never a UI-side cache
+      of customized-ness beyond the current render cycle. */
+  private tplEdit = new Map<DocType, TplEdit>();
+  private tplInfo = new Map<DocType, TemplateInfo>();
+  private tplLoading = new Set<DocType>();
   private sessionActivity = new Map<string, ActivityRow[]>();
   private sessionFeed: Array<{ id: string; row: ActivityRow }> = [];
   /** Doc-tab activation order, most recent first — drives the Documents nav. */
@@ -302,6 +342,8 @@ class App implements Ctx {
         this.update({ newDoc: null });
       } else if (e.key === 'Escape' && this.state.closeConfirm !== null) {
         this.update({ closeConfirm: null });
+      } else if (e.key === 'Escape' && this.state.tplResetConfirm) {
+        this.update({ tplResetConfirm: false });
       } else if (e.key === 'Escape' && this.state.newProject !== null) {
         this.closeNewProject();
       } else if (e.ctrlKey && !e.metaKey && e.key === 'Tab') {
@@ -403,6 +445,7 @@ class App implements Ctx {
         agentLaunchMsg: null,
         reviewPop: false,
         reviewText: null,
+        tplResetConfirm: false,
       });
       if (active !== 'mcp') Object.assign(patch, this.leaveMcpPatch());
     }
@@ -488,6 +531,7 @@ class App implements Ctx {
   async refresh(): Promise<void> {
     this.applySnapshot(await this.api.snapshot());
     await this.reconcileEditors();
+    await this.reconcileTemplates();
     this.render();
   }
 
@@ -655,7 +699,12 @@ class App implements Ctx {
 
   saveActive(): void {
     const id = this.state.activeTabId;
-    if (id === null || isViewKey(id)) return;
+    if (id === null) return;
+    if (id === 'templates') {
+      this.tplSave();
+      return;
+    }
+    if (isViewKey(id)) return;
     this.saveEditor(id);
   }
 
@@ -745,7 +794,7 @@ class App implements Ctx {
   /** Close ×/middle-click: a dirty editor gets the Save/Discard/Cancel
       prompt (SRC-008); everything else closes like before. */
   private requestCloseTab(id: string, anchor: DOMRect | null): void {
-    if (this.docEdit.get(id)?.dirty === true) {
+    if (this.docEdit.get(id)?.dirty === true || (id === 'templates' && this.tplAnyDirty())) {
       this.update({
         closeConfirm: { id, x: anchor?.left ?? window.innerWidth / 2 - 130, y: (anchor?.bottom ?? 60) + 8 },
       });
@@ -756,7 +805,202 @@ class App implements Ctx {
 
   private forceCloseTab(id: string): void {
     this.dropEditor(id);
+    // Closing the Templates tab drops its buffers and infos: the next open
+    // reads everything fresh from the files (DEC-002).
+    if (id === 'templates') this.dropTemplates();
     this.applyTabs(closeTab(this.tabState(), id), { closeConfirm: null });
+  }
+
+  // ---- template settings (WO-024, SRC-009) ----
+
+  tplChip(type: DocType): boolean | null {
+    return this.tplInfo.get(type)?.customized ?? null;
+  }
+
+  /**
+   * The Templates view's render source. Lazily starts the per-type info
+   * reads (all five, for the list chips) and synchronously creates the
+   * active type's island once its info is in — so the same render pass
+   * that has the info also has the editor DOM.
+   */
+  tplView(): ActiveTpl | null {
+    for (const type of TPL_TYPES) {
+      if (!this.tplInfo.has(type) && !this.tplLoading.has(type)) {
+        this.tplLoading.add(type);
+        void this.api.templateRead(type).then((info) => {
+          this.tplLoading.delete(type);
+          this.tplInfo.set(type, info);
+          this.render();
+        });
+      }
+    }
+    const type = this.state.tplType;
+    const info = this.tplInfo.get(type);
+    if (info === undefined) return null;
+    let ed = this.tplEdit.get(type);
+    if (ed === undefined) {
+      ed = { island: null, dirty: false, conflict: 'none', notice: null };
+      ed.island = new EditorIsland(`templates/${type}.md`, info.body, {
+        // SRC-009: no `[[` autocomplete and no link navigation — templates
+        // shouldn't hard-link real ids, so `[[` just types as text.
+        docs: () => [],
+        onDirty: (dirty) => {
+          ed!.dirty = dirty;
+          this.render();
+        },
+        onNotice: (text) => this.tplNotice(type, text, true),
+        onNavigate: () => {},
+      });
+      this.tplEdit.set(type, ed);
+    }
+    return {
+      type,
+      dom: ed.island?.view.dom ?? h('div', {}),
+      dirty: ed.dirty,
+      customized: info.customized,
+      conflict: ed.conflict,
+      notice: ed.notice,
+    };
+  }
+
+  tplSelect(type: DocType): void {
+    this.update({ tplType: type, tplResetConfirm: false });
+    this.tplEdit.get(type)?.island?.focus();
+  }
+
+  private tplNotice(type: DocType, text: string, warn: boolean): void {
+    const ed = this.tplEdit.get(type);
+    if (ed === undefined) return;
+    clearTimeout(ed.noticeTimer);
+    ed.notice = { text, warn };
+    ed.noticeTimer = setTimeout(() => {
+      ed.notice = null;
+      this.render();
+    }, warn ? 3000 : 1500);
+    this.render();
+  }
+
+  tplSave(): void {
+    this.tplSaveType(this.state.tplType);
+  }
+
+  /** Verbatim write of the type's buffer, then a fresh info read so the
+      chips recompute from the file — never from what we think we wrote. */
+  private tplSaveType(type: DocType, then?: () => void): void {
+    const ed = this.tplEdit.get(type);
+    if (ed?.island == null || (!ed.dirty && ed.conflict === 'none')) return;
+    const island = ed.island;
+    void this.api
+      .templateWrite(type, island.text)
+      .then(async () => {
+        const info = await this.api.templateRead(type);
+        this.tplInfo.set(type, info);
+        island.markSaved(info.body);
+        ed.conflict = 'none';
+        ed.dirty = false;
+        this.tplNotice(type, 'saved', false);
+        then?.();
+      })
+      .catch((err: unknown) => this.tplNotice(type, ipcErrorMessage(err), true));
+  }
+
+  /** The close prompt's Save for the templates tab: every dirty type. */
+  private tplSaveAll(then: () => void): void {
+    const dirtyTypes = TPL_TYPES.filter((type) => this.tplEdit.get(type)?.dirty === true);
+    if (dirtyTypes.length === 0) {
+      then();
+      return;
+    }
+    let remaining = dirtyTypes.length;
+    for (const type of dirtyTypes) {
+      this.tplSaveType(type, () => {
+        remaining -= 1;
+        if (remaining === 0) then();
+      });
+    }
+  }
+
+  private tplAnyDirty(): boolean {
+    return [...this.tplEdit.values()].some((ed) => ed.dirty);
+  }
+
+  tplSetResetConfirm(open: boolean): void {
+    this.update({ tplResetConfirm: open });
+  }
+
+  /** Confirmed reset (SRC-009): rewrite the file to the built-in default. */
+  tplReset(): void {
+    const type = this.state.tplType;
+    void this.api
+      .templateReset(type)
+      .then(async () => {
+        const info = await this.api.templateRead(type);
+        this.tplInfo.set(type, info);
+        const ed = this.tplEdit.get(type);
+        ed?.island?.markSaved(info.body);
+        if (ed !== undefined) {
+          ed.dirty = false;
+          ed.conflict = 'none';
+        }
+        this.update({ tplResetConfirm: false });
+      })
+      .catch((err: unknown) => this.tplNotice(type, ipcErrorMessage(err), true));
+  }
+
+  tplResolveConflict(action: 'reload' | 'keep'): void {
+    const type = this.state.tplType;
+    const ed = this.tplEdit.get(type);
+    if (ed?.island == null) return;
+    const island = ed.island;
+    void this.api.templateRead(type).then((info) => {
+      this.tplInfo.set(type, info);
+      if (action === 'reload') {
+        island.markSaved(info.body);
+        ed.dirty = false;
+        ed.conflict = 'none';
+        this.tplNotice(type, 'reloaded from disk', false);
+      } else {
+        island.ackDisk = info.body;
+        ed.conflict = 'none';
+        this.tplNotice(type, 'kept your edits — ⌘S overwrites', false);
+      }
+    });
+  }
+
+  /** External template changes ride the same veri/ watcher as documents:
+      silent reload when clean, banner when dirty. A deleted file is not a
+      conflict — its effective body is the built-in default (DEC-023). */
+  private async reconcileTemplates(): Promise<void> {
+    if (!this.state.tabs.some((t) => t.id === 'templates')) return;
+    for (const type of [...this.tplInfo.keys()]) {
+      const info = await this.api.templateRead(type).catch(() => null);
+      if (info === null) continue;
+      this.tplInfo.set(type, info);
+      const ed = this.tplEdit.get(type);
+      const island = ed?.island ?? null;
+      if (ed == null || island === null) continue;
+      const action = reconcileDisk(
+        { baseText: island.baseText, dirty: island.isDirty, ackDisk: island.ackDisk },
+        info.body,
+      );
+      if (action === 'reload') {
+        island.markSaved(info.body);
+        ed.dirty = false;
+        ed.conflict = 'none';
+        this.tplNotice(type, 'reloaded from disk', false);
+      } else if (action === 'conflict') {
+        ed.conflict = 'disk-changed';
+      }
+    }
+  }
+
+  private dropTemplates(): void {
+    for (const ed of this.tplEdit.values()) {
+      clearTimeout(ed.noticeTimer);
+      ed.island?.destroy();
+    }
+    this.tplEdit.clear();
+    this.tplInfo.clear();
   }
 
   // ---- document creation (REQ-009 §2, SRC-008) ----
@@ -1272,6 +1516,17 @@ class App implements Ctx {
         ),
       ),
       h('div', { class: 'rail-fill' }),
+      // Templates settings (WO-024, SRC-009): above the agent button.
+      h(
+        'div',
+        {
+          class: this.state.activeTabId === 'templates' ? 'rail-btn rail-btn-active' : 'rail-btn rail-agent',
+          onClick: () => this.setView('templates'),
+          ...hover('templates'),
+        },
+        h('span', {}, '⚙'),
+        tip('templates', 'Templates'),
+      ),
       h(
         'div',
         {
@@ -1454,7 +1709,7 @@ class App implements Ctx {
     const doc = view === null ? this.byId.get(t.id) : undefined;
     const title = view?.label ?? doc?.title ?? t.id;
     const active = t.id === this.state.activeTabId;
-    const dirty = this.docEdit.get(t.id)?.dirty === true;
+    const dirty = this.docEdit.get(t.id)?.dirty === true || (t.id === 'templates' && this.tplAnyDirty());
     const close = (el: Element | null): void => this.requestCloseTab(t.id, el?.getBoundingClientRect() ?? null);
     return h(
       'div',
@@ -1553,6 +1808,7 @@ class App implements Ctx {
     }
     // Editor islands lose their scroll when replaceChildren detaches them.
     for (const ed of this.docEdit.values()) ed.island?.saveScroll();
+    for (const ed of this.tplEdit.values()) ed.island?.saveScroll();
 
     const view = this.state.view;
     const activeEdit = this.editView();
@@ -1565,6 +1821,7 @@ class App implements Ctx {
     else if (view === 'board') screen = boardView(this);
     else if (view === 'graph') screen = graphView(this);
     else if (view === 'decisions') screen = decisionsView(this);
+    else if (view === 'templates') screen = templatesView(this);
     else screen = readerView(this);
     const palette = this.paletteEl();
     const sheet = this.newProjectSheet();
@@ -1589,6 +1846,7 @@ class App implements Ctx {
       });
     }
     if (activeEdit !== null) this.docEdit.get(activeEdit.id)?.island?.restoreScroll();
+    if (view === 'templates') this.tplEdit.get(this.state.tplType)?.island?.restoreScroll();
   }
 
   /** The creation popover and the dirty-close prompt (WO-022, SRC-008). */
@@ -1651,7 +1909,11 @@ class App implements Ctx {
           'div',
           { class: 'cc-pop', style, onClick: (e) => e.stopPropagation() },
           h('div', { class: 'cc-title' }, 'Unsaved changes'),
-          h('div', { class: 'cc-text' }, `${cc.id} has edits that aren't saved.`),
+          h(
+            'div',
+            { class: 'cc-text' },
+            cc.id === 'templates' ? "Template edits aren't saved." : `${cc.id} has edits that aren't saved.`,
+          ),
           h(
             'div',
             { class: 'cc-acts' },
@@ -1663,7 +1925,8 @@ class App implements Ctx {
                 class: 'nd-btn-primary',
                 onClick: () => {
                   this.update({ closeConfirm: null });
-                  this.saveEditor(cc.id, () => this.forceCloseTab(cc.id));
+                  if (cc.id === 'templates') this.tplSaveAll(() => this.forceCloseTab(cc.id));
+                  else this.saveEditor(cc.id, () => this.forceCloseTab(cc.id));
                 },
               },
               'Save',

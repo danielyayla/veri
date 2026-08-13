@@ -2,7 +2,7 @@
 id: WO-024
 type: work-order
 title: Template settings view in the desktop app
-status: backlog
+status: in-progress
 created: 2026-08-13
 updated: 2026-08-13
 links:

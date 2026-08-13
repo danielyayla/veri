@@ -3,7 +3,16 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BrowserWindow, app, clipboard, dialog, ipcMain } from 'electron';
-import { ProjectExistsError, createDocument, saveDocumentFile, scaffoldProject } from '@veri/core';
+import {
+  BODY_TEMPLATES,
+  ProjectExistsError,
+  createDocument,
+  getTemplate,
+  isCustomized,
+  saveDocumentFile,
+  scaffoldProject,
+  templateFile,
+} from '@veri/core';
 import type { DocType } from '@veri/core';
 import { DEMO_ROOT } from '@veri/cli';
 import { assembleContext, paletteSearch } from '@veri/mcp';
@@ -116,6 +125,24 @@ function registerIpc(): void {
   ipcMain.handle('veri:create-doc', (_e, type: DocType, title: string) =>
     createDocument(join(projectRoot, 'veri'), type, title),
   );
+  // Template settings (WO-024): the effective body plus provenance, straight
+  // from core (WO-023) — never cached, so chips always match the files.
+  ipcMain.handle('veri:template-read', (_e, type: DocType) => {
+    const veriDir = join(projectRoot, 'veri');
+    const { body, source } = getTemplate(veriDir, type);
+    return { body, source, customized: isCustomized(veriDir, type) };
+  });
+  ipcMain.handle('veri:template-write', async (_e, type: DocType, body: string) => {
+    const veriDir = join(projectRoot, 'veri');
+    // First save in a pre-templates project materializes the directory (SRC-009).
+    await mkdir(join(veriDir, 'templates'), { recursive: true });
+    await writeFile(join(veriDir, templateFile(type)), body);
+  });
+  ipcMain.handle('veri:template-reset', async (_e, type: DocType) => {
+    const veriDir = join(projectRoot, 'veri');
+    await mkdir(join(veriDir, 'templates'), { recursive: true });
+    await writeFile(join(veriDir, templateFile(type)), BODY_TEMPLATES[type]);
+  });
   ipcMain.handle('veri:append-note', (_e, id: string, note: string) => appendNote(projectRoot, id, note));
   ipcMain.handle('veri:approve', (_e, id: string) => approveDoc(projectRoot, id));
   ipcMain.handle('veri:review-note', (_e, id: string, note: string) => appendReviewNote(projectRoot, id, note));

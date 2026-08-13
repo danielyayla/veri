@@ -24,6 +24,12 @@ const COMMAND_META: Record<CommandKey, { label: string; glyph: string; terms: st
   'new-project': { label: 'New project…', glyph: '+', terms: ['new', 'project', 'create'] },
 };
 
+/** Extra query terms a view answers to beyond its label (SRC-009: the
+    Templates view surfaces for `settings` too). */
+const VIEW_ALIASES: Partial<Record<ViewKey, string[]>> = {
+  templates: ['settings'],
+};
+
 /** Views surface by label match, and are suppressed while a type/status
     filter is active (filters talk about documents, not views). */
 export function paletteRows(result: PaletteResult): PaletteRow[] {
@@ -34,9 +40,9 @@ export function paletteRows(result: PaletteResult): PaletteRow[] {
   }));
   if (type === null && statuses.length === 0) {
     for (const [view, meta] of Object.entries(VIEW_META) as Array<[ViewKey, (typeof VIEW_META)[ViewKey]]>) {
-      const label = meta.label.toLowerCase();
+      const terms = [meta.label.toLowerCase(), ...(VIEW_ALIASES[view] ?? [])];
       if (text === '') scored.push({ row: { kind: 'view', view, label: meta.label, glyph: meta.glyph }, score: 0.5 });
-      else if (label.includes(text))
+      else if (terms.some((term) => term.includes(text)))
         scored.push({ row: { kind: 'view', view, label: meta.label, glyph: meta.glyph }, score: 58 });
     }
     for (const [command, meta] of Object.entries(COMMAND_META) as Array<

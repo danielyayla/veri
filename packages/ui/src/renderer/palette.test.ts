@@ -73,3 +73,11 @@ test('a doc hit outranks the command row at equal-ish scores', () => {
   const rows = paletteRows(result({ text: 'new' }, [hit('WO-018', 62)]));
   assert.equal(rows[0]?.kind, 'doc');
 });
+
+test('the Templates view surfaces for both its label and the settings alias (SRC-009)', () => {
+  const views = (rows: ReturnType<typeof paletteRows>): string[] =>
+    rows.filter((r) => r.kind === 'view').map((r) => (r as { view: string }).view);
+  assert.ok(views(paletteRows(result({ text: 'templ' }, []))).includes('templates'));
+  assert.ok(views(paletteRows(result({ text: 'settings' }, []))).includes('templates'));
+  assert.ok(!views(paletteRows(result({ text: 'settings', type: 'decision' }, []))).includes('templates'));
+});

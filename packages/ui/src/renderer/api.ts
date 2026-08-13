@@ -31,6 +31,12 @@ export interface VeriApi {
   saveDoc(file: string, text: string): Promise<SaveResult>;
   /** Creation flow (REQ-009 §2): scaffold via core, next free id. */
   createDoc(type: DocType, title: string): Promise<CreateResult>;
+  /** Template settings (WO-024): effective body + provenance from core. */
+  templateRead(type: DocType): Promise<TemplateInfo>;
+  /** Verbatim write of veri/templates/<type>.md, creating the dir if needed. */
+  templateWrite(type: DocType, body: string): Promise<void>;
+  /** Rewrite the type's file to the built-in default (SRC-009 reset). */
+  templateReset(type: DocType): Promise<void>;
   appendNote(id: string, note: string): Promise<void>;
   /** The approval act (REQ-008): stamp-and-flip via core's shared write path. */
   approve(id: string): Promise<ApproveResult>;
@@ -59,6 +65,12 @@ export interface VeriApi {
   /** New project, step 2: scaffold `dir` then open it. Error message or null. */
   createProject(dir: string, demo: boolean): Promise<string | null>;
   onChanged(cb: () => void): void;
+}
+
+export interface TemplateInfo {
+  body: string;
+  source: 'project' | 'builtin';
+  customized: boolean;
 }
 
 export type NewProjectPick =
