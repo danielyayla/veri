@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Veri — Template Settings (design prototype)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { height:100%; }
+  body {
+    background:#0F0F11; color:#C9C6CF;
+    font-family:"Source Sans 3",sans-serif; font-size:14px;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  .mono { font-family:"JetBrains Mono",monospace; }
+
+  /* ---------- topbar ---------- */
+  .topbar {
+    height:44px; flex:none; background:#131316; border-bottom:1px solid #1E1E24;
+    display:flex; align-items:center; padding:0 14px; gap:10px;
+  }
+  .logo { width:18px; height:18px; background:#E8703A; border-radius:4px;
+    color:#0F0F11; font-family:"JetBrains Mono",monospace; font-size:12px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; }
+  .wordmark { font-size:13px; font-weight:600; color:#E7E4DE; }
+  .crumb-sep { color:#4A4852; }
+  .projname { font-family:"JetBrains Mono",monospace; font-size:12px; color:#A09DA6; }
+  .searchbox {
+    margin:0 auto; width:340px; height:26px; border:1px solid #26262C; border-radius:6px;
+    background:#0F0F11; display:flex; align-items:center; padding:0 8px; gap:6px;
+    color:#6E6B76; font-size:12.5px;
+  }
+  .kbd { font-family:"JetBrains Mono",monospace; font-size:10px; color:#8B8893;
+    border:1px solid #26262C; border-radius:4px; padding:1px 5px; margin-left:auto; }
+  .chip-git { font-family:"JetBrains Mono",monospace; font-size:10.5px; color:#8B8893;
+    border:1px solid #26262C; border-radius:6px; padding:3px 8px; }
+  .chip-ok { font-family:"JetBrains Mono",monospace; font-size:10.5px; color:#7FAF8A;
+    background:rgba(127,175,138,0.08); border:1px solid #24382B; border-radius:6px; padding:3px 8px; }
+
+  .shell { flex:1; display:flex; min-height:0; }
+
+  /* ---------- icon rail ---------- */
+  .rail { width:44px; flex:none; background:#101013; border-right:1px solid #1E1E24;
+    display:flex; flex-direction:column; align-items:center; padding:10px 0; gap:5px; }
+  .rail .fill { flex:1; }
+  .railbtn { width:32px; height:32px; border-radius:7px; display:flex; align-items:center;
+    justify-content:center; font-family:"JetBrains Mono",monospace; font-size:14px;
+    color:#C9C6CF; cursor:pointer; position:relative; }
+  .railbtn:hover { background:#1B1B20; }
+  .railbtn.active { background:rgba(232,112,58,0.09); color:#F0A87E; }
+  .railbtn.dim { color:#8B8893; }
+  .raildot { position:absolute; top:3px; right:3px; width:6px; height:6px; border-radius:50%;
+    background:#7FAF8A; border:1px solid #101013; }
+  .railbtn .tip { display:none; position:absolute; left:40px; top:50%; transform:translateY(-50%);
+    background:#1F1F25; border:1px solid #2B2B32; border-radius:6px; padding:4px 9px;
+    font-family:"Source Sans 3",sans-serif; font-size:11.5px; color:#E7E4DE;
+    box-shadow:0 6px 18px rgba(0,0,0,.4); white-space:nowrap; pointer-events:none; z-index:20; }
+  .railbtn:hover .tip { display:block; }
+
+  /* ---------- sidebar ---------- */
+  .sidebar { width:250px; flex:none; background:#131316; border-right:1px solid #1E1E24;
+    display:flex; flex-direction:column; padding:12px 8px; overflow-y:auto; }
+  .sgroup { margin-bottom:14px; }
+  .shead { display:flex; align-items:center; gap:7px; padding:3px 8px;
+    font-family:"JetBrains Mono",monospace; font-size:10px; letter-spacing:.1em;
+    text-transform:uppercase; color:#6E6B76; }
+  .swatch { width:7px; height:7px; border-radius:2px; flex:none; }
+  .shead .cnt { margin-left:auto; color:#4A4852; }
+  .srow { height:26px; display:flex; align-items:center; gap:8px; padding:0 8px;
+    border-radius:6px; cursor:pointer; }
+  .srow:hover { background:#1B1B20; }
+  .srow .id { font-family:"JetBrains Mono",monospace; font-size:10.5px; flex:none; }
+  .srow .t { font-size:12.5px; color:#A8A5AF; white-space:nowrap; overflow:hidden;
+    text-overflow:ellipsis; }
+  .sfoot { margin-top:auto; padding:8px; display:flex; align-items:center; gap:7px;
+    font-family:"JetBrains Mono",monospace; font-size:10px; color:#6E6B76; }
+  .pulse { width:6px; height:6px; border-radius:50%; background:#7FAF8A;
+    animation:pulse 3s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+  /* ---------- tab strip + main ---------- */
+  .main { flex:1; display:flex; flex-direction:column; min-width:0; }
+  .tabstrip { height:37px; flex:none; background:#131316; border-bottom:1px solid #1E1E24;
+    display:flex; align-items:flex-end; padding:0 8px; }
+  .tab { height:30px; display:flex; align-items:center; gap:8px; padding:0 12px;
+    background:#0F0F11; border:1px solid #1E1E24; border-bottom:none;
+    border-radius:7px 7px 0 0; font-size:12.5px; color:#E7E4DE; }
+  .tab .g { font-family:"JetBrains Mono",monospace; font-size:12px; color:#F0A87E; }
+  .tab .x { color:#4A4852; font-size:11px; cursor:pointer; width:10px; text-align:center; }
+  .tab .x:hover { color:#A09DA6; }
+  .tab .dirty { display:none; width:7px; height:7px; border-radius:50%; background:#D9A03F; }
+  .tab.isdirty .x { display:none; } .tab.isdirty .dirty { display:block; }
+
+  .view { flex:1; overflow-y:auto; }
+  .vwrap { max-width:920px; margin:0 auto; padding:28px 40px 60px; }
+
+  .vhead { display:flex; align-items:baseline; }
+  .vhead h1 { font-size:20px; font-weight:600; color:#E7E4DE; }
+  .vhead .path { margin-left:auto; font-family:"JetBrains Mono",monospace; font-size:11px;
+    color:#6E6B76; }
+  .vsub { margin-top:5px; font-size:13px; color:#8B8893; }
+
+  .panes { display:flex; gap:16px; margin-top:22px; align-items:flex-start; }
+
+  /* ---------- type list ---------- */
+  .typelist { width:210px; flex:none; display:flex; flex-direction:column; gap:2px; }
+  .trow { height:28px; display:flex; align-items:center; gap:9px; padding:0 10px;
+    border-radius:6px; cursor:pointer; font-size:13px; color:#C9C6CF; }
+  .trow:hover { background:#1B1B20; }
+  .trow.active { background:rgba(232,112,58,0.09); color:#F0A87E; }
+  .trow .chip { margin-left:auto; }
+
+  .chip { font-family:"JetBrains Mono",monospace; font-size:10px; border-radius:4px;
+    padding:2px 7px; }
+  .chip.default { color:#6E6B76; border:1px solid #26262C; }
+  .chip.custom { color:#F0A87E; background:rgba(232,112,58,0.1); border:1px solid transparent; }
+
+  /* ---------- editor card ---------- */
+  .card { flex:1; min-width:0; border:1px solid #1F1F24; border-radius:9px; background:#131316;
+    display:flex; flex-direction:column; min-height:480px; overflow:hidden; }
+  .chead { height:44px; flex:none; border-bottom:1px solid #1E1E24; display:flex;
+    align-items:center; gap:10px; padding:0 16px; }
+  .fname { font-family:"JetBrains Mono",monospace; font-size:11.5px; color:#A09DA6; }
+  .chead .right { margin-left:auto; display:flex; align-items:center; gap:12px; }
+  .btn-reset { font-family:"JetBrains Mono",monospace; font-size:11px; color:#8B8893;
+    border:1px solid #26262C; border-radius:6px; padding:4px 10px; background:none;
+    cursor:pointer; }
+  .btn-reset:hover { color:#C9C6CF; border-color:#2E2E36; }
+  .resetconfirm { font-family:"JetBrains Mono",monospace; font-size:11px; color:#D9A03F;
+    display:flex; align-items:center; gap:8px; }
+  .resetconfirm span { cursor:pointer; }
+  .resetconfirm .no { color:#8B8893; }
+  .savestate { font-family:"JetBrains Mono",monospace; font-size:10.5px; color:#55525E; }
+  .savestate.dirty { color:#D9A03F; cursor:pointer; }
+
+  .fmprev { padding:14px 16px 12px; border-bottom:1px dashed #26262C; background:#0F0F11;
+    user-select:none; }
+  .fmlabel { font-family:"JetBrains Mono",monospace; font-size:9.5px; letter-spacing:.1em;
+    text-transform:uppercase; color:#6E6B76; margin-bottom:8px; }
+  .fmbody { font-family:"JetBrains Mono",monospace; font-size:11.5px; line-height:1.6;
+    color:#55525E; white-space:pre; }
+
+  .editor { flex:1; background:#0F0F11; border:none; outline:none; resize:none;
+    padding:18px 16px; font-family:"Source Sans 3",sans-serif; font-size:14.5px;
+    line-height:1.65; color:#C9C6CF; width:100%; }
+
+  .note { margin-top:14px; font-size:12px; color:#6E6B76; max-width:640px; }
+  .note .m { font-family:"JetBrains Mono",monospace; font-size:11px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">v</div><div class="wordmark">Veri</div>
+  <span class="crumb-sep">/</span><span class="projname">skiff</span>
+  <div class="searchbox">⌕ Search docs… <span class="kbd">⌘K</span></div>
+  <div class="chip-ok">veri check · ok</div>
+  <div class="chip-git">⎇ main · clean</div>
+</div>
+
+<div class="shell">
+  <div class="rail">
+    <div class="railbtn dim">⌂<span class="tip">Home</span></div>
+    <div class="railbtn dim">▤<span class="tip">Board</span></div>
+    <div class="railbtn dim">◉<span class="tip">Graph</span></div>
+    <div class="railbtn dim">§<span class="tip">Decisions</span></div>
+    <div class="fill"></div>
+    <div class="railbtn active">⚙<span class="tip">Templates</span></div>
+    <div class="railbtn dim">⌁<span class="raildot"></span><span class="tip">Agent connection</span></div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sgroup">
+      <div class="shead"><span class="swatch" style="background:#7EA6C4"></span>requirements<span class="cnt">3</span></div>
+      <div class="srow"><span class="id" style="color:#7EA6C4">REQ-001</span><span class="t">Hull inventory tracking</span></div>
+      <div class="srow"><span class="id" style="color:#7EA6C4">REQ-002</span><span class="t">Invoice numbering</span></div>
+      <div class="srow"><span class="id" style="color:#7EA6C4">REQ-003</span><span class="t">Offline-first sync</span></div>
+    </div>
+    <div class="sgroup">
+      <div class="shead"><span class="swatch" style="background:#CFA83D"></span>decisions<span class="cnt">2</span></div>
+      <div class="srow"><span class="id" style="color:#CFA83D">DEC-001</span><span class="t">SQLite over flat files</span></div>
+      <div class="srow"><span class="id" style="color:#CFA83D">DEC-002</span><span class="t">Sequential invoice ids</span></div>
+    </div>
+    <div class="sgroup">
+      <div class="shead"><span class="swatch" style="background:#E8703A"></span>work orders<span class="cnt">2</span></div>
+      <div class="srow"><span class="id" style="color:#E8703A">WO-004</span><span class="t">Invoice PDF export</span></div>
+      <div class="srow"><span class="id" style="color:#E8703A">WO-005</span><span class="t">Sync conflict banner</span></div>
+    </div>
+    <div class="sfoot"><span class="pulse"></span>mcp · serving on :7423</div>
+  </div>
+
+  <div class="main">
+    <div class="tabstrip">
+      <div class="tab" id="tab"><span class="g">⚙</span>Templates<span class="dirty"></span><span class="x">✕</span></div>
+    </div>
+
+    <div class="view"><div class="vwrap">
+      <div class="vhead"><h1>Templates</h1><div class="path">veri/templates/</div></div>
+      <div class="vsub">How new documents start. Edits apply to the next document created — existing documents never change.</div>
+
+      <div class="panes">
+        <div class="typelist" id="typelist"></div>
+
+        <div class="card">
+          <div class="chead">
+            <span class="fname" id="fname">veri/templates/decision.md</span>
+            <span class="chip default" id="cardchip">default</span>
+            <div class="right">
+              <button class="btn-reset" id="resetbtn" style="display:none">Reset to default</button>
+              <div class="resetconfirm" id="resetconfirm" style="display:none">
+                Reset? replaces this file<span id="resetyes">✓</span><span class="no" id="resetno">✕</span>
+              </div>
+              <span class="savestate" id="savestate">saved</span>
+            </div>
+          </div>
+          <div class="fmprev">
+            <div class="fmlabel">⛭ generated by veri — not part of the template</div>
+            <div class="fmbody" id="fmbody"></div>
+          </div>
+          <textarea class="editor" id="editor" spellcheck="false"></textarea>
+        </div>
+      </div>
+
+      <div class="note">Templates are plain markdown files — the <span class="m">custom</span> chip means
+      the file differs from the built-in default. Agents receive the same template through the
+      context package, so documents drafted by hand, CLI, or agent all start in this shape.
+      Editing here is the same as editing the file in any editor.</div>
+    </div></div>
+  </div>
+</div>
+
+<script>
+// ---- fixture: built-in defaults (mirrors core BODY_TEMPLATES) ----
+const BUILTIN = {
+  requirement: "\n(Describe the requirement.)\n\n## Acceptance criteria\n\n- [ ] First criterion\n",
+  decision: "\n## Choice\n\n(What was chosen.)\n\n## Rejected alternatives\n\n- **Alternative** — why it lost\n\n## Rationale\n\n(Why this beats the alternatives.)\n",
+  "work-order": "\n## Summary\n\n(What this delivers.)\n\n## In scope\n\n- (First item)\n\n## Out of scope\n\n- (First exclusion)\n\n## Requirements\n\n(Link the requirements this delivers, e.g. [[REQ-001]].)\n\n## Acceptance tests\n\n- [ ] First test\n\n## Receipts\n\n(none yet)\n",
+  source: "\n(Imported source. Paste or link the original material.)\n",
+  workflow: "\n(How work moves through this project.)\n\n## The path of work\n\n1. (First stage)\n\n## Rules for implementers\n\n1. (First rule)\n"
+};
+const TYPES = [
+  { key:"requirement", label:"Requirement", color:"#7EA6C4", prefix:"REQ", status:"draft" },
+  { key:"decision",    label:"Decision",    color:"#CFA83D", prefix:"DEC", status:"proposed" },
+  { key:"work-order",  label:"Work order",  color:"#E8703A", prefix:"WO",  status:"backlog" },
+  { key:"source",      label:"Source",      color:"#908BA8", prefix:"SRC", status:"imported" },
+  { key:"workflow",    label:"Workflow",    color:"#8B8893", prefix:"WF",  status:"draft" }
+];
+// project files on "disk" — decision ships customized in this fixture
+const disk = {
+  decision: "\n## Context\n\n(What situation forces a choice.)\n\n## Decision\n\n(What we chose.)\n\n## Alternatives considered\n\n- **Alternative** — why it lost\n\n## Consequences\n\n(What becomes easier or harder.)\n"
+};
+
+let active = "decision";
+const buffers = {}, dirty = {};
+const $ = id => document.getElementById(id);
+
+const effective = t => (t in disk ? disk[t] : BUILTIN[t]);
+const isCustom = t => (t in disk) && disk[t].trim() !== BUILTIN[t].trim();
+
+function renderList() {
+  $("typelist").innerHTML = TYPES.map(t => `
+    <div class="trow ${t.key===active?"active":""}" data-t="${t.key}">
+      <span class="swatch" style="background:${t.color}"></span>${t.label}
+      <span class="chip ${isCustom(t.key)?"custom":"default"}">${isCustom(t.key)?"custom":"default"}</span>
+    </div>`).join("");
+  document.querySelectorAll(".trow").forEach(r =>
+    r.addEventListener("click", () => { active = r.dataset.t; renderAll(); }));
+}
+
+function renderCard() {
+  const t = TYPES.find(x => x.key===active);
+  $("fname").textContent = `veri/templates/${t.key}.md`;
+  const custom = isCustom(active);
+  $("cardchip").textContent = custom ? "custom" : "default";
+  $("cardchip").className = "chip " + (custom ? "custom" : "default");
+  $("resetbtn").style.display = custom ? "" : "none";
+  $("resetconfirm").style.display = "none";
+  $("fmbody").textContent =
+`---
+id: ${t.prefix}-0XX
+type: ${t.key}
+title: (your title)
+status: ${t.status}
+created: 2026-08-13
+updated: 2026-08-13
+---`;
+  if (!(active in buffers)) buffers[active] = effective(active);
+  $("editor").value = buffers[active];
+  renderSave();
+}
+
+function renderSave() {
+  const d = !!dirty[active];
+  $("savestate").textContent = d ? "unsaved — ⌘S" : "saved";
+  $("savestate").className = "savestate" + (d ? " dirty" : "");
+  $("tab").classList.toggle("isdirty", Object.values(dirty).some(Boolean));
+}
+
+function renderAll(){ renderList(); renderCard(); }
+
+$("editor").addEventListener("input", () => {
+  buffers[active] = $("editor").value;
+  dirty[active] = buffers[active] !== effective(active);
+  renderSave();
+});
+
+function save() {
+  if (!dirty[active]) return;
+  disk[active] = buffers[active];          // write the file
+  dirty[active] = false;
+  renderAll();
+}
+$("savestate").addEventListener("click", save);
+document.addEventListener("keydown", e => {
+  if ((e.metaKey||e.ctrlKey) && e.key === "s") { e.preventDefault(); save(); }
+});
+
+$("resetbtn").addEventListener("click", () => {
+  $("resetbtn").style.display = "none";
+  $("resetconfirm").style.display = "flex";
+});
+$("resetno").addEventListener("click", renderCard);
+$("resetyes").addEventListener("click", () => {
+  delete disk[active];                     // rewrite to built-in default
+  buffers[active] = BUILTIN[active];
+  dirty[active] = false;
+  renderAll();
+});
+
+renderAll();
+</script>
+</body>
+</html>
