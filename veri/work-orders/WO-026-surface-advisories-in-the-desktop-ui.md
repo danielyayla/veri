@@ -2,7 +2,7 @@
 id: WO-026
 type: work-order
 title: "Surface advisories in the desktop UI"
-status: backlog
+status: done
 created: 2026-08-13
 updated: 2026-08-13
 links:
@@ -88,20 +88,26 @@ affected docs and in a topbar chip" — to the advisory tier
 
 ## Acceptance tests
 
-- [ ] This work order links a `designed-by` source document whose
+- [x] This work order links a `designed-by` source document whose
       design bundle covers both the per-document and global surfaces
-- [ ] The snapshot exposes advisories; the `issues` list and every
+- [x] The snapshot exposes advisories; the `issues` list and every
       issue-driven count are byte-for-byte unchanged by their presence
-- [ ] A document missing a template-expected section shows that
+- [x] A document missing a template-expected section shows that
       advisory in the UI, visually distinct from issues
-- [ ] A project with zero issues and some advisories still presents
+- [x] A project with zero issues and some advisories still presents
       as healthy (chip and HEALTH card state), with the advisories
       visible
-- [ ] Editing the effective template on disk changes the displayed
+- [x] Editing the effective template on disk changes the displayed
       advisories without an app restart
-- [ ] `veri check` stays at 0 issues on this repo and `npm test`
+- [x] `veri check` stays at 0 issues on this repo and `npm test`
       passes with the new coverage
 
 ## Receipts
 
-(none yet)
+- 2026-08-13 — commit 91eefcf — packages/ui/src/lib/snapshot.ts,
+  packages/ui/src/renderer/{derive,app}.ts,
+  packages/ui/src/renderer/views/{home,reader}.ts,
+  packages/ui/renderer/styles.css, colocated tests — claude-code session:
+  advisory tier surfaced per SRC-010 (Home sub-tier, reader strip with
+  template affordance, sidebar hollow ring); chip/board/issue counts
+  untouched; live via the recursive veri/ watcher; 209 tests pass.
