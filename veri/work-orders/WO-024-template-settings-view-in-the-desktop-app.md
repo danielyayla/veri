@@ -2,7 +2,7 @@
 id: WO-024
 type: work-order
 title: Template settings view in the desktop app
-status: in-progress
+status: done
 created: 2026-08-13
 updated: 2026-08-13
 links:
@@ -84,24 +84,24 @@ and [[DEC-020]] (CodeMirror 6 is the editor engine).
 
 ## Acceptance tests
 
-- [ ] The `⚙` rail button and palette rows open the Templates view;
+- [x] The `⚙` rail button and palette rows open the Templates view;
       all five types listed with correct chips on first open
-- [ ] Editing a template and saving with ⌘S writes
+- [x] Editing a template and saving with ⌘S writes
       `veri/templates/<type>.md`; the chip flips to `custom` in both
       the list and the card header
-- [ ] A document created immediately after the save starts from the
+- [x] A document created immediately after the save starts from the
       edited body (via WO-023's creation path) with untouched
       frontmatter
-- [ ] Reset to default requires the inline confirm, restores the
+- [x] Reset to default requires the inline confirm, restores the
       built-in body on disk, and flips the chip back to `default`
-- [ ] Editing the file outside the app reloads a clean buffer
+- [x] Editing the file outside the app reloads a clean buffer
       silently and shows the conflict banner on a dirty one
-- [ ] A project with no `veri/templates/` directory shows all types
+- [x] A project with no `veri/templates/` directory shows all types
       as `default` and materializes the directory on first save
-- [ ] Closing the tab with unsaved buffers prompts before discarding
-- [ ] `veri check` passes throughout — template edits never produce
+- [x] Closing the tab with unsaved buffers prompts before discarding
+- [x] `veri check` passes throughout — template edits never produce
       issues
 
 ## Receipts
 
-(none yet)
+- 2026-08-13 — 2acfb5b — packages/ui/src/renderer/views/templates.ts, packages/ui/src/renderer/views/templates.test.ts, packages/ui/src/renderer/app.ts, packages/ui/src/renderer/tabs.ts, packages/ui/src/renderer/palette.ts, packages/ui/src/renderer/palette.test.ts, packages/ui/src/renderer/api.ts, packages/ui/src/preload.mts, packages/ui/src/main.ts, packages/ui/renderer/styles.css — Templates settings view per SRC-009: rail/palette entry, chips, CM6 editor, save/reset/conflict flows; 199 tests green; live-app verification of chips, save-to-file, creation pickup, reset, and the dirty-conflict banner
