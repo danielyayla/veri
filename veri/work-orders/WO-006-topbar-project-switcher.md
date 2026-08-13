@@ -8,6 +8,8 @@ updated: 2026-08-13
 links:
   - id: REQ-004
     rel: extends
+  - id: SRC-001
+    rel: designed-by
   - id: DEC-008
     rel: constrained-by
   - id: DEC-010

@@ -4,12 +4,12 @@ type: work-order
 title: Desktop UI — five screens over the knowledge base
 status: done
 created: 2026-08-07
-updated: 2026-08-07
+updated: 2026-08-13
 links:
   - id: REQ-004
     rel: delivers
   - id: SRC-001
-    rel: informed-by
+    rel: designed-by
   - id: DEC-002
     rel: constrained-by
   - id: DEC-008

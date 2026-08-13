@@ -83,6 +83,19 @@ const CASES: BrokenCase[] = [
     dir: 'gated-wo-workflow',
     expected: [{ kind: 'gated-wo', id: 'WO-001', targetId: 'WF-001', targetStatus: 'draft' }],
   },
+  {
+    dir: 'ui-wo-without-design',
+    expected: [{ kind: 'ui-wo-without-design', id: 'WO-001', file: 'work-orders/WO-001-ui-no-design.md' }],
+  },
+  {
+    // A designed-by link to a missing id is reported AND does not satisfy
+    // the design gate — both issues fire (WO-010).
+    dir: 'ui-wo-broken-design-link',
+    expected: [
+      { kind: 'broken-link', sourceId: 'WO-001', targetId: 'SRC-999', via: 'frontmatter' },
+      { kind: 'ui-wo-without-design', id: 'WO-001' },
+    ],
+  },
 ];
 
 for (const { dir, expected } of CASES) {
@@ -102,6 +115,33 @@ test('a backlog work order may cite pending documents — the gate is on startin
   const load = await loadProject(new URL('../fixtures/pending-ok', import.meta.url));
   assert.equal(load.documents.length, 3);
   assert.deepEqual(checkProject(load).issues, []);
+});
+
+// --- Design gate (DEC-012, machine-checked per WO-010) ---
+
+test('a resolvable designed-by link satisfies the design gate; backlog is exempt', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-design-gate-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  for (const sub of ['requirements', 'work-orders', 'sources']) mkdirSync(join(dir, sub), { recursive: true });
+  writeFileSync(
+    join(dir, 'requirements', 'REQ-001-ui.md'),
+    '---\nid: REQ-001\ntype: requirement\ntitle: T\nstatus: accepted\ncreated: 2026-08-01\nupdated: 2026-08-01\napproved: 2026-08-01\n---\n## Acceptance criteria\n\n- [ ] x\n',
+  );
+  writeFileSync(
+    join(dir, 'sources', 'SRC-001-design.md'),
+    '---\nid: SRC-001\ntype: source\ntitle: Design handoff\nstatus: imported\ncreated: 2026-08-01\nupdated: 2026-08-01\n---\nThe design.\n',
+  );
+  const wo = (status: string, links: string): string =>
+    `---\nid: WO-001\ntype: work-order\ntitle: T\nstatus: ${status}\ncreated: 2026-08-01\nupdated: 2026-08-01\nlinks:\n${links}---\n## Summary\n\nTouches packages/ui.\n`;
+
+  // In-progress with a resolvable designed-by link: clean.
+  const woPath = join(dir, 'work-orders', 'WO-001-ui.md');
+  writeFileSync(woPath, wo('in-progress', '  - id: REQ-001\n    rel: implements\n  - id: SRC-001\n    rel: designed-by\n'));
+  assert.deepEqual(checkProject(await loadProject(dir)).issues, []);
+
+  // Backlog with no designed-by link: exempt — the gate fires on starting work.
+  writeFileSync(woPath, wo('backlog', '  - id: REQ-001\n    rel: implements\n'));
+  assert.deepEqual(checkProject(await loadProject(dir)).issues, []);
 });
 
 // --- Structure advisories (REQ-006 at DEC-025's advisory severity) ---

@@ -6,6 +6,8 @@ status: done
 created: 2026-08-11
 updated: 2026-08-13
 links:
+  - id: SRC-011
+    rel: designed-by
   - id: REQ-002
     rel: extends
   - id: WO-002

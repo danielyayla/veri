@@ -1,0 +1,43 @@
+---
+id: SRC-011
+type: source
+title: "Design-gate note — work orders without a design artifact"
+status: imported
+created: 2026-08-13
+updated: 2026-08-13
+links:
+  - id: DEC-012
+    rel: documents
+---
+
+Note-style source document (per [[WO-010]]'s backfill clause and
+[[DEC-026]]): the design-gate check flags any started work order whose
+body mentions `packages/ui` but links no design document. The work
+orders below link this note with `rel: designed-by` because no separate
+design artifact exists for them — each for a recorded reason, not as an
+oversight. This note is the explicit exemption record.
+
+## Work orders linking this note
+
+- **[[WO-010]]** — core/CLI work implementing the design-gate check
+  itself. Its body necessarily quotes the literal heuristic string
+  (`packages/ui`) while defining the rule; the work order changes no UI
+  code.
+- **[[WO-019]]** — the `veri open` CLI command. The body mentions
+  `packages/ui` only when describing the manual launch invocation the
+  command replaces; the work changed `packages/cli` only.
+- **[[WO-021]]** — workflow document and harness pointer files. Its
+  Out-of-scope section explicitly forbids `packages/ui` changes; the
+  receipt records only a mechanical type-completion (adding the
+  `workflow` doc type to existing exhaustive switches), no designed
+  surface.
+- **[[WO-025]]** — assembly policy and advisory structure checks in
+  core. The receipt lists `packages/ui/src/lib/snapshot.ts` among
+  touched files (a mechanical pass-through of the new `CheckResult`
+  shape); every visible surface for advisories was deferred to
+  [[WO-026]], which carries its own design ([[SRC-010]]).
+
+Pre-DEC-012 UI work orders (WO-005, WO-006, WO-007) are not listed
+here: their designs exist — the [[SRC-001]] mockup line and the
+[[SRC-002]] handoff — and they were backfilled with direct
+`designed-by` links instead.

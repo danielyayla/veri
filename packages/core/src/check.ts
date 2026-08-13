@@ -113,6 +113,33 @@ export function checkGatedWorkOrders(documents: VeriDocument[]): Issue[] {
   return issues;
 }
 
+/**
+ * DEC-012's design gate, machine-checked (WO-010): a work order whose body
+ * mentions `packages/ui` and has started (in-progress/done) must link at
+ * least one existing document with rel "designed-by". Body-text mention is
+ * the v1 heuristic — not git diffs or file lists. A designed-by link whose
+ * target id doesn't exist does not satisfy the gate; the broken-link check
+ * reports that link separately.
+ */
+export function checkDesignGate(documents: VeriDocument[]): Issue[] {
+  const ids = new Set(documents.map((doc) => doc.id));
+  const issues: Issue[] = [];
+  for (const doc of documents) {
+    if (doc.type !== 'work-order' || doc.status === 'backlog') continue;
+    if (!doc.body.includes('packages/ui')) continue;
+    const designed = doc.links.some((link) => link.rel === 'designed-by' && ids.has(link.id));
+    if (!designed) {
+      issues.push({
+        kind: 'ui-wo-without-design',
+        file: doc.file,
+        id: doc.id,
+        message: `UI work order ${doc.id} has no designed-by link — DEC-012 requires a design document before implementation`,
+      });
+    }
+  }
+  return issues;
+}
+
 export function checkApprovalStamps(documents: VeriDocument[]): Issue[] {
   const issues: Issue[] = [];
   for (const doc of documents) {
@@ -239,6 +266,7 @@ export function checkProject(load: LoadResult): CheckResult {
       ...checkWorkOrderRequirements(load.documents),
       ...checkDoneWorkOrders(load.documents),
       ...checkGatedWorkOrders(load.documents),
+      ...checkDesignGate(load.documents),
       ...checkApprovalStamps(load.documents),
     ],
     advisories: checkStructure(load.dir, load.documents),

@@ -9,7 +9,7 @@ links:
   - id: REQ-005
     rel: delivers
   - id: SRC-002
-    rel: informed-by
+    rel: designed-by
   - id: DEC-002
     rel: constrained-by
   - id: DEC-008

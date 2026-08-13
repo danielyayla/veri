@@ -6,6 +6,8 @@ status: done
 created: 2026-08-12
 updated: 2026-08-13
 links:
+  - id: SRC-011
+    rel: designed-by
   - id: DEC-018
     rel: constrained-by
   - id: DEC-002

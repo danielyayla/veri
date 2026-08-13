@@ -2,9 +2,9 @@
 id: WO-010
 type: work-order
 title: veri check enforces the design gate for UI work orders
-status: backlog
+status: in-progress
 created: 2026-08-08
-updated: 2026-08-08
+updated: 2026-08-13
 links:
   - id: REQ-002
     rel: extends
@@ -14,6 +14,8 @@ links:
     rel: depends-on
   - id: WO-005
     rel: depends-on
+  - id: SRC-011
+    rel: designed-by
 ---
 
 ## Summary
@@ -58,13 +60,13 @@ Constrained by [[DEC-012]]. Builds on the check machinery from
 
 ## Acceptance tests
 
-- [ ] `veri check` flags an `in-progress` work order mentioning
+- [x] `veri check` flags an `in-progress` work order mentioning
       `packages/ui` with no `designed-by` link
-- [ ] The same work order with a resolvable `designed-by` link passes
-- [ ] A `backlog` UI work order with no link passes
-- [ ] A `designed-by` link pointing at a missing id is reported
-- [ ] `veri check` on this repo reports zero issues (after backfill)
-- [ ] All existing tests still pass
+- [x] The same work order with a resolvable `designed-by` link passes
+- [x] A `backlog` UI work order with no link passes
+- [x] A `designed-by` link pointing at a missing id is reported
+- [x] `veri check` on this repo reports zero issues (after backfill)
+- [x] All existing tests still pass
 
 ## Receipts
 
