@@ -2,7 +2,7 @@
 id: WO-023
 type: work-order
 title: Template files in core — scaffold, fallback, MCP exposure
-status: in-progress
+status: done
 created: 2026-08-13
 updated: 2026-08-13
 links:
@@ -71,21 +71,21 @@ truth — no second store, no cache).
 
 ## Acceptance tests
 
-- [ ] A fresh `veri init` produces `veri/templates/` with five files
+- [x] A fresh `veri init` produces `veri/templates/` with five files
       matching the built-in defaults, and `veri check` passes
-- [ ] `veri new <type>` in a project with an edited template scaffolds
+- [x] `veri new <type>` in a project with an edited template scaffolds
       the edited body; deleting the file falls back to the built-in
-- [ ] The desktop app's creation flow (shared `createDocument` path)
+- [x] The desktop app's creation flow (shared `createDocument` path)
       honors the same override without UI changes
-- [ ] A project with arbitrary content in `veri/templates/` shows the
+- [x] A project with arbitrary content in `veri/templates/` shows the
       same document count and check results as without it
-- [ ] An MCP-connected agent can retrieve the effective template for
+- [x] An MCP-connected agent can retrieve the effective template for
       every built-in type, reflecting project overrides
-- [ ] Editing a template file and immediately creating a document uses
+- [x] Editing a template file and immediately creating a document uses
       the new content — no restart, no rebuild
-- [ ] `npm test` passes with new colocated coverage for all of the
+- [x] `npm test` passes with new colocated coverage for all of the
       above
 
 ## Receipts
 
-(none yet)
+- 2026-08-13 — f730087 — packages/core/src/templates.ts, packages/core/src/templates.test.ts, packages/core/src/create.ts, packages/core/src/load.ts, packages/core/src/scaffold.ts, packages/core/src/scaffold.test.ts, packages/core/src/index.ts, packages/mcp/src/context.ts, packages/mcp/src/context.test.ts, veri/templates/*, veri/decisions/DEC-024 — Template files in core: scaffold writes defaults, getTemplate/isCustomized API, creation fallback read fresh, loader exclusion, context-package Templates section (DEC-024 proposed); 195 tests green, e2e smoke verified
