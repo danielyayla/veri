@@ -2,7 +2,7 @@
 id: WO-020
 type: work-order
 title: Editable project name in the New-project sheet
-status: in-progress
+status: done
 created: 2026-08-11
 updated: 2026-08-13
 links:
@@ -80,3 +80,9 @@ Extends [[REQ-004]] — the new-project sheet.
 - [x] `veri check` and `npm test` are clean.
 
 ## Receipts
+
+- 2026-08-13 — commit cecd34d — packages/ui/src/renderer/{newproject,newproject.test,app}.ts,
+  packages/ui/renderer/styles.css, design/new-project-flow/README.md,
+  SRC-007 — claude-code session: editable name with create-subfolder
+  composition per the approved SRC-007 addendum; pure rules unit-tested,
+  main-process scaffold path unchanged; 216 tests pass, veri check clean.
