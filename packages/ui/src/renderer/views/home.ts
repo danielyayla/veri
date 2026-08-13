@@ -56,30 +56,56 @@ export function homeView(ctx: Ctx): HTMLElement {
         );
 
   const issues = ctx.snap.issues;
+  const advisories = ctx.snap.advisories;
+  // The green/amber word and its color follow issues alone (DEC-025); the
+  // advisory count is a visually parenthetical grey span (SRC-010).
+  const healthMeta = h(
+    'span',
+    { class: 'hv-meta' },
+    h(
+      'span',
+      { style: issues.length > 0 ? 'color:#D9A03F;' : 'color:#7FAF8A;' },
+      issues.length > 0 ? `${issues.length} issue${issues.length === 1 ? '' : 's'}` : 'clean',
+    ),
+    advisories.length > 0 ? h('span', { class: 'hv-adv-count' }, ` · ${advisories.length} advisories`) : null,
+  );
+  // ADVISORIES sub-tier: grey and hollow, after the issue rows (SRC-010).
+  const advisoryTier: HTMLElement[] =
+    advisories.length === 0
+      ? []
+      : [
+          ...(issues.length > 0 ? [h('div', { class: 'adv-divider' })] : []),
+          h('div', { class: 'adv-label' }, `ADVISORIES · ${advisories.length}`),
+          ...advisories.map((a) =>
+            h(
+              'div',
+              { class: 'adv-row', onClick: open(ctx.byId.has(a.id) ? a.id : null) },
+              h('span', { class: 'adv-ring' }),
+              h('span', { class: 'adv-kind' }, a.kind),
+              h('span', { class: 'hv-id', style: `color:${idColor(a.id)};` }, a.id),
+              h('span', { class: 'adv-msg' }, a.message),
+            ),
+          ),
+        ];
   const health = card(
+    [dot('#D9A03F'), label('HEALTH'), healthMeta],
     [
-      dot('#D9A03F'),
-      label('HEALTH'),
-      h(
-        'span',
-        { class: 'hv-meta', style: issues.length > 0 ? 'color:#D9A03F;' : 'color:#7FAF8A;' },
-        issues.length > 0 ? `${issues.length} issue${issues.length === 1 ? '' : 's'}` : 'clean',
-      ),
-    ],
-    issues.map((issue) => {
-      const docId = issueDocId(ctx.snap, issue);
-      return h(
-        'div',
-        { class: 'hv-row hv-row-top', onClick: open(docId) },
-        h('span', { class: 'hv-kind' }, issue.kind),
-        h(
+      ...issues.map((issue) => {
+        const docId = issueDocId(ctx.snap, issue);
+        return h(
           'div',
-          { class: 'hv-issue' },
-          h('div', { class: 'hv-issue-id' }, docId ?? issue.kind),
-          h('div', { class: 'hv-issue-msg' }, issue.message),
-        ),
-      );
-    }),
+          { class: 'hv-row hv-row-top', onClick: open(docId) },
+          h('span', { class: 'hv-kind' }, issue.kind),
+          h(
+            'div',
+            { class: 'hv-issue' },
+            h('div', { class: 'hv-issue-id' }, docId ?? issue.kind),
+            h('div', { class: 'hv-issue-msg' }, issue.message),
+          ),
+        );
+      }),
+      ...advisoryTier,
+    ],
     'No issues — veri check is clean',
   );
 

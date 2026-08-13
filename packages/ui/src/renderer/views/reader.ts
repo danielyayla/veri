@@ -122,6 +122,36 @@ export function readerView(ctx: Ctx): HTMLElement {
           h('span', {}, docIssues[0].message),
         )
       : null;
+  // Advisory strip (WO-026, SRC-010): boxless grey lines between frontmatter
+  // and body — a whisper, not a banner. `template ↗` jumps to the Templates
+  // view at this type, since the fix is the section or the template.
+  const docAdvisories = ctx.advisories.get(doc.id) ?? [];
+  const advisoryStrip =
+    docAdvisories.length === 0
+      ? null
+      : h(
+          'div',
+          { class: 'adv-strip' },
+          ...docAdvisories.map((a) =>
+            h(
+              'div',
+              { class: 'adv-line' },
+              h('span', { class: 'adv-ring' }),
+              h('span', { class: 'adv-line-msg' }, a.message),
+              h(
+                'span',
+                {
+                  class: 'adv-tpl',
+                  onClick: () => {
+                    ctx.update({ tplType: doc.type, tplResetConfirm: false });
+                    ctx.setView('templates');
+                  },
+                },
+                'template ↗',
+              ),
+            ),
+          ),
+        );
 
   return h(
     'div',
@@ -150,6 +180,7 @@ export function readerView(ctx: Ctx): HTMLElement {
         banner,
         reviewBanner(ctx, doc),
         frontmatterCard(ctx),
+        advisoryStrip,
         h('div', { class: 'doc-body' }, ...renderBlocks(parseBlocks(doc.body), ctx.byId, ctx)),
         activityFeed([...ctx.sessionRows(doc.id), ...fileActivity(doc, ctx.rel)]),
         noteEditor(ctx),

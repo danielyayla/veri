@@ -4,6 +4,7 @@ import type { VeriDocument } from '@veri/core';
 import { buildGraph } from '@veri/core';
 import type { Snapshot } from '../lib/snapshot.ts';
 import {
+  advisoriesByDoc,
   autocomplete,
   boardColumns,
   connections,
@@ -35,12 +36,17 @@ function doc(partial: Partial<VeriDocument> & Pick<VeriDocument, 'id' | 'type' |
   };
 }
 
-function snap(documents: VeriDocument[], issues: Snapshot['issues'] = []): Snapshot {
+function snap(
+  documents: VeriDocument[],
+  issues: Snapshot['issues'] = [],
+  advisories: Snapshot['advisories'] = [],
+): Snapshot {
   return {
     projectName: 'test',
     root: '/tmp/test',
     documents,
     issues,
+    advisories,
     edges: buildGraph(documents).edges,
     git: null,
   };
@@ -96,6 +102,37 @@ test('issuesByDoc keys issues by the doc owning the file', () => {
     [{ kind: 'broken-link', file: req.file, sourceId: 'REQ-001', targetId: 'SRC-009', via: 'inline', message: 'broken' }],
   );
   assert.equal(issuesByDoc(s).get('REQ-001')!.length, 1);
+});
+
+test('advisoriesByDoc groups by carried doc id and drops unknown ids', () => {
+  const req = doc({ id: 'REQ-001', type: 'requirement', title: 'A req', status: 'accepted' });
+  const adv = (id: string) => ({
+    kind: 'missing-section' as const,
+    file: `requirements/${id}.md`,
+    id,
+    section: 'Acceptance criteria',
+    message: `${id} has no "## Acceptance criteria" section — the requirement template expects one`,
+  });
+  const s = snap([req], [], [adv('REQ-001'), adv('REQ-999')]);
+  const byDoc = advisoriesByDoc(s);
+  assert.equal(byDoc.get('REQ-001')!.length, 1);
+  assert.equal(byDoc.get('REQ-001')![0].section, 'Acceptance criteria');
+  assert.equal(byDoc.has('REQ-999'), false);
+  // Advisories never leak into the issue map (DEC-025).
+  assert.equal(issuesByDoc(s).size, 0);
+});
+
+test('issue-driven health surfaces ignore advisories entirely', () => {
+  const wo = doc({ id: 'WO-001', type: 'work-order', title: 'W', status: 'backlog' });
+  const s = snap(
+    [wo],
+    [],
+    [{ kind: 'missing-section', file: wo.file, id: 'WO-001', section: 'Requirements', message: 'm' }],
+  );
+  // The board card's amber dot and every other health flag derive from
+  // issuesByDoc; a doc with only advisories stays healthy (DEC-025).
+  const card = boardColumns(s)[0].cards[0];
+  assert.equal(card.health, false);
 });
 
 test('decisionLog sorts newest first and extracts choice, rejected chips, supersession', () => {

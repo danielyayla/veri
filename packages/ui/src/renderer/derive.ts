@@ -2,7 +2,7 @@
  * Pure view-model derivation from a Snapshot. No DOM, no IPC — everything here
  * is computed from what @veri/core already parsed and checked.
  */
-import type { Edge, Issue, VeriDocument } from '@veri/core';
+import type { Advisory, Edge, Issue, VeriDocument } from '@veri/core';
 import type { Snapshot } from '../lib/snapshot.ts';
 import { sections, parseBlocks, plainText } from './markdown.ts';
 import type { Block } from './markdown.ts';
@@ -29,6 +29,20 @@ export function issuesByDoc(snap: Snapshot): Map<string, Issue[]> {
       list.push(issue);
       out.set(doc.id, list);
     }
+  }
+  return out;
+}
+
+/** Advisories keyed by document id (WO-026). An advisory carries the id of
+    the document it was reported on; unknown ids (mid-edit races) are dropped. */
+export function advisoriesByDoc(snap: Snapshot): Map<string, Advisory[]> {
+  const ids = new Set(snap.documents.map((d) => d.id));
+  const out = new Map<string, Advisory[]>();
+  for (const advisory of snap.advisories) {
+    if (!ids.has(advisory.id)) continue;
+    const list = out.get(advisory.id) ?? [];
+    list.push(advisory);
+    out.set(advisory.id, list);
   }
   return out;
 }

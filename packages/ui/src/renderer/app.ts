@@ -1,12 +1,12 @@
 /** App shell: state, topbar, sidebar, view switching, IPC wiring. */
-import type { DocType, Issue, VeriDocument } from '@veri/core';
+import type { Advisory, DocType, Issue, VeriDocument } from '@veri/core';
 import type { ContextPackage, PaletteResult } from '@veri/mcp';
 import type { Snapshot } from '../lib/snapshot.ts';
 import { api } from './api.ts';
 import type { ProjectInfo, TemplateInfo, VeriApi } from './api.ts';
 import { h } from './dom.ts';
 import { TYPE_META, relTime, statusColor, tint } from './theme.ts';
-import { docsById, isPending, issuesByDoc, packageSummary } from './derive.ts';
+import { advisoriesByDoc, docsById, isPending, issuesByDoc, packageSummary } from './derive.ts';
 import type { ActivityRow, DocsById, PackageSummary } from './derive.ts';
 import type { McpStatus } from '../lib/mcpconfig.ts';
 import type { AgentInfo } from '../lib/agents.ts';
@@ -116,6 +116,7 @@ export interface Ctx {
   snap: Snapshot;
   byId: DocsById;
   issues: Map<string, Issue[]>;
+  advisories: Map<string, Advisory[]>;
   state: State;
   pkg: Map<string, CachedPackage>;
   api: VeriApi;
@@ -213,6 +214,7 @@ class App implements Ctx {
   snap!: Snapshot;
   byId!: DocsById;
   issues!: Map<string, Issue[]>;
+  advisories!: Map<string, Advisory[]>;
   pkg = new Map<string, CachedPackage>();
   api = api();
   state: State = {
@@ -401,6 +403,7 @@ class App implements Ctx {
     this.snap = snap;
     this.byId = docsById(snap);
     this.issues = issuesByDoc(snap);
+    this.advisories = advisoriesByDoc(snap);
     this.pkg.clear();
     // Tabs for deleted docs close like a × click — except a dirty editor,
     // whose tab stays for the Restore / Close choice (REQ-009 §5).
@@ -1623,6 +1626,7 @@ class App implements Ctx {
         : sec.shown.map((d) => {
             const active = activeTab === d.id;
             const health = (this.issues.get(d.id) ?? []).length > 0;
+            const advisoryCount = (this.advisories.get(d.id) ?? []).length;
             const dead = !isLiving(d);
             const pending = isPending(d);
             return h(
@@ -1635,8 +1639,15 @@ class App implements Ctx {
               pending ? h('span', { class: 'sb-pending' }) : null,
               h('span', { class: 'sb-row-id', style: `color:${meta.color};` }, d.id),
               h('span', { class: active ? 'sb-row-title sb-row-title-active' : 'sb-row-title' }, d.title),
+              // One indicator per row, amber issue dot > done ✓ > advisory ring (SRC-010).
               health ? h('span', { class: 'sb-health' }) : null,
               !health && dead ? h('span', { class: 'sb-done' }, '✓') : null,
+              !health && !dead && advisoryCount > 0
+                ? h('span', {
+                    class: 'sb-ring',
+                    title: `${advisoryCount} advisor${advisoryCount === 1 ? 'y' : 'ies'} — see document`,
+                  })
+                : null,
             );
           });
       const expander =

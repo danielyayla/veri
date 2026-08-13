@@ -1086,3 +1086,30 @@ a:hover { color: #F49463; }
 .tpl-ed-host { flex: 1; display: flex; min-height: 0; background: var(--bg); }
 .tpl-ed-host .cm-editor { flex: 1; }
 .tpl-loading { padding: 40px; font-family: var(--mono); font-size: 11px; color: var(--ghost); }
+
+/* ===== Advisory tier (WO-026, SRC-010): issues are amber and filled,
+   advisories are grey and hollow. No new tokens. ===== */
+
+/* The advisory idiom: 5px hollow ring. */
+.adv-ring { width: 5px; height: 5px; border-radius: 50%; border: 1px solid var(--faint); flex: 0 0 auto; }
+.sb-ring { margin-left: auto; width: 5px; height: 5px; border-radius: 50%; border: 1px solid var(--faint); flex: 0 0 auto; }
+
+/* Home HEALTH card: grey sub-tier after the issue rows. */
+.hv-adv-count { color: var(--faint); }
+.adv-divider { height: 1px; background: var(--hair); }
+.adv-label { padding: 10px 14px 4px; font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em; color: var(--faint); }
+.adv-row { display: flex; align-items: center; gap: 10px; padding: 7px 14px; cursor: pointer; }
+.adv-row:hover { background: #17171B; }
+.adv-row:last-child { padding-bottom: 12px; }
+.adv-kind {
+  font-family: var(--mono); font-size: 9.5px; color: var(--faint);
+  border: 1px solid var(--int-border); border-radius: 4px; padding: 1px 6px; flex: 0 0 auto;
+}
+.adv-msg { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Reader strip: boxless mono lines between frontmatter and body. */
+.adv-strip { margin-top: 8px; }
+.adv-line { display: flex; align-items: center; gap: 9px; padding: 4px 2px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.adv-line-msg { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adv-tpl { margin-left: auto; font-size: 10.5px; color: var(--ghost); cursor: pointer; flex: 0 0 auto; }
+.adv-tpl:hover { color: var(--muted); }
