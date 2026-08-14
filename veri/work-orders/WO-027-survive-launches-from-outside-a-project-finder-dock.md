@@ -73,4 +73,13 @@ not only from a terminal inside a project.
 
 ## Receipts
 
-(none yet)
+- 2026-08-14 — commit dab4590 — packages/ui/src/main.ts,
+  packages/ui/src/lib/{root,root.test}.ts, DEC-027, SRC-011 —
+  claude-code session: DEC-027 fallback chain (MRU → native picker),
+  watchProject guard, launchArg for the packaged argv offset; verified
+  headlessly via VERI_UI_SHOT (Finder-condition render, stale-MRU skip,
+  packaged explicit arg) and empty-MRU launch sits on the picker
+  without crashing; 218 tests pass, veri check clean. Dialog
+  click-through (open-from-picker, Choose Again loop, Quit/Cancel)
+  left for manual confirmation — two acceptance boxes open, status
+  stays in-progress.
