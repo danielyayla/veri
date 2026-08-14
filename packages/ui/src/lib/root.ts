@@ -29,6 +29,16 @@ export function isVeriProject(dir: string): boolean {
  * guaranteed to be a project — callers that record or open it must gate on
  * isVeriProject themselves.
  */
+/**
+ * The explicit-root CLI argument for this launch. `electron .` spends
+ * argv[1] on the app path; a packaged binary does not, so the first user
+ * argument shifts to argv[1] (WO-027). Flag-style arguments (leading `-`,
+ * e.g. --enable-logging while debugging) are never project paths.
+ */
+export function launchArg(argv: readonly string[], packaged: boolean): string | undefined {
+  return argv.slice(packaged ? 1 : 2).find((a) => !a.startsWith('-'));
+}
+
 export function findProjectRoot(explicit: string | undefined, cwd: string): string {
   if (explicit !== undefined) return resolve(explicit);
   let dir = resolve(cwd);

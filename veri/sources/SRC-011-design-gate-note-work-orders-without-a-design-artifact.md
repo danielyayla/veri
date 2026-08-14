@@ -4,7 +4,7 @@ type: source
 title: "Design-gate note — work orders without a design artifact"
 status: imported
 created: 2026-08-13
-updated: 2026-08-13
+updated: 2026-08-14
 links:
   - id: DEC-012
     rel: documents
@@ -36,6 +36,9 @@ oversight. This note is the explicit exemption record.
   touched files (a mechanical pass-through of the new `CheckResult`
   shape); every visible surface for advisories was deferred to
   [[WO-026]], which carries its own design ([[SRC-010]]).
+- **[[WO-027]]** — surviving launches from outside a project. Main
+  process only: launch-root fallback and native OS dialogs
+  ([[DEC-027]]); no renderer file changes and no designed surface.
 
 Pre-DEC-012 UI work orders (WO-005, WO-006, WO-007) are not listed
 here: their designs exist — the [[SRC-001]] mockup line and the

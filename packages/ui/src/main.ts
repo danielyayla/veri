@@ -16,7 +16,7 @@ import {
 import type { DocType } from '@veri/core';
 import { DEMO_ROOT } from '@veri/cli';
 import { assembleContext, paletteSearch } from '@veri/mcp';
-import { findProjectRoot, isVeriProject } from './lib/root.ts';
+import { findProjectRoot, isVeriProject, launchArg } from './lib/root.ts';
 import { fixRootArg, mcpStatus, writeVeriEntry } from './lib/mcpconfig.ts';
 import { cleanupLaunchScripts, connectAgent, detectAgents, launchAgent } from './lib/agents.ts';
 import type { AgentId } from './lib/agents.ts';
@@ -27,7 +27,7 @@ import { appendNote, appendReviewNote, approveDoc, setStatus } from './lib/write
 import type { ProjectInfo } from './renderer/api.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
-let projectRoot = findProjectRoot(process.argv[2], process.cwd());
+let projectRoot = findProjectRoot(launchArg(process.argv, app.isPackaged), process.cwd());
 
 // The MCP server executable setup writes into .mcp.json: server.js next to
 // @veri/mcp's resolved entry point (dist/index.js).
@@ -248,6 +248,11 @@ let watchers: ReturnType<typeof watch>[] = [];
 
 function watchProject(win: BrowserWindow): void {
   for (const w of watchers) w.close();
+  watchers = [];
+  // Launch resolution (WO-027) guarantees a project before any window, but a
+  // throwing watch() here would kill createWindow before loadFile — never
+  // watch a root that has no veri/.
+  if (!isVeriProject(projectRoot)) return;
   let timer: NodeJS.Timeout | undefined;
   const notify = (): void => {
     clearTimeout(timer);
@@ -322,12 +327,49 @@ async function createWindow(): Promise<BrowserWindow> {
   return win;
 }
 
+/**
+ * DEC-027 fallback chain for launches outside a project (Finder/Dock: cwd is
+ * `/`): most recent MRU entry that is still a project, else a native folder
+ * picker looped through a Choose Again / Quit box. Null means quit.
+ */
+async function resolveLaunchRoot(): Promise<string | null> {
+  const recent = (await getRecentProjects()).find((p) => isVeriProject(p.dir));
+  if (recent !== undefined) return recent.dir;
+  for (;;) {
+    const pick = await dialog.showOpenDialog({
+      title: 'Open a Veri project',
+      buttonLabel: 'Open',
+      properties: ['openDirectory'],
+    });
+    const dir = pick.filePaths[0];
+    if (pick.canceled || dir === undefined) return null;
+    if (isVeriProject(dir)) return dir;
+    const { response } = await dialog.showMessageBox({
+      type: 'info',
+      message: 'Not a Veri project',
+      detail: `No veri/ knowledge base inside ${dir}.`,
+      buttons: ['Choose Again', 'Quit'],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (response === 1) return null;
+  }
+}
+
 app.whenReady().then(async () => {
   registerIpc();
   void cleanupLaunchScripts();
   // findProjectRoot's result is unvalidated (explicit args pass through) —
   // never let a non-project launch dir into the MRU.
-  if (isVeriProject(projectRoot)) await addProjectToMru(projectRoot);
+  if (!isVeriProject(projectRoot)) {
+    const resolved = await resolveLaunchRoot();
+    if (resolved === null) {
+      app.quit();
+      return;
+    }
+    projectRoot = resolved;
+  }
+  await addProjectToMru(projectRoot);
   await createWindow();
 });
 

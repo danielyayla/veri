@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { findProjectRoot, isVeriProject } from './root.ts';
+import { findProjectRoot, isVeriProject, launchArg } from './root.ts';
 
 /** A real project root: veri/ with one of the four REQ-001 subdirs. */
 async function makeProject(prefix: string): Promise<string> {
@@ -73,4 +73,16 @@ test('walk-up skips a folder that only contains a veri-named clone', async () =>
   await mkdir(join(clone, 'packages', 'ui'), { recursive: true });
   // From inside the clone, the clone is the root — never its parent.
   assert.equal(findProjectRoot(undefined, join(clone, 'packages', 'ui')), clone);
+});
+
+test('launchArg reads the packaged and dev argv offsets', () => {
+  assert.equal(launchArg(['/App/Veri', '/proj'], true), '/proj');
+  assert.equal(launchArg(['electron', '.', '/proj'], false), '/proj');
+  assert.equal(launchArg(['electron', '.'], false), undefined);
+  assert.equal(launchArg(['/App/Veri'], true), undefined);
+});
+
+test('launchArg skips flag-style arguments', () => {
+  assert.equal(launchArg(['/App/Veri', '--enable-logging', '/proj'], true), '/proj');
+  assert.equal(launchArg(['/App/Veri', '--enable-logging'], true), undefined);
 });
