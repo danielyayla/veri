@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quickstart — Veri</title>
+<meta name="description" content="Install Veri, open the sample project, connect your coding agent, and watch it pull a context package — in about ten minutes.">
+<link rel="stylesheet" href="../site.css">
+</head>
+<body>
+
+<header class="top">
+  <a class="top-wordmark" href="../"><span class="v">V</span>eri</a>
+  <a class="nav here" href="quickstart.html">Quickstart</a>
+  <a class="nav" href="workflow.html">Workflow</a>
+  <a class="nav" href="connect-claude-code.html">Connect</a>
+  <a class="nav" href="reference.html">Reference</a>
+  <a class="nav" href="troubleshooting.html">Troubleshooting</a>
+  <a class="nav" href="https://github.com/danielyayla/veri">GitHub</a>
+</header>
+
+<article class="doc">
+<h1>Quickstart</h1>
+<p class="doc-lead">From download to an agent that reads your project's knowledge base — about ten minutes, using the bundled sample project as the worked example.</p>
+
+<p>You'll need: a Mac running macOS 13 or later, a coding agent that speaks MCP (the steps below use <a href="https://claude.com/claude-code">Claude Code</a>), and <a href="https://nodejs.org">Node 20+</a> on your machine — your agent uses it to launch Veri's local MCP server. Veri checks for it and tells you if it's missing.</p>
+
+<h2>1. Install Veri</h2>
+<ol>
+  <li><a href="https://github.com/danielyayla/veri/releases/latest">Download the DMG</a> from the latest release.</li>
+  <li>Open it and drag <b>Veri</b> into <b>Applications</b>.</li>
+  <li>Launch Veri. The app is signed and notarized, so macOS opens it without warnings.</li>
+</ol>
+
+<h2>2. Open the sample project</h2>
+<p>On first launch, Veri shows a welcome screen with three choices. Pick <b>Explore the sample project</b> — a working invoicing-app knowledge base with sixteen documents you can read, edit, and connect an agent to.</p>
+<p>Choose a folder to put it in. Veri shows you exactly what it will write before it writes anything; nothing is created until you confirm. (The other two cards — create a new empty project, or open a folder that already has a <code>veri/</code> directory — work the same way. Everything below applies to your own projects too.)</p>
+
+<h2>3. Look around</h2>
+<p>You land on the home view. Three things worth noticing before you connect an agent:</p>
+<ul>
+  <li><b>The sidebar</b> groups the project's documents by type: <span class="type-req">requirements</span>, <span class="type-dec">decisions</span>, <span class="type-wo">work orders</span>, and <span class="type-src">sources</span>. Click anything — every document is a plain markdown file.</li>
+  <li><b>NEEDS REVIEW</b> shows one draft requirement waiting for approval. Drafts — including anything an agent writes — stay non-binding until you promote them.</li>
+  <li><b>HEALTH</b> shows two issues. They're left in the sample on purpose: <code>veri check</code> validates the knowledge base (broken links, work orders with no requirement, and so on), and the sample demonstrates what that looks like.</li>
+</ul>
+
+<h2>4. Connect your agent</h2>
+<ol>
+  <li>Click the <code>⌁</code> icon at the bottom of the left rail to open the <b>Agent connection</b> screen.</li>
+  <li>Click <b>Set up connection</b>. Veri writes one file — a project-scoped <code>.mcp.json</code> next to the <code>veri/</code> directory — telling agent apps how to launch Veri's MCP server for this project. The panel shows the exact JSON before and after; <a href="connect-claude-code.html">the connection page</a> documents every field.</li>
+  <li>Restart your agent session: quit and reopen Claude Code (or start a new session) in the project folder. Agent apps read <code>.mcp.json</code> on launch — this is the one step Veri can't do for you.</li>
+  <li>Back in Veri, use <b>LIVE CHECK → Verify connection</b>. Veri launches the server exactly the way your agent will and performs a real MCP handshake. Green means your agent will see four tools: <code>get_context</code>, <code>search</code>, <code>file_decision</code>, <code>file_receipt</code>. Anything else, the panel names the cause and the one fix.</li>
+</ol>
+
+<h2>5. File a work order</h2>
+<p>The sample has work orders already, but file one yourself to see the shape. In the sidebar, hover <b>WORK ORDERS</b> and click <b>+</b>. Give it a title like <i>Add late-payment reminder emails</i>, then fill the template's sections: a summary, what's in and out of scope, and — important — a link to the requirement it implements. Type <code>[[</code> in the editor to link any document by id or title.</p>
+<p>Out-of-scope lines aren't decoration: they ride into the context package, and agents are told to treat them as forbidden.</p>
+
+<h2>6. Watch the agent use it</h2>
+<p>Open your work order. The <b>CONTEXT PACKAGE</b> panel on the right lists exactly what an agent will receive — the work order, its linked requirement, every active decision within two hops, source excerpts — with token estimates per document.</p>
+<p>Click <b>Copy kickoff prompt</b> and paste it into Claude Code. The agent will call <code>get_context</code> for your work order and start from the package — constraints included — instead of from a blank prompt. When it finishes a session, it files a receipt: commit, files touched, one-line summary, appended to the work order file itself.</p>
+<p>Back on the home view, <b>AGENT ACTIVITY</b> shows the trail: context pulls, decisions filed, receipts landed. All of it is in your files — <code>git diff</code> shows every word the agent wrote.</p>
+
+<div class="next">
+  <b>Where next:</b> the <a href="workflow.html">workflow guide</a> explains the method — how evidence becomes requirements, decisions, and work orders, and why the approval gate matters. The <a href="reference.html">reference</a> covers every document type, frontmatter field, and <code>veri check</code> rule.
+</div>
+</article>
+
+<footer class="foot">
+  <span>Veri — plain files, no telemetry.</span>
+  <span><a href="../">Home</a> · <a href="https://github.com/danielyayla/veri">Source</a> · <a href="https://github.com/danielyayla/veri/issues">Issues</a></span>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect Claude Code — Veri</title>
+<meta name="description" content="What Veri writes to connect an MCP agent, where the file lives, and how to verify the connection actually works.">
+<link rel="stylesheet" href="../site.css">
+</head>
+<body>
+
+<header class="top">
+  <a class="top-wordmark" href="../"><span class="v">V</span>eri</a>
+  <a class="nav" href="quickstart.html">Quickstart</a>
+  <a class="nav" href="workflow.html">Workflow</a>
+  <a class="nav here" href="connect-claude-code.html">Connect</a>
+  <a class="nav" href="reference.html">Reference</a>
+  <a class="nav" href="troubleshooting.html">Troubleshooting</a>
+  <a class="nav" href="https://github.com/danielyayla/veri">GitHub</a>
+</header>
+
+<article class="doc">
+<h1>Connecting Claude Code (and other MCP clients)</h1>
+<p class="doc-lead">Veri's connection panel writes one config format: a project-scoped <code>.mcp.json</code>. This page documents exactly what gets written, where, and how to verify it works — for Claude Code and for any client that can launch a stdio MCP server.</p>
+
+<h2>What Veri writes</h2>
+<p>Open the project in Veri, click the <code>⌁</code> icon at the bottom of the left rail, and click <b>Set up connection</b>. Veri writes a <code>.mcp.json</code> file at the <b>project root</b> — the directory that contains <code>veri/</code>, which is where Claude Code looks for project-scoped MCP config:</p>
+<pre><code>{
+  "mcpServers": {
+    "veri": {
+      "command": "node",
+      "args": [
+        "/Applications/Veri.app/Contents/Resources/app/node_modules/@veri/mcp/dist/server.js",
+        "/Users/you/code/your-project"
+      ]
+    }
+  }
+}</code></pre>
+<ul>
+  <li><b><code>command: "node"</code></b> — your agent launches the server with your own Node (version 20 or newer). This is deliberate: it keeps the file portable — no machine-specific runtime path baked into something you may commit and share. The panel warns you at setup time if no usable Node is on your shell's PATH.</li>
+  <li><b>First argument</b> — the MCP server script that ships inside the Veri app. The path contains no version segment, so it stays valid across app self-updates.</li>
+  <li><b>Second argument</b> — the project root the server serves: the folder containing <code>veri/</code>. Relative paths are accepted and resolved against the project root.</li>
+</ul>
+
+<div class="callout"><b>Veri never touches other servers.</b> The panel manages only a <code>mcpServers.veri</code> entry of exactly the shape above. Any other entry in the file is preserved untouched. A <code>veri</code> entry Veri doesn't recognize — different command, extra keys — is shown to you as a conflict and replaced only if you explicitly say so. If the file doesn't parse, Veri refuses to write it at all rather than risk your other config.</div>
+
+<h2>Per-user alternative: <code>claude mcp add</code></h2>
+<p>If you'd rather not have a checked-in file — say, teammates don't use Veri — the panel offers a copyable, pre-filled command that registers the server in your user-scoped Claude Code config instead:</p>
+<pre><code>claude mcp add veri -- node "&lt;path to server.js&gt;" "&lt;path to project root&gt;"</code></pre>
+<p>Copy is the only action; Veri never runs it for you.</p>
+
+<h2>Restart your agent</h2>
+<p>Agent apps read MCP config <b>on launch</b>. After any write, quit and reopen Claude Code — or start a new session — in the project folder. This is the one step Veri can't do for you. In Claude Code, <code>/mcp</code> should then list <b>veri</b> with four tools.</p>
+
+<h2>Verify from inside Veri</h2>
+<p>The connection panel's static checks confirm the file exists, the entry is present, the server script exists on disk, and the root argument points at the open project. <b>LIVE CHECK → Verify connection</b> goes further: Veri launches the server with the exact command and arguments in your config — resolving <code>node</code> the way your terminal would — and performs a real MCP handshake, including a search call proving the server serves <i>this</i> project's documents.</p>
+<p>Success looks like: <i>"Server answered over MCP — serving this project (16 documents, 4 tools) with node v22.x."</i> A failure names one of five causes — missing Node, Node too old, server script missing, wrong project root, or the server didn't answer — each with a single fix. See <a href="troubleshooting.html">troubleshooting</a> for all five.</p>
+
+<h2>What the agent gets</h2>
+<table>
+  <tr><th>Tool</th><th>What it does</th></tr>
+  <tr><td><code>get_context</code></td><td>The context package for a work order: the project workflow, the work order, all linked requirements and active decisions (two hops), source excerpts, with token estimates. Superseded decisions are named as already rejected.</td></tr>
+  <tr><td><code>search</code></td><td>Case-insensitive substring search over every document's id, title, and body.</td></tr>
+  <tr><td><code>file_decision</code></td><td>Records a decision the agent made during implementation, with the alternatives it rejected — filed for your review.</td></tr>
+  <tr><td><code>file_receipt</code></td><td>Appends a work-session receipt (commit, files, summary) to a work order. Receipts accumulate; they never overwrite.</td></tr>
+</table>
+
+<h2>Other MCP clients</h2>
+<p>There's nothing Claude-specific about the server: it's a standard stdio MCP server. Any client that can launch one works with the same three facts — command <code>node</code>, the <code>server.js</code> path shown in Veri's panel, and your project root as the argument. Configure those in your client's own format, then use Veri's <b>Verify connection</b> to prove the server side end to end (it exercises the same script and root your client will).</p>
+
+<div class="next">
+  <b>Where next:</b> back to the <a href="quickstart.html">quickstart</a> to watch the agent pull its first context package, or <a href="troubleshooting.html">troubleshooting</a> if verification didn't come back green.
+</div>
+</article>
+
+<footer class="foot">
+  <span>Veri — plain files, no telemetry.</span>
+  <span><a href="../">Home</a> · <a href="https://github.com/danielyayla/veri">Source</a> · <a href="https://github.com/danielyayla/veri/issues">Issues</a></span>
+</footer>
+
+</body>
+</html>

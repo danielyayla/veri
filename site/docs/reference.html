@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reference — Veri</title>
+<meta name="description" content="The veri/ on-disk format: document types, frontmatter, links and rels, templates, the format marker, veri check rules, and the CLI.">
+<link rel="stylesheet" href="../site.css">
+</head>
+<body>
+
+<header class="top">
+  <a class="top-wordmark" href="../"><span class="v">V</span>eri</a>
+  <a class="nav" href="quickstart.html">Quickstart</a>
+  <a class="nav" href="workflow.html">Workflow</a>
+  <a class="nav" href="connect-claude-code.html">Connect</a>
+  <a class="nav here" href="reference.html">Reference</a>
+  <a class="nav" href="troubleshooting.html">Troubleshooting</a>
+  <a class="nav" href="https://github.com/danielyayla/veri">GitHub</a>
+</header>
+
+<article class="doc">
+<h1>Reference</h1>
+<p class="doc-lead">The <code>veri/</code> on-disk format. Everything here is plain markdown with YAML frontmatter — readable raw, diffable, and owned by your repo, not by Veri.</p>
+
+<h2>Directory layout</h2>
+<pre><code>your-project/
+├── .mcp.json            ← agent connection config (written by the app)
+└── veri/
+    ├── format           ← format version marker (currently "1")
+    ├── workflow.md      ← WF-001, the project workflow
+    ├── requirements/    ← REQ-001-….md
+    ├── decisions/       ← DEC-001-….md
+    ├── work-orders/     ← WO-001-….md
+    ├── sources/         ← SRC-001-….md
+    └── templates/       ← seed bodies for new documents</code></pre>
+<p>The <code>format</code> file holds a single integer. Veri reads it before parsing anything: a project needing a newer Veri is stated as such (never misparsed), an older-format project is offered an explicit migration (<code>veri migrate</code>), and a directory created before the marker existed is treated as the oldest format, not rejected.</p>
+
+<h2>Document types and statuses</h2>
+<table>
+  <tr><th>Type</th><th>Id prefix</th><th>Statuses</th><th>Notes</th></tr>
+  <tr><td><span class="type-req">requirement</span></td><td><code>REQ-</code></td><td><code>draft</code> → <code>accepted</code> → <code>retired</code></td><td><code>accepted</code> requires an <code>approved:</code> date — the user's stamp.</td></tr>
+  <tr><td><span class="type-dec">decision</span></td><td><code>DEC-</code></td><td><code>proposed</code> → <code>active</code> → <code>superseded</code></td><td><code>active</code> requires <code>approved:</code>; <code>superseded</code> must name its successor in <code>superseded_by:</code>.</td></tr>
+  <tr><td><span class="type-wo">work-order</span></td><td><code>WO-</code></td><td><code>backlog</code> → <code>in-progress</code> → <code>done</code></td><td><code>done</code> requires every acceptance box checked and at least one receipt.</td></tr>
+  <tr><td><span class="type-src">source</span></td><td><code>SRC-</code></td><td><code>imported</code></td><td>External evidence; one status, no lifecycle.</td></tr>
+  <tr><td><span class="type-wf">workflow</span></td><td><code>WF-</code></td><td><code>draft</code> → <code>accepted</code> → <code>retired</code></td><td>One per project; scaffolded projects ship theirs pre-accepted.</td></tr>
+</table>
+
+<h2>Frontmatter</h2>
+<pre><code>---
+id: WO-002
+type: work-order
+title: PDF export pipeline
+status: in-progress
+created: 2026-07-30
+updated: 2026-08-06
+links:
+  - id: REQ-002
+    rel: implements
+  - id: DEC-005
+    rel: constrained-by
+---</code></pre>
+<ul>
+  <li><b><code>id</code></b> — type prefix plus a zero-padded three-digit number (<code>REQ-001</code>). The prefix must match <code>type</code>. Ids are assigned by the app/CLI as the next free number and never reused.</li>
+  <li><b><code>created</code> / <code>updated</code> / <code>approved</code></b> — <code>YYYY-MM-DD</code> dates. <code>approved</code> appears only when the user promotes a document.</li>
+  <li><b><code>links</code></b> — outbound edges: a target <code>id</code> and a <code>rel</code>. Inbound links are derived, never stored.</li>
+  <li><b>Unknown keys are preserved</b> — Veri round-trips frontmatter it doesn't recognize, so your own fields are safe.</li>
+</ul>
+
+<h2>Links and rels</h2>
+<p>In document bodies, <code>[[REQ-001]]</code> references any document by id (the app autocompletes on <code>[[</code>); broken references are flagged by <code>veri check</code>. In frontmatter, <code>rel</code> is free text — use what reads truthfully — but these are the conventions in use:</p>
+<table>
+  <tr><th>rel</th><th>Meaning (A → B)</th></tr>
+  <tr><td><code>implements</code></td><td>A delivers what B requires (work order → requirement).</td></tr>
+  <tr><td><code>constrained-by</code> / <code>constrains</code></td><td>B binds choices inside A (work order ↔ decision).</td></tr>
+  <tr><td><code>informed-by</code></td><td>B is evidence behind A (anything → source).</td></tr>
+  <tr><td><code>depends-on</code></td><td>A needs B to exist or hold first.</td></tr>
+  <tr><td><code>extends</code> / <code>refines</code> / <code>builds-on</code> / <code>follows-from</code></td><td>A continues or narrows B (decision lineages, requirement families).</td></tr>
+  <tr><td><code>designed-by</code></td><td>B is the design artifact for A. Load-bearing when a project enforces a design gate: work orders touching UI must carry one.</td></tr>
+</table>
+
+<h2>Templates</h2>
+<p><code>veri/templates/</code> holds the seed body for each type; <code>veri new</code> and the app's New-document flow start from them, and <code>veri check</code> expects each document to keep its template's <code>##</code> sections. The defaults:</p>
+<ul>
+  <li><b>requirement</b> — description, then <code>## Acceptance criteria</code></li>
+  <li><b>decision</b> — <code>## Choice</code>, <code>## Rejected alternatives</code>, <code>## Rationale</code></li>
+  <li><b>work-order</b> — <code>## Summary</code>, <code>## In scope</code>, <code>## Out of scope</code>, <code>## Requirements</code>, <code>## Acceptance tests</code>, <code>## Receipts</code></li>
+  <li><b>source</b> — free-form imported material</li>
+</ul>
+<p>Edit the templates and your project's new documents start your way; context packages include them so agents file documents in your shape too.</p>
+
+<h2><code>veri check</code> rules</h2>
+<p>Zero issues is the bar — the app surfaces these live, and <code>veri check</code> exits non-zero in CI when any fire:</p>
+<table>
+  <tr><th>Rule</th><th>Fires when</th></tr>
+  <tr><td><code>duplicate-id</code></td><td>Two files claim the same id.</td></tr>
+  <tr><td><code>broken-link</code></td><td>A frontmatter link, <code>superseded_by</code>, or inline <code>[[ref]]</code> targets an id no document has.</td></tr>
+  <tr><td><code>wo-without-requirement</code></td><td>A work order links no requirement — unjustified work.</td></tr>
+  <tr><td><code>gated-wo</code></td><td>A work order moved forward while depending on a document still awaiting approval — approve the dependency first.</td></tr>
+  <tr><td><code>missing-approval</code></td><td>A document sits in a promoted status (<code>accepted</code>, <code>active</code>) without the user's <code>approved:</code> stamp.</td></tr>
+  <tr><td><code>done-wo-violation</code></td><td>A work order is <code>done</code> with unchecked acceptance boxes or no receipt.</td></tr>
+  <tr><td><code>ui-wo-without-design</code></td><td>(Design-gated projects) a UI work order has no resolvable <code>designed-by</code> link.</td></tr>
+  <tr><td><code>missing-section</code></td><td>A document lost a <code>##</code> section its type's template expects.</td></tr>
+  <tr><td><code>format-mismatch</code></td><td>The <code>veri/format</code> marker doesn't match what this Veri reads — migrate, or update Veri.</td></tr>
+</table>
+<p>Softer signals ship as <i>advisories</i> — shown greyed in the app, never failing the check.</p>
+
+<h2>The CLI</h2>
+<pre><code>veri init [--demo]         scaffold a veri/ directory (--demo: the sample project)
+veri new &lt;type&gt; "&lt;title&gt;"  create a document with the next free id
+veri check                 report knowledge-base issues (exit 1 if any)
+veri approve &lt;id&gt;          approve a pending document (stamps approved: today)
+veri migrate               bring veri/ to the current on-disk format
+veri list [type]           list documents: id, status, title
+veri open [dir]            open the project in the Veri desktop app</code></pre>
+<p>The CLI and the desktop app read and write the same files; everything above works identically from either.</p>
+
+<div class="next">
+  <b>Where next:</b> the <a href="workflow.html">workflow guide</a> for the method these formats carry, or <a href="troubleshooting.html">troubleshooting</a> for when a check or connection misbehaves.
+</div>
+</article>
+
+<footer class="foot">
+  <span>Veri — plain files, no telemetry.</span>
+  <span><a href="../">Home</a> · <a href="https://github.com/danielyayla/veri">Source</a> · <a href="https://github.com/danielyayla/veri/issues">Issues</a></span>
+</footer>
+
+</body>
+</html>

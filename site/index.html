@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veri — a knowledge base your coding agents read</title>
+<meta name="description" content="Veri keeps requirements, decisions, and work orders as plain markdown files in your repo, and hands your coding agent a complete context package for any task over MCP.">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="top">
+  <a class="top-wordmark" href="./"><span class="v">V</span>eri</a>
+  <a class="nav" href="docs/quickstart.html">Quickstart</a>
+  <a class="nav" href="docs/workflow.html">Workflow</a>
+  <a class="nav" href="docs/connect-claude-code.html">Connect</a>
+  <a class="nav" href="docs/reference.html">Reference</a>
+  <a class="nav" href="docs/troubleshooting.html">Troubleshooting</a>
+  <a class="nav" href="https://github.com/danielyayla/veri">GitHub</a>
+</header>
+
+<section class="hero">
+  <h1><span class="v">V</span>eri</h1>
+  <p class="oneliner">A knowledge base your coding agents read — requirements, decisions, and work orders as plain markdown files living in your repo.</p>
+  <p class="who">For developers who work with coding agents and are tired of re-explaining the project every session. The context lives in files, not in chat scrollback.</p>
+  <a class="dl-btn" id="dl" href="https://github.com/danielyayla/veri/releases/latest">Download Veri for macOS</a>
+  <div class="dl-sub"><span id="dl-version"></span>macOS 13+ · Apple silicon &amp; Intel · <a href="docs/quickstart.html">10-minute quickstart</a></div>
+</section>
+
+<section class="loop">
+  <div class="eyebrow">The loop</div>
+  <h2>File a work order. The agent pulls its context. A receipt lands.</h2>
+  <p class="loop-lead">Instead of pasting background into a prompt, you describe work once as a document. Everything the task depends on — requirements, decisions, source material — is linked, and Veri assembles it into one scoped package your agent fetches over MCP.</p>
+
+  <div class="loop-step">
+    <span class="loop-num">1</span>
+    <div>
+      <h3>File a work order</h3>
+      <p>A work order says what to deliver, what's in and out of scope, and which requirements it implements. Veri shows the exact context package an agent will receive — with per-document token costs.</p>
+    </div>
+  </div>
+  <img class="shot" src="assets/work-order.png" alt="A work order in Veri with its context package panel: linked requirements and decisions, token estimates, and a Start agent session button." width="1560" height="952">
+
+  <div class="loop-step">
+    <span class="loop-num">2</span>
+    <div>
+      <h3>The agent pulls the context package</h3>
+      <p>Over MCP, <code>get_context</code> returns the work order plus every linked requirement, active decision, and source excerpt — and nothing else. Superseded decisions are named as already rejected so the agent doesn't relitigate them.</p>
+    </div>
+  </div>
+
+  <div class="loop-step">
+    <span class="loop-num">3</span>
+    <div>
+      <h3>Receipts land in your files</h3>
+      <p>The agent files decisions it makes and a receipt for each work session — what commit, which files, one line of summary. Your home view shows the trail; <code>git diff</code> shows every word.</p>
+    </div>
+  </div>
+  <img class="shot" src="assets/home.png" alt="Veri's home view: needs-review queue, health checks, work orders in flight, and an agent activity feed of filed decisions and receipts." width="1560" height="952">
+</section>
+
+<section class="cols">
+  <div class="eyebrow">Why not just prompt harder</div>
+  <h2>What a knowledge base buys you over a long prompt</h2>
+  <div class="cols-grid">
+    <div class="col-card">
+      <h3>Scoped context, not a repo dump</h3>
+      <p>The package for a task is the documents linked to it — typically a few thousand tokens, assembled fresh from current file versions every time.</p>
+    </div>
+    <div class="col-card">
+      <h3>Decisions that stay decided</h3>
+      <p>Choices are recorded with the alternatives they rejected, and ride into every future task they constrain. Agents stop re-opening what you settled in March.</p>
+    </div>
+    <div class="col-card">
+      <h3>An audit trail in git</h3>
+      <p>Every document is a markdown file in your repo. Agent-written drafts wait for your approval; nothing becomes binding until you promote it.</p>
+    </div>
+  </div>
+</section>
+
+<section class="cols">
+  <div class="eyebrow">Private by default</div>
+  <h2>Your files, your repo, no accounts</h2>
+  <div class="cols-grid">
+    <div class="col-card">
+      <h3>Local-first</h3>
+      <p>The knowledge base is a <code>veri/</code> directory of markdown files. Veri works entirely offline; git provides history and team sync.</p>
+    </div>
+    <div class="col-card">
+      <h3>No telemetry</h3>
+      <p>The app collects nothing and phones nothing home. The only network access is a check against GitHub Releases for app updates.</p>
+    </div>
+    <div class="col-card">
+      <h3>No lock-in</h3>
+      <p>Delete the app and your knowledge base is still a folder of readable markdown that renders on GitHub.</p>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <span>Veri — plain files, no telemetry. Updates come from <a href="https://github.com/danielyayla/veri/releases">GitHub Releases</a>; that's the app's only network access.</span>
+  <span><a href="docs/quickstart.html">Quickstart</a> · <a href="docs/workflow.html">Workflow guide</a> · <a href="https://github.com/danielyayla/veri">Source</a> · <a href="https://github.com/danielyayla/veri/issues">Issues</a></span>
+</footer>
+
+<script>
+// DEC-033: resolve the current DMG from the releases API so the button never
+// needs a per-release edit. The href above is the no-JS / API-failure fallback.
+fetch('https://api.github.com/repos/danielyayla/veri/releases/latest')
+  .then(function (r) { return r.ok ? r.json() : null; })
+  .then(function (rel) {
+    if (!rel || !rel.assets) return;
+    var dmg = rel.assets.find(function (a) {
+      return a.name.endsWith('.dmg');
+    });
+    if (!dmg) return;
+    document.getElementById('dl').href = dmg.browser_download_url;
+    document.getElementById('dl-version').textContent = rel.tag_name + ' · ';
+  })
+  .catch(function () { /* fallback href stands */ });
+</script>
+
+</body>
+</html>

@@ -1,17 +1,33 @@
 # Veri
 
-Veri keeps a project's requirements, decisions, and work orders as linked
-markdown files, and hands a coding agent a complete context package for any
-task over MCP. This repo is self-hosted: Veri is built by executing Veri
-work orders (see [veri/](veri/)).
+A knowledge base your coding agents read — requirements, decisions, and
+work orders as plain markdown files living in your repo. Veri hands an
+agent a complete context package for any task over MCP, and everything
+the agent writes back lands in files you review.
 
-## Packages
+**[Download Veri for macOS](https://github.com/danielyayla/veri/releases/latest)**
+— macOS 13+, Apple silicon & Intel. Agents launch Veri's MCP server with
+your own Node (20+).
 
-- `@veri/core` — parse, validate, and graph a `veri/` directory
-- `@veri/cli` — the `veri` binary: `init`, `new`, `check`, `list`
-- `@veri/mcp` — stdio MCP server: `get_context`, `search`, `file_decision`, `file_receipt`
+Start with the **[10-minute quickstart](https://danielyayla.github.io/veri/docs/quickstart.html)**:
+install → open the sample project → connect your agent → file a work
+order → watch the agent use it. The
+[website](https://danielyayla.github.io/veri/) covers the
+[workflow](https://danielyayla.github.io/veri/docs/workflow.html),
+[agent connection](https://danielyayla.github.io/veri/docs/connect-claude-code.html),
+[reference](https://danielyayla.github.io/veri/docs/reference.html), and
+[troubleshooting](https://danielyayla.github.io/veri/docs/troubleshooting.html).
+
+Veri is local-first and ships no telemetry: the knowledge base is a
+`veri/` directory of markdown files in your repo, and the app's only
+network access is checking GitHub Releases for updates.
+
+This repo is self-hosted: Veri is built by executing Veri work orders
+(see [veri/](veri/)).
 
 ## Development
+
+Building from source (users: prefer the download above):
 
 ```bash
 npm install
@@ -21,12 +37,23 @@ npm test        # builds all packages, then runs every test suite
 Development requires Node >= 22.18 (native TypeScript type stripping, see
 DEC-004); published output targets Node >= 20.
 
-## Configuring the MCP server in Claude Code
+### Packages
 
-The server is stdio-based and serves one project: pass the project root
-(the directory containing `veri/`) as its argument.
+- `@veri/core` — parse, validate, and graph a `veri/` directory
+- `@veri/cli` — the `veri` binary: `init`, `new`, `check`, `approve`, `migrate`, `list`, `open`
+- `@veri/mcp` — stdio MCP server: `get_context`, `search`, `file_decision`, `file_receipt`
+- `@veri/ui` — the Electron desktop app
+- `site/` — the website, hand-authored static files deployed by CI
 
-From a checkout of this repo, after `npm install && npm test`:
+### Configuring the MCP server from a checkout
+
+The installed app writes agent configs for you (see the
+[connection page](https://danielyayla.github.io/veri/docs/connect-claude-code.html));
+from a source checkout, wire it by hand. The server is stdio-based and
+serves one project: pass the project root (the directory containing
+`veri/`) as its argument.
+
+After `npm install && npm test`:
 
 ```bash
 claude mcp add veri -- node /path/to/veri/packages/mcp/dist/server.js /path/to/your/project
@@ -56,7 +83,7 @@ The server exposes four tools:
   and total token estimates
 - `search(query)` — case-insensitive substring match over id, title, body
 - `file_decision(title, choice, …)` — record a decision with the next
-  free DEC id, `status: active`
+  free DEC id, `status: proposed` (awaiting the user's approval)
 - `file_receipt(work_order_id, commit, files, summary)` — append a
   work-session receipt to a work order; receipts accumulate, never
   overwrite

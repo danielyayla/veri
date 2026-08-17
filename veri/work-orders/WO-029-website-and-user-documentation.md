@@ -72,18 +72,18 @@ Implements [[REQ-012]] — website and user documentation.
 - [ ] A person who has never seen the repo can, from the site
       alone, say what Veri does, download the current release, and
       complete the quickstart to a working agent connection
-- [ ] The download action resolves to the newest published release
+- [x] The download action resolves to the newest published release
       with no site edit after a release is published
-- [ ] Every config format the connection panel writes has a
+- [x] Every config format the connection panel writes has a
       connection page: what is written, where, and a verification
       step
-- [ ] The workflow guide is self-contained: a reader with no prior
+- [x] The workflow guide is self-contained: a reader with no prior
       context can name all five document types and the path of work
-- [ ] README leads with the download path; build-from-source moved
+- [x] README leads with the download path; build-from-source moved
       under development
-- [ ] Site hosting/tooling choice filed as a proposed DEC with
+- [x] Site hosting/tooling choice filed as a proposed DEC with
       rejected alternatives
-- [ ] `veri check` and `npm test` are clean
+- [x] `veri check` and `npm test` are clean
 
 ## Receipts
 

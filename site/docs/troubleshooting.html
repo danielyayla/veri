@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Troubleshooting — Veri</title>
+<meta name="description" content="Fixing connection failures, update questions and rollback, system requirements, and where to report issues.">
+<link rel="stylesheet" href="../site.css">
+</head>
+<body>
+
+<header class="top">
+  <a class="top-wordmark" href="../"><span class="v">V</span>eri</a>
+  <a class="nav" href="quickstart.html">Quickstart</a>
+  <a class="nav" href="workflow.html">Workflow</a>
+  <a class="nav" href="connect-claude-code.html">Connect</a>
+  <a class="nav" href="reference.html">Reference</a>
+  <a class="nav here" href="troubleshooting.html">Troubleshooting</a>
+  <a class="nav" href="https://github.com/danielyayla/veri">GitHub</a>
+</header>
+
+<article class="doc">
+<h1>Troubleshooting</h1>
+<p class="doc-lead">Start with <b>Verify connection</b> in the app — it launches the server the exact way your agent will and names the failure. This page covers each named cause, plus updates, requirements, and where to get help.</p>
+
+<h2>System requirements</h2>
+<ul>
+  <li><b>macOS 13 (Ventura) or later</b> — one universal app for Apple silicon and Intel.</li>
+  <li><b>Node 20 or newer</b>, on your shell's PATH — used by your <i>agent</i> to launch Veri's MCP server. The Veri app itself needs no Node; a machine without it can browse and edit knowledge bases fine, but agents can't connect until it's installed.</li>
+</ul>
+
+<h2>Verify connection failures</h2>
+
+<h3>"No node executable in your shell"</h3>
+<p>Your login shell has no <code>node</code> on PATH. Install Node 20+ — <code>brew install node</code>, or the installer from <a href="https://nodejs.org">nodejs.org</a>; either works. Then verify again.</p>
+<p>Veri probes your <i>login shell</i> — the same environment a terminal-launched agent resolves <code>node</code> in — so Homebrew, nvm, and fnm installs are all found. If you use a version manager and still see this, make sure it activates in login shells and has a default version set (for nvm: <code>nvm alias default 20</code>).</p>
+
+<h3>"Node is too old"</h3>
+<p>A <code>node</code> was found, but below version 20 — the server won't start under it. Upgrade (<code>brew upgrade node</code>, or your version manager's equivalent) and verify again.</p>
+
+<h3>"Server file missing"</h3>
+<p>The path in <code>.mcp.json</code> doesn't exist on disk. Usual causes: the config was written on another machine (a teammate committed it), the app was moved or removed, or — in a source checkout — the MCP package isn't built (<code>npm run build -w packages/mcp</code>). With the installed app, re-run <b>Set up connection</b> to rewrite the path for this machine.</p>
+
+<h3>"Wrong project root"</h3>
+<p>The server launches and answers, but it's serving a different directory than the project open in Veri — typically a config carried over from a moved or renamed folder. Click <b>Fix path</b>; it rewrites only the root argument and leaves the rest of the entry alone.</p>
+
+<h3>"The server didn't answer"</h3>
+<p>Everything looked right, but no MCP handshake came back. The panel shows the server's error output — read it, and if it doesn't point anywhere, copy it into a <a href="https://github.com/danielyayla/veri/issues">GitHub issue</a> along with your app and macOS versions.</p>
+
+<h2>Agent doesn't see the tools</h2>
+<p>Verification is green but Claude Code doesn't list the <code>veri</code> server (check with <code>/mcp</code>):</p>
+<ul>
+  <li><b>Restart the session.</b> Agent apps read <code>.mcp.json</code> on launch; a session started before setup won't have it.</li>
+  <li><b>Check where the agent was started.</b> Project-scoped config only applies to sessions launched in that project directory (or below it).</li>
+  <li><b>First use may need approval.</b> Claude Code asks before using a project's <code>.mcp.json</code> servers; if it was declined once, run <code>claude mcp reset-project-choices</code> and restart.</li>
+</ul>
+
+<h2>Updates and rollback</h2>
+<ul>
+  <li><b>How updates work:</b> the app checks GitHub Releases, downloads in the background, and applies only when you say "restart now" or at next quit. A running session is never interrupted.</li>
+  <li><b>Offline is fine:</b> no network, or an unreachable feed, just means no update this time — the app stays fully usable and shows no error.</li>
+  <li><b>Roll back:</b> quit Veri, download the older version's DMG from the <a href="https://github.com/danielyayla/veri/releases">releases page</a> (every release keeps its artifacts), and drag it into Applications over the current one. Your knowledge bases are unaffected — they're plain files in your repos, and the on-disk format carries a version marker so an older app states a mismatch rather than misreading newer files.</li>
+</ul>
+
+<h2>Gatekeeper warnings</h2>
+<p>Releases are signed and notarized; macOS should open Veri without ceremony. If you see a "can't be opened" or unidentified-developer warning, don't override it — you may have an artifact that didn't come from <a href="https://github.com/danielyayla/veri/releases">GitHub Releases</a>. Re-download from there and <a href="https://github.com/danielyayla/veri/issues">report it</a>.</p>
+
+<h2>Getting help</h2>
+<p><a href="https://github.com/danielyayla/veri/issues">GitHub Issues</a> is the support channel. Include your app version, macOS version, what you expected, and — for connection problems — the exact text Verify connection showed. Veri ships no telemetry: nothing is reported automatically, so an issue from you is the only way a problem in the field gets known.</p>
+
+<div class="next">
+  <b>Where next:</b> back to the <a href="quickstart.html">quickstart</a>, or the <a href="connect-claude-code.html">connection page</a> for what a healthy config looks like.
+</div>
+</article>
+
+<footer class="foot">
+  <span>Veri — plain files, no telemetry.</span>
+  <span><a href="../">Home</a> · <a href="https://github.com/danielyayla/veri">Source</a> · <a href="https://github.com/danielyayla/veri/issues">Issues</a></span>
+</footer>
+
+</body>
+</html>

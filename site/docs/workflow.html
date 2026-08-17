@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Veri workflow — Veri</title>
+<meta name="description" content="How work moves through a Veri project: sources become requirements and decisions, those become work orders, work orders become implementation with receipts.">
+<link rel="stylesheet" href="../site.css">
+</head>
+<body>
+
+<header class="top">
+  <a class="top-wordmark" href="../"><span class="v">V</span>eri</a>
+  <a class="nav" href="quickstart.html">Quickstart</a>
+  <a class="nav here" href="workflow.html">Workflow</a>
+  <a class="nav" href="connect-claude-code.html">Connect</a>
+  <a class="nav" href="reference.html">Reference</a>
+  <a class="nav" href="troubleshooting.html">Troubleshooting</a>
+  <a class="nav" href="https://github.com/danielyayla/veri">GitHub</a>
+</header>
+
+<article class="doc">
+<h1>The Veri workflow</h1>
+<p class="doc-lead">Veri is a method carried by five kinds of document. This page teaches the method; the <a href="reference.html">reference</a> covers the file formats behind it.</p>
+
+<p>The core idea: <b>everything an agent needs to do a task well should exist as a document before the task starts</b> — and everything the agent produces should land back in documents you can review. Prompts are ephemeral; files accumulate.</p>
+
+<h2>The five document types</h2>
+
+<table>
+  <tr><th>Type</th><th>Id</th><th>Answers</th></tr>
+  <tr><td><span class="type-src">Source</span></td><td><code>SRC-…</code></td><td>"What do we know?" Evidence brought in from outside: interview notes, specs, transcripts, design handoffs. Sources are imported, never authored from nothing — they're the raw material everything else cites.</td></tr>
+  <tr><td><span class="type-req">Requirement</span></td><td><code>REQ-…</code></td><td>"What must be true?" A statement of what the system has to do, with acceptance criteria. Requirements justify work orders — a work order that implements no requirement is flagged.</td></tr>
+  <tr><td><span class="type-dec">Decision</span></td><td><code>DEC-…</code></td><td>"What was chosen, and why?" A choice, the alternatives it rejected, and the rationale. Decisions constrain future work: they ride into every context package for tasks they touch, so settled questions stay settled.</td></tr>
+  <tr><td><span class="type-wo">Work order</span></td><td><code>WO-…</code></td><td>"What should be done next?" A scoped unit of work an agent can pick up: summary, in scope, out of scope, linked requirements, acceptance tests — and, once work happens, receipts.</td></tr>
+  <tr><td><span class="type-wf">Workflow</span></td><td><code>WF-…</code></td><td>"How does work move here?" One per project. It states the path of work and the rules for implementers, and it's the first thing in every context package — so every agent session starts with your project's rules.</td></tr>
+</table>
+
+<h2>The path of work</h2>
+<p>Documents aren't filed at random; they flow:</p>
+<ol>
+  <li><b>Evidence enters as sources.</b> A customer call, a planning session, a spec someone sent you — paste it in as a <span class="type-src">source</span>. It's now citable.</li>
+  <li><b>Sources become requirements and decisions.</b> Reading the evidence, you (or an agent, as drafts) distill what must be true — <span class="type-req">requirements</span> — and settle the contested choices — <span class="type-dec">decisions</span>, each with its rejected alternatives on the record.</li>
+  <li><b>Requirements become work orders.</b> A <span class="type-wo">work order</span> packages a deliverable slice: which requirements it implements, which decisions constrain it, what's explicitly out of scope.</li>
+  <li><b>Work orders become implementation, with receipts.</b> An agent pulls the work order's context package, does the work, and appends a receipt — date, commit, files touched, summary — to the work order file. Done means: all acceptance boxes checked, at least one receipt.</li>
+</ol>
+<p>Each step is a link (<code>implements</code>, <code>constrained-by</code>, <code>informed-by</code>…), and the links are what make context packages possible: given a work order, Veri walks the graph and assembles exactly the documents that bear on it.</p>
+
+<h2>The approval gate</h2>
+<p>Agents write drafts; <b>only you promote them</b>. A requirement an agent files arrives as <code>draft</code>, a decision as <code>proposed</code> — visibly non-binding, queued on your home view under NEEDS REVIEW. Approving (in the app, or <code>veri approve REQ-007</code>) stamps the document with an approval date, and only then does it bind future work.</p>
+<p>This is the deal that makes agent authorship safe: agents can capture anything, and nothing they capture becomes canon behind your back. A context package always tells the agent which documents are ratified and which are pending.</p>
+
+<h2>Why the loop compounds</h2>
+<ul>
+  <li><b>Session two is cheaper than session one.</b> Every decision recorded is a discussion the next agent session doesn't need to have. The knowledge base grows precisely where your project needed explaining.</li>
+  <li><b>Scope rides with the task.</b> "Out of scope" lines in a work order aren't a hope — they're in the package, and the workflow document instructs agents to treat them as forbidden.</li>
+  <li><b>The trail is inspectable.</b> Receipts, decisions, status changes — all file edits, all in git. Reviewing an agent's week is reading a diff.</li>
+  <li><b><code>veri check</code> keeps the graph honest.</b> Broken links, work orders with no requirement, done work with no receipt, unapproved promotions — surfaced in the app and failable in CI. Zero issues is the bar.</li>
+</ul>
+
+<h2>A worked example</h2>
+<p>The bundled sample project shows the whole loop in miniature: an invoicing app where a client interview (<code>SRC-001</code>) grounds four requirements, decisions record the stack choices with their rejected alternatives (one superseded, with its successor named), and work orders carry receipts from past agent sessions. Two health issues are left in deliberately so you can see <code>veri check</code> earn its keep. The <a href="quickstart.html">quickstart</a> walks it end to end.</p>
+
+<div class="next">
+  <b>Where next:</b> <a href="connect-claude-code.html">connect your agent</a> so context packages flow over MCP, or the <a href="reference.html">reference</a> for the exact file formats.
+</div>
+</article>
+
+<footer class="foot">
+  <span>Veri — plain files, no telemetry.</span>
+  <span><a href="../">Home</a> · <a href="https://github.com/danielyayla/veri">Source</a> · <a href="https://github.com/danielyayla/veri/issues">Issues</a></span>
+</footer>
+
+</body>
+</html>
