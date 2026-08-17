@@ -2,7 +2,8 @@
 id: DEC-031
 type: decision
 title: "Node runtime handled by detect-and-guide; configs keep command \"node\""
-status: proposed
+status: active
+approved: 2026-08-17
 created: 2026-08-17
 updated: 2026-08-17
 links:

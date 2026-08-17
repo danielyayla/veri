@@ -2,7 +2,7 @@
 id: WO-030
 type: work-order
 title: First-run onboarding and agent connection verification
-status: backlog
+status: in-progress
 created: 2026-08-17
 updated: 2026-08-17
 links:

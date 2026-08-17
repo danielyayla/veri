@@ -14,10 +14,11 @@ links:
     rel: builds-on
 ---
 
+Design approved by Daniel on 2026-08-17 (in-session review of the
+prototype), satisfying the [[DEC-012]] gate for [[WO-030]].
+
 Design handoff for [[WO-030]]'s three surfaces, filed as the
-[[DEC-012]] gate artifact. **Pending Daniel's review — the gate is
-not satisfied, and implementation must not start, until he approves
-this design** (per [[DEC-012]], approval precedes `in-progress`).
+[[DEC-012]] gate artifact.
 
 Files live in `design/first-run-onboarding/`:
 
