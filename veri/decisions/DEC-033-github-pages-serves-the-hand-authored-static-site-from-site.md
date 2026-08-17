@@ -2,7 +2,8 @@
 id: DEC-033
 type: decision
 title: "GitHub Pages serves the hand-authored static site from site/"
-status: proposed
+status: active
+approved: 2026-08-17
 created: 2026-08-17
 updated: 2026-08-17
 links:
