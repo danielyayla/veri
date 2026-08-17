@@ -3,7 +3,11 @@
 # (latest-mac.yml, blockmaps) to a GitHub Release. The tag is the only
 # manual step.
 #
-# Required repository secrets:
+# When the signing secrets are not configured, the build falls back to
+# an unsigned, un-notarized app so the rest of the pipeline can be
+# exercised; installs will hit Gatekeeper warnings.
+#
+# Required repository secrets for signed builds:
 #   CSC_LINK                     base64 .p12 of the Developer ID
 #                                Application certificate
 #   CSC_KEY_PASSWORD             its passphrase
@@ -53,4 +57,12 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: npx electron-builder --mac --publish always
+        run: |
+          if [ -n "$CSC_LINK" ]; then
+            npx electron-builder --mac --publish always
+          else
+            echo "::warning::Signing secrets not set; building unsigned, un-notarized app"
+            unset CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+            npx electron-builder --mac --publish always -c.mac.notarize=false
+          fi
