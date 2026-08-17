@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Veri — first-run onboarding & connection verification (design reference)</title>
+<style>
+  :root{
+    --bg:#0F0F11; --panel:#131316; --card:#151519; --card2:#18181D;
+    --hair:#1E1E24; --cardb:#1F1F24; --int:#26262C; --int-hover:#3A3A44;
+    --text:#E7E4DE; --body:#C9C6CF; --secondary:#A09DA6; --muted:#8B8893;
+    --faint:#6E6B76; --ghost:#55525E; --ghost2:#4A4852;
+    --ember:#E8703A; --on-ember:#141414; --green:#7FAF8A; --amber:#D9A03F;
+    --amberb:#3A3020; --blue:#7EA6C4; --req:#7EA6C4; --dec:#CFA83D;
+    --wo:#E8703A; --src:#908BA8;
+    --sans:"Source Sans 3",-apple-system,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--body);font-family:var(--sans);font-size:14px;line-height:1.65}
+
+  /* ---- scenario bar (design-reference chrome, not part of the app) ---- */
+  .scenbar{position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+    padding:10px 16px;background:#0A0A0C;border-bottom:1px solid var(--hair)}
+  .scenbar b{font:600 10px var(--mono);letter-spacing:.1em;color:var(--faint);margin-right:6px}
+  .scen{font:500 11px var(--mono);color:var(--secondary);border:1px solid var(--int);border-radius:6px;
+    padding:4px 9px;cursor:pointer;background:transparent}
+  .scen:hover{border-color:var(--int-hover)}
+  .scen.on{color:var(--on-ember);background:var(--ember);border-color:var(--ember)}
+  .stage{display:none}
+  .stage.on{display:block}
+
+  /* ---- Surface 1: welcome ---- */
+  .welcome{min-height:calc(100vh - 46px);display:flex;align-items:center;justify-content:center}
+  .wel-col{width:480px;max-width:92vw;transform:translateY(-6%)}
+  .wel-mark{font-size:26px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+  .wel-line{margin-top:8px;color:var(--secondary);font-size:14px}
+  .wel-cards{margin-top:26px;display:flex;flex-direction:column;gap:10px}
+  .wel-card{border:1px solid var(--int);border-radius:10px;background:var(--card);padding:16px 18px;cursor:pointer}
+  .wel-card:hover{border-color:var(--int-hover);background:var(--card2)}
+  .wel-t{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:600;color:var(--text)}
+  .wel-glyph{font-family:var(--mono);font-size:13px;width:14px;text-align:center}
+  .wel-arrow{margin-left:auto;color:var(--ghost2);font-family:var(--mono)}
+  .wel-d{margin-top:4px;margin-left:23px;font-size:12.5px;color:var(--muted)}
+  .wel-kbd{font:500 10px var(--mono);color:var(--faint);border:1px solid var(--int);border-radius:4px;padding:1px 5px;margin-left:8px}
+  .notice-amber{display:flex;gap:9px;align-items:flex-start;margin-top:14px;padding:9px 12px;border:1px solid var(--amberb);
+    border-radius:6px;background:rgba(217,160,63,0.06);font-size:12.5px;color:var(--amber)}
+  .notice-amber .dot{width:6px;height:6px;border-radius:50%;background:var(--amber);flex:0 0 auto;margin-top:6px}
+  .wel-foot{margin-top:22px;font-size:11.5px;color:var(--ghost)}
+  code,.inline-code{font-family:var(--mono);font-size:.92em;color:var(--body)}
+
+  /* ---- app shell (for home/sidebar/panel scenarios) ---- */
+  .shell{display:flex;height:calc(100vh - 46px);overflow:hidden}
+  .sidebar{width:250px;flex:0 0 auto;border-right:1px solid var(--hair);background:var(--panel);
+    display:flex;flex-direction:column}
+  .sb-tree{flex:1;overflow-y:auto;padding:14px 8px 16px}
+  .sb-group{margin-top:12px}
+  .sb-group-head{display:flex;align-items:center;gap:7px;padding:0 10px 4px}
+  .sb-swatch{width:7px;height:7px;border-radius:2px}
+  .sb-group-label{font:400 10px var(--mono);letter-spacing:.1em;color:var(--faint)}
+  .sb-group-count{margin-left:auto;font:400 10px var(--mono);color:var(--ghost2)}
+  .sb-row{display:flex;align-items:center;gap:8px;height:26px;padding:0 10px;border-radius:6px;cursor:pointer}
+  .sb-row:hover{background:#1B1B20}
+  .sb-row-id{font:400 10px var(--mono)}
+  .sb-row-title{font-size:12.5px;color:#A8A5AF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sb-ghost{font-style:italic;font-size:12px;color:var(--ghost)}
+  .sb-ghost .g-plus{font-family:var(--mono);font-style:normal;color:var(--ghost2);width:10px}
+  .sb-ghost .g-act{display:none;font-style:normal}
+  .sb-ghost:hover{color:var(--muted)}
+  .sb-ghost:hover .g-hint{display:none}
+  .sb-ghost:hover .g-act{display:inline}
+  .sb-foot{border-top:1px solid var(--hair);padding:9px 14px;font:400 10px var(--mono);color:var(--faint);
+    display:flex;align-items:center;gap:7px;cursor:pointer}
+  .sb-foot:hover{background:#1B1B20}
+  .sb-foot .dot{width:6px;height:6px;border-radius:50%}
+  .sb-foot .arr{margin-left:auto;color:var(--ghost2)}
+  .main{flex:1;overflow-y:auto}
+
+  /* ---- Surface 2: home view START HERE ---- */
+  .hv-wrap{max-width:980px;margin:0 auto;padding:30px 40px 60px}
+  .hv-head{display:flex;align-items:baseline;gap:12px;margin-bottom:18px}
+  .hv-title{font-size:20px;font-weight:600;color:var(--text)}
+  .hv-count{font:400 11px var(--mono);color:var(--faint)}
+  .start-card{background:var(--card);border:1px solid var(--int);border-radius:10px;padding:18px 20px;margin-bottom:14px}
+  .eyebrow{font:400 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+  .eyebrow.ember{color:var(--ember)} .eyebrow.warn{color:var(--amber)}
+  .start-h{font-size:16px;font-weight:600;color:var(--text);margin-top:6px}
+  .path-row{display:flex;align-items:stretch;gap:6px;margin-top:14px}
+  .path-card{flex:1;background:var(--card2);border:1px solid var(--cardb);border-radius:8px;padding:10px 12px}
+  .path-card b{display:block;font:500 11px var(--mono);letter-spacing:.02em}
+  .path-card span{display:block;margin-top:3px;font-size:11.5px;color:var(--muted);line-height:1.45}
+  .path-join{align-self:center;color:var(--ghost2);font-family:var(--mono);font-size:12px}
+  .act-row{display:flex;gap:10px;align-items:center;margin-top:14px}
+  .btn-primary{display:inline-flex;align-items:center;height:34px;padding:0 16px;border-radius:7px;
+    background:var(--ember);color:var(--on-ember);font-size:13px;font-weight:600;cursor:pointer}
+  .btn-primary:hover{filter:brightness(1.1)}
+  .btn-ghost{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:7px;
+    border:1px solid var(--int);color:var(--secondary);font-size:12.5px;font-weight:500;cursor:pointer}
+  .btn-ghost:hover{border-color:var(--int-hover)}
+  .caption{margin-top:10px;font-size:11.5px;color:var(--ghost)}
+  .hv-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .hv-card{background:var(--card);border:1px solid var(--cardb);border-radius:10px;padding:14px 16px;min-height:96px}
+  .hv-card-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .hv-dot{width:6px;height:6px;border-radius:50%}
+  .hv-meta{margin-left:auto;font:400 10.5px var(--mono);color:var(--faint)}
+  .hv-empty{font-size:12.5px;color:var(--ghost);padding:8px 0 2px}
+
+  /* ---- Surface 3: connection panel ---- */
+  .mcp-col{max-width:640px;margin:0 auto;padding:30px 40px 60px}
+  .mcp-crumb{font:400 11px var(--mono);color:var(--faint)}
+  .mcp-crumb .here{color:var(--ember)}
+  .mcp-h1{font-size:24px;font-weight:600;color:var(--text);letter-spacing:-.01em;margin-top:10px}
+  .mcp-sub{margin-top:8px;font-size:13.5px;color:var(--muted);line-height:1.6}
+  .mcp-card{background:var(--card);border:1px solid var(--int);border-radius:10px;padding:20px 22px;margin-top:18px}
+  .mcp-card-h{font-size:16px;font-weight:600;color:var(--text);margin-top:6px}
+  .mcp-card-p{margin-top:8px;font-size:13.5px;color:var(--secondary)}
+  .mcp-json{margin-top:8px;background:var(--bg);border:1px solid var(--cardb);border-radius:7px;
+    padding:12px 14px;font:400 11px var(--mono);line-height:1.7;color:var(--muted)}
+  .mcp-json .k{color:var(--ember)} .mcp-json .v{color:var(--body)}
+  .ind1{padding-left:14px}.ind2{padding-left:28px}
+  .health{background:var(--card);border:1px solid var(--cardb);border-radius:10px;margin-top:18px}
+  .health-head{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid #1B1B20}
+  .health-count{margin-left:auto;font:400 10.5px var(--mono)}
+  .check{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid #1B1B20}
+  .badge{width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+    font:600 10px var(--mono);flex:0 0 auto}
+  .badge.ok{background:rgba(127,175,138,.15);color:var(--green)}
+  .badge.fail{background:rgba(217,160,63,.15);color:var(--amber)}
+  .check-name{font-size:13.5px;font-weight:500;color:var(--text)}
+  .check-detail{margin-left:auto;font:400 10.5px var(--mono);color:var(--ghost)}
+  .health-note{padding:10px 16px;font-size:11.5px;color:var(--ghost)}
+  .section{margin-top:26px}
+  .section-p{margin-top:8px;font-size:13.5px;color:var(--muted)}
+  .live-btn{display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:7px;margin-top:12px;
+    border:1px solid var(--int);color:var(--secondary);font-size:12px;font-weight:500;cursor:pointer}
+  .live-btn:hover{border-color:var(--int-hover)}
+  .live-btn.busy{opacity:.55;cursor:default}
+  .result{display:flex;gap:10px;align-items:flex-start;margin-top:14px}
+  .result-msg{font-size:13px;color:var(--text);line-height:1.55}
+  .result-msg .mono{font-family:var(--mono);font-size:.92em}
+  .fail-block{margin-top:14px}
+  .fail-msg{font-size:12.5px;color:var(--amber);line-height:1.55}
+  .fail-btn{display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:6px;margin-top:9px;
+    background:rgba(217,160,63,.12);border:1px solid var(--amberb);color:var(--amber);
+    font-size:11.5px;font-weight:600;cursor:pointer}
+  .stderr{margin-top:9px;background:var(--bg);border:1px solid var(--cardb);border-radius:6px;padding:9px 11px;
+    font:400 11px var(--mono);color:var(--faint);line-height:1.6;max-height:120px;overflow:auto}
+</style>
+</head>
+<body>
+
+<div class="scenbar"><b>SCENARIO</b>
+  <button class="scen on" data-s="welcome">welcome</button>
+  <button class="scen" data-s="welcome-err">welcome · not a project</button>
+  <button class="scen" data-s="home">home + sidebar · empty</button>
+  <button class="scen" data-s="live">live check · rest</button>
+  <button class="scen" data-s="v-ok">verify · success</button>
+  <button class="scen" data-s="v-ok0">verify · success (no docs)</button>
+  <button class="scen" data-s="v-a">A missing runtime</button>
+  <button class="scen" data-s="v-b">B too old</button>
+  <button class="scen" data-s="v-c">C path missing</button>
+  <button class="scen" data-s="v-d">D wrong root</button>
+  <button class="scen" data-s="v-e">E no answer</button>
+  <button class="scen" data-s="notsetup">not-set-up + pre-check</button>
+</div>
+
+<!-- ============ Surface 1: welcome ============ -->
+<div class="stage on" data-stage="welcome welcome-err">
+  <div class="welcome"><div class="wel-col">
+    <div class="wel-mark">Veri</div>
+    <div class="wel-line">A knowledge base your coding agents read — requirements, decisions, and work orders as plain markdown files living in your repo.</div>
+    <div class="wel-cards">
+      <div class="wel-card">
+        <div class="wel-t"><span class="wel-glyph" style="color:var(--ember)">+</span>Create a new project<span class="wel-kbd">↩</span><span class="wel-arrow">→</span></div>
+        <div class="wel-d">Pick a folder — Veri scaffolds a <code>veri/</code> directory inside it. Works in an existing repo.</div>
+      </div>
+      <div class="wel-card">
+        <div class="wel-t"><span class="wel-glyph" style="color:var(--src)">◈</span>Explore the sample project<span class="wel-arrow">→</span></div>
+        <div class="wel-d">A working invoicing-app knowledge base — 16 documents you can read, edit, and connect an agent to.</div>
+      </div>
+      <div class="wel-card">
+        <div class="wel-t"><span class="wel-glyph" style="color:var(--blue)">→</span>Open an existing folder<span class="wel-kbd">⌘O</span><span class="wel-arrow">→</span></div>
+        <div class="wel-d">A repo that already has a <code>veri/</code> directory.</div>
+      </div>
+    </div>
+    <div class="notice-amber" data-only="welcome-err" style="display:none"><span class="dot"></span>
+      <span>No <code>veri/</code> directory inside <code>~/Downloads/stuff</code> — choose another, or create a new project there instead.</span></div>
+    <div class="wel-foot">Nothing is written until you choose — projects are plain files on disk, and this screen never creates anything on its own.</div>
+  </div></div>
+</div>
+
+<!-- ============ Surface 2: home + sidebar, documentless ============ -->
+<div class="stage" data-stage="home">
+  <div class="shell">
+    <div class="sidebar">
+      <div class="sb-tree">
+        <div class="sb-group">
+          <div class="sb-group-head"><span class="sb-swatch" style="background:var(--req)"></span><span class="sb-group-label">REQUIREMENTS</span><span class="sb-group-count">0</span></div>
+          <div class="sb-row sb-ghost"><span class="g-plus">+</span><span class="g-hint">What must be true</span><span class="g-act">New requirement…</span></div>
+        </div>
+        <div class="sb-group">
+          <div class="sb-group-head"><span class="sb-swatch" style="background:var(--dec)"></span><span class="sb-group-label">DECISIONS</span><span class="sb-group-count">0</span></div>
+          <div class="sb-row sb-ghost"><span class="g-plus">+</span><span class="g-hint">What was chosen, and why</span><span class="g-act">New decision…</span></div>
+        </div>
+        <div class="sb-group">
+          <div class="sb-group-head"><span class="sb-swatch" style="background:var(--wo)"></span><span class="sb-group-label">WORK ORDERS</span><span class="sb-group-count">0</span></div>
+          <div class="sb-row sb-ghost"><span class="g-plus">+</span><span class="g-hint">Work an agent can pick up</span><span class="g-act">New work order…</span></div>
+        </div>
+        <div class="sb-group">
+          <div class="sb-group-head"><span class="sb-swatch" style="background:var(--src)"></span><span class="sb-group-label">SOURCES</span><span class="sb-group-count">0</span></div>
+          <div class="sb-row sb-ghost"><span class="g-plus">+</span><span class="g-hint">Evidence brought in</span><span class="g-act">New source…</span></div>
+        </div>
+        <div class="sb-group">
+          <div class="sb-group-head"><span class="sb-swatch" style="background:#7FAF8A"></span><span class="sb-group-label">WORKFLOW</span><span class="sb-group-count">1</span></div>
+          <div class="sb-row"><span class="sb-row-id" style="color:#7FAF8A">WF-001</span><span class="sb-row-title">Project workflow</span></div>
+        </div>
+      </div>
+      <div class="sb-foot"><span class="dot" style="background:var(--amber)"></span>agent connection · not set up<span class="arr">→</span></div>
+    </div>
+    <div class="main"><div class="hv-wrap">
+      <div class="hv-head"><h1 class="hv-title">harbor</h1><span class="hv-count">1 doc · 1 living</span></div>
+      <div class="start-card">
+        <div class="eyebrow ember">START HERE</div>
+        <div class="start-h">This project is empty — evidence comes first.</div>
+        <div class="path-row">
+          <div class="path-card"><b style="color:var(--src)">sources</b><span>Evidence in: notes, specs, transcripts</span></div><span class="path-join">→</span>
+          <div class="path-card"><b style="color:var(--req)">requirements</b><span>What must be true</span></div><span class="path-join">→</span>
+          <div class="path-card"><b style="color:var(--dec)">decisions</b><span>What was chosen, and why</span></div><span class="path-join">→</span>
+          <div class="path-card"><b style="color:var(--wo)">work orders</b><span>Work an agent can pick up</span></div>
+        </div>
+        <div class="act-row">
+          <span class="btn-primary">New document</span>
+          <span class="btn-ghost">Connect an agent <span style="color:var(--ghost2)">→</span></span>
+        </div>
+        <div class="caption">Or let your agent file documents for you — the MCP connection gives it <code>file_decision</code> and <code>file_receipt</code>.</div>
+      </div>
+      <div class="hv-grid">
+        <div class="hv-card"><div class="hv-card-head"><span class="hv-dot" style="background:var(--amber)"></span><span class="eyebrow">HEALTH</span><span class="hv-meta" style="color:var(--green)">clean</span></div><div class="hv-empty">No issues — veri check is clean</div></div>
+        <div class="hv-card"><div class="hv-card-head"><span class="hv-dot" style="background:var(--ember)"></span><span class="eyebrow">IN FLIGHT</span><span class="hv-meta">0 work orders</span></div><div class="hv-empty">Nothing in flight</div></div>
+        <div class="hv-card"><div class="hv-card-head"><span style="color:var(--ember);font-size:12px">⌁</span><span class="eyebrow">AGENT ACTIVITY</span></div><div class="hv-empty">No activity yet</div></div>
+        <div class="hv-card"><div class="hv-card-head"><span class="eyebrow">RECENTLY CHANGED</span></div><div class="hv-empty">No documents yet</div></div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<!-- ============ Surface 3: connection panel scenarios ============ -->
+<div class="stage" data-stage="live v-ok v-ok0 v-a v-b v-c v-d v-e">
+  <div class="main"><div class="mcp-col">
+    <div class="mcp-crumb">harbor <span style="color:var(--ghost2)">/</span> <span class="here">Agent connection</span></div>
+    <h1 class="mcp-h1">Agent connection</h1>
+    <p class="mcp-sub">Sets up this project's <code>.mcp.json</code> so agent apps like Claude Code can launch Veri's MCP server. Veri manages the file only — your agent reads it when a session starts.</p>
+
+    <div class="health">
+      <div class="health-head"><span class="eyebrow">HEALTH</span><span class="health-count" style="color:var(--green)">all 4 checks pass</span></div>
+      <div class="check"><span class="badge ok">✓</span><span class="check-name">.mcp.json exists</span><span class="check-detail">~/dev/harbor/.mcp.json</span></div>
+      <div class="check"><span class="badge ok">✓</span><span class="check-name">Veri server entry present</span><span class="check-detail">mcpServers.veri</span></div>
+      <div class="check"><span class="badge ok">✓</span><span class="check-name">Server executable found</span><span class="check-detail">…/mcp/dist/server.js</span></div>
+      <div class="check" style="border-bottom:none"><span class="badge ok">✓</span><span class="check-name">Project root matches this project</span><span class="check-detail">~/dev/harbor</span></div>
+      <div class="health-note" style="border-top:1px solid #1B1B20">Checks read the file and disk only — they can't tell whether an agent session is currently connected.</div>
+    </div>
+
+    <div class="section">
+      <div class="eyebrow">LIVE CHECK</div>
+      <p class="section-p">The checks above read files. This one launches the server the way your agent will — once, with the config exactly as written — and confirms it answers over MCP.</p>
+      <span class="live-btn" id="verifyBtn">Verify connection</span>
+
+      <div class="result" data-only="v-ok" style="display:none">
+        <span class="badge ok">✓</span>
+        <div><div class="result-msg">Server answered over MCP — serving this project (<span class="mono">16 documents</span>, 4 tools) with node <span class="mono">v22.5.1</span>.</div>
+        <div class="caption">Verified just now. This proves the server launches and serves this project — your agent still starts its own session.</div></div>
+      </div>
+
+      <div class="result" data-only="v-ok0" style="display:none">
+        <span class="badge ok">✓</span>
+        <div><div class="result-msg">Server answered over MCP — 4 tools available (project has no documents yet).</div>
+        <div class="caption">Verified just now. This proves the server launches — your agent still starts its own session.</div></div>
+      </div>
+
+      <div class="fail-block" data-only="v-a" style="display:none">
+        <div class="result"><span class="badge fail">!</span>
+        <div><div class="fail-msg">No <span class="mono">node</span> found in your shell. Agent apps launch the server with <span class="mono">node</span>; it isn't installed, or isn't on your shell's PATH.</div>
+        <span class="fail-btn">Copy install command</span>
+        <div class="caption">Or install Node 20+ from nodejs.org — either works.</div></div></div>
+      </div>
+
+      <div class="fail-block" data-only="v-b" style="display:none">
+        <div class="result"><span class="badge fail">!</span>
+        <div><div class="fail-msg">Found node <span class="mono">v18.19.0</span> at <span class="mono">/usr/local/bin/node</span> — Veri's server needs Node 20 or newer.</div>
+        <span class="fail-btn">Copy upgrade command</span>
+        <div class="caption">Or install Node 20+ from nodejs.org — either works.</div></div></div>
+      </div>
+
+      <div class="fail-block" data-only="v-c" style="display:none">
+        <div class="result"><span class="badge fail">!</span>
+        <div><div class="fail-msg">Nothing at <span class="mono">~/dev/veri/packages/mcp/dist/server.js</span> — the server isn't on this machine at the configured location.</div>
+        <span class="fail-btn">Copy build command</span>
+        <div class="caption">In a packaged install this usually means the app was moved — re-run setup above to rewrite the path.</div></div></div>
+      </div>
+
+      <div class="fail-block" data-only="v-d" style="display:none">
+        <div class="result"><span class="badge fail">!</span>
+        <div><div class="fail-msg">The server answered, but it's serving <span class="mono">/Users/tom/dev/harbor</span>, not this project.</div>
+        <span class="fail-btn">Fix path</span></div></div>
+      </div>
+
+      <div class="fail-block" data-only="v-e" style="display:none">
+        <div class="result"><span class="badge fail">!</span>
+        <div><div class="fail-msg">The server started but didn't answer within 10 seconds.</div>
+        <span class="fail-btn">Copy error output</span>
+        <div class="stderr">node:internal/modules/esm/resolve:844<br>&nbsp;&nbsp;throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base));<br>Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@modelcontextprotocol/sdk'</div></div></div>
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ============ not-set-up hero + runtime pre-check ============ -->
+<div class="stage" data-stage="notsetup">
+  <div class="main"><div class="mcp-col">
+    <div class="mcp-crumb">harbor <span style="color:var(--ghost2)">/</span> <span class="here">Agent connection</span></div>
+    <h1 class="mcp-h1">Agent connection</h1>
+    <p class="mcp-sub">Sets up this project's <code>.mcp.json</code> so agent apps like Claude Code can launch Veri's MCP server. Veri manages the file only — your agent reads it when a session starts.</p>
+    <div class="mcp-card">
+      <div class="eyebrow warn">NOT SET UP</div>
+      <div class="mcp-card-h">Connect a coding agent to this project</div>
+      <p class="mcp-card-p">One click writes <code>.mcp.json</code> next to the <code>veri/</code> directory — a plain file you can read, diff, and commit so teammates get the connection too. Nothing to type.</p>
+      <span class="btn-primary" style="margin-top:12px">Set up connection</span>
+      <div class="eyebrow" style="margin-top:20px">WHAT WILL BE WRITTEN</div>
+      <div class="mcp-json">"mcpServers": {<div class="ind1"><span class="k">"veri"</span>: {</div><div class="ind2">"command": <span class="v">"node"</span>,</div><div class="ind2">"args": [<span class="v">"~/dev/veri/packages/mcp/dist/server.js"</span>, <span class="v">"~/dev/harbor"</span>]</div><div class="ind1">}</div>}</div>
+      <div class="notice-amber"><span class="dot"></span>
+        <div>Heads up — no usable <code>node</code> in your shell (found: none). Set up writes the file fine, but an agent can't launch the server until Node 20+ is installed.<br>
+        <span class="fail-btn" style="margin-top:8px">Copy install command</span></div>
+      </div>
+      <div class="caption">Any other servers already in the file are left untouched.</div>
+    </div>
+  </div></div>
+</div>
+
+<script>
+  const buttons = document.querySelectorAll('.scen');
+  const stages = document.querySelectorAll('.stage');
+  function show(s){
+    buttons.forEach(b => b.classList.toggle('on', b.dataset.s === s));
+    stages.forEach(st => st.classList.toggle('on', st.dataset.stage.split(' ').includes(s)));
+    document.querySelectorAll('[data-only]').forEach(el => {
+      el.style.display = el.dataset.only === s ? '' : 'none';
+    });
+    const btn = document.getElementById('verifyBtn');
+    if (btn) { btn.classList.remove('busy'); btn.textContent = 'Verify connection'; }
+  }
+  buttons.forEach(b => b.addEventListener('click', () => show(b.dataset.s)));
+  // Live demo: in the rest scenario, clicking Verify plays busy → success.
+  document.getElementById('verifyBtn').addEventListener('click', () => {
+    const btn = document.getElementById('verifyBtn');
+    if (btn.classList.contains('busy')) return;
+    btn.classList.add('busy'); btn.textContent = 'Verifying…';
+    setTimeout(() => show('v-ok'), 900);
+  });
+</script>
+</body>
+</html>

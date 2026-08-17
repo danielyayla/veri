@@ -6,6 +6,8 @@ status: backlog
 created: 2026-08-17
 updated: 2026-08-17
 links:
+  - id: SRC-013
+    rel: designed-by
   - id: REQ-013
     rel: implements
   - id: REQ-004
@@ -86,7 +88,7 @@ verification. Extends [[REQ-004]] (desktop UI) and [[REQ-005]]
       failure
 - [ ] A config written before a self-update resolves to a working
       server after the update
-- [ ] Node-runtime mechanism filed as a proposed DEC with rejected
+- [x] Node-runtime mechanism filed as a proposed DEC with rejected
       alternatives; design artifact linked `designed-by` before any
       renderer code
 - [ ] `veri check` and `npm test` are clean
