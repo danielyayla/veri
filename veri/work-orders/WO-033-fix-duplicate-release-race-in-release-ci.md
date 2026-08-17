@@ -40,8 +40,19 @@ unfixed, every tag push risks a split release, and a split
 - Code signing and notarization secrets (tracked in WO-028).
 - Windows/Linux targets.
 
-## Acceptance criteria
+## Requirements
+
+- [[REQ-011]] — packaged releases and auto-update: the release feed
+  (latest-mac.yml plus artifacts) must land intact on a single
+  release per tag.
+
+## Acceptance tests
 
 - [ ] A tag push produces exactly one release with the full asset
-      set, verified on a real run.
-- [ ] CI fails loudly if the asset set is incomplete or duplicated.
+      set (DMG, zip, both blockmaps, latest-mac.yml), verified on a
+      real run.
+- [ ] CI fails loudly if the asset set is incomplete or split
+      across duplicate releases.
+
+## Receipts
+
