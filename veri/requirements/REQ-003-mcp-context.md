@@ -5,7 +5,7 @@ title: MCP server assembles and serves context packages
 status: accepted
 approved: 2026-08-10
 created: 2026-08-06
-updated: 2026-08-06
+updated: 2026-08-17
 links:
   - id: REQ-001
     rel: depends-on
@@ -18,9 +18,9 @@ the knowledge base. The core operation is the context package: given a work
 order ID, return everything an agent needs to implement it correctly.
 
 Package rules: linked requirements and decisions in full; sources as
-excerpts; project conventions (CLAUDE.md if present) always included;
-superseded decisions excluded but named, so the agent knows what was
-already rejected.
+excerpts; the project workflow document always included first (per
+[[DEC-018]]); superseded decisions excluded but named, so the agent
+knows what was already rejected.
 
 ## Acceptance criteria
 
