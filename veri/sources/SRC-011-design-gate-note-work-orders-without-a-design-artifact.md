@@ -45,6 +45,10 @@ oversight. This note is the explicit exemption record.
   update UX is native OS chrome: a system message box offering
   Restart Now / Later when an update finishes downloading, and the
   standard About panel for version visibility. Nothing to design.
+- **[[WO-032]]** — knowledge-base format versioning. Core, CLI, and
+  MCP-server work; the app's only surface is a native message box
+  stating a format mismatch when a project cannot be opened. No
+  renderer changes and no designed surface.
 
 Pre-DEC-012 UI work orders (WO-005, WO-006, WO-007) are not listed
 here: their designs exist — the [[SRC-001]] mockup line and the

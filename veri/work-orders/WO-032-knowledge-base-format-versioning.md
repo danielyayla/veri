@@ -2,10 +2,12 @@
 id: WO-032
 type: work-order
 title: Knowledge-base format versioning
-status: backlog
+status: in-progress
 created: 2026-08-17
 updated: 2026-08-17
 links:
+  - id: SRC-011
+    rel: designed-by
   - id: REQ-015
     rel: implements
   - id: REQ-001
@@ -69,19 +71,19 @@ Implements [[REQ-015]] — knowledge-base format versioning. Extends
 
 ## Acceptance tests
 
-- [ ] `veri init` / app project creation writes the format marker;
+- [x] `veri init` / app project creation writes the format marker;
       the scaffolded project passes `veri check` untouched
-- [ ] Opening a project marked with a newer format states the
+- [x] Opening a project marked with a newer format states the
       mismatch in app, CLI, and MCP server, and modifies nothing
-- [ ] A pre-marker project opens as the oldest format with no
+- [x] A pre-marker project opens as the oldest format with no
       errors or warnings beyond the check report
-- [ ] Running the migration on consent produces a valid
+- [x] Running the migration on consent produces a valid
       current-format project, all content preserved, visible as a
       file diff
-- [ ] `veri check` reports the format version and flags mismatches
-- [ ] Marker shape filed as a proposed DEC with rejected
+- [x] `veri check` reports the format version and flags mismatches
+- [x] Marker shape filed as a proposed DEC with rejected
       alternatives
-- [ ] `veri check` and `npm test` are clean
+- [x] `veri check` and `npm test` are clean
 
 ## Receipts
 

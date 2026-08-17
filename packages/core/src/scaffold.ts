@@ -2,6 +2,7 @@ import { constants, copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, wr
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { writeDefaultTemplates } from './templates.ts';
+import { FORMAT_FILE, writeFormatMarker } from './format.ts';
 import { AGENTS_MD, CLAUDE_MD_POINTER, defaultWorkflowMd } from './workflow-default.ts';
 
 /** The four subdirectories every Veri project has (REQ-001). */
@@ -61,6 +62,7 @@ export function scaffoldProject(root: string, opts: ScaffoldOptions = {}): Scaff
       writeFileSync(join(veriDir, sub, '.gitkeep'), '');
     }
     writeFileSync(join(veriDir, 'workflow.md'), defaultWorkflowMd(today()));
+    writeFormatMarker(veriDir);
     writeDefaultTemplates(veriDir);
     const { filesWritten, filesSkipped } = writePointerFiles(root);
     return { veriDir, docCount: 1, filesWritten, filesSkipped };
@@ -74,6 +76,8 @@ export function scaffoldProject(root: string, opts: ScaffoldOptions = {}): Scaff
   if (!existsSync(join(veriDir, 'workflow.md'))) {
     writeFileSync(join(veriDir, 'workflow.md'), defaultWorkflowMd(today()));
   }
+  // A demo may ship its own marker (it should); stamp only if it doesn't.
+  if (!existsSync(join(veriDir, FORMAT_FILE))) writeFormatMarker(veriDir);
   // Never overwrites templates a demo ships itself (DEC-023).
   writeDefaultTemplates(veriDir);
   const docCount = readdirSync(veriDir, { recursive: true })

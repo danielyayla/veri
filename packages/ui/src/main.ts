@@ -6,9 +6,12 @@ import { BrowserWindow, app, clipboard, dialog, ipcMain } from 'electron';
 import {
   BODY_TEMPLATES,
   ProjectExistsError,
+  classifyFormat,
   createDocument,
+  formatStatement,
   getTemplate,
   isCustomized,
+  isOperableFormat,
   saveDocumentFile,
   scaffoldProject,
   templateFile,
@@ -234,6 +237,10 @@ export type NewProjectPick =
 async function pointAppAt(dir: string, notice?: 'existing'): Promise<string | null> {
   if (mainWin === null) return null;
   if (!isVeriProject(dir)) return `Not a Veri project — no veri/ directory inside ${dir}`;
+  // REQ-015: a newer or unreadable format is stated, never opened — opening
+  // would misrender; refusing leaves projectRoot and the MRU untouched.
+  const format = classifyFormat(join(dir, 'veri'));
+  if (!isOperableFormat(format)) return `Cannot open this project: ${formatStatement(format)}`;
   projectRoot = dir;
   await addProjectToMru(dir);
   watchProject(mainWin);
@@ -336,6 +343,11 @@ async function createWindow(): Promise<BrowserWindow> {
 async function resolveLaunchRoot(): Promise<string | null> {
   const recent = (await getRecentProjects()).find((p) => isVeriProject(p.dir));
   if (recent !== undefined) return recent.dir;
+  return pickProjectDir();
+}
+
+/** The picker half of the DEC-027 chain, MRU deliberately skipped. */
+async function pickProjectDir(): Promise<string | null> {
   for (;;) {
     const pick = await dialog.showOpenDialog({
       title: 'Open a Veri project',
@@ -362,14 +374,27 @@ app.whenReady().then(async () => {
   void cleanupLaunchScripts();
   // findProjectRoot's result is unvalidated (explicit args pass through) —
   // never let a non-project launch dir into the MRU.
-  if (!isVeriProject(projectRoot)) {
-    const resolved = await resolveLaunchRoot();
-    if (resolved === null) {
-      app.quit();
-      return;
-    }
-    projectRoot = resolved;
+  let root = isVeriProject(projectRoot) ? projectRoot : await resolveLaunchRoot();
+  // REQ-015: a newer or unreadable format is stated, never opened. Straight
+  // to the picker afterwards — the MRU may hold the very project just refused.
+  while (root !== null) {
+    const format = classifyFormat(join(root, 'veri'));
+    if (isOperableFormat(format)) break;
+    const { response } = await dialog.showMessageBox({
+      type: 'info',
+      message: 'Cannot open this project',
+      detail: formatStatement(format) ?? 'format mismatch',
+      buttons: ['Choose Another Project', 'Quit'],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    root = response === 1 ? null : await pickProjectDir();
   }
+  if (root === null) {
+    app.quit();
+    return;
+  }
+  projectRoot = root;
   await addProjectToMru(projectRoot);
   await createWindow();
   startUpdater();

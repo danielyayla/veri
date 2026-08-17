@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { approve, check, init, list, newDoc, open } from './commands.ts';
+import { approve, check, init, list, migrate, newDoc, open } from './commands.ts';
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const FIVE_ISSUES = fileURLToPath(new URL('../fixtures/five-issues', import.meta.url));
@@ -31,7 +31,9 @@ test('init && new requirement && check succeeds end-to-end in a temp directory',
 
   const checked = await check(cwd);
   assert.equal(checked.code, 0, checked.lines.join('\n'));
-  assert.match(checked.lines[0] ?? '', /ok — 2 documents, 0 issues/); // WF-001 + REQ-001
+  // The format line leads the report (REQ-015); a fresh scaffold is current.
+  assert.equal(checked.lines[0], 'format 1 (current)');
+  assert.match(checked.lines.at(-1) ?? '', /ok — 2 documents, 0 issues/); // WF-001 + REQ-001
 });
 
 test('new documents are born unapproved and veri approve promotes them with a stamp', async (t) => {
@@ -102,7 +104,7 @@ test('init --demo installs skiff; check reports exactly the 2 intended issues', 
   const checked = await check(cwd);
   assert.equal(checked.code, 1);
   assert.equal(checked.lines.at(-1), '2 issue(s) · 0 advisories', checked.lines.join('\n'));
-  const issues = checked.lines.slice(0, -1).join('\n');
+  const issues = checked.lines.slice(1, -1).join('\n');
   assert.match(issues, /WO-004/, 'WO-004 must be flagged for its missing requirement');
   assert.match(issues, /SRC-003/, 'REQ-004 must be flagged for its broken SRC-003 link');
 });
@@ -138,7 +140,9 @@ test('check on the five-issues fixture reports exactly 5 issues and exits 1', as
   const result = await check(FIVE_ISSUES);
   assert.equal(result.code, 1);
   assert.equal(result.lines.at(-1), '5 issue(s) · 11 advisories', result.lines.join('\n'));
-  const body = result.lines.slice(0, -1);
+  // The fixture predates the marker: the leading format line says so.
+  assert.match(result.lines[0] ?? '', /^format 0 \(pre-marker/);
+  const body = result.lines.slice(1, -1);
   const issueLines = body.filter((line) => !line.startsWith('(advisory) '));
   const advisoryLines = body.filter((line) => line.startsWith('(advisory) '));
   assert.equal(issueLines.length, 5);
@@ -162,7 +166,37 @@ test('a project with advisories but no issues still reports ok and exits 0', asy
   const result = await check(cwd);
   assert.equal(result.code, 0, result.lines.join('\n'));
   assert.equal(result.lines.at(-1), 'ok — 2 documents, 0 issues · 1 advisories');
-  assert.match(result.lines[0] ?? '', /^\(advisory\) requirements\/REQ-001-bare\.md: /);
+  assert.match(result.lines[1] ?? '', /^\(advisory\) requirements\/REQ-001-bare\.md: /);
+});
+
+test('migrate stamps a pre-marker project; a second run is a no-op; newer refuses', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  init(cwd, { demo: false });
+  const marker = join(cwd, 'veri', 'format');
+  rmSync(marker); // simulate a project from before the marker existed
+
+  const before = await check(cwd);
+  assert.equal(before.code, 0, 'pre-marker must stay fully usable');
+  assert.match(before.lines[0] ?? '', /^format 0 \(pre-marker/);
+
+  const migrated = migrate(cwd);
+  assert.equal(migrated.code, 0, migrated.lines.join('\n'));
+  assert.match(migrated.lines.at(-1) ?? '', /format 0 to 1/);
+  assert.equal(readFileSync(marker, 'utf8'), '1\n');
+  assert.equal((await check(cwd)).lines[0], 'format 1 (current)');
+
+  const again = migrate(cwd);
+  assert.equal(again.code, 0);
+  assert.match(again.lines[0] ?? '', /nothing to migrate/);
+
+  writeFileSync(marker, '99\n');
+  const newer = await check(cwd);
+  assert.equal(newer.code, 1, 'a newer format must be a check issue');
+  assert.match(newer.lines.join('\n'), /update Veri/);
+  const refused = migrate(cwd);
+  assert.equal(refused.code, 1);
+  assert.match(refused.lines.join('\n'), /update Veri/);
 });
 
 test('check on this repository exits 0', async () => {

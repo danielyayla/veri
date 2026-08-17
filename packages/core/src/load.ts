@@ -2,6 +2,8 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseDocument } from './parse.ts';
+import { classifyFormat } from './format.ts';
+import type { FormatClassification } from './format.ts';
 import type { Issue, VeriDocument } from './types.ts';
 
 export interface LoadResult {
@@ -10,6 +12,8 @@ export interface LoadResult {
   /** Absolute path of the veri/ directory the documents came from, so
       checks can read the effective templates fresh (DEC-002, DEC-025). */
   dir: string;
+  /** On-disk format classification (REQ-015), read before any parsing. */
+  format: FormatClassification;
 }
 
 /**
@@ -45,5 +49,5 @@ export async function loadProject(veriDir: string | URL): Promise<LoadResult> {
     if (outcome.document) documents.push(outcome.document);
     issues.push(...outcome.issues);
   }
-  return { documents, issues, dir: root };
+  return { documents, issues, dir: root, format: classifyFormat(root) };
 }

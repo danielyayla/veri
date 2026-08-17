@@ -2,6 +2,7 @@ export * from './ids.ts';
 export * from './types.ts';
 export * from './schema.ts';
 export * from './parse.ts';
+export * from './format.ts';
 export * from './load.ts';
 export * from './graph.ts';
 export * from './check.ts';

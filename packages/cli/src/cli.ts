@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { approve, check, init, list, newDoc, open } from './commands.ts';
+import { approve, check, init, list, migrate, newDoc, open } from './commands.ts';
 import type { CmdResult } from './commands.ts';
 
 const USAGE = `usage: veri <command>
@@ -8,6 +8,7 @@ const USAGE = `usage: veri <command>
   veri new <type> "<title>"  create a document with the next free id
   veri check                 report knowledge-base issues (exit 1 if any)
   veri approve <id>          approve a pending document (stamps approved: today)
+  veri migrate               bring veri/ to the current on-disk format
   veri list [type]           list documents: id, status, title
   veri open [dir]            open the project in the Veri desktop app
 `;
@@ -28,6 +29,9 @@ switch (command) {
     break;
   case 'approve':
     result = await approve(cwd, rest[0]);
+    break;
+  case 'migrate':
+    result = migrate(cwd);
     break;
   case 'open':
     result = open(cwd, rest[0]);

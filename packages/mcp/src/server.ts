@@ -1,13 +1,22 @@
 #!/usr/bin/env node
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { classifyFormat, formatStatement, isOperableFormat } from '@veri/core';
 import { z } from 'zod';
 import { assembleContext } from './context.ts';
 import { searchDocs } from './search.ts';
 import { fileDecision, fileReceipt } from './writeback.ts';
 
 const projectRoot = resolve(process.argv[2] ?? process.cwd());
+
+// REQ-015: a newer or unreadable format gets a clear statement from every
+// tool, never a misparse. Classified per call — the marker can change while
+// the server runs (a migration, a git pull).
+function guardFormat(): void {
+  const format = classifyFormat(join(projectRoot, 'veri'));
+  if (!isOperableFormat(format)) throw new Error(formatStatement(format) ?? 'format mismatch');
+}
 
 const server = new McpServer({ name: 'veri', version: '0.1.0' });
 
@@ -27,6 +36,7 @@ server.registerTool(
   },
   async ({ id }) => {
     try {
+      guardFormat();
       return ok((await assembleContext(projectRoot, id)).text);
     } catch (err) {
       return fail(err);
@@ -42,6 +52,7 @@ server.registerTool(
   },
   async ({ query }) => {
     try {
+      guardFormat();
       const hits = await searchDocs(projectRoot, query);
       if (hits.length === 0) return ok('no matches');
       return ok(
@@ -75,6 +86,7 @@ server.registerTool(
   },
   async (input) => {
     try {
+      guardFormat();
       const { id, file } = await fileDecision(projectRoot, input);
       return ok(
         `Filed ${id} at ${file} as a proposal pending the user's review — not binding yet. ` +
@@ -103,6 +115,7 @@ server.registerTool(
   },
   async (input) => {
     try {
+      guardFormat();
       const { file } = await fileReceipt(projectRoot, input);
       return ok(`Appended receipt to ${file}`);
     } catch (err) {

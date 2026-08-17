@@ -67,6 +67,7 @@ export type Issue =
       message: string;
     }
   | { kind: 'missing-approval'; file: string; id: string; message: string }
+  | { kind: 'format-mismatch'; file: string; problem: 'newer' | 'invalid'; message: string }
   | { kind: 'ui-wo-without-design'; file: string; id: string; message: string }
   | {
       kind: 'done-wo-violation';

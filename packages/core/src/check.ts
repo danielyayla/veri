@@ -2,6 +2,8 @@ import type { Advisory, Issue, VeriDocument } from './types.ts';
 import type { LoadResult } from './load.ts';
 import type { DocType } from './ids.ts';
 import { getTemplate } from './templates.ts';
+import { FORMAT_FILE, formatStatement } from './format.ts';
+import type { FormatClassification } from './format.ts';
 
 export function checkDuplicateIds(documents: VeriDocument[]): Issue[] {
   const filesById = new Map<string, string[]>();
@@ -247,6 +249,24 @@ export function checkStructure(veriDir: string | URL, documents: VeriDocument[])
   return advisories;
 }
 
+/**
+ * REQ-015: a newer or unreadable format is an issue — operating on it risks
+ * misparse. Older and pre-marker are NOT issues: those projects always
+ * worked and must keep opening; the check report names them and the
+ * available migration, nothing more.
+ */
+export function checkFormat(format: FormatClassification): Issue[] {
+  if (format.kind !== 'newer' && format.kind !== 'invalid') return [];
+  return [
+    {
+      kind: 'format-mismatch',
+      file: FORMAT_FILE,
+      problem: format.kind,
+      message: formatStatement(format) ?? 'format mismatch',
+    },
+  ];
+}
+
 export interface CheckResult {
   issues: Issue[];
   advisories: Advisory[];
@@ -261,6 +281,7 @@ export function checkProject(load: LoadResult): CheckResult {
   return {
     issues: [
       ...load.issues,
+      ...checkFormat(load.format),
       ...checkDuplicateIds(load.documents),
       ...checkBrokenLinks(load.documents),
       ...checkWorkOrderRequirements(load.documents),

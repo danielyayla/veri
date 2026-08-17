@@ -26,7 +26,9 @@ test('empty scaffold creates the four subdirectories, the default workflow, and 
   assert.equal(result.veriDir, join(root, 'veri'));
   assert.equal(result.docCount, 1);
   assert.deepEqual(result.filesWritten, ['AGENTS.md', 'CLAUDE.md']);
-  assert.deepEqual(readdirSync(result.veriDir).sort(), [...VERI_SUBDIRS, 'templates', 'workflow.md'].sort());
+  assert.deepEqual(readdirSync(result.veriDir).sort(), [...VERI_SUBDIRS, 'format', 'templates', 'workflow.md'].sort());
+  // Every new project is born at the current format (REQ-015, DEC-030).
+  assert.equal(readFileSync(join(result.veriDir, 'format'), 'utf8'), '1\n');
   for (const sub of VERI_SUBDIRS) {
     assert.deepEqual(readdirSync(join(result.veriDir, sub)), ['.gitkeep']);
   }
@@ -80,6 +82,16 @@ test('demo scaffold copies veri/ verbatim, adds the default workflow, and counts
   assert.equal(readFileSync(join(root, 'veri', 'notes.txt'), 'utf8'), 'not a document');
   assert.equal(readFileSync(join(root, 'README.md'), 'utf8'), 'demo readme');
   assert.match(readFileSync(join(root, 'veri', 'workflow.md'), 'utf8'), /id: WF-001/);
+  // A demo without its own marker gets stamped at the current format.
+  assert.equal(readFileSync(join(root, 'veri', 'format'), 'utf8'), '1\n');
+});
+
+test("a demo's own format marker wins over the stamp", () => {
+  const demoRoot = fakeDemo();
+  writeFileSync(join(demoRoot, 'veri', 'format'), '1\n');
+  const root = tmp();
+  scaffoldProject(root, { demo: true, demoRoot });
+  assert.equal(readFileSync(join(root, 'veri', 'format'), 'utf8'), '1\n');
 });
 
 test("a demo's own workflow.md wins over the default", () => {

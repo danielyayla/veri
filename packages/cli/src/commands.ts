@@ -3,8 +3,8 @@ import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DOC_TYPES, ProjectExistsError, approveDocument, checkProject, createDocument, loadProject, scaffoldProject } from '@veri/core';
-import type { DocType, Issue } from '@veri/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, checkProject, createDocument, formatStatement, loadProject, migrateProject, scaffoldProject } from '@veri/core';
+import type { DocType, FormatClassification, Issue } from '@veri/core';
 
 export interface CmdResult {
   code: number;
@@ -72,6 +72,12 @@ function fileOf(issue: Issue): string {
   return issue.kind === 'duplicate-id' ? issue.files.join(', ') : issue.file;
 }
 
+/** One line naming the format version — and the migration, when one applies (REQ-015). */
+function formatLine(format: FormatClassification): string {
+  if (format.kind === 'current') return `format ${format.version} (current)`;
+  return formatStatement(format) ?? `format ${String(format.kind)}`;
+}
+
 export async function check(cwd: string): Promise<CmdResult> {
   const dir = requireVeriDir(cwd);
   if (dir === null) return NO_VERI_DIR;
@@ -79,18 +85,47 @@ export async function check(cwd: string): Promise<CmdResult> {
   const { issues, advisories } = checkProject(load);
   // Advisories print after issues and never touch the count or exit code (DEC-025).
   const advisoryLines = advisories.map((advisory) => `(advisory) ${advisory.file}: ${advisory.message}`);
+  // The format line leads the report (REQ-015); issues, then advisories, then
+  // the summary keep their DEC-025 order after it.
   if (issues.length === 0) {
     return {
       code: 0,
-      lines: [...advisoryLines, `ok — ${load.documents.length} documents, 0 issues · ${advisories.length} advisories`],
+      lines: [
+        formatLine(load.format),
+        ...advisoryLines,
+        `ok — ${load.documents.length} documents, 0 issues · ${advisories.length} advisories`,
+      ],
     };
   }
   return {
     code: 1,
     lines: [
+      formatLine(load.format),
       ...issues.map((issue) => `${fileOf(issue)}: ${issue.message}`),
       ...advisoryLines,
       `${issues.length} issue(s) · ${advisories.length} advisories`,
+    ],
+  };
+}
+
+/** The user's consent act for REQ-015 migrations: invoking this command IS the consent. */
+export function migrate(cwd: string): CmdResult {
+  const dir = requireVeriDir(cwd);
+  if (dir === null) return NO_VERI_DIR;
+  let result;
+  try {
+    result = migrateProject(dir);
+  } catch (err) {
+    return { code: 1, lines: [(err as Error).message] };
+  }
+  if (result.applied.length === 0) {
+    return { code: 0, lines: [`already format ${CURRENT_FORMAT} (current) — nothing to migrate.`] };
+  }
+  return {
+    code: 0,
+    lines: [
+      ...result.applied,
+      `migrated veri/ from format ${result.from} to ${result.to} — review the diff and commit.`,
     ],
   };
 }
