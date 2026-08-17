@@ -60,3 +60,4 @@ unfixed, every tag push risks a split release, and a split
 ## Receipts
 
 - 2026-08-17 — ef01dd7 — .github/workflows/release.yml, veri/decisions/DEC-032-ci-pre-creates-the-release-draft-before-electron-builder-pu.md, packages/ui/package.json — CI owns release create/upload, electron-builder builds with publish never (DEC-032 proposed); verified on v0.1.3 — one release, full asset set; verify step proven red on v0.1.2's split
+- 2026-08-17 — d72deb7 — veri/decisions/DEC-032-ci-pre-creates-the-release-draft-before-electron-builder-pu.md — DEC-032 approved by Daniel; v0.1.3 published as latest, DMG downloaded, mounted, and launch-verified; accidental commit of in-progress WO-030 files reverted off main (8726e91 → d72deb7)
