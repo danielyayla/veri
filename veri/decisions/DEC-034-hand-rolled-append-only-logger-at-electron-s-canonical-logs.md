@@ -2,7 +2,8 @@
 id: DEC-034
 type: decision
 title: "Hand-rolled append-only logger at Electron's canonical logs path"
-status: proposed
+status: active
+approved: 2026-08-17
 created: 2026-08-17
 updated: 2026-08-17
 links:
