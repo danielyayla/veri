@@ -48,10 +48,12 @@ jobs:
 
       - run: npm test
 
-      # WO-033: electron-builder's DMG and zip targets publish
-      # concurrently and race to create the GitHub release, splitting
-      # the assets across two drafts. Creating the draft up front
-      # gives both publishers an existing release to upload into.
+      # WO-033: electron-builder must not touch the release API. Its
+      # per-target publishers race to create the release, and GitHub's
+      # REST list-releases endpoint (their find-existing path) serves
+      # stale results, so even a pre-created draft gets duplicated
+      # (observed on the v0.1.1 and v0.1.2 runs). CI creates the one
+      # draft, electron-builder only builds, and CI uploads serially.
       - name: Create the release draft up front
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -61,10 +63,9 @@ jobs:
               --title "${GITHUB_REF_NAME}"
           fi
 
-      - name: Package, sign, notarize, publish
+      - name: Package, sign, notarize
         working-directory: packages/ui
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -72,28 +73,51 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           if [ -n "$CSC_LINK" ]; then
-            npx electron-builder --mac --publish always
+            npx electron-builder --mac --publish never
           else
             echo "::warning::Signing secrets not set; building unsigned, un-notarized app"
             unset CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
             export CSC_IDENTITY_AUTO_DISCOVERY=false
-            npx electron-builder --mac --publish always -c.mac.notarize=false
+            npx electron-builder --mac --publish never -c.mac.notarize=false
           fi
 
+      - name: Upload artifacts and update feed to the draft
+        working-directory: packages/ui
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          gh release upload "${GITHUB_REF_NAME}" --clobber \
+            "release/Veri-${version}-universal.dmg" \
+            "release/Veri-${version}-universal.dmg.blockmap" \
+            "release/Veri-${version}-universal-mac.zip" \
+            "release/Veri-${version}-universal-mac.zip.blockmap" \
+            "release/latest-mac.yml"
+
       # WO-033: fail loudly if the feed is split or incomplete — a
-      # partial latest-mac.yml release would break auto-update.
+      # partial latest-mac.yml release would break auto-update. Counts
+      # via GraphQL: the REST list endpoint is the one that serves
+      # stale results.
       - name: Verify one complete release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          releases=$(gh api "repos/${GITHUB_REPOSITORY}/releases" \
-            --jq "[.[] | select(.tag_name == \"${GITHUB_REF_NAME}\")]")
+          releases=$(gh api graphql \
+            -F owner='${{ github.repository_owner }}' \
+            -F repo='${{ github.event.repository.name }}' \
+            -f query='query($owner: String!, $repo: String!) {
+              repository(owner: $owner, name: $repo) {
+                releases(first: 100) {
+                  nodes { tagName releaseAssets(first: 50) { nodes { name } } }
+                }
+              }
+            }' --jq "[.data.repository.releases.nodes[] | select(.tagName == \"${GITHUB_REF_NAME}\")]")
           count=$(jq length <<< "$releases")
           if [ "$count" -ne 1 ]; then
             echo "Expected exactly 1 release for ${GITHUB_REF_NAME}, found ${count}" >&2
             exit 1
           fi
-          assets=$(jq -r '.[0].assets[].name' <<< "$releases")
+          assets=$(jq -r '.[0].releaseAssets.nodes[].name' <<< "$releases")
           version="${GITHUB_REF_NAME#v}"
           missing=0
           for f in "Veri-${version}-universal.dmg" \
