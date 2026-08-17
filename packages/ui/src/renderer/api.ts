@@ -2,8 +2,6 @@ import type { ApproveResult, CreateResult, DocType, SaveResult } from '@veri/cor
 import type { ContextPackage, PaletteResult } from '@veri/mcp';
 import type { AgentId, AgentInfo } from '../lib/agents.ts';
 import type { McpStatus } from '../lib/mcpconfig.ts';
-import type { RuntimeProbe } from '../lib/noderuntime.ts';
-import type { VerifyResult } from '../lib/verify.ts';
 import type { Snapshot } from '../lib/snapshot.ts';
 import type { WorkspaceState } from '../lib/workspace.ts';
 
@@ -48,12 +46,6 @@ export interface VeriApi {
   /** Setup and "Replace with Veri's entry" are the same write. */
   mcpSetup(): Promise<void>;
   mcpFixRoot(): Promise<void>;
-  /** DEC-031 login-shell probe — what the *agent's* shell will find. */
-  runtimeProbe(): Promise<RuntimeProbe>;
-  /** LIVE CHECK (WO-030): one spawn, real MCP, success or a named cause. */
-  verifyConnection(): Promise<VerifyResult>;
-  /** Welcome screen's open-existing picker: one shot, inline result. */
-  welcomeOpen(): Promise<WelcomeOpen>;
   /** Fresh adapter detection (PATH + configs read from disk on every call). */
   agents(): Promise<AgentInfo[]>;
   /** Optionally write the veri entry, then launch; error message or null. */
@@ -86,12 +78,6 @@ export type NewProjectPick =
   | { kind: 'opened' }
   | { kind: 'error'; message: string }
   | { kind: 'new'; dir: string; name: string };
-
-export type WelcomeOpen =
-  | null
-  | { kind: 'opened' }
-  | { kind: 'not-a-project'; dir: string }
-  | { kind: 'error'; message: string };
 
 declare global {
   interface Window {

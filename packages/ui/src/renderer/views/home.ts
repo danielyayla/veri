@@ -19,57 +19,6 @@ function card(head: HTMLElement[], rows: Array<HTMLElement | null>, empty: strin
 const label = (text: string): HTMLElement => h('span', { class: 'hv-label' }, text);
 const dot = (color: string): HTMLElement => h('span', { class: 'hv-dot', style: `background:${color};` });
 
-/** The path-of-work row's four mini-cards (WO-030, SRC-013). */
-const PATH_OF_WORK: Array<[string, string, string]> = [
-  ['sources', '#908BA8', 'Evidence in: notes, specs, transcripts'],
-  ['requirements', '#7EA6C4', 'What must be true'],
-  ['decisions', '#CFA83D', 'What was chosen, and why'],
-  ['work orders', '#E8703A', 'Work an agent can pick up'],
-];
-
-/**
- * START HERE (WO-030, SRC-013 surface 2): teaches the path of work in a
- * project with zero non-workflow documents. Derives from the snapshot on
- * every render — no dismiss control, no stored flag (DEC-002) — and shares
- * the NEEDS REVIEW slot (they cannot coexist: nothing is pending here).
- */
-function startHereCard(ctx: Ctx): HTMLElement {
-  const steps: HTMLElement[] = [];
-  PATH_OF_WORK.forEach(([name, color, hint], i) => {
-    if (i > 0) steps.push(h('span', { class: 'hv-sh-arrow' }, '→'));
-    steps.push(
-      h(
-        'div',
-        { class: 'hv-sh-step' },
-        h('div', { class: 'hv-sh-step-name', style: `color:${color};` }, name),
-        h('div', { class: 'hv-sh-step-hint' }, hint),
-      ),
-    );
-  });
-  return h(
-    'div',
-    { class: 'hv-card hv-card-review hv-sh' },
-    h('div', { class: 'hv-sh-eyebrow' }, 'START HERE'),
-    h('div', { class: 'hv-sh-heading' }, 'This project is empty — evidence comes first.'),
-    h('div', { class: 'hv-sh-path' }, ...steps),
-    h(
-      'div',
-      { class: 'hv-sh-actions' },
-      h('div', { class: 'hv-sh-btn-primary', onClick: () => ctx.openNewDoc('requirement', null) }, 'New document'),
-      h('div', { class: 'hv-sh-btn-ghost', onClick: () => ctx.setView('mcp') }, 'Connect an agent →'),
-    ),
-    h(
-      'div',
-      { class: 'hv-sh-caption' },
-      'Or let your agent file documents for you — the MCP connection gives it ',
-      h('span', { class: 'hv-sh-code' }, 'file_decision'),
-      ' and ',
-      h('span', { class: 'hv-sh-code' }, 'file_receipt'),
-      '.',
-    ),
-  );
-}
-
 export function homeView(ctx: Ctx): HTMLElement {
   const open = (id: string | null) => (e: MouseEvent) => {
     if (id !== null) ctx.openDoc(id, { preview: true, background: e.metaKey || e.ctrlKey });
@@ -79,15 +28,10 @@ export function homeView(ctx: Ctx): HTMLElement {
     return doc !== undefined ? TYPE_META[doc.type].color : '#A09DA6';
   };
 
-  // "Empty" = zero non-workflow documents (SRC-013) — the state every new
-  // non-demo project starts in (a fresh project holds exactly WF-001).
-  const empty = ctx.snap.documents.every((d) => d.type === 'workflow');
-
   // NEEDS REVIEW (SRC-006): full-width above the grid, hidden when empty.
   const pending = pendingDocs(ctx.snap);
-  const reviewCard = empty
-    ? startHereCard(ctx)
-    : pending.length === 0
+  const reviewCard =
+    pending.length === 0
       ? null
       : h(
           'div',

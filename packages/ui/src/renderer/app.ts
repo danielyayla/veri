@@ -10,14 +10,11 @@ import { advisoriesByDoc, docsById, isPending, issuesByDoc, packageSummary } fro
 import { composeTarget, isValidProjectName } from './newproject.ts';
 import type { ActivityRow, DocsById, PackageSummary } from './derive.ts';
 import type { McpStatus } from '../lib/mcpconfig.ts';
-import type { RuntimeProbe } from '../lib/noderuntime.ts';
-import type { VerifyResult } from '../lib/verify.ts';
 import type { AgentInfo } from '../lib/agents.ts';
 import { kickoffPrompt } from './derive.ts';
 import { readerView } from './views/reader.ts';
 import { homeView } from './views/home.ts';
 import { mcpView } from './views/mcp.ts';
-import { welcomeView } from './views/welcome.ts';
 import { workOrderView } from './views/workorder.ts';
 import { boardView } from './views/board.ts';
 import { graphView } from './views/graph.ts';
@@ -99,15 +96,6 @@ export interface State {
   mcpExternal: boolean;
   mcpBuildCopied: boolean;
   mcpCmdCopied: boolean;
-  /** LIVE CHECK (WO-030, SRC-013): transient — never persisted, never fed
-      to the sidebar footer. Null is the rest state. */
-  mcpVerify: 'busy' | VerifyResult | null;
-  /** The one copy-action's "✓ Copied" flip inside a verify failure block. */
-  mcpVerifyCopied: boolean;
-  /** Passive runtime pre-check for the not-set-up hero (DEC-031). */
-  mcpPrecheck: RuntimeProbe | null;
-  /** Welcome screen's inline notice (cold-start mode only). */
-  welcomeNotice: { text: string } | null;
 }
 
 /** The New project sheet's own state — one directory, one toggle, one error. */
@@ -170,10 +158,6 @@ export interface Ctx {
   /** Sidebar `+` / ⌘N: open the type-plus-title creation popover. */
   openNewDoc(type: DocType, anchor: { x: number; y: number } | null): void;
   flashMcpCmdCopied(): void;
-  /** LIVE CHECK (WO-030): one spawn per click; result is transient state. */
-  runVerify(): void;
-  /** Kick off the not-set-up hero's passive runtime pre-check once per visit. */
-  ensureRuntimePrecheck(): void;
   sessionLog(id: string, row: ActivityRow): void;
   sessionRows(id: string): ActivityRow[];
   /** Every session-logged action across docs, newest first (Home feed). */
@@ -275,10 +259,6 @@ class App implements Ctx {
     mcpExternal: false,
     mcpBuildCopied: false,
     mcpCmdCopied: false,
-    mcpVerify: null,
-    mcpVerifyCopied: false,
-    mcpPrecheck: null,
-    welcomeNotice: null,
   };
   /** Editing state per doc tab (WO-022); islands survive re-renders here. */
   private docEdit = new Map<string, DocEdit>();
@@ -313,44 +293,7 @@ class App implements Ctx {
     this.root = root;
   }
 
-  /** Cold-start mode (WO-030, SRC-013): no project is open, so no snapshot,
-      no watchers, no sidebar — just the welcome screen and the create/open
-      flows, which reload this window into the project they land on. */
-  private welcomeMode = false;
-
-  private bootWelcome(): void {
-    this.welcomeMode = true;
-    document.addEventListener('keydown', (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'o') {
-        e.preventDefault();
-        this.welcomeOpenFolder();
-      } else if (e.key === 'Enter' && this.state.newProject === null) {
-        e.preventDefault();
-        void this.startNewProject(false);
-      } else if (e.key === 'Escape' && this.state.newProject !== null) {
-        this.closeNewProject();
-      }
-    });
-    this.render();
-  }
-
-  private welcomeOpenFolder(): void {
-    this.update({ welcomeNotice: null });
-    void this.guardIpc(() => this.api.welcomeOpen()).then((res) => {
-      if (res === undefined || res === null || res.kind === 'opened') return;
-      const text =
-        res.kind === 'not-a-project'
-          ? `No veri/ directory inside ${res.dir} — choose another, or create a new project there instead.`
-          : res.message;
-      this.update({ welcomeNotice: { text } });
-    });
-  }
-
   async boot(): Promise<void> {
-    if (new URLSearchParams(location.search).get('welcome') === '1') {
-      this.bootWelcome();
-      return;
-    }
     this.applySnapshot(await this.api.snapshot());
     // Workspace state must land before any openDoc call feeds the recents.
     const ws = await this.api.workspaceLoad();
@@ -586,40 +529,9 @@ class App implements Ctx {
     this.applyTabs(openTab(this.tabState(), view, { preview: true, previewTabs: this.state.previewTabs }), closed);
   }
 
-  /** Leaving the agent-connection panel dismisses its banners and drops the
-      transient verify/pre-check results (SRC-002 — nothing is cached). */
+  /** Leaving the agent-connection panel dismisses its banners (SRC-002). */
   private leaveMcpPatch(): Partial<State> {
-    return this.state.view === 'mcp'
-      ? { mcpWrote: false, mcpExternal: false, mcpBuildCopied: false, mcpVerify: null, mcpVerifyCopied: false, mcpPrecheck: null }
-      : {};
-  }
-
-  runVerify(): void {
-    if (this.state.mcpVerify === 'busy') return;
-    this.update({ mcpVerify: 'busy', mcpVerifyCopied: false });
-    void this.api
-      .verifyConnection()
-      .then((result) => this.update({ mcpVerify: result }))
-      .catch((err: unknown) => {
-        this.update({ mcpVerify: { kind: 'no-answer', stderr: err instanceof Error ? err.message : String(err) } });
-      });
-  }
-
-  private precheckInFlight = false;
-
-  ensureRuntimePrecheck(): void {
-    if (this.state.mcpPrecheck !== null || this.precheckInFlight) return;
-    this.precheckInFlight = true;
-    void this.api
-      .runtimeProbe()
-      .then((probe) => {
-        this.precheckInFlight = false;
-        // Only meaningful while the panel is still up; a later visit re-probes.
-        if (this.state.view === 'mcp') this.update({ mcpPrecheck: probe });
-      })
-      .catch(() => {
-        this.precheckInFlight = false;
-      });
+    return this.state.view === 'mcp' ? { mcpWrote: false, mcpExternal: false, mcpBuildCopied: false } : {};
   }
 
   async refresh(): Promise<void> {
@@ -1221,18 +1133,15 @@ class App implements Ctx {
    * the main process (the window reloads, so nothing more to do here); a
    * fresh folder raises the creation sheet.
    */
-  private async startNewProject(demo = false): Promise<void> {
-    // `demo` pre-enables the sample-seed toggle (SRC-013's one behavioral
-    // delta from SRC-007) — the sheet still shows the write and the toggle
-    // stays interactive.
-    this.update({ projectSwitcherOpen: false, welcomeNotice: null });
+  private async startNewProject(): Promise<void> {
+    this.update({ projectSwitcherOpen: false });
     const pick = await this.guardIpc(() => this.api.newProjectPick());
     if (pick === undefined || pick === null || pick.kind === 'opened') return;
     if (pick.kind === 'error') {
       this.update({ projectError: pick.message });
       return;
     }
-    this.update({ newProject: { dir: pick.dir, name: pick.name, demo, busy: false, error: null } });
+    this.update({ newProject: { dir: pick.dir, name: pick.name, demo: false, busy: false, error: null } });
   }
 
   /**
@@ -1743,39 +1652,13 @@ class App implements Ctx {
       .map((id) => this.workingSetRow(id, null))
       .filter((r) => r !== null);
 
-    // Ghost hint rows (WO-030, SRC-013): one per empty type section, hint by
-    // default, the action on hover (CSS swap). Exists exactly while the
-    // section has zero documents — derived from the snapshot, nothing stored.
-    const GHOST_HINT: Record<string, string> = {
-      requirement: 'What must be true',
-      decision: 'What was chosen, and why',
-      'work-order': 'Work an agent can pick up',
-      source: 'Evidence brought in',
-    };
-
     const tree = TYPE_ORDER.map((type) => {
       const all = this.snap.documents.filter((d) => d.type === type);
+      if (all.length === 0) return null;
       const meta = TYPE_META[type];
       const showDead = this.state.showDead[type] === true;
       const collapsed = this.state.sectionCollapsed[type] === true;
       const sec = treeSection(this.snap.documents, type, showDead);
-      const ghostRow =
-        all.length === 0 && !collapsed
-          ? h(
-              'div',
-              {
-                class: 'sb-ghost',
-                onClick: (e) => {
-                  e.stopPropagation();
-                  const rect = (e.currentTarget as Element).getBoundingClientRect();
-                  this.openNewDoc(type, { x: rect.left, y: rect.bottom + 6 });
-                },
-              },
-              h('span', { class: 'sb-ghost-plus' }, '+'),
-              h('span', { class: 'sb-ghost-hint' }, GHOST_HINT[type] ?? ''),
-              h('span', { class: 'sb-ghost-action' }, `New ${meta.label}…`),
-            )
-          : null;
       const rows = collapsed
         ? []
         : sec.shown.map((d) => {
@@ -1846,7 +1729,6 @@ class App implements Ctx {
           ),
         ),
         ...rows,
-        ghostRow,
         expander,
       );
     });
@@ -1963,21 +1845,6 @@ class App implements Ctx {
   private static readonly SCROLL_SEL = '.reader, .panel-right, .screen-board, .screen-decisions, .screen-homeview, .mcp-view';
 
   render(): void {
-    if (this.welcomeMode) {
-      // Errors from the create/open IPC surface as the inline notice — the
-      // welcome screen has no topbar to host projectError.
-      const notice = this.state.welcomeNotice ?? (this.state.projectError !== null ? { text: this.state.projectError } : null);
-      const sheet = this.newProjectSheet();
-      this.root.replaceChildren(
-        welcomeView({
-          notice,
-          createNew: (demo) => void this.startNewProject(demo),
-          openExisting: () => this.welcomeOpenFolder(),
-        }),
-        ...(sheet !== null ? [sheet] : []),
-      );
-      return;
-    }
     // Save the outgoing DOM's scroll positions (per tab, plus the sidebar tree)
     // so full re-renders and tab switches restore them (SRC-004 expectation).
     const oldTree = this.root.querySelector('.sb-tree');

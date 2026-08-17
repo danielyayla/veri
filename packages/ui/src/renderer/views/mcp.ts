@@ -1,9 +1,5 @@
-/** Agent connection screen (WO-007): five states over .mcp.json, per SRC-002.
-    LIVE CHECK + runtime pre-check (WO-030, SRC-013): the static checks only
-    read disk; the live check launches the configured server once and speaks
-    real MCP to it. One failure, one action; results are transient. */
+/** Agent connection screen (WO-007): five states over .mcp.json, per SRC-002. */
 import type { McpStatus } from '../../lib/mcpconfig.ts';
-import type { VerifyResult } from '../../lib/verify.ts';
 import type { Ctx } from '../app.ts';
 import { h } from '../dom.ts';
 
@@ -53,16 +49,8 @@ export function mcpView(ctx: Ctx): HTMLElement {
       .catch((err: Error) => ctx.update({ projectError: err.message }));
   };
   const recheck = (): void => {
-    void ctx
-      .refreshMcp()
-      .then(() =>
-        ctx.update({ mcpExternal: false, mcpWrote: false, mcpBuildCopied: false, mcpVerify: null, mcpVerifyCopied: false, mcpPrecheck: null }),
-      );
+    void ctx.refreshMcp().then(() => ctx.update({ mcpExternal: false, mcpWrote: false, mcpBuildCopied: false }));
   };
-
-  // Passive pre-check (state F): probe the login shell in the background when
-  // the panel opens not-set-up — it spawns no server and blocks nothing.
-  if (notSetup) ctx.ensureRuntimePrecheck();
 
   const crumb = h(
     'div',
@@ -129,7 +117,6 @@ export function mcpView(ctx: Ctx): HTMLElement {
       notSetup ? notSetupCard(ctx, status, write) : null,
       status.state === 'conflict' || status.state === 'unparseable' ? conflictCard(ctx, status, write) : null,
       hasChecks ? healthCard(ctx, status, write) : null,
-      hasChecks ? liveCheckSection(ctx, status, write) : null,
       hasChecks && healthy ? configCard(status) : null,
       userScopedSection(ctx, status),
       toolsSection(),
@@ -152,46 +139,6 @@ function jsonPreview(status: McpStatus): HTMLElement {
   );
 }
 
-/** One-failure-one-action copy button inside a verify/pre-check block. */
-function copyBtn(ctx: Ctx, cmd: string, label: string, copiedLabel: string): HTMLElement {
-  return h(
-    'div',
-    {
-      class: 'mcp-fail-btn',
-      onClick: () => {
-        void ctx.api.copyText(cmd).then(() => ctx.update({ mcpVerifyCopied: true }));
-      },
-    },
-    ctx.state.mcpVerifyCopied ? copiedLabel : label,
-  );
-}
-
-/**
- * State F: the login-shell probe found no usable node while the panel is in
- * the not-set-up state. Setup is not blocked — the file it writes is still
- * correct — the notice just says what an agent will hit.
- */
-function precheckNotice(ctx: Ctx): HTMLElement | null {
-  const probe = ctx.state.mcpPrecheck;
-  if (probe === null || probe.usable) return null;
-  const found = probe.found ? (probe.version ?? 'unknown') : 'none';
-  const cmd = probe.found ? 'brew upgrade node' : 'brew install node';
-  const verb = probe.found ? 'upgrade' : 'install';
-  return h(
-    'div',
-    { class: 'mcp-precheck' },
-    h('span', { class: 'mcp-precheck-dot' }),
-    h(
-      'div',
-      { class: 'mcp-precheck-body' },
-      h('span', {}, 'Heads up — no usable '),
-      h('span', { class: 'mcp-inline-code' }, 'node'),
-      h('span', {}, ` in your shell (found: ${found}). Set up writes the file fine, but an agent can't launch the server until Node 20+ is installed.`),
-    ),
-    copyBtn(ctx, cmd, `Copy ${verb} command`, `✓ Copied — ${verb}, then set up`),
-  );
-}
-
 function notSetupCard(ctx: Ctx, status: McpStatus, write: (a: Promise<void>) => void): HTMLElement {
   return h(
     'div',
@@ -210,115 +157,7 @@ function notSetupCard(ctx: Ctx, status: McpStatus, write: (a: Promise<void>) => 
     h('div', { class: 'mcp-btn-primary', onClick: () => write(ctx.api.mcpSetup()) }, 'Set up connection'),
     h('div', { class: 'mcp-eyebrow', style: 'margin-top:20px;' }, 'WHAT WILL BE WRITTEN'),
     jsonPreview(status),
-    precheckNotice(ctx),
     h('div', { class: 'mcp-caption' }, 'Any other servers already in the file are left untouched.'),
-  );
-}
-
-/** The verify result rendered under the button — success row or one of the
-    five named failures (A–E), each with exactly one action (SRC-002). */
-function verifyResultEl(ctx: Ctx, status: McpStatus, result: VerifyResult, write: (a: Promise<void>) => void): HTMLElement {
-  const t = (p: string): string => tildify(p, status.home);
-  if (result.kind === 'ok') {
-    const docCount = ctx.snap.documents.length;
-    const text = result.searchProved
-      ? `Server answered over MCP — serving this project (${docCount} document${docCount === 1 ? '' : 's'}, ${result.toolCount} tools) with node ${result.nodeVersion}.`
-      : `Server answered over MCP — ${result.toolCount} tools available (project has no documents yet).`;
-    return h(
-      'div',
-      { class: 'mcp-live-result' },
-      h(
-        'div',
-        { class: 'mcp-live-ok' },
-        h('span', { class: 'mcp-badge mcp-badge-ok' }, '✓'),
-        h('span', { class: 'mcp-live-ok-msg' }, text),
-      ),
-      h(
-        'div',
-        { class: 'mcp-caption' },
-        'Verified just now. This proves the server launches and serves this project — your agent still starts its own session.',
-      ),
-    );
-  }
-  let msg: string;
-  let action: HTMLElement;
-  let caption: string | null = null;
-  let stderrBlock: HTMLElement | null = null;
-  const runtimeCaption = 'Or install Node 20+ from nodejs.org — either works.';
-  if (result.kind === 'missing-runtime') {
-    msg = "No node found in your shell. Agent apps launch the server with node; it isn't installed, or isn't on your shell's PATH.";
-    action = copyBtn(ctx, 'brew install node', 'Copy install command', '✓ Copied — install, then verify again');
-    caption = runtimeCaption;
-  } else if (result.kind === 'runtime-too-old') {
-    msg = `Found node ${result.version} at ${t(result.path)} — Veri's server needs Node 20 or newer.`;
-    action = copyBtn(ctx, 'brew upgrade node', 'Copy upgrade command', '✓ Copied — upgrade, then verify again');
-    caption = runtimeCaption;
-  } else if (result.kind === 'server-missing') {
-    msg = `Nothing at ${t(result.path)} — the server isn't on this machine at the configured location.`;
-    action = copyBtn(ctx, 'npm run build -w packages/mcp', 'Copy build command', '✓ Copied — build, then verify again');
-    caption = 'In a packaged install this usually means the app was moved — re-run setup above to rewrite the path.';
-  } else if (result.kind === 'wrong-root') {
-    msg = `The server answered, but it's serving ${t(result.otherRoot)}, not this project.`;
-    // The existing repair: rewrites only the root argument, then the restart
-    // banner + re-run static checks. The stale verify result goes with it.
-    action = h(
-      'div',
-      {
-        class: 'mcp-fail-btn',
-        onClick: () => {
-          ctx.update({ mcpVerify: null });
-          write(ctx.api.mcpFixRoot());
-        },
-      },
-      'Fix path',
-    );
-  } else {
-    msg = 'The server started but didn’t answer within 10 seconds.';
-    action = copyBtn(ctx, result.stderr, 'Copy error output', '✓ Copied');
-    stderrBlock = result.stderr === '' ? null : h('div', { class: 'mcp-live-stderr' }, result.stderr);
-  }
-  return h(
-    'div',
-    { class: 'mcp-live-result' },
-    h(
-      'div',
-      { class: 'mcp-live-fail' },
-      h('span', { class: 'mcp-badge mcp-badge-fail' }, '!'),
-      h('span', { class: 'mcp-live-fail-msg' }, msg),
-      action,
-    ),
-    stderrBlock,
-    caption !== null ? h('div', { class: 'mcp-caption' }, caption) : null,
-  );
-}
-
-/**
- * LIVE CHECK (SRC-013 surface 3): present whenever the static checks render.
- * One button, one spawn, a 10s hard timeout; no auto-run on panel open.
- */
-function liveCheckSection(ctx: Ctx, status: McpStatus, write: (a: Promise<void>) => void): HTMLElement {
-  const v = ctx.state.mcpVerify;
-  const busy = v === 'busy';
-  return h(
-    'div',
-    { class: 'mcp-section mcp-live' },
-    h('div', { class: 'mcp-eyebrow' }, 'LIVE CHECK'),
-    h(
-      'p',
-      { class: 'mcp-section-p' },
-      'The checks above read files. This one launches the server the way your agent will — once, with the config exactly as written — and confirms it answers over MCP.',
-    ),
-    h(
-      'div',
-      {
-        class: busy ? 'mcp-ghost-btn mcp-live-btn mcp-live-btn-busy' : 'mcp-ghost-btn mcp-live-btn',
-        onClick: () => {
-          if (!busy) ctx.runVerify();
-        },
-      },
-      busy ? 'Verifying…' : 'Verify connection',
-    ),
-    v !== null && v !== 'busy' ? verifyResultEl(ctx, status, v, write) : null,
   );
 }
 
