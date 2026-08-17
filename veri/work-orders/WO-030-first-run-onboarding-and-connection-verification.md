@@ -95,4 +95,4 @@ verification. Extends [[REQ-004]] (desktop UI) and [[REQ-005]]
 
 ## Receipts
 
-(none yet)
+- 2026-08-17 — fd19976 — veri/decisions/DEC-031, veri/sources/SRC-013, design/first-run-onboarding/README.md, design/first-run-onboarding/first-run-onboarding.html, veri/work-orders/WO-030 — claude-code session: pre-implementation package — ELECTRON_RUN_AS_NODE spike (full MCP session, embedded Node v22.22.0; login-shell probe evidence; update-survival path analysis), DEC-031 filed proposed (detect-and-guide, configs keep command "node"), design bundle for welcome screen / empty states / LIVE CHECK filed as SRC-013 and linked designed-by; WO stays backlog pending Daniel's DEC-012 design approval before renderer code
