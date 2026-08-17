@@ -2,7 +2,7 @@
 id: WO-029
 type: work-order
 title: Website and user documentation
-status: backlog
+status: in-progress
 created: 2026-08-17
 updated: 2026-08-17
 links:
