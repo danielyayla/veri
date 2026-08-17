@@ -12,9 +12,16 @@
     "build": "tsc -p tsconfig.build.json && esbuild dist/renderer/app.js --bundle --format=esm --outfile=dist/renderer/app.bundle.js --log-level=warning",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test \"src/**/*.test.ts\"",
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "npm run build && electron-builder --mac"
   },
   "dependencies": {
+    "@veri/cli": "^0.1.0",
+    "@veri/core": "^0.1.0",
+    "@veri/mcp": "^0.1.0",
+    "electron-updater": "^6.8.9"
+  },
+  "devDependencies": {
     "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/commands": "^6.10.4",
     "@codemirror/lang-markdown": "^6.5.2",
@@ -22,12 +29,8 @@
     "@codemirror/state": "^6.7.1",
     "@codemirror/view": "^6.43.8",
     "@lezer/highlight": "^1.2.3",
-    "@veri/cli": "^0.1.0",
-    "@veri/core": "^0.1.0",
-    "@veri/mcp": "^0.1.0"
-  },
-  "devDependencies": {
-    "electron": "^38.0.0",
+    "electron": "38.8.6",
+    "electron-builder": "^26.15.3",
     "esbuild": "^0.28.2"
   }
 }

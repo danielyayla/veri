@@ -24,6 +24,7 @@ import { buildSnapshot } from './lib/snapshot.ts';
 import { loadWorkspaceState, saveWorkspaceState } from './lib/workspace.ts';
 import type { WorkspaceState } from './lib/workspace.ts';
 import { appendNote, appendReviewNote, approveDoc, setStatus } from './lib/write.ts';
+import { startUpdater } from './lib/updater.ts';
 import type { ProjectInfo } from './renderer/api.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -371,6 +372,7 @@ app.whenReady().then(async () => {
   }
   await addProjectToMru(projectRoot);
   await createWindow();
+  startUpdater();
 });
 
 app.on('window-all-closed', () => {

@@ -4,7 +4,7 @@ type: source
 title: "Design-gate note — work orders without a design artifact"
 status: imported
 created: 2026-08-13
-updated: 2026-08-14
+updated: 2026-08-17
 links:
   - id: DEC-012
     rel: documents
@@ -39,6 +39,12 @@ oversight. This note is the explicit exemption record.
 - **[[WO-027]]** — surviving launches from outside a project. Main
   process only: launch-root fallback and native OS dialogs
   ([[DEC-027]]); no renderer file changes and no designed surface.
+- **[[WO-028]]** — packaged releases and auto-update. Build
+  configuration, CI, and main-process updater wiring only; renderer
+  update UI is in the work order's Out-of-scope list. The whole
+  update UX is native OS chrome: a system message box offering
+  Restart Now / Later when an update finishes downloading, and the
+  standard About panel for version visibility. Nothing to design.
 
 Pre-DEC-012 UI work orders (WO-005, WO-006, WO-007) are not listed
 here: their designs exist — the [[SRC-001]] mockup line and the

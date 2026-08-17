@@ -1,0 +1,56 @@
+# WO-028: pushing a version tag (v0.2.0) builds, signs, notarizes, and
+# publishes the macOS app plus the electron-updater feed metadata
+# (latest-mac.yml, blockmaps) to a GitHub Release. The tag is the only
+# manual step.
+#
+# Required repository secrets:
+#   CSC_LINK                     base64 .p12 of the Developer ID
+#                                Application certificate
+#   CSC_KEY_PASSWORD             its passphrase
+#   APPLE_ID                     Apple ID for notarization
+#   APPLE_APP_SPECIFIC_PASSWORD  app-specific password for that ID
+#   APPLE_TEAM_ID                developer team id
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # create the release and upload artifacts
+
+jobs:
+  release:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Tag must match the app version
+        run: |
+          APP_VERSION=$(node -p "require('./packages/ui/package.json').version")
+          if [ "${GITHUB_REF_NAME}" != "v${APP_VERSION}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} != packages/ui version v${APP_VERSION}" >&2
+            exit 1
+          fi
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - run: npm test
+
+      - name: Package, sign, notarize, publish
+        working-directory: packages/ui
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: npx electron-builder --mac --publish always

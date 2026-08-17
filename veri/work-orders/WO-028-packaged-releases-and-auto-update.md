@@ -2,10 +2,12 @@
 id: WO-028
 type: work-order
 title: Packaged releases and auto-update for the desktop app
-status: backlog
+status: in-progress
 created: 2026-08-17
 updated: 2026-08-17
 links:
+  - id: SRC-011
+    rel: designed-by
   - id: REQ-011
     rel: implements
   - id: REQ-004
@@ -79,15 +81,15 @@ current, not a dev checkout.
       into N+1.
 - [ ] Choosing Later applies the update on next quit; the running
       session is never force-restarted.
-- [ ] Launching with no network (or an unreachable feed) starts
+- [x] Launching with no network (or an unreachable feed) starts
       normally with no error surfaced.
 - [ ] The N→N+1 download is differential (blockmap hit), not a full
       artifact download.
 - [ ] Pushing a version tag runs CI to a published release with
       update metadata; no manual steps besides the tag.
-- [ ] Packager and feed-host choices are filed as proposed DECs with
+- [x] Packager and feed-host choices are filed as proposed DECs with
       rejected alternatives.
-- [ ] `veri check` and `npm test` are clean.
+- [x] `veri check` and `npm test` are clean.
 
 ## Receipts
 
