@@ -2,7 +2,8 @@
 id: REQ-013
 type: requirement
 title: "First-run onboarding and agent connection verification"
-status: draft
+status: accepted
+approved: 2026-08-17
 created: 2026-08-17
 updated: 2026-08-17
 links:

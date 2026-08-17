@@ -2,7 +2,8 @@
 id: REQ-012
 type: requirement
 title: "Website and user documentation"
-status: draft
+status: accepted
+approved: 2026-08-17
 created: 2026-08-17
 updated: 2026-08-17
 links:

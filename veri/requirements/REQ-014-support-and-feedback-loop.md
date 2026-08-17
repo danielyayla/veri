@@ -2,7 +2,8 @@
 id: REQ-014
 type: requirement
 title: "Support and feedback loop"
-status: draft
+status: accepted
+approved: 2026-08-17
 created: 2026-08-17
 updated: 2026-08-17
 links:
