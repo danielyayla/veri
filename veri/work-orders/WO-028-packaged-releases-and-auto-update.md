@@ -93,4 +93,4 @@ current, not a dev checkout.
 
 ## Receipts
 
-(none yet)
+- 2026-08-17 — a982fd4 — packages/ui/electron-builder.yml, packages/ui/build/entitlements.mac.plist, packages/ui/src/lib/updater.ts, packages/ui/src/main.ts, packages/ui/package.json, .github/workflows/release.yml, .gitignore, DEC-028, DEC-029, SRC-011 — claude-code session: electron-builder universal DMG+ZIP+blockmaps (asar off for real server.js/demo files), electron-updater with native Restart Now/Later dialog and install-on-quit, tag-triggered sign/notarize/publish CI; local unsigned build verified end-to-end (packaged app renders this project, survives empty feed silently); signing/notarization, real N-to-N+1 update, and CI run boxes await Apple credentials and a first tagged release — status stays in-progress
