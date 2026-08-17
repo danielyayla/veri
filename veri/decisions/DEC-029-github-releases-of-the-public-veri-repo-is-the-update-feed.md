@@ -2,7 +2,8 @@
 id: DEC-029
 type: decision
 title: "GitHub Releases of the public veri repo is the update feed"
-status: proposed
+status: active
+approved: 2026-08-17
 created: 2026-08-17
 updated: 2026-08-17
 links:

@@ -2,7 +2,8 @@
 id: DEC-028
 type: decision
 title: "electron-builder + electron-updater are the packaging and update stack"
-status: proposed
+status: active
+approved: 2026-08-17
 created: 2026-08-17
 updated: 2026-08-17
 links:
