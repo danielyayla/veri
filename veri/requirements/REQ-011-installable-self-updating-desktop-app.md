@@ -2,7 +2,8 @@
 id: REQ-011
 type: requirement
 title: Installable, self-updating desktop app distribution
-status: draft
+status: accepted
+approved: 2026-08-17
 created: 2026-08-17
 updated: 2026-08-17
 links:
