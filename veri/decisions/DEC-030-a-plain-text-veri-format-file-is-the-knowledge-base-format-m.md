@@ -2,7 +2,8 @@
 id: DEC-030
 type: decision
 title: "A plain-text veri/format file is the knowledge-base format marker"
-status: proposed
+status: active
+approved: 2026-08-17
 created: 2026-08-17
 updated: 2026-08-17
 links:
