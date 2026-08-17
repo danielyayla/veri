@@ -55,10 +55,14 @@
   <li><b>First use may need approval.</b> Claude Code asks before using a project's <code>.mcp.json</code> servers; if it was declined once, run <code>claude mcp reset-project-choices</code> and restart.</li>
 </ul>
 
+<h2 id="the-log-file">The log file</h2>
+<p>Veri writes a plain-text log to <code>~/Library/Logs/Veri/main.log</code> — in Finder: <b>Go ▸ Go to Folder…</b> ▸ <code>~/Library/Logs/Veri</code>. It records app lifecycle (launch, project opens, quit), update-check outcomes including failures, and agent-connection config writes. It never contains your documents or any knowledge-base content — paths and outcomes only.</p>
+<p>The file is capped at 512&nbsp;KB; past that it rolls to <code>main.old.log</code> and starts fresh, so the two together never exceed about 1&nbsp;MB. The log stays on your machine: Veri ships no telemetry, and the only way it reaches anyone is you attaching it to an issue.</p>
+
 <h2>Updates and rollback</h2>
 <ul>
   <li><b>How updates work:</b> the app checks GitHub Releases, downloads in the background, and applies only when you say "restart now" or at next quit. A running session is never interrupted.</li>
-  <li><b>Offline is fine:</b> no network, or an unreachable feed, just means no update this time — the app stays fully usable and shows no error.</li>
+  <li><b>Offline is fine:</b> no network, or an unreachable feed, just means no update this time — the app stays fully usable and shows no error. The failed check is recorded in the <a href="#the-log-file">log file</a>, which is the only place it is visible at all.</li>
   <li><b>Roll back:</b> quit Veri, download the older version's DMG from the <a href="https://github.com/danielyayla/veri/releases">releases page</a> (every release keeps its artifacts), and drag it into Applications over the current one. Your knowledge bases are unaffected — they're plain files in your repos, and the on-disk format carries a version marker so an older app states a mismatch rather than misreading newer files.</li>
 </ul>
 
@@ -66,7 +70,7 @@
 <p>Releases are signed and notarized; macOS should open Veri without ceremony. If you see a "can't be opened" or unidentified-developer warning, don't override it — you may have an artifact that didn't come from <a href="https://github.com/danielyayla/veri/releases">GitHub Releases</a>. Re-download from there and <a href="https://github.com/danielyayla/veri/issues">report it</a>.</p>
 
 <h2>Getting help</h2>
-<p><a href="https://github.com/danielyayla/veri/issues">GitHub Issues</a> is the support channel. Include your app version, macOS version, what you expected, and — for connection problems — the exact text Verify connection showed. Veri ships no telemetry: nothing is reported automatically, so an issue from you is the only way a problem in the field gets known.</p>
+<p><a href="https://github.com/danielyayla/veri/issues">GitHub Issues</a> is the support channel, and the fastest path there is <b>Help ▸ Report an Issue…</b> inside the app — it opens a new issue with your Veri and macOS versions already filled in. Add what you expected, what happened, and attach <code>~/Library/Logs/Veri/main.log</code>; for connection problems, include the exact text Verify connection showed. Veri ships no telemetry: nothing is reported automatically, so an issue from you is the only way a problem in the field gets known.</p>
 
 <div class="next">
   <b>Where next:</b> back to the <a href="quickstart.html">quickstart</a>, or the <a href="connect-claude-code.html">connection page</a> for what a healthy config looks like.

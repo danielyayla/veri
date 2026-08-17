@@ -1,0 +1,49 @@
+# WO-031: the support channel is GitHub Issues, and Veri ships no telemetry —
+# what this form collects is everything the maintainer will ever see.
+# Field ids app-version / macos-version are a contract with the app's
+# Help ▸ Report an Issue… prefill (packages/ui/src/lib/report.ts).
+name: Bug report
+description: Something in Veri is broken or behaving unexpectedly.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro-steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps, starting from app launch, that make it happen again.
+      placeholder: |
+        1. Open a project with …
+        2. Click …
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: Veri version
+      description: Veri ▸ About Veri (prefilled when you report from the app's Help menu).
+    validations:
+      required: true
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version
+      description: " ▸ About This Mac (prefilled when you report from the app's Help menu)."
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log file
+      description: >
+        Please attach `~/Library/Logs/Veri/main.log` (drag the file into this
+        field). It records app lifecycle, update checks, and agent-connection
+        setup — never the contents of your knowledge base. In Finder:
+        Go ▸ Go to Folder… ▸ `~/Library/Logs/Veri`.

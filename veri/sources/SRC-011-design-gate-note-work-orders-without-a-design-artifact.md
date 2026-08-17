@@ -49,6 +49,11 @@ oversight. This note is the explicit exemption record.
   MCP-server work; the app's only surface is a native message box
   stating a format mismatch when a project cannot be opened. No
   renderer changes and no designed surface.
+- **[[WO-031]]** — support and feedback loop. Main-process work only:
+  a native Help-menu item opening a prefilled GitHub issue, and
+  file logging with rotation. The report path is deliberately native
+  OS chrome (application menu + default browser); renderer support UI
+  is in the work order's Out-of-scope list. No designed surface.
 - **[[WO-033]]** — release-CI duplicate-release race fix. Pure CI
   workflow change; the heuristic catches the receipt's mention of
   `packages/ui/package.json` (the version bump for the acceptance

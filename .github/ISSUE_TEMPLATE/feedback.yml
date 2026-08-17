@@ -1,0 +1,12 @@
+# WO-031: the lighter template — ideas and impressions, no diagnostics asked.
+name: Feedback or idea
+description: Something Veri should do, do differently, or that you want to say.
+labels: ["feedback"]
+body:
+  - type: textarea
+    id: feedback
+    attributes:
+      label: What's on your mind
+      description: The idea, the friction, or the impression — context welcome, formality not required.
+    validations:
+      required: true

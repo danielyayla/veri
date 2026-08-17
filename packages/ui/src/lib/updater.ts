@@ -1,6 +1,8 @@
 import { app, dialog } from 'electron';
 // electron-updater is CJS; named imports are not reliable under NodeNext ESM.
 import updater from 'electron-updater';
+import { updaterLogger } from './log.ts';
+import type { Logger } from './log.ts';
 
 const { autoUpdater } = updater;
 
@@ -10,14 +12,20 @@ const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
  * Background auto-update per REQ-011: check on launch and every few hours,
  * download silently, then ask — never force a restart. "Later" leaves the
  * update to install on quit (autoInstallOnAppQuit). Every failure path is
- * swallowed: an unreachable feed must behave exactly like being up to date.
+ * swallowed in the UI: an unreachable feed must behave exactly like being up
+ * to date. The log is where those swallowed outcomes go (WO-031, DEC-034) —
+ * it is the only place a failed check is visible at all.
  */
-export function startUpdater(): void {
+export function startUpdater(log: Logger): void {
   if (!app.isPackaged) return;
 
+  autoUpdater.logger = updaterLogger(log);
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
-  autoUpdater.on('error', () => {});
+  autoUpdater.on('error', (err) => {
+    // One greppable outcome line; the updater's own logger carries the detail.
+    log.error(`update check failed: ${err.message.split('\n')[0]}`);
+  });
 
   const promptedVersions = new Set<string>();
   autoUpdater.on('update-downloaded', (info) => {

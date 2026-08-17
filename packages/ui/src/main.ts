@@ -2,7 +2,7 @@ import { watch } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BrowserWindow, app, clipboard, dialog, ipcMain } from 'electron';
+import { BrowserWindow, Menu, app, clipboard, dialog, ipcMain, shell } from 'electron';
 import {
   BODY_TEMPLATES,
   ProjectExistsError,
@@ -31,10 +31,19 @@ import { loadWorkspaceState, saveWorkspaceState } from './lib/workspace.ts';
 import type { WorkspaceState } from './lib/workspace.ts';
 import { appendNote, appendReviewNote, approveDoc, setStatus } from './lib/write.ts';
 import { startUpdater } from './lib/updater.ts';
+import { createLogger } from './lib/log.ts';
+import { buildIssueUrl } from './lib/report.ts';
 import type { ProjectInfo } from './renderer/api.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 let projectRoot = findProjectRoot(launchArg(process.argv, app.isPackaged), process.cwd());
+
+// WO-031/DEC-034: the app's only record of itself — ~/Library/Logs/Veri, the
+// path the troubleshooting page documents. Pinned explicitly: the default
+// derives from package.json's name (@veri/ui), which would nest the log under
+// Logs/@veri/ui/. Paths and outcomes only; never knowledge-base content.
+app.setAppLogsPath(join(app.getPath('home'), 'Library', 'Logs', 'Veri'));
+const log = createLogger(app.getPath('logs'));
 
 // The MCP server executable setup writes into .mcp.json: server.js next to
 // @veri/mcp's resolved entry point (dist/index.js).
@@ -154,8 +163,14 @@ function registerIpc(): void {
   ipcMain.handle('veri:approve', (_e, id: string) => approveDoc(projectRoot, id));
   ipcMain.handle('veri:review-note', (_e, id: string, note: string) => appendReviewNote(projectRoot, id, note));
   ipcMain.handle('veri:mcp-status', () => mcpStatus(projectRoot, mcpServerJs));
-  ipcMain.handle('veri:mcp-setup', () => mcpWrite(() => writeVeriEntry(projectRoot, mcpServerJs)));
-  ipcMain.handle('veri:mcp-fix-root', () => mcpWrite(() => fixRootArg(projectRoot)));
+  ipcMain.handle('veri:mcp-setup', async () => {
+    await mcpWrite(() => writeVeriEntry(projectRoot, mcpServerJs));
+    log.info(`mcp-config: wrote veri entry in ${join(projectRoot, '.mcp.json')}`);
+  });
+  ipcMain.handle('veri:mcp-fix-root', async () => {
+    await mcpWrite(() => fixRootArg(projectRoot));
+    log.info(`mcp-config: fixed root arg in ${join(projectRoot, '.mcp.json')}`);
+  });
   // Runtime pre-check (DEC-031): the agent's login shell, never the app's
   // own PATH — a GUI launch inherits launchd's bare PATH and would lie.
   ipcMain.handle('veri:runtime-probe', () => probeNodeRuntime());
@@ -184,7 +199,10 @@ function registerIpc(): void {
   // so the picker can stay open and explain a failure.
   ipcMain.handle('veri:agent-launch', async (_e, id: AgentId, binPath: string, prompt: string, setup: boolean) => {
     try {
-      if (setup) await mcpWrite(() => connectAgent(projectRoot, mcpServerJs, id));
+      if (setup) {
+        await mcpWrite(() => connectAgent(projectRoot, mcpServerJs, id));
+        log.info(`mcp-config: wrote ${id} agent config for ${projectRoot}`);
+      }
       await launchAgent(projectRoot, id, binPath, prompt);
       return null;
     } catch (err) {
@@ -288,6 +306,7 @@ async function pointAppAt(dir: string, notice?: 'existing'): Promise<string | nu
   const format = classifyFormat(join(dir, 'veri'));
   if (!isOperableFormat(format)) return `Cannot open this project: ${formatStatement(format)}`;
   projectRoot = dir;
+  log.info(`project opened: ${dir}`);
   await addProjectToMru(dir);
   watchProject(mainWin);
   // Opening reloads the renderer, so a notice about what just happened has to
@@ -383,6 +402,35 @@ async function createWindow(mode: 'project' | 'welcome' = 'project'): Promise<Br
 }
 
 /**
+ * Application menu: the standard macOS roles, plus the WO-031 Help item.
+ * "Report an Issue…" opens the browser on a prefilled GitHub issue form —
+ * app and macOS version ride along as query params, so a report from the
+ * app arrives diagnosable without the user copying versions by hand.
+ */
+function installMenu(): void {
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate([
+      { role: 'appMenu' },
+      { role: 'fileMenu' },
+      { role: 'editMenu' },
+      { role: 'viewMenu' },
+      { role: 'windowMenu' },
+      {
+        role: 'help',
+        submenu: [
+          {
+            label: 'Report an Issue…',
+            click: () => {
+              void shell.openExternal(buildIssueUrl(app.getVersion(), process.getSystemVersion()));
+            },
+          },
+        ],
+      },
+    ]),
+  );
+}
+
+/**
  * DEC-027 fallback chain for launches outside a project (Finder/Dock: cwd is
  * `/`): most recent MRU entry that is still a project. No known project means
  * the welcome screen (WO-030, SRC-013) — the bare picker loop is gone from
@@ -417,6 +465,8 @@ async function pickProjectDir(): Promise<string | null> {
 }
 
 app.whenReady().then(async () => {
+  log.info(`app ${app.getVersion()} launched (macOS ${process.getSystemVersion()})`);
+  installMenu();
   registerIpc();
   void cleanupLaunchScripts();
   // findProjectRoot's result is unvalidated (explicit args pass through) —
@@ -442,13 +492,18 @@ app.whenReady().then(async () => {
     // not a picker loop and not a quit. Every action on it leads into the
     // existing create/open flows, which reload this window into the project.
     await createWindow('welcome');
-    startUpdater();
+    startUpdater(log);
     return;
   }
   projectRoot = root;
+  log.info(`project opened: ${projectRoot}`);
   await addProjectToMru(projectRoot);
   await createWindow();
-  startUpdater();
+  startUpdater(log);
+});
+
+app.on('will-quit', () => {
+  log.info('app quit');
 });
 
 app.on('window-all-closed', () => {

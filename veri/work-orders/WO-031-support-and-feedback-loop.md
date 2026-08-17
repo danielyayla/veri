@@ -2,7 +2,7 @@
 id: WO-031
 type: work-order
 title: Support and feedback loop
-status: backlog
+status: in-progress
 created: 2026-08-17
 updated: 2026-08-17
 links:
@@ -12,6 +12,8 @@ links:
     rel: informed-by
   - id: DEC-002
     rel: constrained-by
+  - id: SRC-011
+    rel: designed-by
 ---
 
 ## Summary
@@ -64,14 +66,14 @@ Implements [[REQ-014]] — support and feedback loop.
       version and macOS version in one step
 - [ ] The repository presents the issue template to anyone filing
       manually; it requests repro steps and the log file
-- [ ] A failed update check (offline launch) is absent from the
+- [x] A failed update check (offline launch) is absent from the
       UI but present in the log at the documented path
-- [ ] The log contains no document bodies or knowledge-base
+- [x] The log contains no document bodies or knowledge-base
       content after a session of normal editing
-- [ ] The log respects its rotation/size cap
-- [ ] Logging library choice filed as a proposed DEC; note-style
+- [x] The log respects its rotation/size cap
+- [x] Logging library choice filed as a proposed DEC; note-style
       design source linked `designed-by`
-- [ ] `veri check` and `npm test` are clean
+- [x] `veri check` and `npm test` are clean
 
 ## Receipts
 
