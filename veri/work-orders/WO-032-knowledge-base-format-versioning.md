@@ -2,7 +2,7 @@
 id: WO-032
 type: work-order
 title: Knowledge-base format versioning
-status: in-progress
+status: done
 created: 2026-08-17
 updated: 2026-08-17
 links:
@@ -87,4 +87,4 @@ Implements [[REQ-015]] — knowledge-base format versioning. Extends
 
 ## Receipts
 
-(none yet)
+- 2026-08-17 — 3b2c55f — packages/core/src/format.ts, packages/core/src/load.ts, packages/core/src/check.ts, packages/core/src/types.ts, packages/core/src/scaffold.ts, packages/cli/src/commands.ts, packages/cli/src/cli.ts, packages/mcp/src/server.ts, packages/ui/src/main.ts, packages/cli/demo/veri/format, veri/format, DEC-030, SRC-011 — claude-code session: veri/format marker (DEC-030 proposed), scaffold stamping, load-time classification, veri migrate with recorded 0→1 marker-only step, check format line + newer/invalid issues, MCP per-call guard, app native-dialog gate (verified live: headless shot at format 1 succeeds, format 99 blocks); repo and demo migrated; all acceptance boxes checked, 231 tests green
