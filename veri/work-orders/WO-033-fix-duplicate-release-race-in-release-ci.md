@@ -2,7 +2,7 @@
 id: WO-033
 type: work-order
 title: Fix electron-builder duplicate-release race in release CI
-status: backlog
+status: in-progress
 created: 2026-08-17
 updated: 2026-08-17
 links:

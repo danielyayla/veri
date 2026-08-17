@@ -48,6 +48,19 @@ jobs:
 
       - run: npm test
 
+      # WO-033: electron-builder's DMG and zip targets publish
+      # concurrently and race to create the GitHub release, splitting
+      # the assets across two drafts. Creating the draft up front
+      # gives both publishers an existing release to upload into.
+      - name: Create the release draft up front
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ! gh release view "${GITHUB_REF_NAME}" > /dev/null 2>&1; then
+            gh release create "${GITHUB_REF_NAME}" --draft --verify-tag \
+              --title "${GITHUB_REF_NAME}"
+          fi
+
       - name: Package, sign, notarize, publish
         working-directory: packages/ui
         env:
@@ -66,3 +79,31 @@ jobs:
             export CSC_IDENTITY_AUTO_DISCOVERY=false
             npx electron-builder --mac --publish always -c.mac.notarize=false
           fi
+
+      # WO-033: fail loudly if the feed is split or incomplete — a
+      # partial latest-mac.yml release would break auto-update.
+      - name: Verify one complete release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          releases=$(gh api "repos/${GITHUB_REPOSITORY}/releases" \
+            --jq "[.[] | select(.tag_name == \"${GITHUB_REF_NAME}\")]")
+          count=$(jq length <<< "$releases")
+          if [ "$count" -ne 1 ]; then
+            echo "Expected exactly 1 release for ${GITHUB_REF_NAME}, found ${count}" >&2
+            exit 1
+          fi
+          assets=$(jq -r '.[0].assets[].name' <<< "$releases")
+          version="${GITHUB_REF_NAME#v}"
+          missing=0
+          for f in "Veri-${version}-universal.dmg" \
+                   "Veri-${version}-universal.dmg.blockmap" \
+                   "Veri-${version}-universal-mac.zip" \
+                   "Veri-${version}-universal-mac.zip.blockmap" \
+                   "latest-mac.yml"; do
+            if ! grep -qxF "$f" <<< "$assets"; then
+              echo "Missing release asset: $f" >&2
+              missing=1
+            fi
+          done
+          exit $missing
