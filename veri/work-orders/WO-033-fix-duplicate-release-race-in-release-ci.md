@@ -2,7 +2,7 @@
 id: WO-033
 type: work-order
 title: Fix electron-builder duplicate-release race in release CI
-status: in-progress
+status: done
 created: 2026-08-17
 updated: 2026-08-17
 links:
@@ -10,6 +10,8 @@ links:
     rel: extends
   - id: REQ-011
     rel: implements
+  - id: SRC-011
+    rel: designed-by
 ---
 
 ## Summary
@@ -48,11 +50,13 @@ unfixed, every tag push risks a split release, and a split
 
 ## Acceptance tests
 
-- [ ] A tag push produces exactly one release with the full asset
+- [x] A tag push produces exactly one release with the full asset
       set (DMG, zip, both blockmaps, latest-mac.yml), verified on a
-      real run.
-- [ ] CI fails loudly if the asset set is incomplete or split
-      across duplicate releases.
+      real run (v0.1.3, actions run 32037694418).
+- [x] CI fails loudly if the asset set is incomplete or split
+      across duplicate releases (proven live: the v0.1.2 run failed
+      red on "Expected exactly 1 release, found 3").
 
 ## Receipts
 
+- 2026-08-17 — ef01dd7 — .github/workflows/release.yml, veri/decisions/DEC-032-ci-pre-creates-the-release-draft-before-electron-builder-pu.md, packages/ui/package.json — CI owns release create/upload, electron-builder builds with publish never (DEC-032 proposed); verified on v0.1.3 — one release, full asset set; verify step proven red on v0.1.2's split

@@ -49,6 +49,10 @@ oversight. This note is the explicit exemption record.
   MCP-server work; the app's only surface is a native message box
   stating a format mismatch when a project cannot be opened. No
   renderer changes and no designed surface.
+- **[[WO-033]]** — release-CI duplicate-release race fix. Pure CI
+  workflow change; the heuristic catches the receipt's mention of
+  `packages/ui/package.json` (the version bump for the acceptance
+  run). No app code and no designed surface.
 
 Pre-DEC-012 UI work orders (WO-005, WO-006, WO-007) are not listed
 here: their designs exist — the [[SRC-001]] mockup line and the
