@@ -2,7 +2,7 @@
 id: WO-030
 type: work-order
 title: First-run onboarding and agent connection verification
-status: in-progress
+status: done
 created: 2026-08-17
 updated: 2026-08-17
 links:
@@ -76,22 +76,22 @@ verification. Extends [[REQ-004]] (desktop UI) and [[REQ-005]]
 
 ## Acceptance tests
 
-- [ ] On a machine with no prior projects, first launch reaches an
+- [x] On a machine with no prior projects, first launch reaches an
       open project (new or sample) with no external docs consulted
-- [ ] Home view, sidebar, and connection panel each render a
+- [x] Home view, sidebar, and connection panel each render a
       designed empty state in a documentless project
-- [ ] The connection check succeeds against a healthy config and
+- [x] The connection check succeeds against a healthy config and
       names the cause for: missing Node runtime, nonexistent server
       path, wrong project root
-- [ ] Connecting on a machine without a usable Node runtime
+- [x] Connecting on a machine without a usable Node runtime
       produces guidance at connection time, not a silent agent-time
       failure
-- [ ] A config written before a self-update resolves to a working
+- [x] A config written before a self-update resolves to a working
       server after the update
 - [x] Node-runtime mechanism filed as a proposed DEC with rejected
       alternatives; design artifact linked `designed-by` before any
       renderer code
-- [ ] `veri check` and `npm test` are clean
+- [x] `veri check` and `npm test` are clean
 
 ## Receipts
 
