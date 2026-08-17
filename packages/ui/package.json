@@ -1,6 +1,6 @@
 {
   "name": "@veri/ui",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Local desktop UI for Veri knowledge bases: five screens over the veri/ directory",
   "type": "module",
   "private": true,
