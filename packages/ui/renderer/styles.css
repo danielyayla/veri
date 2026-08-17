@@ -1122,3 +1122,85 @@ a:hover { color: #F49463; }
 .adv-line-msg { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .adv-tpl { margin-left: auto; font-size: 10.5px; color: var(--ghost); cursor: pointer; flex: 0 0 auto; }
 .adv-tpl:hover { color: var(--muted); }
+
+/* ===== First-run onboarding (WO-030, design/first-run-onboarding) ===== */
+
+/* Welcome screen: cold-start only — centered 480px column, no chrome. */
+.wl-screen { flex: 1; display: flex; justify-content: center; align-items: center; background: var(--bg); }
+.wl-col { width: 480px; max-width: calc(100% - 80px); transform: translateY(-6%); }
+.wl-wordmark { font-size: 26px; font-weight: 600; letter-spacing: -.01em; color: var(--text); }
+.wl-oneliner { margin: 10px 0 22px; font-size: 14px; color: var(--secondary); line-height: 1.65; text-wrap: pretty; }
+.wl-cards { display: flex; flex-direction: column; gap: 10px; }
+.wl-card {
+  border: 1px solid var(--int-border); border-radius: 10px; background: var(--card);
+  padding: 16px 18px; cursor: pointer;
+}
+.wl-card:hover { border-color: var(--hover-border-2); background: var(--card-2); }
+.wl-card-title { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: var(--text); }
+.wl-card-glyph { flex: 0 0 auto; }
+.wl-card-arrow { margin-left: auto; color: var(--ghost-2); }
+.wl-card-body { margin-top: 4px; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+.wl-code { font-family: var(--mono); font-size: 11.5px; }
+.wl-notice {
+  margin-top: 12px; display: flex; align-items: flex-start; gap: 8px;
+  background: rgba(217,160,63,0.06); border: 1px solid #3A3020; border-radius: 6px;
+  padding: 9px 12px; font-size: 12.5px; color: var(--amber); line-height: 1.5;
+}
+.wl-notice-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); flex: 0 0 auto; margin-top: 5px; }
+.wl-footer { margin-top: 22px; font-size: 11.5px; color: var(--ghost); line-height: 1.5; }
+
+/* Home: START HERE card (documentless project) — the NEEDS REVIEW slot. */
+.hv-sh { background: var(--card); border-color: var(--int-border); padding: 18px 20px; }
+.hv-sh-eyebrow { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--ember); }
+.hv-sh-heading { margin-top: 8px; font-size: 16px; font-weight: 600; }
+.hv-sh-path { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+.hv-sh-step { flex: 1; background: var(--card-2); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.hv-sh-arrow { color: var(--ghost-2); flex: 0 0 auto; }
+.hv-sh-step-name { font-family: var(--mono); font-size: 11px; }
+.hv-sh-step-hint { margin-top: 3px; font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+.hv-sh-actions { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.hv-sh-btn-primary {
+  display: inline-flex; align-items: center; height: 34px; padding: 0 16px; border-radius: 7px;
+  background: var(--ember); color: #141414; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.hv-sh-btn-primary:hover { filter: brightness(1.1); }
+.hv-sh-btn-ghost {
+  display: inline-flex; align-items: center; height: 34px; padding: 0 14px; border-radius: 7px;
+  border: 1px solid var(--int-border); color: var(--secondary); font-size: 12.5px; cursor: pointer;
+}
+.hv-sh-btn-ghost:hover { border-color: var(--hover-border-2); }
+.hv-sh-caption { margin-top: 10px; font-size: 11.5px; color: var(--ghost); line-height: 1.5; }
+.hv-sh-code { font-family: var(--mono); font-size: 10.5px; }
+
+/* Sidebar ghost hint rows: hint at rest, the action on hover. */
+.sb-ghost { display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 10px; border-radius: 6px; cursor: pointer; }
+.sb-ghost:hover { background: #1B1B20; }
+.sb-ghost-plus { color: var(--ghost-2); font-size: 12px; flex: 0 0 auto; }
+.sb-ghost:hover .sb-ghost-plus { color: var(--muted); }
+.sb-ghost-hint { font-size: 12px; font-style: italic; color: var(--ghost); }
+.sb-ghost:hover .sb-ghost-hint { display: none; }
+.sb-ghost-action { display: none; font-size: 12px; color: var(--muted); }
+.sb-ghost:hover .sb-ghost-action { display: inline; }
+
+/* Agent connection: LIVE CHECK section + runtime pre-check notice. */
+.mcp-live-btn { display: inline-flex; align-items: center; height: 28px; margin-top: 10px; }
+.mcp-live-btn-busy { opacity: .6; cursor: default; }
+.mcp-live-result { margin-top: 12px; }
+.mcp-live-ok { display: flex; align-items: flex-start; gap: 10px; }
+.mcp-live-ok-msg { font-size: 13px; color: var(--text); line-height: 1.5; }
+.mcp-live-fail {
+  display: flex; align-items: flex-start; gap: 10px;
+  border: 1px solid #3A3020; background: rgba(217,160,63,0.06); border-radius: 8px; padding: 10px 12px;
+}
+.mcp-live-fail-msg { flex: 1; font-size: 12.5px; color: var(--amber); line-height: 1.5; }
+.mcp-live-stderr {
+  margin-top: 8px; font-family: var(--mono); font-size: 11px; line-height: 1.5; color: var(--body-text);
+  background: var(--bg); border: 1px solid var(--card-border); border-radius: 6px; padding: 8px 10px;
+  max-height: 9em; overflow-y: auto; white-space: pre-wrap; word-break: break-all;
+}
+.mcp-precheck {
+  margin-top: 12px; display: flex; align-items: flex-start; gap: 8px;
+  background: rgba(217,160,63,0.06); border: 1px solid #3A3020; border-radius: 6px; padding: 9px 12px;
+}
+.mcp-precheck-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); flex: 0 0 auto; margin-top: 6px; }
+.mcp-precheck-body { flex: 1; font-size: 12.5px; color: var(--amber); line-height: 1.5; }

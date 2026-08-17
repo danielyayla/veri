@@ -21,6 +21,9 @@ import { DEMO_ROOT } from '@veri/cli';
 import { assembleContext, paletteSearch } from '@veri/mcp';
 import { findProjectRoot, isVeriProject, launchArg } from './lib/root.ts';
 import { fixRootArg, mcpStatus, writeVeriEntry } from './lib/mcpconfig.ts';
+import { probeNodeRuntime } from './lib/noderuntime.ts';
+import { verifyConnection } from './lib/verify.ts';
+import type { VerifyResult } from './lib/verify.ts';
 import { cleanupLaunchScripts, connectAgent, detectAgents, launchAgent } from './lib/agents.ts';
 import type { AgentId } from './lib/agents.ts';
 import { buildSnapshot } from './lib/snapshot.ts';
@@ -153,6 +156,28 @@ function registerIpc(): void {
   ipcMain.handle('veri:mcp-status', () => mcpStatus(projectRoot, mcpServerJs));
   ipcMain.handle('veri:mcp-setup', () => mcpWrite(() => writeVeriEntry(projectRoot, mcpServerJs)));
   ipcMain.handle('veri:mcp-fix-root', () => mcpWrite(() => fixRootArg(projectRoot)));
+  // Runtime pre-check (DEC-031): the agent's login shell, never the app's
+  // own PATH — a GUI launch inherits launchd's bare PATH and would lie.
+  ipcMain.handle('veri:runtime-probe', () => probeNodeRuntime());
+  // LIVE CHECK (WO-030): launch the configured server once and speak MCP to
+  // it. The search id comes from the snapshot so a success proves the server
+  // is serving this project's files; a documentless project skips it.
+  ipcMain.handle('veri:verify-connection', async (): Promise<VerifyResult> => {
+    const status = await mcpStatus(projectRoot, mcpServerJs);
+    if (status.state !== 'ok' || status.serverPathResolved === null || status.rootPathResolved === null) {
+      return { kind: 'no-answer', stderr: 'no recognized veri entry to verify — run setup first' };
+    }
+    const probe = await probeNodeRuntime();
+    const snap = await buildSnapshot(projectRoot).catch(() => null);
+    const searchId = snap?.documents.find((d) => d.type !== 'workflow')?.id ?? null;
+    return verifyConnection({
+      probe,
+      serverPath: status.serverPathResolved,
+      rootPath: status.rootPathResolved,
+      projectRoot,
+      searchId,
+    });
+  });
   ipcMain.handle('veri:agents', () => detectAgents(projectRoot));
   // Start agent session (WO-011): optional config write (DEC-011-gated),
   // then spawn the agent in a terminal. Resolves to an error message or null
@@ -220,7 +245,28 @@ function registerIpc(): void {
     }
     return pointAppAt(dir);
   });
+  // Welcome screen's "Open an existing folder" (SRC-013): one picker, no
+  // dialog loop — a bad pick comes back named so the screen can say so inline.
+  ipcMain.handle('veri:welcome-open', async (): Promise<WelcomeOpen> => {
+    if (mainWin === null) return null;
+    const result = await dialog.showOpenDialog(mainWin, {
+      properties: ['openDirectory'],
+      title: 'Open a Veri project',
+      buttonLabel: 'Open',
+    });
+    const dir = result.canceled ? undefined : result.filePaths[0];
+    if (dir === undefined) return null; // cancel returns to the welcome screen, never quits
+    if (!isVeriProject(dir)) return { kind: 'not-a-project', dir };
+    const err = await pointAppAt(dir);
+    return err === null ? { kind: 'opened' } : { kind: 'error', message: err };
+  });
 }
+
+export type WelcomeOpen =
+  | null
+  | { kind: 'opened' }
+  | { kind: 'not-a-project'; dir: string }
+  | { kind: 'error'; message: string };
 
 export type NewProjectPick =
   | null
@@ -289,7 +335,7 @@ function watchProject(win: BrowserWindow): void {
   });
 }
 
-async function createWindow(): Promise<BrowserWindow> {
+async function createWindow(mode: 'project' | 'welcome' = 'project'): Promise<BrowserWindow> {
   const win = new BrowserWindow({
     width: 1560,
     height: 980,
@@ -310,6 +356,7 @@ async function createWindow(): Promise<BrowserWindow> {
   watchProject(win);
 
   const query: Record<string, string> = {};
+  if (mode === 'welcome') query['welcome'] = '1';
   const view = process.env['VERI_UI_VIEW'];
   const doc = process.env['VERI_UI_DOC'];
   if (view !== undefined) query['view'] = view;
@@ -337,13 +384,13 @@ async function createWindow(): Promise<BrowserWindow> {
 
 /**
  * DEC-027 fallback chain for launches outside a project (Finder/Dock: cwd is
- * `/`): most recent MRU entry that is still a project, else a native folder
- * picker looped through a Choose Again / Quit box. Null means quit.
+ * `/`): most recent MRU entry that is still a project. No known project means
+ * the welcome screen (WO-030, SRC-013) — the bare picker loop is gone from
+ * the cold-start path.
  */
 async function resolveLaunchRoot(): Promise<string | null> {
   const recent = (await getRecentProjects()).find((p) => isVeriProject(p.dir));
-  if (recent !== undefined) return recent.dir;
-  return pickProjectDir();
+  return recent?.dir ?? null;
 }
 
 /** The picker half of the DEC-027 chain, MRU deliberately skipped. */
@@ -391,7 +438,11 @@ app.whenReady().then(async () => {
     root = response === 1 ? null : await pickProjectDir();
   }
   if (root === null) {
-    app.quit();
+    // Cold start (SRC-013): no known project resolves — the welcome screen,
+    // not a picker loop and not a quit. Every action on it leads into the
+    // existing create/open flows, which reload this window into the project.
+    await createWindow('welcome');
+    startUpdater();
     return;
   }
   projectRoot = root;

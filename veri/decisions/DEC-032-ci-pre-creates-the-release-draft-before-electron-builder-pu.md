@@ -2,7 +2,8 @@
 id: DEC-032
 type: decision
 title: CI owns the release; electron-builder builds with publish never
-status: proposed
+status: active
+approved: 2026-08-17
 created: 2026-08-17
 updated: 2026-08-17
 links:
