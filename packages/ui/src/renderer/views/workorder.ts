@@ -257,6 +257,24 @@ function contextPanel(ctx: Ctx, doc: VeriDocument): HTMLElement {
       );
     }) ?? [h('div', { class: 'pkg-loading' }, 'assembling…')];
 
+  // Layered packages (DEC-035): one aggregate row for the context map —
+  // hollow swatch per SRC-010's rule (filled = body present, hollow =
+  // named, not carried). The full annotated map ships in the package text.
+  const map = pkg?.summary.map;
+  const mapRows =
+    map === undefined
+      ? []
+      : [
+          h('div', { class: 'micro-label pkg-map-label' }, 'CONTEXT MAP'),
+          h(
+            'div',
+            { class: 'pkg-row' },
+            h('span', { class: 'pkg-swatch pkg-swatch-hollow' }),
+            h('span', { class: 'pkg-title' }, `${map.count} adjacent docs — enumerated, not inlined`),
+            h('span', { class: 'pkg-tokens' }, fmtTokens(map.tokens)),
+          ),
+        ];
+
   // Agent handoff (WO-011 / SRC-003): Start agent session picker, kickoff
   // prompt copy, and the full-package copy demoted to a ghost link.
   const start =
@@ -323,6 +341,7 @@ function contextPanel(ctx: Ctx, doc: VeriDocument): HTMLElement {
       'div',
       { class: 'pkg-card' },
       ...rows,
+      ...mapRows,
       h(
         'div',
         { class: 'pkg-note' },

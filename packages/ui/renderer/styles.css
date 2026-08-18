@@ -522,6 +522,8 @@ a:hover { color: #F49463; }
 .pkg-card { margin-top: 10px; border: 1px solid var(--int-border); border-radius: 8px; background: var(--bg); overflow: hidden; }
 .pkg-row { display: flex; align-items: center; gap: 9px; padding: 8px 11px; border-bottom: 1px solid #1A1A1F; }
 .pkg-swatch { width: 6px; height: 6px; border-radius: 2px; flex: 0 0 auto; }
+.pkg-swatch-hollow { background: transparent; border: 1px solid var(--ghost); }
+.pkg-map-label { padding: 8px 11px 2px; }
 .pkg-id { font-family: var(--mono); font-size: 10.5px; flex: 0 0 auto; }
 .pkg-title { font-size: 12px; color: var(--secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pkg-tokens { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--ghost); flex: 0 0 auto; }

@@ -203,6 +203,38 @@ test('packageSummary parses rows and totals out of get_context markdown', () => 
   );
 });
 
+test('packageSummary surfaces the context map aggregate, derived from the served text (SRC-017)', () => {
+  const layered = [
+    '# Context package · WO-001 — Build it',
+    '(2 docs · ~900 tokens)',
+    '',
+    '## Work order WO-001 — Build it · in-progress · ~200 tokens',
+    '',
+    '### REQ-001 — A req · accepted · ~300 tokens',
+    '',
+    '## Context map — 3 adjacent documents, not inlined',
+    '',
+    'Adjacent knowledge, enumerated instead of inlined.',
+    '',
+    '- DEC-001 — A · decision · active · via REQ-001 (constrains) · ~100 tokens',
+    '- DEC-002 — B · decision · superseded · via REQ-001 (constrains) · ~100 tokens',
+    '- WO-002 — C · work-order · backlog · via REQ-001 (relates-to) · ~50 tokens',
+    '',
+    '## Templates — how new documents start in this project',
+    '',
+    'stuff',
+  ].join('\n');
+  const summary = packageSummary(layered);
+  assert.equal(summary.map?.count, 3);
+  assert.ok(summary.map !== undefined && summary.map.tokens > 0 && summary.map.tokens < 200);
+  // Map rows never masquerade as inlined document rows.
+  assert.deepEqual(summary.rows.map((r) => r.id), ['WO-001', 'REQ-001']);
+
+  // Inline packages carry no map aggregate.
+  const inline = packageSummary('# Context package · WO-001 — Build it\n(1 docs · ~10 tokens)');
+  assert.equal(inline.map, undefined);
+});
+
 test('autocomplete triggers on [[ and inserts a closed wiki-link', () => {
   const req = doc({ id: 'REQ-001', type: 'requirement', title: 'Offline mode', status: 'accepted' });
   const s = snap([WO, req]);

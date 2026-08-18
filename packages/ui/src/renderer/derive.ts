@@ -307,11 +307,16 @@ export interface PackageSummary {
   rows: PackageRow[];
   docCount: number;
   totalTokens: number;
+  /** Layered assembly (DEC-035, SRC-017): the context map's aggregate —
+      how many adjacent documents are enumerated instead of inlined, and
+      the map section's own token size. Undefined for inline packages. */
+  map?: { count: number; tokens: number };
 }
 
 const CONVENTIONS_ROW_RE = /^## Project conventions \(CLAUDE\.md\) · ~(\d+) tokens$/;
 const DOC_ROW_RE = /^#{2,3} (?:Work order )?((?:REQ|DEC|WO|SRC)-\d{3}) — (.+) · [^·]+ · ~(\d+) tokens$/;
 const HEADER_RE = /^\((\d+) docs · ~(\d+) tokens\)$/;
+const MAP_HEADING_RE = /^## Context map — (\d+) adjacent documents, not inlined$/m;
 
 const TYPE_OF_PREFIX: Record<string, VeriDocument['type']> = {
   REQ: 'requirement',
@@ -351,7 +356,19 @@ export function packageSummary(packageText: string): PackageSummary {
       });
     }
   }
-  return { rows, docCount, totalTokens };
+  // The map aggregate derives from the served text like everything else, so
+  // the panel can never claim a mode the agent didn't receive (SRC-017).
+  const mapAt = MAP_HEADING_RE.exec(packageText);
+  if (mapAt === null) return { rows, docCount, totalTokens };
+  const rest = packageText.slice(mapAt.index + mapAt[0].length);
+  const nextSection = rest.search(/^## /m);
+  const section = (nextSection >= 0 ? rest.slice(0, nextSection) : rest).trim();
+  return {
+    rows,
+    docCount,
+    totalTokens,
+    map: { count: Number.parseInt(mapAt[1], 10), tokens: Math.ceil(section.length / 4) },
+  };
 }
 
 export interface ActivityRow {
