@@ -2,7 +2,7 @@
 id: WO-042
 type: work-order
 title: Make every shipped promise true
-status: in-progress
+status: done
 created: 2026-08-18
 updated: 2026-08-18
 links:
@@ -53,18 +53,18 @@ it happens must not document commands that don't exist.
 
 ## Acceptance tests
 
-- [ ] `veri context` exists, or no scaffolded or shipped text mentions
+- [x] `veri context` exists, or no scaffolded or shipped text mentions
       it — verified by test, not by grep discipline.
-- [ ] Every description of package contents matches `assembleContext`
+- [x] Every description of package contents matches `assembleContext`
       output.
-- [ ] Core contains no Veri-repo-specific path or heuristic; the design
+- [x] Core contains no Veri-repo-specific path or heuristic; the design
       gate triggers identically in any project via project-defined
       configuration.
-- [ ] The drift test fails when a scaffolded or described capability is
+- [x] The drift test fails when a scaffolded or described capability is
       removed from the build.
-- [ ] Full suite and `veri check` clean, including in a freshly
+- [x] Full suite and `veri check` clean, including in a freshly
       scaffolded project.
 
 ## Receipts
 
-(none yet)
+- 2026-08-18 — c709599 — packages/core/src (context.ts new, schema.ts, check.ts, index.ts, +tests, fixtures), packages/mcp/src (context.ts, server.ts, +e2e), packages/cli/src (cli.ts, commands.ts, drift.test.ts, +tests), packages/ui/src/renderer (derive.ts, workorder.ts, +tests), README.md, veri/workflow.md — veri context implemented per [[DEC-038]] (assembly moved to core, CLI and MCP serve one byte-identical package); design gate de-hardcoded per [[DEC-039]] (design_gate_paths in workflow frontmatter, declared for this repo); every package description reconciled with assembleContext; drift tests exercise scaffolded commands and tool descriptions against the build; 277 tests pass, veri check clean incl. fresh scaffold (agent session, Claude Code)
