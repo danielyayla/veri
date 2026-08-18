@@ -1,7 +1,8 @@
 /**
- * Sidebar working-set derivations (WO-014, SRC-005 layer 3). Pure — no DOM.
- * Lifecycle is the scale lever: type sections default to living docs and
- * expose the dead remainder behind a per-section expander.
+ * Sidebar and type-panel derivations (WO-035, SRC-014). Pure — no DOM.
+ * Lifecycle is the scale lever: sidebar collection rows show living counts
+ * and the panel lists living docs with the dead remainder behind an
+ * in-place expander, exactly as SRC-005 specified for the old tree.
  */
 import type { DocType, VeriDocument } from '@veri/core';
 
@@ -14,7 +15,7 @@ const LIVING: Record<DocType, string[] | null> = {
   workflow: ['draft', 'accepted'],
 };
 
-/** What a section's dead docs are called in its footer expander. */
+/** What a type's dead docs are called in the panel's expander. */
 export const DEAD_LABEL: Record<DocType, string> = {
   requirement: 'retired',
   decision: 'superseded',
@@ -28,31 +29,48 @@ export function isLiving(doc: VeriDocument): boolean {
   return living === null || living.includes(doc.status);
 }
 
-export interface TreeSection {
-  /** Rows to render, id-sorted: living only, or everything when expanded. */
-  shown: VeriDocument[];
-  /** Living count for the section header. */
-  livingCount: number;
-  /** Dead docs hidden behind the expander (0 hides the expander). */
-  deadCount: number;
+/** The sidebar collection row's count (SRC-014: living, not total). */
+export function livingCount(docs: VeriDocument[], type: DocType): number {
+  return docs.filter((d) => d.type === type && isLiving(d)).length;
 }
 
-export function treeSection(docs: VeriDocument[], type: DocType, showDead: boolean): TreeSection {
-  const all = docs.filter((d) => d.type === type).sort((a, b) => a.id.localeCompare(b.id));
-  const living = all.filter(isLiving);
+/** Ids are zero-padded, but numeric-aware descending keeps a 4-digit future safe. */
+const newestFirst = (a: VeriDocument, b: VeriDocument): number =>
+  b.id.localeCompare(a.id, undefined, { numeric: true });
+
+export interface PanelList {
+  /** PINNED group: this type's pinned docs, in the workspace-state order. */
+  pinned: VeriDocument[];
+  /** Living, unpinned, newest id first, filter-matched. */
+  living: VeriDocument[];
+  /** Dead docs behind the expander, newest id first, filter-matched. */
+  dead: VeriDocument[];
+  /** Total for the panel header — every doc of the type, unfiltered. */
+  total: number;
+}
+
+/** The type panel's rows (SRC-014): filter matches id + title across living
+    and dead; pinned docs float to their own group and leave the living list. */
+export function panelList(docs: VeriDocument[], type: DocType, filter: string, pinned: string[]): PanelList {
+  const all = docs.filter((d) => d.type === type);
+  const q = filter.trim().toLowerCase();
+  const match = (d: VeriDocument): boolean =>
+    q === '' || d.id.toLowerCase().includes(q) || d.title.toLowerCase().includes(q);
+  const living = all.filter((d) => isLiving(d) && match(d));
+  const pinnedRows = pinned
+    .map((id) => living.find((d) => d.id === id))
+    .filter((d): d is VeriDocument => d !== undefined);
   return {
-    shown: showDead || LIVING[type] === null ? all : living,
-    livingCount: living.length,
-    deadCount: all.length - living.length,
+    pinned: pinnedRows,
+    living: living.filter((d) => !pinned.includes(d.id)).sort(newestFirst),
+    dead: all.filter((d) => !isLiving(d) && match(d)).sort(newestFirst),
+    total: all.length,
   };
 }
 
-/** RECENT shows the last 8 opened docs, most recent first, excluding pinned. */
-export function visibleRecents(recents: string[], pinned: string[]): string[] {
-  return recents.filter((id) => !pinned.includes(id)).slice(0, 8);
-}
-
-/** Recents update on every doc open: front of the list, deduped, capped at 10. */
+/** Recents update on every doc open: front of the list, deduped, capped at 10.
+    The sidebar's RECENT section is gone (SRC-014) — the data stays persisted
+    for Home and the palette's recency boost. */
 export function pushRecent(recents: string[], id: string): string[] {
   return [id, ...recents.filter((r) => r !== id)].slice(0, 10);
 }

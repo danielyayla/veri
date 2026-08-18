@@ -1,13 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { VeriDocument } from '@veri/core';
-import { pushRecent, treeSection, visibleRecents } from './sidebar.ts';
+import { livingCount, panelList, pushRecent } from './sidebar.ts';
 
-function doc(id: string, type: VeriDocument['type'], status: string): VeriDocument {
+function doc(id: string, type: VeriDocument['type'], status: string, title = id): VeriDocument {
   return {
     id,
     type,
-    title: id,
+    title,
     status,
     created: '2026-08-01',
     updated: '2026-08-01',
@@ -25,39 +25,60 @@ const DOCS: VeriDocument[] = [
   doc('REQ-003', 'requirement', 'retired'),
   doc('DEC-002', 'decision', 'superseded'),
   doc('DEC-001', 'decision', 'active'),
-  doc('WO-001', 'work-order', 'done'),
-  doc('WO-002', 'work-order', 'in-progress'),
-  doc('WO-003', 'work-order', 'backlog'),
+  doc('WO-001', 'work-order', 'done', 'Bootstrap the parser'),
+  doc('WO-002', 'work-order', 'in-progress', 'Wire the graph'),
+  doc('WO-003', 'work-order', 'backlog', 'Ship the panel'),
   doc('SRC-001', 'source', 'imported'),
 ];
 
-test('sections default to living docs with living/dead counts', () => {
-  const req = treeSection(DOCS, 'requirement', false);
-  assert.deepEqual(req.shown.map((d) => d.id), ['REQ-001', 'REQ-002']);
-  assert.equal(req.livingCount, 2);
-  assert.equal(req.deadCount, 1);
-
-  const wo = treeSection(DOCS, 'work-order', false);
-  assert.deepEqual(wo.shown.map((d) => d.id), ['WO-002', 'WO-003']);
-  assert.equal(wo.deadCount, 1);
+test('sidebar collection counts are living, not total', () => {
+  assert.equal(livingCount(DOCS, 'requirement'), 2);
+  assert.equal(livingCount(DOCS, 'decision'), 1);
+  assert.equal(livingCount(DOCS, 'work-order'), 2);
+  assert.equal(livingCount(DOCS, 'source'), 1);
 });
 
-test('expanding a section shows dead docs in place, id-sorted', () => {
-  const dec = treeSection(DOCS, 'decision', true);
-  assert.deepEqual(dec.shown.map((d) => d.id), ['DEC-001', 'DEC-002']);
-  assert.equal(dec.livingCount, 1);
+test('panel lists living newest-first with dead behind the expander', () => {
+  const wo = panelList(DOCS, 'work-order', '', []);
+  assert.deepEqual(wo.living.map((d) => d.id), ['WO-003', 'WO-002']);
+  assert.deepEqual(wo.dead.map((d) => d.id), ['WO-001']);
+  assert.equal(wo.total, 3);
+  assert.deepEqual(wo.pinned, []);
 });
 
 test('sources have no lifecycle: everything is living, nothing is dead', () => {
-  const src = treeSection(DOCS, 'source', false);
-  assert.deepEqual(src.shown.map((d) => d.id), ['SRC-001']);
-  assert.equal(src.livingCount, 1);
-  assert.equal(src.deadCount, 0);
+  const src = panelList(DOCS, 'source', '', []);
+  assert.deepEqual(src.living.map((d) => d.id), ['SRC-001']);
+  assert.equal(src.dead.length, 0);
 });
 
-test('visible recents exclude pinned docs and cap at 8', () => {
-  const recents = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
-  assert.deepEqual(visibleRecents(recents, ['B']), ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I']);
+test('pinned docs float to the PINNED group in workspace order and leave the living list', () => {
+  const wo = panelList(DOCS, 'work-order', '', ['WO-002', 'REQ-001']);
+  assert.deepEqual(wo.pinned.map((d) => d.id), ['WO-002']);
+  assert.deepEqual(wo.living.map((d) => d.id), ['WO-003']);
+});
+
+test('filter matches id and title across living and dead rows', () => {
+  const byId = panelList(DOCS, 'work-order', 'wo-001', []);
+  assert.deepEqual(byId.dead.map((d) => d.id), ['WO-001']);
+  assert.equal(byId.living.length, 0);
+  const byTitle = panelList(DOCS, 'work-order', 'panel', []);
+  assert.deepEqual(byTitle.living.map((d) => d.id), ['WO-003']);
+  // The header total stays unfiltered.
+  assert.equal(byTitle.total, 3);
+});
+
+test('a filtered-out pin drops from the PINNED group', () => {
+  const wo = panelList(DOCS, 'work-order', 'graph', ['WO-003']);
+  assert.deepEqual(wo.pinned, []);
+  assert.deepEqual(wo.living.map((d) => d.id), ['WO-002']);
+});
+
+test('proposed decisions are living — pending docs stay visible (SRC-006)', () => {
+  const docs = [doc('DEC-001', 'decision', 'active'), doc('DEC-002', 'decision', 'proposed'), doc('DEC-003', 'decision', 'superseded')];
+  const dec = panelList(docs, 'decision', '', []);
+  assert.deepEqual(dec.living.map((d) => d.id), ['DEC-002', 'DEC-001']);
+  assert.equal(livingCount(docs, 'decision'), 2);
 });
 
 test('pushRecent fronts, dedupes, and caps at 10', () => {
@@ -67,12 +88,4 @@ test('pushRecent fronts, dedupes, and caps at 10', () => {
   assert.equal(next.length, 10);
   assert.equal(next[0], 'NEW');
   assert.ok(!next.includes('D9'));
-});
-
-test('proposed decisions are living — pending docs stay visible (SRC-006)', () => {
-  const docs = [doc('DEC-001', 'decision', 'active'), doc('DEC-002', 'decision', 'proposed'), doc('DEC-003', 'decision', 'superseded')];
-  const sec = treeSection(docs, 'decision', false);
-  assert.deepEqual(sec.shown.map((d) => d.id), ['DEC-001', 'DEC-002']);
-  assert.equal(sec.livingCount, 2);
-  assert.equal(sec.deadCount, 1);
 });

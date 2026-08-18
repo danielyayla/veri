@@ -30,7 +30,7 @@ import { editorScreen } from './views/editor.ts';
 import { paletteRows } from './palette.ts';
 import type { PaletteRow } from './palette.ts';
 import { TPL_TYPES, templatesView } from './views/templates.ts';
-import { DEAD_LABEL, isLiving, pushRecent, treeSection, visibleRecents } from './sidebar.ts';
+import { DEAD_LABEL, livingCount, panelList, pushRecent } from './sidebar.ts';
 
 export type View = 'home' | 'workorder' | 'homeview' | 'board' | 'graph' | 'decisions' | 'mcp' | 'templates';
 
@@ -62,11 +62,13 @@ export interface State {
   /** Working set (WO-014): per-project pins and recents, persisted in userData. */
   pinned: string[];
   recents: string[];
-  /** Sidebar session state (WO-014): per-type collapse and dead-doc expansion. */
-  sectionCollapsed: Partial<Record<DocType, boolean>>;
+  /** Type panel (WO-035, SRC-014): open collection, live filter, and the
+      dead-doc expander — session state, never persisted. */
+  panel: DocType | null;
+  panelFilter: string;
   showDead: Partial<Record<DocType, boolean>>;
-  /** Which rail item's instant tooltip is showing (view key or 'mcp'). */
-  railTip: string | null;
+  /** Interim settings popover at the sidebar foot (WO-035; WO-036 grows it). */
+  settingsPop: boolean;
   /** Review banner (SRC-006): approve-confirm popover and note composer. */
   reviewPop: boolean;
   /** Non-null while the request-changes composer is open; holds its draft. */
@@ -252,9 +254,10 @@ class App implements Ctx {
     agentLaunchMsg: null,
     pinned: [],
     recents: [],
-    sectionCollapsed: { source: true },
+    panel: null,
+    panelFilter: '',
     showDead: {},
-    railTip: null,
+    settingsPop: false,
     reviewPop: false,
     reviewText: null,
     toast: null,
@@ -293,14 +296,12 @@ class App implements Ctx {
   /** Doc-tab activation order, most recent first — drives the Documents nav. */
   private docMru: string[] = [];
   private dragIdx: number | null = null;
-  private pinDragIdx: number | null = null;
   /** The rendered palette rows' open actions, for the global Enter handler. */
   private palRowActions: Array<{ open(pinned: boolean): void }> = [];
   /** Caret position to restore after a name-edit re-render of the sheet. */
   private npNameCaret: number | null = null;
   /** Per-tab scroll positions (SRC-004 "State Management"), saved on re-render. */
   private scrollPos = new Map<string, number[]>();
-  private sidebarScroll = 0;
   private renderedTabId: string | null = null;
   private copyTimer: ReturnType<typeof setTimeout> | undefined;
   private toastTimer: ReturnType<typeof setTimeout> | undefined;
@@ -431,16 +432,24 @@ class App implements Ctx {
         e.key === 'Escape' &&
         (this.state.projectSwitcherOpen ||
           this.state.agentsOpen ||
+          this.state.settingsPop ||
           this.state.projectError !== null ||
           this.state.projectNotice !== null)
       ) {
-        this.update({ projectSwitcherOpen: false, agentsOpen: false, projectError: null, projectNotice: null });
+        this.update({
+          projectSwitcherOpen: false,
+          agentsOpen: false,
+          settingsPop: false,
+          projectError: null,
+          projectNotice: null,
+        });
       }
     });
     document.addEventListener('click', () => {
       if (
         this.state.projectSwitcherOpen ||
         this.state.agentsOpen ||
+        this.state.settingsPop ||
         this.state.projectError !== null ||
         this.state.projectNotice !== null ||
         this.state.newDoc !== null ||
@@ -449,6 +458,7 @@ class App implements Ctx {
         this.update({
           projectSwitcherOpen: false,
           agentsOpen: false,
+          settingsPop: false,
           projectError: null,
           projectNotice: null,
           newDoc: null,
@@ -556,21 +566,13 @@ class App implements Ctx {
     this.saveWorkspace();
   }
 
-  private reorderPin(from: number, to: number): void {
-    if (from === to || from < 0 || to < 0 || from >= this.state.pinned.length || to >= this.state.pinned.length) return;
-    const pinned = this.state.pinned.slice();
-    const [moved] = pinned.splice(from, 1);
-    pinned.splice(to, 0, moved);
-    this.update({ pinned });
-    this.saveWorkspace();
-  }
-
   private saveWorkspace(): void {
     void this.api.workspaceSave({ pinned: this.state.pinned, recents: this.state.recents });
   }
 
   setView(view: View): void {
-    const closed = { projectSwitcherOpen: false };
+    // Selecting any view closes the type panel and the settings popover (SRC-014).
+    const closed = { projectSwitcherOpen: false, panel: null, settingsPop: false };
     if (view === 'home' || view === 'workorder') {
       // Documents nav: focus the most recent doc tab, else open the first doc as preview.
       const open = new Set(this.state.tabs.map((t) => t.id));
@@ -1609,68 +1611,33 @@ class App implements Ctx {
     );
   }
 
-  /**
-   * Icon rail (WO-014): one 32×32 button per view plus the agent-connection
-   * button after the flex filler. Custom instant tooltips — native title has
-   * a ~1s delay that hurts icon-only nav. Clicks open preview view tabs.
-   */
-  private rail(): HTMLElement {
-    const tip = (key: string, label: string): HTMLElement | null =>
-      this.state.railTip === key ? h('span', { class: 'rail-tip' }, label) : null;
-    const hover = (key: string) => ({
-      onMouseenter: () => {
-        if (this.state.railTip !== key) this.update({ railTip: key });
-      },
-      onMouseleave: () => {
-        if (this.state.railTip === key) this.update({ railTip: null });
-      },
-    });
-    const items: Array<[View, string, string]> = [
-      ['homeview', 'Home', '⌂'],
-      ['board', 'Board', '▤'],
-      ['graph', 'Graph', '◉'],
-      ['decisions', 'Decisions', '§'],
-    ];
-    const { healthy, label } = this.mcpSummary();
-    return h(
-      'div',
-      { class: 'rail' },
-      ...items.map(([key, name, glyph]) =>
-        h(
-          'div',
-          {
-            class: this.state.activeTabId === key ? 'rail-btn rail-btn-active' : 'rail-btn',
-            onClick: () => this.setView(key),
-            ...hover(key),
-          },
-          h('span', {}, glyph),
-          tip(key, name),
-        ),
-      ),
-      h('div', { class: 'rail-fill' }),
-      // Templates settings (WO-024, SRC-009): above the agent button.
-      h(
-        'div',
-        {
-          class: this.state.activeTabId === 'templates' ? 'rail-btn rail-btn-active' : 'rail-btn rail-agent',
-          onClick: () => this.setView('templates'),
-          ...hover('templates'),
-        },
-        h('span', {}, '⚙'),
-        tip('templates', 'Templates'),
-      ),
-      h(
-        'div',
-        {
-          class: this.state.activeTabId === 'mcp' ? 'rail-btn rail-agent rail-agent-active' : 'rail-btn rail-agent',
-          onClick: () => this.setView('mcp'),
-          ...hover('mcp'),
-        },
-        h('span', {}, '⌁'),
-        h('span', { class: 'rail-dot', style: `background:${healthy ? '#7FAF8A' : '#D9A03F'};` }),
-        tip('mcp', label),
-      ),
-    );
+  /** Collections in sidebar order (SRC-014). */
+  private static readonly COLLECTIONS: readonly DocType[] = ['requirement', 'decision', 'source', 'work-order'];
+
+  /** Ghost hint per empty collection (WO-030's teaching empty states,
+      re-homed from the old tree into the type panel). */
+  private static readonly GHOST_HINT: Partial<Record<DocType, string>> = {
+    requirement: 'What must be true',
+    decision: 'What was chosen, and why',
+    'work-order': 'Work an agent can pick up',
+    source: 'Evidence brought in',
+  };
+
+  /** Focus request for the panel's filter input (autofocus on open). */
+  private tpFocus = false;
+  /** Caret position to restore after a filter-edit re-render. */
+  private tpCaret: number | null = null;
+  /** The panel list's scroll position, survives re-renders (reset on open). */
+  private panelScroll = 0;
+
+  /** Collection click (SRC-014): toggle the panel, never the active tab. */
+  private togglePanel(type: DocType): void {
+    const panel = this.state.panel === type ? null : type;
+    if (panel !== null) {
+      this.tpFocus = true;
+      this.panelScroll = 0;
+    }
+    this.update({ panel, panelFilter: '', settingsPop: false });
   }
 
   /** Honest config state of the agent connection — a static dot (no pulse:
@@ -1687,185 +1654,219 @@ class App implements Ctx {
     return { healthy, label };
   }
 
-  /** One PINNED/RECENT row: id chip + title, plus unpin ✕ and drag reorder
-      for pins. Clicks keep preview semantics like every browsing surface. */
-  private workingSetRow(id: string, pin: { index: number } | null): HTMLElement | null {
-    const doc = this.byId.get(id);
-    if (doc === undefined) return null;
-    const meta = TYPE_META[doc.type];
-    return h(
-      'div',
-      {
-        class: 'sb-row',
-        draggable: pin !== null,
-        onClick: (e) => this.openDoc(id, { preview: true, background: e.metaKey || e.ctrlKey }),
-        ...(pin !== null
-          ? {
-              onDragstart: () => {
-                this.pinDragIdx = pin.index;
-              },
-              onDragover: (e: DragEvent) => {
-                e.preventDefault();
-                if (this.pinDragIdx !== null && this.pinDragIdx !== pin.index) {
-                  this.reorderPin(this.pinDragIdx, pin.index);
-                  this.pinDragIdx = pin.index;
-                }
-              },
-              onDrop: (e: DragEvent) => e.preventDefault(),
-            }
-          : {}),
-      },
-      h('span', { class: 'sb-row-id', style: `color:${meta.color};` }, id),
-      h('span', { class: 'sb-row-title' }, doc.title),
-      pin !== null
-        ? h(
-            'span',
-            {
-              class: 'sb-unpin',
-              title: 'Unpin',
-              onClick: (e) => {
-                e.stopPropagation();
-                this.togglePin(id);
-              },
-            },
-            '✕',
-          )
-        : null,
-    );
-  }
-
+  /** The labeled sidebar (WO-035, SRC-014): Home, the four collections,
+      Board, Graph, and the Settings gear at the foot. Replaces the icon
+      rail and the working-set tree. */
   private sidebar(): HTMLElement {
-    // Rule 9: the sidebar highlight tracks the active tab, not browsing history.
-    const activeTab = this.state.activeTabId;
-
-    const pinnedRows = this.state.pinned.map((id, i) => this.workingSetRow(id, { index: i })).filter((r) => r !== null);
-    const recentRows = visibleRecents(this.state.recents, this.state.pinned)
-      .map((id) => this.workingSetRow(id, null))
-      .filter((r) => r !== null);
-
-    // Ghost hint rows (WO-030, SRC-013): one per empty type section, hint by
-    // default, the action on hover (CSS swap). Exists exactly while the
-    // section has zero documents — derived from the snapshot, nothing stored.
-    const GHOST_HINT: Record<string, string> = {
-      requirement: 'What must be true',
-      decision: 'What was chosen, and why',
-      'work-order': 'Work an agent can pick up',
-      source: 'Evidence brought in',
-    };
-
-    const tree = TYPE_ORDER.map((type) => {
-      const all = this.snap.documents.filter((d) => d.type === type);
+    const viewItem = (key: View, label: string, glyph: string): HTMLElement =>
+      h(
+        'div',
+        {
+          class: this.state.activeTabId === key ? 'nav-item nav-item-active' : 'nav-item',
+          onClick: () => this.setView(key),
+        },
+        h('span', { class: 'nav-glyph' }, glyph),
+        h('span', { class: 'nav-lbl' }, label),
+      );
+    const collItem = (type: DocType): HTMLElement => {
       const meta = TYPE_META[type];
-      const showDead = this.state.showDead[type] === true;
-      const collapsed = this.state.sectionCollapsed[type] === true;
-      const sec = treeSection(this.snap.documents, type, showDead);
-      const ghostRow =
-        all.length === 0 && !collapsed
-          ? h(
-              'div',
-              {
-                class: 'sb-ghost',
-                onClick: (e) => {
-                  e.stopPropagation();
-                  const rect = (e.currentTarget as Element).getBoundingClientRect();
-                  this.openNewDoc(type, { x: rect.left, y: rect.bottom + 6 });
-                },
-              },
-              h('span', { class: 'sb-ghost-plus' }, '+'),
-              h('span', { class: 'sb-ghost-hint' }, GHOST_HINT[type] ?? ''),
-              h('span', { class: 'sb-ghost-action' }, `New ${meta.label}…`),
-            )
-          : null;
-      const rows = collapsed
-        ? []
-        : sec.shown.map((d) => {
-            const active = activeTab === d.id;
-            const health = (this.issues.get(d.id) ?? []).length > 0;
-            const advisoryCount = (this.advisories.get(d.id) ?? []).length;
-            const dead = !isLiving(d);
-            const pending = isPending(d);
-            return h(
-              'div',
-              {
-                class: active ? 'sb-row sb-row-active' : 'sb-row',
-                title: pending ? 'Awaiting review' : undefined,
-                onClick: (e) => this.openDoc(d.id, { preview: true, background: e.metaKey || e.ctrlKey }),
-              },
-              pending ? h('span', { class: 'sb-pending' }) : null,
-              h('span', { class: 'sb-row-id', style: `color:${meta.color};` }, d.id),
-              h('span', { class: active ? 'sb-row-title sb-row-title-active' : 'sb-row-title' }, d.title),
-              // One indicator per row, amber issue dot > done ✓ > advisory ring (SRC-010).
-              health ? h('span', { class: 'sb-health' }) : null,
-              !health && dead ? h('span', { class: 'sb-done' }, '✓') : null,
-              !health && !dead && advisoryCount > 0
-                ? h('span', {
-                    class: 'sb-ring',
-                    title: `${advisoryCount} advisor${advisoryCount === 1 ? 'y' : 'ies'} — see document`,
-                  })
-                : null,
-            );
-          });
-      const expander =
-        collapsed || sec.deadCount === 0
-          ? null
-          : h(
-              'div',
-              {
-                class: 'sb-more',
-                onClick: () =>
-                  this.update({ showDead: { ...this.state.showDead, [type]: !showDead } }),
-              },
-              h('span', { class: 'sb-more-chev' }, showDead ? '▾' : '▸'),
-              h('span', {}, showDead ? `hide ${DEAD_LABEL[type]}` : `${sec.deadCount} ${DEAD_LABEL[type]}`),
-            );
+      const open = this.state.panel === type;
       return h(
         'div',
-        { class: 'sb-group' },
-        h(
-          'div',
-          {
-            class: 'sb-group-head',
-            onClick: () =>
-              this.update({ sectionCollapsed: { ...this.state.sectionCollapsed, [type]: !collapsed } }),
-          },
-          h('span', { class: 'sb-swatch', style: `background:${meta.color};` }),
-          h('span', { class: 'sb-group-label' }, meta.group),
-          h('span', { class: 'sb-group-count' }, String(sec.livingCount)),
-          h(
-            'span',
-            {
-              class: 'sb-add',
-              title: `New ${meta.label}`,
-              onClick: (e) => {
-                e.stopPropagation();
-                const rect = (e.currentTarget as Element).getBoundingClientRect();
-                this.openNewDoc(type, { x: rect.left, y: rect.bottom + 6 });
-              },
-            },
-            '+',
-          ),
-        ),
-        ...rows,
-        ghostRow,
-        expander,
+        {
+          class: open ? 'nav-item nav-item-active' : 'nav-item',
+          onClick: () => this.togglePanel(type),
+        },
+        h('span', { class: 'nav-swatch' }, h('i', { style: `background:${meta.color};` })),
+        h('span', { class: 'nav-lbl' }, meta.crumb),
+        h('span', { class: 'nav-cnt' }, String(livingCount(this.snap.documents, type))),
+        h('span', { class: 'nav-caret' }, open ? '◂' : '▸'),
       );
-    });
-
+    };
+    const { healthy, label } = this.mcpSummary();
+    const popRow = (glyph: string, text: string, view: View, meta: HTMLElement | null = null): HTMLElement =>
+      h(
+        'div',
+        {
+          class: 'pop-row',
+          onClick: (e) => {
+            e.stopPropagation();
+            this.setView(view);
+          },
+        },
+        h('span', { class: 'pop-glyph' }, glyph),
+        h('span', {}, text),
+        meta,
+      );
+    // Interim popover (WO-035): just the two re-homed surfaces, reached
+    // unchanged. WO-036 grows this into the grouped Settings menu + view.
+    const pop = this.state.settingsPop
+      ? h(
+          'div',
+          { class: 'settings-pop', onClick: (e) => e.stopPropagation() },
+          h('div', { class: 'pop-label' }, 'Settings'),
+          popRow('⌧', 'Templates', 'templates'),
+          popRow(
+            '⌁',
+            'Agent connection',
+            'mcp',
+            h(
+              'span',
+              { class: 'pop-meta' },
+              h('span', { class: 'settings-dot', style: `background:${healthy ? '#7FAF8A' : '#D9A03F'};` }),
+            ),
+          ),
+        )
+      : null;
     return h(
       'div',
       { class: 'sidebar' },
+      viewItem('homeview', 'Home', '⌂'),
+      h('div', { class: 'side-div' }),
+      ...App.COLLECTIONS.map(collItem),
+      h('div', { class: 'side-div' }),
+      viewItem('board', 'Board', '▤'),
+      viewItem('graph', 'Graph', '◉'),
+      h('div', { class: 'side-fill' }),
       h(
         'div',
-        { class: 'sb-tree' },
-        pinnedRows.length > 0
-          ? h('div', { class: 'sb-sec' }, h('div', { class: 'sb-sec-label' }, 'PINNED'), ...pinnedRows)
-          : null,
-        recentRows.length > 0
-          ? h('div', { class: 'sb-sec' }, h('div', { class: 'sb-sec-label' }, 'RECENT'), ...recentRows)
-          : null,
-        h('div', { class: 'sb-tree-divider' }),
-        ...tree,
+        { class: 'settings-row' },
+        h(
+          'div',
+          {
+            class:
+              this.state.activeTabId === 'templates' || this.state.activeTabId === 'mcp'
+                ? 'nav-item nav-item-active'
+                : 'nav-item',
+            title: label,
+            onClick: (e) => {
+              e.stopPropagation();
+              this.update({ settingsPop: !this.state.settingsPop });
+            },
+          },
+          h('span', { class: 'nav-glyph' }, '⚙︎'),
+          h('span', { class: 'nav-lbl' }, 'Settings'),
+          // Config state only — a static dot; a pulse would imply live
+          // client status, which REQ-005 forbids showing.
+          h('span', { class: 'settings-dot', style: `background:${healthy ? '#7FAF8A' : '#D9A03F'};` }),
+        ),
+        pop,
       ),
+    );
+  }
+
+  /** The 280px type panel (WO-035, SRC-014): a browser, not a route —
+      opening it never changes the active tab. */
+  private typePanel(): HTMLElement | null {
+    const type = this.state.panel;
+    if (type === null) return null;
+    const meta = TYPE_META[type];
+    const list = panelList(this.snap.documents, type, this.state.panelFilter, this.state.pinned);
+    const showDead = this.state.showDead[type] === true;
+    const row = (d: VeriDocument, pin: boolean): HTMLElement =>
+      h(
+        'div',
+        {
+          class: this.state.activeTabId === d.id ? 'tp-row tp-row-active' : 'tp-row',
+          onClick: (e) => this.openDoc(d.id, { preview: true, background: e.metaKey || e.ctrlKey }),
+          onDblclick: () => this.applyTabs(pinTab(this.tabState(), d.id)),
+        },
+        pin ? h('span', { class: 'tp-star' }, '★') : null,
+        h('span', { class: 'tp-id', style: `color:${meta.color};` }, d.id),
+        h('span', { class: 'tp-ttl' }, d.title),
+        h(
+          'span',
+          { class: 'tp-st', style: `color:${statusColor(d.status)};${d.status === 'done' ? 'opacity:.6;' : ''}` },
+          d.status,
+        ),
+      );
+    const rows: HTMLElement[] = [];
+    if (list.pinned.length > 0) {
+      rows.push(h('div', { class: 'tp-group' }, 'Pinned'), ...list.pinned.map((d) => row(d, true)));
+      rows.push(h('div', { class: 'tp-group' }, 'All'));
+    }
+    rows.push(...list.living.map((d) => row(d, false)));
+    if (list.dead.length > 0) {
+      rows.push(
+        h(
+          'div',
+          {
+            class: 'tp-more',
+            onClick: () => this.update({ showDead: { ...this.state.showDead, [type]: !showDead } }),
+          },
+          showDead ? `▾ hide ${DEAD_LABEL[type]}` : `▸ ${list.dead.length} ${DEAD_LABEL[type]}`,
+        ),
+      );
+      if (showDead) rows.push(...list.dead.map((d) => row(d, false)));
+    }
+    if (list.total === 0) {
+      // The teaching empty state (WO-030), re-homed from the old tree.
+      rows.push(
+        h(
+          'div',
+          {
+            class: 'tp-ghost',
+            onClick: (e) => {
+              e.stopPropagation();
+              const rect = (e.currentTarget as Element).getBoundingClientRect();
+              this.openNewDoc(type, { x: rect.left, y: rect.bottom + 6 });
+            },
+          },
+          h('span', { class: 'tp-ghost-plus' }, '+'),
+          h('span', { class: 'tp-ghost-hint' }, App.GHOST_HINT[type] ?? ''),
+          h('span', { class: 'tp-ghost-action' }, `New ${meta.label}…`),
+        ),
+      );
+    } else if (list.pinned.length + list.living.length + list.dead.length === 0) {
+      rows.push(h('div', { class: 'tp-empty' }, `No matches for “${this.state.panelFilter.trim()}”.`));
+    }
+    const input = h('input', {
+      placeholder: `Filter ${meta.crumb.toLowerCase()}…`,
+      value: this.state.panelFilter,
+      onInput: (e) => {
+        const el = e.target as HTMLInputElement;
+        this.tpCaret = el.selectionStart;
+        this.update({ panelFilter: el.value });
+      },
+    }) as HTMLInputElement;
+    input.spellcheck = false;
+    const caret = this.tpCaret;
+    this.tpCaret = null;
+    if (this.tpFocus) {
+      this.tpFocus = false;
+      queueMicrotask(() => input.focus());
+    } else if (caret !== null) {
+      queueMicrotask(() => {
+        input.focus();
+        input.setSelectionRange(caret, caret);
+      });
+    }
+    return h(
+      'div',
+      { class: 'typepanel' },
+      h(
+        'div',
+        { class: 'tp-head' },
+        h('span', { class: 'tp-swatch', style: `background:${meta.color};` }),
+        h('span', { class: 'tp-title' }, meta.crumb),
+        h('span', { class: 'tp-count' }, String(list.total)),
+        h(
+          'button',
+          {
+            class: 'tp-new',
+            title: `New ${meta.label}`,
+            onClick: (e) => {
+              e.stopPropagation();
+              const rect = (e.currentTarget as Element).getBoundingClientRect();
+              this.openNewDoc(type, { x: rect.left, y: rect.bottom + 6 });
+            },
+          },
+          '+',
+        ),
+        h('button', { class: 'tp-close', title: 'Close panel', onClick: () => this.update({ panel: null }) }, '✕'),
+      ),
+      h('div', { class: 'tp-filter' }, input),
+      h('div', { class: 'tp-list' }, ...rows),
     );
   }
 
@@ -1978,10 +1979,10 @@ class App implements Ctx {
       );
       return;
     }
-    // Save the outgoing DOM's scroll positions (per tab, plus the sidebar tree)
+    // Save the outgoing DOM's scroll positions (per tab, plus the type panel)
     // so full re-renders and tab switches restore them (SRC-004 expectation).
-    const oldTree = this.root.querySelector('.sb-tree');
-    if (oldTree !== null) this.sidebarScroll = oldTree.scrollTop;
+    const oldList = this.root.querySelector('.tp-list');
+    if (oldList !== null) this.panelScroll = oldList.scrollTop;
     if (this.renderedTabId !== null) {
       this.scrollPos.set(
         this.renderedTabId,
@@ -2008,9 +2009,16 @@ class App implements Ctx {
     const palette = this.paletteEl();
     const sheet = this.newProjectSheet();
     const toast = this.state.toast !== null ? h('div', { class: 'toast' }, this.state.toast) : null;
+    const panel = this.typePanel();
     this.root.replaceChildren(
       this.topbar(),
-      h('div', { class: 'body' }, this.rail(), this.sidebar(), h('div', { class: 'editor-area' }, this.tabStrip(), screen)),
+      h(
+        'div',
+        { class: 'body' },
+        this.sidebar(),
+        ...(panel !== null ? [panel] : []),
+        h('div', { class: 'editor-area' }, this.tabStrip(), screen),
+      ),
       ...(palette !== null ? [palette] : []),
       ...(sheet !== null ? [sheet] : []),
       ...(toast !== null ? [toast] : []),
@@ -2018,8 +2026,8 @@ class App implements Ctx {
     );
     this.state.editorFocused = false;
 
-    const newTree = this.root.querySelector('.sb-tree');
-    if (newTree !== null) newTree.scrollTop = this.sidebarScroll;
+    const newList = this.root.querySelector('.tp-list');
+    if (newList !== null) newList.scrollTop = this.panelScroll;
     this.renderedTabId = this.state.tabs.length === 0 ? null : this.state.activeTabId;
     const saved = this.renderedTabId !== null ? this.scrollPos.get(this.renderedTabId) : undefined;
     if (saved !== undefined) {

@@ -28,14 +28,14 @@ export function idChip(byId: DocsById, id: string, nav: Nav): HTMLElement {
   );
 }
 
-/** Document-header pin chip (WO-014): ☆ Pin / ★ Pinned, toggling the
-    sidebar working set. */
+/** Document-header pin chip (WO-014, WO-035): ☆ Pin / ★ Pinned, floating
+    the doc into its type panel's PINNED group. */
 export function pinChip(pinned: boolean, toggle: () => void): HTMLElement {
   return h(
     'div',
     {
       class: pinned ? 'pin-chip pin-chip-on' : 'pin-chip',
-      title: pinned ? 'Remove from the sidebar working set' : 'Keep in the sidebar working set',
+      title: pinned ? "Remove from the type panel's PINNED group" : "Keep at the top of the type panel",
       onClick: toggle,
     },
     h('span', {}, pinned ? '★' : '☆'),

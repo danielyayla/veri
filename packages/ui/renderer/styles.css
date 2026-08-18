@@ -189,70 +189,120 @@ a:hover { color: #F49463; }
 }
 .pal-foot-grammar { margin-left: auto; color: var(--ghost-2); }
 
-/* ===== Icon rail (WO-014, design/navigation-model/README.md) ===== */
-.rail {
-  width: 44px; flex: 0 0 auto; display: flex; flex-direction: column; align-items: center;
-  gap: 5px; padding: 10px 0; border-right: 1px solid var(--hair); background: #101013;
-}
-.rail-btn {
-  position: relative; width: 32px; height: 32px; border-radius: 7px;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--body-text); cursor: pointer; font-family: var(--mono); font-size: 14px;
-}
-.rail-btn:hover { background: #1B1B20; }
-.rail-btn-active { background: rgba(232,112,58,0.09); color: var(--ember-light); }
-.rail-btn-active:hover { background: rgba(232,112,58,0.09); }
-.rail-fill { flex: 1; }
-.rail-agent { color: var(--muted); }
-.rail-agent-active { background: #1B1B20; }
-.rail-dot {
-  position: absolute; top: 5px; right: 5px; width: 6px; height: 6px;
-  border-radius: 50%; border: 1px solid #101013;
-}
-/* Instant custom tooltip — native title's ~1s delay hurts icon-only nav. */
-.rail-tip {
-  position: absolute; left: 40px; top: 50%; transform: translateY(-50%);
-  background: #1F1F25; border: 1px solid #2B2B32; border-radius: 6px; padding: 4px 9px;
-  font-family: var(--sans); font-size: 11.5px; color: var(--text); white-space: nowrap;
-  z-index: 80; box-shadow: 0 6px 18px rgba(0,0,0,.4); pointer-events: none;
-}
-
-/* ===== Sidebar ===== */
+/* ===== Labeled sidebar (WO-035, design/sidebar-navigation/README.md) ===== */
 .sidebar {
-  width: 250px; flex: 0 0 auto; display: flex; flex-direction: column;
-  border-right: 1px solid var(--hair); background: var(--panel); min-height: 0;
+  width: 216px; flex: 0 0 auto; display: flex; flex-direction: column;
+  background: #101013; border-right: 1px solid var(--hair);
+  padding: 10px 8px 8px; min-height: 0;
 }
-.sb-tree { flex: 1; overflow-y: auto; padding: 6px 8px 16px; min-height: 0; }
-/* Working set (WO-014): PINNED and RECENT sections above the tree. */
-.sb-sec { margin-top: 8px; }
-.sb-sec + .sb-sec { margin-top: 10px; }
-.sb-sec-label {
-  padding: 0 10px 4px; font-family: var(--mono); font-size: 10px;
-  letter-spacing: .1em; color: var(--faint);
+.nav-item {
+  height: 28px; flex: 0 0 auto; display: flex; align-items: center; gap: 9px;
+  padding: 0 9px; border-radius: 6px;
+  color: var(--body-text); font-size: 13px; cursor: pointer; user-select: none;
 }
-.sb-unpin { margin-left: auto; color: #3F3D47; font-size: 10px; flex: 0 0 auto; padding: 2px 4px; }
-.sb-unpin:hover { color: var(--secondary); }
-.sb-tree-divider { height: 1px; background: var(--hair); margin: 12px 6px 0; }
-/* Dead-doc expander: "2 done" / "hide done" (lifecycle is the scale lever). */
-.sb-more {
-  display: flex; align-items: center; gap: 8px; height: 24px; padding: 0 10px;
-  border-radius: 6px; cursor: pointer; color: var(--ghost); font-size: 11.5px;
+.nav-item:hover { background: #1B1B20; }
+.nav-item-active { background: rgba(232,112,58,0.09); color: var(--ember-light); }
+.nav-item-active:hover { background: rgba(232,112,58,0.09); }
+.nav-glyph {
+  width: 16px; flex: 0 0 auto; text-align: center;
+  font-family: var(--mono); font-size: 13px; color: var(--muted);
 }
-.sb-more:hover { background: #1B1B20; color: var(--muted); }
-.sb-more-chev { font-family: var(--mono); font-size: 9px; width: 10px; text-align: center; }
-.sb-group { margin-top: 10px; }
-.sb-group-head { display: flex; align-items: center; gap: 7px; padding: 0 10px 4px; cursor: pointer; }
+.nav-item-active .nav-glyph { color: var(--ember-light); }
+.nav-swatch { width: 16px; flex: 0 0 auto; display: flex; justify-content: center; }
+.nav-swatch i { width: 7px; height: 7px; border-radius: 2px; display: block; }
+.nav-lbl { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-cnt { font-family: var(--mono); font-size: 10.5px; color: var(--ghost); }
+.nav-item-active .nav-cnt { color: var(--ember-light); opacity: .75; }
+.nav-caret { font-size: 9px; color: var(--ghost); width: 10px; text-align: center; }
+.nav-item-active .nav-caret { color: var(--ember-light); }
+.side-div { height: 1px; background: var(--hair); margin: 8px 6px; flex: 0 0 auto; }
+.side-fill { flex: 1; }
+/* Settings foot row: agent-connection config state as a static dot (REQ-005
+   forbids implying live client status, so no pulse). */
+.settings-row { position: relative; }
+.settings-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  box-shadow: 0 0 0 1px #101013; flex: 0 0 auto;
+}
+.settings-pop {
+  position: absolute; left: 6px; bottom: 36px; width: 204px;
+  background: var(--pop); border: 1px solid #2B2B32; border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.5); padding: 5px; z-index: 40;
+}
+.pop-label {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em;
+  color: var(--faint); text-transform: uppercase; padding: 5px 8px 4px;
+}
+.pop-row {
+  height: 28px; display: flex; align-items: center; gap: 9px;
+  padding: 0 8px; border-radius: 5px; font-size: 12.5px; color: var(--body-text);
+  cursor: pointer;
+}
+.pop-row:hover { background: #1F1F25; }
+.pop-glyph { width: 14px; text-align: center; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.pop-meta { margin-left: auto; display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 9.5px; color: var(--green); }
+.pop-meta .settings-dot { width: 5px; height: 5px; box-shadow: none; }
+
+/* Kept for the Templates view's type list (SRC-009). */
 .sb-swatch { width: 7px; height: 7px; border-radius: 2px; }
-.sb-group-label { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--faint); }
-.sb-group-count { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--ghost-2); }
-.sb-row { display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 10px; border-radius: 6px; cursor: pointer; }
-.sb-row:hover { background: #1B1B20; }
-.sb-row-active { background: rgba(232,112,58,0.08); }
-.sb-row-id { font-family: var(--mono); font-size: 10px; flex: 0 0 auto; }
-.sb-row-title { font-size: 12.5px; color: #A8A5AF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sb-row-title-active { color: var(--text); }
-.sb-health { margin-left: auto; width: 5px; height: 5px; border-radius: 50%; background: var(--amber); flex: 0 0 auto; }
-.sb-done { margin-left: auto; color: #5A7F64; font-size: 10px; flex: 0 0 auto; }
+
+/* ===== Type panel (WO-035, design/sidebar-navigation/README.md) ===== */
+.typepanel {
+  width: 280px; flex: 0 0 auto; background: var(--panel);
+  border-right: 1px solid var(--hair);
+  display: flex; flex-direction: column; overflow: hidden; min-height: 0;
+}
+.tp-head { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 13px 12px 10px; }
+.tp-swatch { width: 8px; height: 8px; border-radius: 2px; flex: 0 0 auto; }
+.tp-title {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--secondary); flex: 1;
+}
+.tp-count { font-family: var(--mono); font-size: 10.5px; color: var(--ghost); }
+.tp-new, .tp-close {
+  width: 20px; height: 20px; border-radius: 5px; border: none; background: none;
+  color: var(--ghost); cursor: pointer; font-family: var(--mono);
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.tp-new { font-size: 13px; }
+.tp-close { font-size: 11px; }
+.tp-new:hover, .tp-close:hover { background: #1B1B20; color: var(--secondary); }
+.tp-filter { padding: 0 10px 10px; flex: 0 0 auto; }
+.tp-filter input {
+  width: 100%; height: 27px; padding: 0 9px;
+  background: var(--bg); border: 1px solid var(--int-border); border-radius: 6px;
+  color: var(--text); font-family: var(--mono); font-size: 11px; outline: none;
+}
+.tp-filter input::placeholder { color: var(--ghost); }
+.tp-filter input:focus { border-color: #8A4A2C; }
+.tp-list { flex: 1; overflow-y: auto; padding: 0 6px 10px; min-height: 0; }
+.tp-group {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ghost); padding: 9px 8px 4px;
+}
+.tp-row { min-height: 28px; display: flex; align-items: center; gap: 8px; padding: 3px 8px; border-radius: 6px; cursor: pointer; }
+.tp-row:hover { background: #1B1B20; }
+.tp-row-active { background: rgba(232,112,58,0.09); }
+.tp-id { font-family: var(--mono); font-size: 10px; flex: 0 0 auto; width: 52px; }
+.tp-ttl { flex: 1; font-size: 12.5px; color: #A8A5AF; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tp-row-active .tp-ttl { color: var(--text); }
+.tp-st { font-family: var(--mono); font-size: 9px; flex: 0 0 auto; }
+.tp-star { font-size: 10px; color: var(--ember); flex: 0 0 auto; }
+.tp-more {
+  display: flex; align-items: center; gap: 6px; padding: 6px 8px;
+  font-size: 11.5px; color: var(--ghost); cursor: pointer; border-radius: 6px;
+}
+.tp-more:hover { color: var(--muted); }
+.tp-empty { padding: 14px 10px; font-size: 12px; color: var(--faint); }
+/* Teaching empty state (WO-030), re-homed from the old tree: hint by
+   default, the action on hover (CSS swap). */
+.tp-ghost { display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 3px 8px; border-radius: 6px; cursor: pointer; }
+.tp-ghost:hover { background: #1B1B20; }
+.tp-ghost-plus { color: var(--ghost-2); font-size: 12px; flex: 0 0 auto; }
+.tp-ghost-hint { font-size: 12px; font-style: italic; color: var(--ghost); }
+.tp-ghost:hover .tp-ghost-hint { display: none; }
+.tp-ghost-action { display: none; font-size: 12px; color: var(--muted); }
+.tp-ghost:hover .tp-ghost-action { display: inline; }
 
 /* ===== Editor area + tab strip (WO-012, tokens per SRC-004) ===== */
 .editor-area { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
@@ -946,14 +996,6 @@ a:hover { color: #F49463; }
 .tab-dirty .tab-close:hover .tab-close-x { display: inline; }
 .tab-dirty .tab-close:hover .tab-dirty-dot { display: none; }
 
-/* Sidebar + (new document), visible on group-header hover. */
-.sb-add {
-  margin-left: auto; color: var(--ghost); font-size: 14px; line-height: 1;
-  padding: 1px 5px; border-radius: 4px; visibility: hidden; cursor: pointer;
-}
-.sb-group-head:hover .sb-add { visibility: visible; }
-.sb-add:hover { color: var(--text); background: var(--int-border); }
-
 /* New-document popover (type segments + title) and dirty-close prompt. */
 .nd-pop, .cc-pop {
   position: fixed; z-index: 60; background: var(--pop); border: 1px solid var(--int-border);
@@ -1101,7 +1143,6 @@ a:hover { color: #F49463; }
 
 /* The advisory idiom: 5px hollow ring. */
 .adv-ring { width: 5px; height: 5px; border-radius: 50%; border: 1px solid var(--faint); flex: 0 0 auto; }
-.sb-ring { margin-left: auto; width: 5px; height: 5px; border-radius: 50%; border: 1px solid var(--faint); flex: 0 0 auto; }
 
 /* Home HEALTH card: grey sub-tier after the issue rows. */
 .hv-adv-count { color: var(--faint); }
@@ -1171,16 +1212,6 @@ a:hover { color: #F49463; }
 .hv-sh-btn-ghost:hover { border-color: var(--hover-border-2); }
 .hv-sh-caption { margin-top: 10px; font-size: 11.5px; color: var(--ghost); line-height: 1.5; }
 .hv-sh-code { font-family: var(--mono); font-size: 10.5px; }
-
-/* Sidebar ghost hint rows: hint at rest, the action on hover. */
-.sb-ghost { display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 10px; border-radius: 6px; cursor: pointer; }
-.sb-ghost:hover { background: #1B1B20; }
-.sb-ghost-plus { color: var(--ghost-2); font-size: 12px; flex: 0 0 auto; }
-.sb-ghost:hover .sb-ghost-plus { color: var(--muted); }
-.sb-ghost-hint { font-size: 12px; font-style: italic; color: var(--ghost); }
-.sb-ghost:hover .sb-ghost-hint { display: none; }
-.sb-ghost-action { display: none; font-size: 12px; color: var(--muted); }
-.sb-ghost:hover .sb-ghost-action { display: inline; }
 
 /* Agent connection: LIVE CHECK section + runtime pre-check notice. */
 .mcp-live-btn { display: inline-flex; align-items: center; height: 28px; margin-top: 10px; }
