@@ -2,7 +2,7 @@
 id: WO-039
 type: work-order
 title: Tab history and a visible working set
-status: in-progress
+status: done
 created: 2026-08-18
 updated: 2026-08-18
 links:
@@ -55,17 +55,24 @@ link before this order leaves backlog. [[SRC-004]] (tabs) and
 
 ## Acceptance tests
 
-- [ ] From a fresh tab, opening four documents by four different paths
+- [x] From a fresh tab, opening four documents by four different paths
       (chip, Connections card, palette, ⌘-click) then pressing back four
       times returns through all of them in order, scroll restored.
-- [ ] Forward re-walks the same trail; a new navigation from mid-history
+- [x] Forward re-walks the same trail; a new navigation from mid-history
       truncates the forward stack, browser-style.
-- [ ] The recents group is visible without opening the palette, ordered
+- [x] The recents group is visible without opening the palette, ordered
       newest-first, and capped.
-- [ ] Clicking the type segment of the crumb opens that type's panel.
-- [ ] Nothing under `veri/` changes when navigating; `veri check` stays
+- [x] Clicking the type segment of the crumb opens that type's panel.
+- [x] Nothing under `veri/` changes when navigating; `veri check` stays
       clean and the UI test suite passes.
 
 ## Receipts
 
-(none yet)
+- 2026-08-18 — 3eeee7c — packages/ui/src/renderer (tabs.ts rewritten as
+  history surfaces + tabs.test.ts, app.ts shell, editor.ts hook,
+  sidebar.ts, views/reader.ts, views/workorder.ts, views/editor.ts),
+  packages/ui/renderer/styles.css — per-tab back/forward per [[SRC-018]]
+  (in-place link navigation, ⌘[/⌘] + strip chevrons, per-entry scroll
+  restore), sidebar RECENT group, live type crumb; 285 tests pass,
+  `veri check` clean, trail/back/forward/crumb verified with headless
+  screenshots (agent session, Claude Code)
