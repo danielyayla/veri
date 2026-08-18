@@ -2,7 +2,7 @@
 id: WO-048
 type: work-order
 title: "Full search results and the related filter"
-status: in-progress
+status: done
 created: 2026-08-18
 updated: 2026-08-18
 links:
@@ -57,4 +57,4 @@ The palette caps at 8 rows with no all-results view, and asking "what touches WO
 
 ## Receipts
 
-(none yet)
+- 2026-08-18 — 75b7fc5 — packages/mcp/src/search.ts, packages/mcp/src/search.test.ts, packages/mcp/src/server.ts, packages/ui/src/renderer/tabs.ts, packages/ui/src/renderer/tabs.test.ts, packages/ui/src/renderer/palette.ts, packages/ui/src/renderer/palette.test.ts, packages/ui/src/renderer/searchview.ts, packages/ui/src/renderer/searchview.test.ts, packages/ui/src/renderer/views/search.ts, packages/ui/src/renderer/app.ts, packages/ui/renderer/styles.css, veri/decisions/DEC-044-mcp-search-routes-through-the-shared-palette-grammar.md, veri/ids, veri/work-orders/WO-048-full-search-results-and-the-related-filter.md — Agent session (Claude Code): related: filter in the shared search grammar, MCP search on the same grammar (DEC-044 proposed), singleton Search view with bolded snippets and the 200-row cap, palette overflow row and ⌘Enter; 377 tests green, veri check zero issues.
