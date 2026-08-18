@@ -41,11 +41,52 @@ test('collectGitFacts parses sha, subject, and files from real history', (t) => 
   repoWithHistory(cwd);
   const result = collectGitFacts(cwd);
   assert.equal(result.kind, 'ok');
-  const facts = (result as { facts: { commits: Array<{ sha: string; subject: string; files: string[] }> } }).facts;
+  const facts = (result as { facts: { commits: Array<{ sha: string; date: string; subject: string; files: string[] }> } }).facts;
   assert.equal(facts.commits.length, 1);
   assert.match(facts.commits[0].sha, /^[0-9a-f]{40}$/);
+  assert.match(facts.commits[0].date, /^\d{4}-\d{2}-\d{2}$/);
   assert.equal(facts.commits[0].subject, 'WO-001: build the thing');
   assert.deepEqual(facts.commits[0].files, ['thing.ts']);
+});
+
+test('check surfaces drift when an approved decision is edited after its stamp commit', async (t) => {
+  const cwd = tempDir();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  repoWithHistory(cwd);
+  init(cwd, { demo: false });
+  const decision = join(cwd, 'veri/decisions/DEC-001-a-choice.md');
+  const write = (body: string) =>
+    writeFileSync(
+      decision,
+      [
+        '---',
+        'id: DEC-001',
+        'type: decision',
+        'title: A choice',
+        'status: active',
+        'approved: 2026-08-10',
+        'created: 2026-08-01',
+        'updated: 2026-08-01',
+        '---',
+        '',
+        '## Choice',
+        '',
+        body,
+        '',
+      ].join('\n'),
+    );
+  write('The original choice.');
+  git(cwd, 'add', '.');
+  git(cwd, 'commit', '-q', '-m', 'DEC-001: approved');
+  write('A quietly different choice.');
+  git(cwd, 'add', '.');
+  git(cwd, 'commit', '-q', '-m', 'tweak the wording');
+  const result = await check(cwd);
+  assert.equal(result.code, 0, result.lines.join('\n'));
+  assert.ok(
+    result.lines.some((line) => line.includes('DEC-001 was approved 2026-08-10 but its file changed afterwards')),
+    result.lines.join('\n'),
+  );
 });
 
 test('veri implemented lists work orders from history, without needing a veri/ project', (t) => {

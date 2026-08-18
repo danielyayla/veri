@@ -261,3 +261,25 @@ test('core assembly policy carries the values this package used to hardcode (DEC
   assert.deepEqual(packingFor('decision', 'superseded'), { mode: 'name-only' });
   assert.deepEqual(packingFor('source', 'imported'), { mode: 'excerpt', chars: 600 });
 });
+
+test('the package carries the advisory tier for the subject work order — pure findings only (WO-045)', async (t) => {
+  // Copy the fixture and start WO-001: an in-progress work order linking the
+  // superseded DEC-002 is drift (revoked authority), and the package says so.
+  const { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const dir = mkdtempSync(join(tmpdir(), 'veri-context-advisory-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  cpSync(FIXTURE, dir, { recursive: true });
+  const workOrder = join(dir, 'veri/work-orders/WO-001-render-invoices.md');
+  writeFileSync(workOrder, readFileSync(workOrder, 'utf8').replace('status: backlog', 'status: in-progress'));
+
+  const { text } = await assembleContext(dir, 'WO-001');
+  const advisoriesAt = text.indexOf('## Advisories on this work order — informational, never blocking (DEC-025)');
+  assert.ok(advisoriesAt >= 0, 'package should carry the advisory section');
+  assert.ok(advisoriesAt > text.indexOf('## Work order WO-001'), 'advisories follow the work order');
+  assert.match(text, /WO-001 is in-progress but stands on DEC-002, which is superseded by DEC-001/);
+
+  // Backlog planning is not drift: the pristine fixture has no such section.
+  const pristine = await assembleContext(FIXTURE, 'WO-001');
+  assert.ok(!pristine.text.includes('stands on DEC-002'), 'backlog work order stays quiet');
+});

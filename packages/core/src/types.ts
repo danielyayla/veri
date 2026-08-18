@@ -46,7 +46,12 @@ export type Advisory =
   | { kind: 'receipt-commit-missing'; file: string; id: string; sha: string; message: string }
   | { kind: 'receipt-prefix'; file: string; id: string; sha: string; subject: string; message: string }
   | { kind: 'receipt-files'; file: string; id: string; sha: string; message: string }
-  | { kind: 'receipt-unverified'; file: string; id: string; message: string };
+  | { kind: 'receipt-unverified'; file: string; id: string; message: string }
+  // Drift (WO-045, REQ-021): the knowledge base moved out from under its
+  // own stamps. Advisories whisper — they inform and never block (DEC-025).
+  | { kind: 'drift-superseded-link'; file: string; id: string; targetId: string; message: string }
+  | { kind: 'drift-edited-after-done'; file: string; id: string; workOrderId: string; sha: string; message: string }
+  | { kind: 'drift-approved-edited'; file: string; id: string; sha: string; message: string };
 
 export type Issue =
   | {

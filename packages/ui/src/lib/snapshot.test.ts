@@ -53,3 +53,33 @@ test('editing the effective template changes advisories on the next snapshot (DE
   assert.deepEqual(snap.advisories, []);
   assert.deepEqual(snap.issues, []);
 });
+
+test('this host collects git facts: git-backed drift joins the snapshot advisory tier (WO-045)', async (t) => {
+  const { spawnSync } = await import('node:child_process');
+  const dir = sandbox(t);
+  const git = (...args: string[]) => {
+    const run = spawnSync('git', args, { cwd: dir, encoding: 'utf8' });
+    assert.equal(run.status, 0, run.stderr);
+  };
+  git('init', '-q');
+  git('config', 'user.email', 'test@example.com');
+  git('config', 'user.name', 'Test');
+  const decision = join(dir, 'veri/decisions/DEC-001-a-choice.md');
+  const write = (body: string) =>
+    writeFileSync(
+      decision,
+      `---\nid: DEC-001\ntype: decision\ntitle: A choice\nstatus: active\napproved: 2026-08-10\ncreated: 2026-08-01\nupdated: 2026-08-01\n---\n\n## Choice\n\n${body}\n\n## Rejected alternatives\n\n- none\n\n## Rationale\n\nbecause\n`,
+    );
+  write('The original choice.');
+  git('add', '.');
+  git('commit', '-q', '-m', 'DEC-001: approved');
+  write('A quietly different choice.');
+  git('add', '.');
+  git('commit', '-q', '-m', 'tweak the wording');
+
+  const snap = await buildSnapshot(dir);
+  assert.deepEqual(snap.issues, []);
+  const drift = snap.advisories.filter((advisory) => advisory.kind === 'drift-approved-edited');
+  assert.equal(drift.length, 1);
+  assert.match(drift[0].message, /DEC-001 was approved 2026-08-10 but its file changed afterwards/);
+});

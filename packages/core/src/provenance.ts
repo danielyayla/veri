@@ -9,6 +9,8 @@ import { receiptsSection } from './check.ts';
 export interface CommitFact {
   /** Full hex SHA. */
   sha: string;
+  /** Committer date, YYYY-MM-DD (git %cs). */
+  date: string;
   /** First line of the commit message. */
   subject: string;
   /** Repo-root-relative paths the commit touched. */
@@ -18,6 +20,38 @@ export interface CommitFact {
 /** Commits newest-first, as `git log` emits them. */
 export interface GitFacts {
   commits: CommitFact[];
+}
+
+/**
+ * Parse `git log --name-only --format='%x01%H%x02%cs%x02%s'` output into
+ * facts. Pure text transform — hosts run git (DEC-040), core reads bytes.
+ * \x01 separates commits, \x02 the fields; those bytes cannot appear in a
+ * SHA, a date, or a subject line, so no escaping rules are needed.
+ */
+export const GIT_LOG_FORMAT = '%x01%H%x02%cs%x02%s';
+
+export function parseGitLog(stdout: string): GitFacts {
+  const commits = stdout
+    .split('\x01')
+    .filter((entry) => entry.includes('\x02'))
+    .map((entry) => {
+      const [sha, date, rest] = [
+        entry.slice(0, entry.indexOf('\x02')),
+        entry.slice(entry.indexOf('\x02') + 1, entry.lastIndexOf('\x02')),
+        entry.slice(entry.lastIndexOf('\x02') + 1),
+      ];
+      const lines = rest.split('\n');
+      return {
+        sha: sha.trim(),
+        date: date.trim(),
+        subject: lines[0],
+        files: lines
+          .slice(1)
+          .map((line) => line.trim())
+          .filter((line) => line !== ''),
+      };
+    });
+  return { commits };
 }
 
 /**

@@ -1,9 +1,9 @@
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, checkProject, checkProvenance, classifyFormat, createDocument, formatStatement, isOperableFormat, loadProject, migrateProject, scaffoldProject, workOrdersTouching } from '@veri/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, checkDrift, checkProject, checkProvenance, classifyFormat, createDocument, formatStatement, isOperableFormat, loadProject, migrateProject, scaffoldProject, workOrdersTouching } from '@veri/core';
 import type { DocType, FormatClassification, Issue } from '@veri/core';
 import { collectGitFacts } from './git.ts';
 
@@ -73,6 +73,14 @@ function fileOf(issue: Issue): string {
   return issue.kind === 'duplicate-id' ? issue.files.join(', ') : issue.file;
 }
 
+/** The veri/ directory's repo-root-relative path with forward slashes, for
+    mapping document files onto the paths git reports (WO-045). Both sides
+    resolve through realpath — git reports the toplevel symlink-resolved
+    (macOS /var vs /private/var), the cwd may not be. */
+function veriPathInRepo(repoRoot: string, veriDir: string): string {
+  return relative(realpathSync(repoRoot), realpathSync(veriDir)).split(sep).join('/');
+}
+
 /** One line naming the format version — and the migration, when one applies (REQ-015). */
 function formatLine(format: FormatClassification): string {
   if (format.kind === 'current') return `format ${format.version} (current)`;
@@ -84,11 +92,13 @@ export async function check(cwd: string): Promise<CmdResult> {
   if (dir === null) return NO_VERI_DIR;
   const load = await loadProject(dir);
   const { issues, advisories } = checkProject(load);
-  // Receipt verification (WO-044): git facts come from the host, checks stay
-  // pure in core (DEC-040). No repository means a note, never a failure.
+  // Receipt verification (WO-044) and git drift (WO-045): git facts come
+  // from the host, checks stay pure in core (DEC-040). No repository means
+  // a note, never a failure.
   const git = collectGitFacts(cwd);
   if (git.kind === 'ok') {
     advisories.push(...checkProvenance(load.documents, git.facts));
+    advisories.push(...checkDrift(load.documents, git.facts, veriPathInRepo(git.root, dir)));
   }
   const skipNote = git.kind === 'ok' ? [] : [`(provenance: skipped — ${git.reason})`];
   // Advisories print after issues and never touch the count or exit code (DEC-025).

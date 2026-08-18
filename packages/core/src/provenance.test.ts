@@ -29,11 +29,13 @@ const FACTS: GitFacts = {
   commits: [
     {
       sha: 'aaaa111aaaa111aaaa111aaaa111aaaa111aaaa1',
+      date: '2026-08-18',
       subject: 'WO-001: build the thing',
       files: ['packages/core/src/thing.ts', 'packages/core/src/thing.test.ts'],
     },
     {
       sha: 'bbbb222bbbb222bbbb222bbbb222bbbb222bbbb2',
+      date: '2026-08-17',
       subject: 'unrelated housekeeping',
       files: ['README.md'],
     },

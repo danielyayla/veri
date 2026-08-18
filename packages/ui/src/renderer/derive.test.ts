@@ -123,7 +123,8 @@ test('advisoriesByDoc groups by carried doc id and drops unknown ids', () => {
   const s = snap([req], [], [adv('REQ-001'), adv('REQ-999')]);
   const byDoc = advisoriesByDoc(s);
   assert.equal(byDoc.get('REQ-001')!.length, 1);
-  assert.equal(byDoc.get('REQ-001')![0].section, 'Acceptance criteria');
+  const first = byDoc.get('REQ-001')![0];
+  assert.equal(first.kind === 'missing-section' ? first.section : undefined, 'Acceptance criteria');
   assert.equal(byDoc.has('REQ-999'), false);
   // Advisories never leak into the issue map (DEC-025).
   assert.equal(issuesByDoc(s).size, 0);

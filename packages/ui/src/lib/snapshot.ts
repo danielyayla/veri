@@ -1,9 +1,9 @@
 import { execFile } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { existsSync, realpathSync } from 'node:fs';
+import { basename, join, relative, sep } from 'node:path';
 import { promisify } from 'node:util';
-import { buildGraph, checkProject, loadProject } from '@veri/core';
-import type { Advisory, Edge, Issue, VeriDocument } from '@veri/core';
+import { GIT_LOG_FORMAT, buildGraph, checkDrift, checkProject, checkProvenance, loadProject, parseGitLog } from '@veri/core';
+import type { Advisory, Edge, GitFacts, Issue, VeriDocument } from '@veri/core';
 
 const run = promisify(execFile);
 
@@ -42,6 +42,28 @@ async function gitInfo(root: string): Promise<GitInfo | null> {
   }
 }
 
+/**
+ * The Electron host's git-facts collector (DEC-040): the same core checks the
+ * CLI runs, fed by this host's own git shelling. Any failure — no git, no
+ * repository, shallow clone — degrades to null and the git-backed advisories
+ * simply don't appear; the pure tier always does.
+ */
+async function gitFactsFor(projectRoot: string, veriDir: string): Promise<{ facts: GitFacts; veriPath: string } | null> {
+  try {
+    const opts = { cwd: projectRoot, maxBuffer: 64 * 1024 * 1024 };
+    const shallow = await run('git', ['rev-parse', '--is-shallow-repository'], opts);
+    if (shallow.stdout.trim() === 'true') return null;
+    const toplevel = await run('git', ['rev-parse', '--show-toplevel'], opts);
+    const log = await run('git', ['log', '--name-only', `--format=${GIT_LOG_FORMAT}`], opts);
+    // realpath both sides: git resolves symlinks in the toplevel (macOS
+    // /var vs /private/var); the project path may arrive unresolved.
+    const veriPath = relative(realpathSync(toplevel.stdout.trim()), realpathSync(veriDir)).split(sep).join('/');
+    return { facts: parseGitLog(log.stdout), veriPath };
+  } catch {
+    return null;
+  }
+}
+
 export async function buildSnapshot(projectRoot: string): Promise<Snapshot> {
   const veriDir = join(projectRoot, 'veri');
   if (!existsSync(veriDir)) throw new Error(`no veri/ directory under ${projectRoot}`);
@@ -50,6 +72,13 @@ export async function buildSnapshot(projectRoot: string): Promise<Snapshot> {
   // Both tiers ship (WO-026, SRC-010), but every health count and color in
   // the renderer stays driven by `issues` alone (DEC-025).
   const { issues, advisories } = checkProject(load);
+  // Git-backed advisories — receipt verification (WO-044) and drift
+  // (WO-045) — join the same tier when this host can collect facts.
+  const git = await gitFactsFor(projectRoot, veriDir);
+  if (git !== null) {
+    advisories.push(...checkProvenance(load.documents, git.facts));
+    advisories.push(...checkDrift(load.documents, git.facts, git.veriPath));
+  }
   return {
     projectName: basename(projectRoot),
     root: projectRoot,

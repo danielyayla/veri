@@ -1,7 +1,8 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildGraph } from './graph.ts';
-import { isPending } from './check.ts';
+import { checkStructure, isPending } from './check.ts';
+import { checkSupersededLinks } from './drift.ts';
 import { DOC_TYPES } from './ids.ts';
 import { loadProject } from './load.ts';
 import { ASSEMBLY_POLICY, INLINE_THRESHOLD_TOKENS, packingFor } from './schema.ts';
@@ -152,6 +153,21 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
     {
       const { heading, text } = renderFull(workOrder, '## Work order');
       push(heading, text);
+    }
+    // The advisory tier for the subject work order (WO-045) — pure findings
+    // only, so the package stays byte-identical across CLI and MCP (DEC-038)
+    // and the MCP server stays subprocess-free (DEC-037). Git-backed
+    // advisories surface in `veri check` and the UI instead.
+    {
+      const advisories = [
+        ...checkStructure(veriDir, [workOrder]),
+        ...checkSupersededLinks(documents).filter((advisory) => advisory.id === workOrder.id),
+      ];
+      if (advisories.length > 0) {
+        const text = `${advisories.map((advisory) => `- ${advisory.message}`).join('\n')}\n`;
+        totalTokens += estimateTokens(text);
+        parts.push(`## Advisories on this work order — informational, never blocking (DEC-025)\n\n${text}`);
+      }
     }
     if (requirements.length > 0) {
       parts.push('## Requirements');
