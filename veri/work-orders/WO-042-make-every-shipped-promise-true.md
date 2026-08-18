@@ -2,12 +2,14 @@
 id: WO-042
 type: work-order
 title: Make every shipped promise true
-status: backlog
+status: in-progress
 created: 2026-08-18
 updated: 2026-08-18
 links:
   - id: REQ-019
     rel: implements
+  - id: SRC-016
+    rel: designed-by
 ---
 
 ## Summary
