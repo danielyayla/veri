@@ -2,7 +2,7 @@
 id: WO-045
 type: work-order
 title: "First drift advisories on the advisory chassis"
-status: backlog
+status: in-progress
 created: 2026-08-18
 updated: 2026-08-18
 links:
@@ -16,6 +16,8 @@ links:
     rel: depends-on
   - id: WO-044
     rel: related
+  - id: SRC-010
+    rel: designed-by
 ---
 
 ## Summary
@@ -27,7 +29,7 @@ The advisory chassis (WO-025/WO-026, DEC-025) checks structure but not time: not
 - Drift detector: requirement (or decision) whose file changed in git after the `done` date/receipt commit of a work order that `implements` it.
 - Drift detector: work order with status `in-progress` or `backlog`-promoted-to-active linking a decision whose status is `superseded`.
 - Drift detector: document bearing an `approved:` stamp whose body changed in commits after the stamp was applied, excluding guarded-line lifecycle edits made by `veri approve` itself.
-- Wiring the three detectors into the existing advisory assembly so they appear wherever advisories already appear: `veri check` output, the UI advisories surface, and context packages.
+- Wiring the three detectors into the existing advisory assembly: `veri check` output and the UI advisories surface carry all three (each host collects its own git facts, DEC-040); context packages gain the advisory tier for the subject work order — pure findings only, since the MCP server is subprocess-free (DEC-037) and packages are byte-identical across CLI and MCP (DEC-038).
 - Timestamp derivation from git commit history only — no sidecar metadata, no cached state (derive, don't book-keep).
 - Fixture-repo tests for each detector, including the negative cases (an edit before close is not drift; a done work order citing a superseded decision is history, not drift).
 
@@ -51,7 +53,7 @@ The advisory chassis (WO-025/WO-026, DEC-025) checks structure but not time: not
 - [ ] Editing a requirement after its implementing work order is done yields an advisory naming both documents; editing it before close yields nothing.
 - [ ] An in-progress work order linking a superseded decision yields an advisory; a done work order linking one does not.
 - [ ] Changing an approved document's body after its stamp yields an advisory; the approve flow's own guarded-line writes do not.
-- [ ] All three advisories appear in `veri check` output, the UI advisories surface, and context packages via the existing pipeline, with zero new renderer code.
+- [ ] All three advisories appear in `veri check` output and the UI advisories surface through the existing pipeline with zero new renderer code; context packages carry the advisory tier's pure findings (including superseded-authority drift) for the subject work order, honoring DEC-037 and DEC-038.
 - [ ] `veri check` exit status is unaffected by drift advisories (DEC-025).
 - [ ] Detectors run from git history on demand; no new files or caches appear in the knowledge base.
 - [ ] This repo's own corpus is scanned: each finding is a true drift or the detector is fixed.
