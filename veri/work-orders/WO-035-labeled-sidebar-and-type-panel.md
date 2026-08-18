@@ -2,7 +2,7 @@
 id: WO-035
 type: work-order
 title: Labeled sidebar and type panel
-status: in-progress
+status: done
 created: 2026-08-18
 updated: 2026-08-18
 links:
@@ -67,21 +67,21 @@ design bundle in `design/sidebar-navigation/` is the visual spec
 
 ## Acceptance tests
 
-- [ ] Icon rail and working-set sidebar are gone; the labeled
+- [x] Icon rail and working-set sidebar are gone; the labeled
       sidebar matches the bundle (rows, swatches, living counts,
       carets, group dividers, Settings foot row with status dot)
-- [ ] Clicking a collection toggles its panel without changing the
+- [x] Clicking a collection toggles its panel without changing the
       active tab; clicking any view row closes the panel
-- [ ] Panel filter matches id and title across living and dead
+- [x] Panel filter matches id and title across living and dead
       rows; dead documents sit behind a dimmed expander with
       correct counts
-- [ ] Row click opens the shared preview tab; double-click pins
-- [ ] Existing pins appear in PINNED groups and survive restart
+- [x] Row click opens the shared preview tab; double-click pins
+- [x] Existing pins appear in PINNED groups and survive restart
       per [[DEC-014]]; RECENT is gone and Home's Recently-changed
       card still works
-- [ ] Templates and Agent connection remain reachable via the gear
-- [ ] `veri check` and `npm test` are clean
+- [x] Templates and Agent connection remain reachable via the gear
+- [x] `veri check` and `npm test` are clean
 
 ## Receipts
 
-(none yet)
+- 2026-08-18 — d920297 — packages/ui/src/renderer/sidebar.ts, packages/ui/src/renderer/sidebar.test.ts, packages/ui/src/renderer/app.ts, packages/ui/src/renderer/widgets.ts, packages/ui/renderer/styles.css — claude-code session: full implementation after Daniel approved SRC-014 (2026-08-18). Labeled 216px sidebar replaces the rail + tree; 280px type panel (filter over id+title, PINNED group from the DEC-014 workspace state, newest-first living list, in-place dead expander, WO-030 ghost row re-homed for empty collections); browser-not-route semantics with WO-012 preview/double-click-pin opens; RECENT retired; interim gear popover reaches Templates and Agent connection. Two deliberate deltas from the bundle, both flagged to Daniel: the agent-status dot is static (a pulse would imply live client status, which REQ-005 forbids) and the panel header gains a small + so document creation stays reachable with the per-section + gone. Verified via the screenshot harness against this repo (panel open/closed, pins, expander, filter, settings popover, empty project). 252 tests pass across the workspace, veri check clean.
