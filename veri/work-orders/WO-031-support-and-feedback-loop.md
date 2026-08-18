@@ -2,9 +2,9 @@
 id: WO-031
 type: work-order
 title: Support and feedback loop
-status: in-progress
+status: done
 created: 2026-08-17
-updated: 2026-08-17
+updated: 2026-08-18
 links:
   - id: REQ-014
     rel: implements
@@ -62,9 +62,9 @@ Implements [[REQ-014]] — support and feedback loop.
 
 ## Acceptance tests
 
-- [ ] Help-menu action opens a new GitHub issue prefilled with app
+- [x] Help-menu action opens a new GitHub issue prefilled with app
       version and macOS version in one step
-- [ ] The repository presents the issue template to anyone filing
+- [x] The repository presents the issue template to anyone filing
       manually; it requests repro steps and the log file
 - [x] A failed update check (offline launch) is absent from the
       UI but present in the log at the documented path
@@ -78,3 +78,4 @@ Implements [[REQ-014]] — support and feedback loop.
 ## Receipts
 
 - 2026-08-17 — e6dee5b — ["packages/ui/src/lib/log.ts", "packages/ui/src/lib/log.test.ts", "packages/ui/src/lib/report.ts", "packages/ui/src/lib/report.test.ts", "packages/ui/src/lib/updater.ts", "packages/ui/src/main.ts", ".github/ISSUE_TEMPLATE/bug_report.yml", ".github/ISSUE_TEMPLATE/feedback.yml", "site/docs/troubleshooting.html", "veri/decisions/DEC-034-hand-rolled-append-only-logger-at-electron-s-canonical-logs.md", "veri/sources/SRC-011-design-gate-note-work-orders-without-a-design-artifact.md", "veri/work-orders/WO-031-support-and-feedback-loop.md"] — claude-code session: DEC-034 filed proposed (hand-rolled logger over electron-log; ~/Library/Logs/Veri/main.log pinned via setAppLogsPath — the default would nest under Logs/@veri/ui; 512 KB cap rolling once to main.old.log). Updater wired through the logger with truncated detail lines plus one greppable outcome line per failure; lifecycle and MCP-config writes logged, paths and outcomes only. Help ▸ Report an Issue… opens the bug_report.yml form with app-version/macos-version prefilled (ids are a contract with report.ts); feedback.yml as the lighter template; troubleshooting page gained the log-file section and the Help-menu path. Verified against a packaged dir-target build with a doctored feed: 404 present at the documented path, absent from the UI. 250 tests + veri check clean. Remaining for the first two acceptance boxes: push, then confirm the live issue form renders prefilled from the menu URL.
+- 2026-08-18 — b410e24 — ["veri/decisions/DEC-034-hand-rolled-append-only-logger-at-electron-s-canonical-logs.md", "veri/work-orders/WO-031-support-and-feedback-loop.md"] — claude-code session: Daniel approved DEC-034 (active) and asked to push. Pushed main; the site deploy hit GitHub-side flakiness (a 503 creating the Pages deployment, then a rerun refused because rerunning the job had uploaded a duplicate github-pages artifact) — a fresh workflow_dispatch run deployed clean. Live verification: troubleshooting page serves the log-file section; the issue chooser presents both templates; the exact Help-menu URL renders the bug form with Veri version 0.1.3 and macOS version 15.7.3 prefilled. Both remaining acceptance boxes checked; WO done.
