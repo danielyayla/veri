@@ -6,6 +6,8 @@ status: backlog
 created: 2026-08-18
 updated: 2026-08-18
 links:
+  - id: REQ-021
+    rel: implements
   - id: SRC-016
     rel: derived-from
   - id: DEC-025
