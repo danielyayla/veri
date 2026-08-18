@@ -20,11 +20,11 @@ links:
     rel: constrained-by
 ---
 
-> **Proposed — awaiting Daniel's approval.** Drafted 2026-08-18 from
-> the navigation consolidation direction; the high-fidelity handoff
+> **Approved by Daniel 2026-08-18.** Drafted 2026-08-18 from the
+> navigation consolidation direction; the high-fidelity handoff
 > bundle (README + interactive prototype) lives in
-> `design/sidebar-navigation/`. Do not implement until this document
-> carries an approval stamp.
+> `design/sidebar-navigation/`. Implementation proceeds as the two
+> work orders proposed below ([[WO-035]], [[WO-036]]).
 
 Consolidates primary navigation: the icon rail and the working-set
 sidebar merge into one labeled sidebar, document browsing moves to a
@@ -109,10 +109,11 @@ the panel is the browse path.
 ## Proposed work order split
 
 Two work orders, independently shippable, in value order — filed
-separately on approval:
+on approval 2026-08-18:
 
-1. **Labeled sidebar + type panel** — replaces the rail and tree,
-   migrates pins to the panel's PINNED group, retires RECENT.
-2. **Settings area** — gear popover + Settings view; re-homes the
-   template settings view and agent connection panel; adds Project
-   settings and Updates sections.
+1. **Labeled sidebar + type panel** ([[WO-035]]) — replaces the
+   rail and tree, migrates pins to the panel's PINNED group,
+   retires RECENT.
+2. **Settings area** ([[WO-036]]) — gear popover + Settings view;
+   re-homes the template settings view and agent connection panel;
+   adds Project settings and Updates sections.

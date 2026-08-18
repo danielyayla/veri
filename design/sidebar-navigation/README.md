@@ -15,8 +15,9 @@ table view, and revises SRC-005's layer 3 (icon rail + working-set
 sidebar) while keeping layers 1, 2, and 4 (tabs, palette, Home)
 untouched.
 
-**Status: proposed — awaiting Daniel's approval.** Do not implement
-until SRC-014 carries the approval stamp.
+**Status: approved by Daniel 2026-08-18.** Implementation proceeds
+as WO-035 (labeled sidebar + type panel) and WO-036 (Settings
+area).
 
 ## About the Design Files
 `Veri Sidebar Nav.html` is a **design reference created in HTML** — a
