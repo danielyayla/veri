@@ -3,9 +3,9 @@ id: DEC-011
 type: decision
 title: Recognized-entry shape gates all .mcp.json writes
 status: active
-approved: 2026-08-10
+approved: 2026-08-18
 created: 2026-08-07
-updated: 2026-08-13
+updated: 2026-08-18
 links:
   - id: WO-007
     rel: constrains
