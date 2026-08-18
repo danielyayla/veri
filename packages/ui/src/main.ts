@@ -466,6 +466,11 @@ async function pickProjectDir(): Promise<string | null> {
 
 app.whenReady().then(async () => {
   log.info(`app ${app.getVersion()} launched (macOS ${process.getSystemVersion()})`);
+  // Packaged builds carry the icon via electron-builder (build/icon.png →
+  // .icns); dev runs would show the stock Electron dock icon without this.
+  if (!app.isPackaged && process.platform === 'darwin') {
+    app.dock?.setIcon(join(here, '..', 'build', 'icon.png'));
+  }
   installMenu();
   registerIpc();
   void cleanupLaunchScripts();
