@@ -62,3 +62,8 @@ the visual spec ([[DEC-012]] gate satisfied on its approval,
   veri/sources/SRC-015-app-icon-design.md — check-V icon designed,
   rendered, and wired into packaging and dev Dock; all acceptance
   tests pass.
+- 2026-08-18 · 1d706be · design/app-icon/{README.md,render-icon.cjs},
+  packages/ui/build/icon.png — qlmanage matted the transparent margin
+  onto white (white box in the Dock); re-rendered via Electron
+  offscreen canvas, regen script committed and margin transparency
+  now machine-checked.
