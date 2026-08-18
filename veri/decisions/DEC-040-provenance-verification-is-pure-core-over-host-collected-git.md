@@ -2,7 +2,8 @@
 id: DEC-040
 type: decision
 title: "Provenance verification is pure core over host-collected git facts"
-status: proposed
+status: active
+approved: 2026-08-18
 created: 2026-08-18
 updated: 2026-08-18
 links:
