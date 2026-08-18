@@ -26,6 +26,9 @@ export interface Attrs {
   live?: 'polite' | 'assertive'; // → aria-live
   tabindex?: number;
   fkey?: string; // → data-fkey
+  src?: string; // → <img> source
+  alt?: string; // → <img> alternative text
+  onError?: (e: Event) => void; // e.g. a broken <img>
   onFocus?: (e: FocusEvent) => void;
   onClick?: (e: MouseEvent) => void;
   onDblclick?: (e: MouseEvent) => void;
@@ -62,6 +65,9 @@ export function h(tag: string, attrs: Attrs = {}, ...children: Child[]): HTMLEle
   if (attrs.live !== undefined) el.setAttribute('aria-live', attrs.live);
   if (attrs.tabindex !== undefined) el.tabIndex = attrs.tabindex;
   if (attrs.fkey !== undefined) el.dataset['fkey'] = attrs.fkey;
+  if (attrs.src !== undefined) (el as HTMLImageElement).src = attrs.src;
+  if (attrs.alt !== undefined) (el as HTMLImageElement).alt = attrs.alt;
+  if (attrs.onError !== undefined) el.addEventListener('error', attrs.onError);
   if (attrs.onFocus !== undefined) el.addEventListener('focus', attrs.onFocus as EventListener);
   if (attrs.onClick !== undefined) el.addEventListener('click', attrs.onClick as EventListener);
   if (attrs.onDblclick !== undefined) el.addEventListener('dblclick', attrs.onDblclick as EventListener);

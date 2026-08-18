@@ -2,7 +2,7 @@
 id: WO-046
 type: work-order
 title: "Reader markdown parity"
-status: backlog
+status: in-progress
 created: 2026-08-18
 updated: 2026-08-18
 links:
@@ -45,13 +45,13 @@ Close the reader's markdown gap named by [[SRC-016]]: the rendered subset (no or
 
 ## Acceptance tests
 
-- [ ] WF-001's [[WF-001]] refs render as chips in read mode
-- [ ] SRC-016's scorecard renders as a table, not a paragraph of pipes
-- [ ] WF-001's numbered implementer rules render as an ordered list with numbers
-- [ ] A fenced yaml block renders as a code block and a ## line inside a fence never becomes a section
-- [ ] The design docs' > attribution notes render as blockquotes
-- [ ] A missing image path renders the amber broken treatment, never a silent gap
-- [ ] npm test passes; veri check reports zero issues
+- [x] WF-001's [[WF-001]] refs render as chips in read mode
+- [x] SRC-016's scorecard renders as a table, not a paragraph of pipes
+- [x] WF-001's numbered implementer rules render as an ordered list with numbers
+- [x] A fenced yaml block renders as a code block and a ## line inside a fence never becomes a section
+- [x] The design docs' > attribution notes render as blockquotes
+- [x] A missing image path renders the amber broken treatment, never a silent gap
+- [x] npm test passes; veri check reports zero issues
 
 ## Receipts
 

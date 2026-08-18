@@ -3,7 +3,7 @@ import { h } from '../dom.ts';
 import { TYPE_META } from '../theme.ts';
 import { parseBlocks } from '../markdown.ts';
 import { autocomplete, connections, fileActivity, insertAutocomplete } from '../derive.ts';
-import { activityFeed, dirtyStrip, idChip, modeToggle, pinChip, renderBlocks, statusChip, typeChip } from '../widgets.ts';
+import { activityFeed, dirtyStrip, idChip, imgDirFor, modeToggle, pinChip, renderBlocks, statusChip, typeChip } from '../widgets.ts';
 import { reviewBanner } from './review.ts';
 import type { Ctx } from '../app.ts';
 
@@ -202,7 +202,7 @@ export function readerView(ctx: Ctx): HTMLElement {
         reviewBanner(ctx, doc),
         frontmatterCard(ctx),
         advisoryStrip,
-        h('div', { class: 'doc-body' }, ...renderBlocks(parseBlocks(doc.body), ctx.byId, ctx)),
+        h('div', { class: 'doc-body' }, ...renderBlocks(parseBlocks(doc.body), ctx.byId, ctx, { imgDir: imgDirFor(ctx.snap.root, doc.file) })),
         activityFeed([...ctx.sessionRows(doc.id), ...fileActivity(doc, ctx.rel)]),
         noteEditor(ctx),
       ),

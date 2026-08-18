@@ -74,17 +74,72 @@ export function renderSegs(segs: Seg[], byId: DocsById, nav: Nav): Child[] {
     if (seg.kind === 'ref') return idChip(byId, seg.id, nav);
     if (seg.kind === 'code') return h('span', { class: 'inline-code' }, seg.text);
     if (seg.kind === 'bold') return h('strong', {}, seg.text);
+    if (seg.kind === 'italic') return h('em', {}, seg.text);
     return document.createTextNode(seg.text);
   });
 }
 
-export function renderBlocks(blocks: Block[], byId: DocsById, nav: Nav, opts: { muted?: boolean } = {}): HTMLElement[] {
+/** Absolute directory of a document's file, for resolving relative image paths. */
+export function imgDirFor(root: string, file: string): string {
+  const slash = file.lastIndexOf('/');
+  const dir = slash >= 0 ? `/${file.slice(0, slash)}` : '';
+  return `${root}/veri${dir}`;
+}
+
+/** Standalone image (SRC-020): resolved against the document's directory, alt
+    as caption; a missing file gets the amber broken treatment, never a silent
+    gap (SRC-019 rule 5). */
+function imageBlock(alt: string, src: string, imgDir: string | undefined): HTMLElement {
+  const broken = (): HTMLElement =>
+    h(
+      'div',
+      { class: 'rd-img-broken', role: 'img', label: `Broken image ${src} — file not found` },
+      h('span', {}, '⚠ image not found'),
+      h('span', { class: 'rd-img-path' }, src),
+    );
+  const resolved = imgDir !== undefined ? new URL(encodeURI(src), `file://${encodeURI(imgDir)}/`).href : src;
+  const fig = h('figure', { class: 'rd-img' });
+  const img = h('img', {
+    src: resolved,
+    alt,
+    onError: () => fig.replaceChildren(broken()),
+  });
+  fig.append(img);
+  if (alt !== '') fig.append(h('figcaption', { class: 'rd-img-cap' }, alt));
+  return fig;
+}
+
+export function renderBlocks(
+  blocks: Block[],
+  byId: DocsById,
+  nav: Nav,
+  opts: { muted?: boolean; imgDir?: string } = {},
+): HTMLElement[] {
   const out: HTMLElement[] = [];
   for (const block of blocks) {
     if (block.kind === 'heading') {
       out.push(h('h2', { class: 'rd-h2' }, block.text));
     } else if (block.kind === 'para') {
       out.push(h('p', { class: opts.muted === true ? 'rd-p rd-p-muted' : 'rd-p' }, ...renderSegs(block.segs, byId, nav)));
+    } else if (block.kind === 'fence') {
+      out.push(h('pre', { class: 'rd-fence' }, block.text));
+    } else if (block.kind === 'table') {
+      out.push(
+        h(
+          'div',
+          { class: 'rd-table-wrap' },
+          h(
+            'table',
+            { class: 'rd-table' },
+            h('thead', {}, h('tr', {}, ...block.header.map((c) => h('th', {}, ...renderSegs(c, byId, nav))))),
+            h('tbody', {}, ...block.rows.map((r) => h('tr', {}, ...r.map((c) => h('td', {}, ...renderSegs(c, byId, nav)))))),
+          ),
+        ),
+      );
+    } else if (block.kind === 'quote') {
+      out.push(h('blockquote', { class: 'rd-quote' }, ...renderSegs(block.segs, byId, nav)));
+    } else if (block.kind === 'img') {
+      out.push(imageBlock(block.alt, block.src, opts.imgDir));
     } else if (block.kind === 'check') {
       out.push(
         h(
@@ -95,11 +150,13 @@ export function renderBlocks(blocks: Block[], byId: DocsById, nav: Nav, opts: { 
         ),
       );
     } else {
+      // 'li' and 'oli' share the list treatment; the author's number rides
+      // in the dash slot (SRC-020).
       out.push(
         h(
           'div',
           { class: opts.muted === true ? 'rd-li rd-li-muted' : 'rd-li' },
-          h('span', { class: 'rd-dash' }, '–'),
+          h('span', { class: 'rd-dash' }, block.kind === 'oli' ? `${block.num}.` : '–'),
           h('span', {}, ...renderSegs(block.segs, byId, nav)),
         ),
       );

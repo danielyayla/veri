@@ -5,7 +5,7 @@ import { TYPE_META, fmtTokens, statusColor, tint } from '../theme.ts';
 import { plainText, sections } from '../markdown.ts';
 import type { Block } from '../markdown.ts';
 import { PACKAGE_RULES_TEXT, fileActivity, gatingDocs, receipts } from '../derive.ts';
-import { activityFeed, dirtyStrip, modeToggle, pinChip, renderBlocks } from '../widgets.ts';
+import { activityFeed, dirtyStrip, imgDirFor, modeToggle, pinChip, renderBlocks } from '../widgets.ts';
 import { roveIndex, roveKey } from '../a11y.ts';
 import type { Ctx } from '../app.ts';
 
@@ -157,7 +157,7 @@ function decisionDetail(ctx: Ctx, target: VeriDocument): HTMLElement | null {
   const secs = sections(target.body);
   const blocks = secs.get('Rationale') ?? secs.get('Choice') ?? [];
   if (blocks.length === 0) return null;
-  return h('div', { class: 'linked-body linked-rationale' }, ...renderBlocks(blocks, ctx.byId, ctx));
+  return h('div', { class: 'linked-body linked-rationale' }, ...renderBlocks(blocks, ctx.byId, ctx, { imgDir: imgDirFor(ctx.snap.root, target.file) }));
 }
 
 function tildify(path: string, home: string): string {
@@ -402,7 +402,7 @@ export function workOrderView(ctx: Ctx): HTMLElement {
   const section = (title: string, blocks: Block[] | undefined, muted = false): Child[] =>
     blocks === undefined || blocks.length === 0
       ? []
-      : [h('h2', { class: 'rd-h2 wo-h2' }, title), h('div', { class: 'wo-section' }, ...renderBlocks(blocks, byId, ctx, { muted }))];
+      : [h('h2', { class: 'rd-h2 wo-h2' }, title), h('div', { class: 'wo-section' }, ...renderBlocks(blocks, byId, ctx, { muted, imgDir: imgDirFor(ctx.snap.root, doc.file) }))];
   type Child = HTMLElement;
 
   const extraSections: Child[] = [];
