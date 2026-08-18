@@ -2,7 +2,8 @@
 id: DEC-037
 type: decision
 title: A veri/ids high-water file makes issued ids permanent
-status: proposed
+status: active
+approved: 2026-08-18
 created: 2026-08-18
 updated: 2026-08-18
 links:
