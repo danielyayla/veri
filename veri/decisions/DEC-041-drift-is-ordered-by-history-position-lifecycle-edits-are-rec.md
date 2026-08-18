@@ -2,7 +2,8 @@
 id: DEC-041
 type: decision
 title: "Drift is ordered by history position; lifecycle edits are recognized by commit subject"
-status: proposed
+status: active
+approved: 2026-08-18
 created: 2026-08-18
 updated: 2026-08-18
 links:
