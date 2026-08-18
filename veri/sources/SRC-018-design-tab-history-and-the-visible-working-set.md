@@ -18,11 +18,10 @@ links:
     rel: constrained-by
 ---
 
-> Drafted 2026-08-18 by an agent session (Claude Code) for [[WO-039]],
-> per the DEC-012 design gate. **Pending Daniel's approval** — the work
-> order stays in backlog until this design is approved. The handoff
-> spec lives in `design/tab-history/` (written spec only, no
-> prototype: the surface deltas are small and the substance is
+> **Approved by Daniel 2026-08-18.** Drafted 2026-08-18 by an agent
+> session (Claude Code) for [[WO-039]], per the DEC-012 design gate.
+> The handoff spec lives in `design/tab-history/` (written spec only,
+> no prototype: the surface deltas are small and the substance is
 > behavioral).
 
 Gives every tab a back/forward history so following a trail

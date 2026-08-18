@@ -2,7 +2,7 @@
 id: WO-039
 type: work-order
 title: Tab history and a visible working set
-status: backlog
+status: in-progress
 created: 2026-08-18
 updated: 2026-08-18
 links:
