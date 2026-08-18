@@ -2,7 +2,8 @@
 id: REQ-021
 type: requirement
 title: Provenance and drift are mechanical, not social
-status: draft
+status: accepted
+approved: 2026-08-18
 created: 2026-08-18
 updated: 2026-08-18
 links:
