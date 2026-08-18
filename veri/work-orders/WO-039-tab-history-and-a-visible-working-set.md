@@ -8,6 +8,8 @@ updated: 2026-08-18
 links:
   - id: REQ-016
     rel: implements
+  - id: SRC-018
+    rel: designed-by
 ---
 
 ## Summary
