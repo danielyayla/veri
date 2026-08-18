@@ -2,7 +2,7 @@
 id: WO-040
 type: work-order
 title: Grow the MCP toolset to match the workflow
-status: in-progress
+status: done
 created: 2026-08-18
 updated: 2026-08-18
 links:
@@ -51,18 +51,18 @@ demands must be the same set.
 
 ## Acceptance tests
 
-- [ ] An agent can dereference any id it encounters and receive the full
+- [x] An agent can dereference any id it encounters and receive the full
       body.
-- [ ] An agent can ask for any document's graph neighborhood (outbound
+- [x] An agent can ask for any document's graph neighborhood (outbound
       and backlinks, with rels).
-- [ ] An agent-filed work order is born `backlog`, unapproved, with a
+- [x] An agent-filed work order is born `backlog`, unapproved, with a
       permanently consumed id.
-- [ ] Every obligation in the scaffolded WF-001 maps to a tool that can
+- [x] Every obligation in the scaffolded WF-001 maps to a tool that can
       discharge it; tool descriptions promise nothing the build does not
       provide.
-- [ ] No write path can approve, promote, or edit an existing body;
+- [x] No write path can approve, promote, or edit an existing body;
       tests assert the refusals. Full suite and `veri check` clean.
 
 ## Receipts
 
-(none yet)
+- 2026-08-18 — 635ca98 — packages/mcp/src/read.ts (+tests), packages/mcp/src/writeback.ts (+tests), packages/mcp/src/server.ts, packages/mcp/src/server.e2e.test.ts, packages/mcp/src/index.ts — get_document, get_neighbors, and file_work_order tools per [[REQ-017]]; WF-001 obligation audit passed with no text changes (propose→file_work_order, read-in-full→get_document, decisions/receipts already covered, approval deliberately has no tool); e2e pins the 7-tool surface; 269 tests pass, live-verified over stdio against this repo (agent session, Claude Code)
