@@ -2,7 +2,7 @@
 id: WO-049
 type: work-order
 title: "Resolve the Decision log — retire the view"
-status: in-progress
+status: done
 created: 2026-08-18
 updated: 2026-08-18
 links:
@@ -45,10 +45,10 @@ links:
 - [x] The decisions view is gone: no ViewKey, no palette row, no reachable route; the app builds and runs
 - [x] The Decisions type panel lists decisions newest-first by created date with status chips
 - [x] A workspace file persisting a decisions view tab restores without error and without the tab (covered by a test)
-- [ ] REQ-004 describes four screens and the edit surfaces as a drift advisory, not an issue
+- [x] REQ-004 describes four screens and the edit surfaces as a drift advisory, not an issue
 - [x] A proposed decision records the retirement with rejected alternatives and links this work order
 - [x] npm test passes; veri check reports zero issues
 
 ## Receipts
 
-(none yet)
+- 2026-08-18 — cd05cc2 — packages/ui/src/renderer/tabs.ts, packages/ui/src/renderer/app.ts, packages/ui/src/renderer/derive.ts, packages/ui/src/renderer/sidebar.ts, packages/ui/src/renderer/views/decisions.ts (deleted), packages/ui/renderer/styles.css, packages/ui/src/renderer/tabs.test.ts, packages/ui/src/renderer/sidebar.test.ts, packages/ui/src/renderer/derive.test.ts, veri/requirements/REQ-004-desktop-ui.md, veri/decisions/DEC-045-retire-the-decision-log-view-the-decisions-panel-is-the-chro.md — Retired the Decision log view per SRC-023: removed the decisions ViewKey/palette row/view/derivation/styles, ordered the Decisions panel by created desc, proved clean tab restore with a test, amended REQ-004 to four screens (drift advisory pending re-approval), filed DEC-045 as proposed.
