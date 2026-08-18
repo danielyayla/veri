@@ -18,6 +18,12 @@ links:
     rel: constrained-by
 ---
 
+> **Reviewed and approved by Daniel 2026-08-18.** Implementation
+> accepted as shipped (bc8550e + 2908b3f), including the two bundle
+> deltas recorded in the receipt (config-state dot without a port
+> per [[REQ-005]]; no failure states in the Updates status per
+> [[REQ-011]]).
+
 ## Summary
 
 Delivers the [[SRC-014]] Settings area: the gear popover (PROJECT /
