@@ -30,8 +30,13 @@ endpoints (300,406) (486,712) (726,312), width 96, round caps.
 
 `packages/ui/build/icon.png` (1024×1024) is rendered from the SVG;
 electron-builder converts it to `.icns` automatically at package
-time. To regenerate after editing the SVG:
+time. To regenerate after editing the SVG (from `packages/ui/`):
 
 ```bash
-qlmanage -t -s 1024 -o /tmp design/app-icon/veri-app-icon.svg && mv /tmp/veri-app-icon.svg.png packages/ui/build/icon.png
+npx electron ../../design/app-icon/render-icon.cjs ../../design/app-icon/veri-app-icon.svg build/icon.png
 ```
+
+Do not use qlmanage: its SVG renderer mattes the transparent margin
+onto white, which shows as a white box around the icon in the Dock.
+`render-icon.cjs` verifies the margin stays transparent and fails
+otherwise.
