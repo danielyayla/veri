@@ -2,7 +2,7 @@
 id: WO-047
 type: work-order
 title: "Hover previews on link chips"
-status: in-progress
+status: done
 created: 2026-08-18
 updated: 2026-08-18
 links:
@@ -56,4 +56,4 @@ Resting on a [[ID]] chip answers "do I need to go there?" without navigating —
 
 ## Receipts
 
-(none yet)
+- 2026-08-18 — 5213a30 — packages/ui/src/renderer/widgets.ts, packages/ui/src/renderer/widgets.test.ts, packages/ui/src/renderer/app.ts, packages/ui/src/renderer/views/reader.ts, packages/ui/renderer/styles.css, veri/work-orders/WO-047-hover-previews-on-link-chips.md, veri/decisions/DEC-043-preview-trigger-is-a-pure-reducer-dismissal-rides-capture-li.md — Hover previews on link chips per SRC-021: one aria-hidden popover in widgets.ts (pure-reducer trigger, 350ms in / 150ms out, keyboard parity, flip-above positioning, 6-line fade), wired to idChip everywhere and Connections-card ids; 15 colocated tests; DEC-043 filed proposed.
