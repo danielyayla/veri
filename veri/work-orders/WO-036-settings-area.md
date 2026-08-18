@@ -2,7 +2,7 @@
 id: WO-036
 type: work-order
 title: Settings area
-status: in-progress
+status: done
 created: 2026-08-18
 updated: 2026-08-18
 links:
@@ -64,17 +64,17 @@ bundle in `design/sidebar-navigation/` is the visual spec
 
 ## Acceptance tests
 
-- [ ] Gear popover matches the bundle's grouping and anatomy; the
+- [x] Gear popover matches the bundle's grouping and anatomy; the
       agent status dot and meta reflect live connection state
-- [ ] Each popover item opens the Settings view at its section;
+- [x] Each popover item opens the Settings view at its section;
       the view is a single closeable tab with preview semantics
-- [ ] Templates and Agent connection sections are functionally
+- [x] Templates and Agent connection sections are functionally
       equivalent to their previous views, and the old entry points
       are gone
-- [ ] Project settings and Updates sections render the specified
+- [x] Project settings and Updates sections render the specified
       content
-- [ ] `veri check` and `npm test` are clean
+- [x] `veri check` and `npm test` are clean
 
 ## Receipts
 
-(none yet)
+- 2026-08-18 — bc8550e — packages/ui/src/renderer/app.ts, packages/ui/src/renderer/views/settings.ts, packages/ui/src/renderer/views/settings.test.ts, packages/ui/src/renderer/views/mcp.ts, packages/ui/src/renderer/views/home.ts, packages/ui/src/renderer/views/reader.ts, packages/ui/src/renderer/views/workorder.ts, packages/ui/src/renderer/tabs.ts, packages/ui/src/renderer/palette.ts, packages/ui/src/renderer/api.ts, packages/ui/src/preload.mts, packages/ui/src/main.ts, packages/ui/src/lib/updater.ts, packages/ui/renderer/styles.css (+ tests) — claude-code session: full implementation. Grouped gear popover (PROJECT / APPLICATION) replacing the WO-035 interim; Settings view as one closeable preview tab (190px sub-nav, sections opening as invoked); WO-024 Templates and WO-007 Agent connection re-homed unchanged with their view tabs, palette rows, and in-app links retired into Settings sections; Project settings (name, path, REQ-015 format label, workflow doc) and Updates (version, channel, status via new app-info/update-status IPC) as read-only cards. Two deliberate deltas from the bundle, both for consistency with accepted requirements: the popover's agent meta is the static config-state dot with no `:port` — the server is stdio-launched by the agent, so a port or "live" state would be fiction and REQ-005 forbids implying client status (same resolution as WO-035's dot); the Updates status line never surfaces failed checks (REQ-011/DEC-034 — the log is where failures go). Re-homed sections keep their native widths; the 620px cap applies to the two new sections. Verified live via the screenshot harness (popover, all four sections). 256 tests pass across the workspace, veri check clean (101 docs, 0 issues).
