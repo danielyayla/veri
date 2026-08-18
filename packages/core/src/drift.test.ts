@@ -211,3 +211,20 @@ test('a re-approval newer than the offending edit resolves drift-edited-after-do
     ['drift-edited-after-done'],
   );
 });
+
+test('a byte-no-op ratification commit still anchors the stamp, even touching nothing of the file', () => {
+  // Re-approving a document whose guarded lines already carry the stamp
+  // date writes no bytes — the lifecycle commit lists other files (or
+  // none of this document's). The act still ratifies.
+  const documents = [
+    doc({ id: 'DEC-001', type: 'decision', status: 'active', approved: '2026-08-12', file: 'decisions/DEC-001.md' }),
+  ];
+  const facts: GitFacts = {
+    commits: [
+      commit('e', '2026-08-12', 'DEC-001 DEC-002: re-approved — stamps ratify the current text', ['veri/decisions/DEC-002.md']),
+      commit('a', '2026-08-12', 'restore a dropped section', ['veri/decisions/DEC-001.md']),
+      commit('b', '2026-08-11', 'DEC-001: approved', ['veri/decisions/DEC-001.md']),
+    ],
+  };
+  assert.deepEqual(checkDrift(documents, facts, 'veri'), []);
+});

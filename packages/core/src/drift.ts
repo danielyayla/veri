@@ -46,6 +46,17 @@ function commitsTouching(facts: GitFacts, path: string): IndexedCommit[] {
 const short = (sha: string): string => sha.slice(0, 7);
 
 /**
+ * The newest lifecycle commit for a document, searched across ALL commits —
+ * not only ones touching its file. A re-approval whose guarded lines already
+ * carry today's values writes no bytes, so the ratifying commit may touch
+ * other files (or, in a batch, other documents') — the act still counts.
+ */
+function newestLifecycleIndex(facts: GitFacts, docId: string): number | undefined {
+  const index = facts.commits.findIndex((commit) => isLifecycleCommit(docId, commit.subject));
+  return index >= 0 ? index : undefined;
+}
+
+/**
  * Detector: an in-progress work order linking a superseded decision — work
  * standing on revoked authority. Pure over documents alone (no git), so it
  * runs everywhere check runs, context packages included. Done work orders
@@ -104,11 +115,10 @@ export function checkDrift(documents: VeriDocument[], facts: GitFacts, veriPath:
       if (link.rel !== 'implements') continue;
       const target = byId.get(link.id);
       if (target === undefined || (target.type !== 'requirement' && target.type !== 'decision')) continue;
-      const touching = commitsTouching(facts, repoPath(veriPath, target));
       // A re-approval newer than an edit resolves it: the human has ratified
       // the current text, so drift clears — the remedy the advisory names.
-      const ratifiedAt = touching.find(({ commit }) => isLifecycleCommit(target.id, commit.subject))?.index;
-      const offending = touching
+      const ratifiedAt = newestLifecycleIndex(facts, target.id);
+      const offending = commitsTouching(facts, repoPath(veriPath, target))
         .filter(({ index }) => index < closeIndex)
         .filter(({ commit }) => !isLifecycleCommit(target.id, commit.subject))
         .filter(({ index }) => ratifiedAt === undefined || index < ratifiedAt);
@@ -135,10 +145,10 @@ export function checkDrift(documents: VeriDocument[], facts: GitFacts, veriPath:
     if (doc.approved === undefined) continue;
     if (doc.status === 'superseded' || doc.status === 'retired') continue; // history, not drift
     const touching = commitsTouching(facts, repoPath(veriPath, doc));
-    const stamp = touching.find(({ commit }) => isLifecycleCommit(doc.id, commit.subject));
+    const stamp = newestLifecycleIndex(facts, doc.id);
     const offending = (
       stamp !== undefined
-        ? touching.filter(({ index }) => index < stamp.index)
+        ? touching.filter(({ index }) => index < stamp)
         : touching.filter(({ commit }) => commit.date > doc.approved!)
     ).filter(({ commit }) => !isLifecycleCommit(doc.id, commit.subject));
     if (offending.length > 0) {
