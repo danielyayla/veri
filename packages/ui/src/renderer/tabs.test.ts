@@ -229,7 +229,7 @@ describe('helpers', () => {
     ok(!anyEntry(st, 'C'));
   });
 
-  it('isViewKey knows the five views', () => {
-    ok(isViewKey('board') && isViewKey('settings') && !isViewKey('REQ-001'));
+  it('isViewKey knows every view key', () => {
+    ok(isViewKey('board') && isViewKey('settings') && isViewKey('search') && !isViewKey('REQ-001'));
   });
 });

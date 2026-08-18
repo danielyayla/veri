@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { VeriDocument } from '@veri/core';
-import { parsePaletteQuery, rankDocs } from './search.ts';
+import { parsePaletteQuery, rankDocs, relatedIds } from './search.ts';
 
 function doc(partial: Partial<VeriDocument> & Pick<VeriDocument, 'id' | 'type' | 'title' | 'status'>): VeriDocument {
   return {
@@ -116,6 +116,96 @@ test('is:proposed means awaiting review: proposed decisions and draft requiremen
       .sort(),
     ['DEC-020', 'REQ-020'],
   );
+});
+
+// ---- related: — the 1-hop neighborhood filter (WO-048, SRC-022) ----
+
+const HOOD_DOCS: VeriDocument[] = [
+  // WO-028's outbound: REQ-011 via frontmatter, DEC-002 via inline [[ref]].
+  doc({
+    id: 'WO-028',
+    type: 'work-order',
+    title: 'Packaged releases',
+    status: 'in-progress',
+    links: [{ id: 'REQ-011', rel: 'implements' }],
+    body: 'Auto-update rides [[DEC-002]].',
+    inlineRefs: ['DEC-002'],
+  }),
+  doc({ id: 'REQ-011', type: 'requirement', title: 'Installable distribution', status: 'accepted' }),
+  doc({ id: 'DEC-002', type: 'decision', title: 'Files are the source of truth', status: 'active' }),
+  // Inbound: SRC-016 mentions WO-028 inline; WO-044 links it in frontmatter.
+  doc({
+    id: 'SRC-016',
+    type: 'source',
+    title: 'Design critique',
+    status: 'imported',
+    body: 'What touches [[WO-028]]?',
+    inlineRefs: ['WO-028'],
+  }),
+  doc({
+    id: 'WO-044',
+    type: 'work-order',
+    title: 'Receipt verification',
+    status: 'done',
+    links: [{ id: 'WO-028', rel: 'extends' }],
+  }),
+  // Two hops out — never in the 1-hop neighborhood.
+  doc({
+    id: 'DEC-030',
+    type: 'decision',
+    title: 'Two hops away',
+    status: 'active',
+    links: [{ id: 'REQ-011', rel: 'constrains' }],
+  }),
+];
+
+test('parse strips related: into its own field, case-insensitively', () => {
+  const q = parsePaletteQuery('related:WO-028 gate');
+  assert.equal(q.related, 'wo-028');
+  assert.equal(q.text, 'gate');
+  assert.equal(parsePaletteQuery('hello').related, null);
+});
+
+test('related: composes with type and status filters in one query', () => {
+  const q = parsePaletteQuery('related:wo-028 wo: is:done');
+  assert.equal(q.related, 'wo-028');
+  assert.equal(q.type, 'work-order');
+  assert.deepEqual(q.statuses, ['done']);
+});
+
+test('relatedIds is the 1-hop neighborhood plus the id itself, both directions', () => {
+  assert.deepEqual(
+    [...relatedIds(HOOD_DOCS, 'wo-028')].sort(),
+    ['dec-002', 'req-011', 'src-016', 'wo-028', 'wo-044'],
+  );
+});
+
+test('related:WO-028 lists exactly the neighborhood, at base score for empty text', () => {
+  const hits = rankDocs(HOOD_DOCS, parsePaletteQuery('related:WO-028'));
+  assert.deepEqual(hits.map((h) => h.id), ['DEC-002', 'REQ-011', 'SRC-016', 'WO-028', 'WO-044']);
+  assert.ok(hits.every((h) => h.score === 1));
+});
+
+test('related: composes with is: and free text', () => {
+  const active = rankDocs(HOOD_DOCS, parsePaletteQuery('related:WO-028 is:active'));
+  assert.deepEqual(active.map((h) => h.id).sort(), ['DEC-002', 'REQ-011', 'WO-028']);
+  const text = rankDocs(HOOD_DOCS, parsePaletteQuery('related:WO-028 receipt'));
+  assert.deepEqual(text.map((h) => h.id), ['WO-044']);
+});
+
+test('an unknown related: id yields zero hits, never an error', () => {
+  assert.deepEqual(rankDocs(HOOD_DOCS, parsePaletteQuery('related:WO-999')), []);
+  assert.deepEqual(rankDocs(HOOD_DOCS, parsePaletteQuery('related:')), []);
+  assert.deepEqual([...relatedIds(HOOD_DOCS, 'wo-999')], []);
+});
+
+test('a superseded-by pointer counts as a frontmatter edge, like the Connections panel', () => {
+  const docs = [
+    doc({ id: 'DEC-001', type: 'decision', title: 'Old way', status: 'superseded', supersededBy: 'DEC-002' }),
+    doc({ id: 'DEC-002', type: 'decision', title: 'New way', status: 'active' }),
+  ];
+  assert.deepEqual([...relatedIds(docs, 'dec-001')].sort(), ['dec-001', 'dec-002']);
+  assert.deepEqual([...relatedIds(docs, 'dec-002')].sort(), ['dec-001', 'dec-002']);
 });
 
 test('is:active treats proposed decisions as living', () => {

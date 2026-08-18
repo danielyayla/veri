@@ -2,7 +2,7 @@
 id: WO-048
 type: work-order
 title: "Full search results and the related filter"
-status: backlog
+status: in-progress
 created: 2026-08-18
 updated: 2026-08-18
 links:
@@ -47,13 +47,13 @@ The palette caps at 8 rows with no all-results view, and asking "what touches WO
 
 ## Acceptance tests
 
-- [ ] related:WO-028 lists exactly WO-028's 1-hop neighborhood plus itself; related:WO-028 is:active composes; an unknown id shows the palette's empty state
-- [ ] The same related: query returns the same hits via the MCP search tool and its description names the filter
-- [ ] A query with more than 8 hits shows "See all N results ↵" as the palette's last row; Enter on it opens the Search view seeded with the query
-- [ ] ⌘Enter in the palette opens the Search view with the current query
-- [ ] Search view rows show snippet with the match bolded and open docs with SRC-018 semantics
-- [ ] More than 200 hits renders 200 rows plus the refine line
-- [ ] npm test passes; veri check reports zero issues
+- [x] related:WO-028 lists exactly WO-028's 1-hop neighborhood plus itself; related:WO-028 is:active composes; an unknown id shows the palette's empty state
+- [x] The same related: query returns the same hits via the MCP search tool and its description names the filter
+- [x] A query with more than 8 hits shows "See all N results ↵" as the palette's last row; Enter on it opens the Search view seeded with the query
+- [x] ⌘Enter in the palette opens the Search view with the current query
+- [x] Search view rows show snippet with the match bolded and open docs with SRC-018 semantics
+- [x] More than 200 hits renders 200 rows plus the refine line
+- [x] npm test passes; veri check reports zero issues
 
 ## Receipts
 

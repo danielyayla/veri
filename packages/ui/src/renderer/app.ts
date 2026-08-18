@@ -21,6 +21,7 @@ import { workOrderView } from './views/workorder.ts';
 import { boardView } from './views/board.ts';
 import { graphView } from './views/graph.ts';
 import { decisionsView } from './views/decisions.ts';
+import { searchView } from './views/search.ts';
 import {
   VIEW_META,
   activateTab,
@@ -50,7 +51,7 @@ import { TPL_TYPES } from './views/templates.ts';
 import { settingsView } from './views/settings.ts';
 import { DEAD_LABEL, livingCount, panelList, pushRecent } from './sidebar.ts';
 
-export type View = 'home' | 'workorder' | 'homeview' | 'board' | 'graph' | 'decisions' | 'settings';
+export type View = 'home' | 'workorder' | 'homeview' | 'board' | 'graph' | 'decisions' | 'search' | 'settings';
 
 /** Sections of the Settings view (WO-036, SRC-014). */
 export type SettingsSection = 'templates' | 'agent' | 'project' | 'updates';
@@ -106,6 +107,10 @@ export interface State {
   paletteQuery: string;
   paletteSel: number;
   paletteResult: PaletteResult | null;
+  /** Search view (WO-048, SRC-022): the singleton tab's one query and its
+      ranked result — same grammar and scores as the palette, unsliced. */
+  searchQuery: string;
+  searchResult: PaletteResult | null;
   projectSwitcherOpen: boolean;
   projectError: string | null;
   /** Non-null while the New project sheet is up (WO-018, SRC-007). */
@@ -177,6 +182,12 @@ export interface Ctx {
   togglePin(id: string): void;
   /** Live type crumb (WO-039): open a collection's type panel. */
   openPanel(type: DocType): void;
+  /** Search view (WO-048): update the singleton query and refetch; `caret`
+      is restored after the result-driven re-render. */
+  setSearchQuery(q: string, caret: number | null): void;
+  /** One-shot focus/caret request for the Search view's query field —
+      consumed by the render that honors it. */
+  svInput(): { focus: boolean; caret: number | null };
   refresh(): Promise<void>;
   loadPackage(id: string): void;
   refreshMcp(): Promise<void>;
@@ -310,6 +321,8 @@ class App implements Ctx {
     paletteQuery: '',
     paletteSel: 0,
     paletteResult: null,
+    searchQuery: '',
+    searchResult: null,
     projectSwitcherOpen: false,
     projectError: null,
     newProject: null,
@@ -563,8 +576,14 @@ class App implements Ctx {
           this.update({ paletteSel: Math.max(0, this.state.paletteSel - 1) });
         } else if (e.key === 'Enter') {
           e.preventDefault();
-          const row = this.palRowActions[Math.min(this.state.paletteSel, this.palRowActions.length - 1)];
-          if (row !== undefined) row.open(e.metaKey || e.ctrlKey);
+          if (e.metaKey || e.ctrlKey) {
+            // ⌘↩ anywhere in the palette: the Search view with the current
+            // query (WO-048, SRC-022). ⌘-click on a row still backgrounds.
+            this.openSearchView(this.state.paletteQuery);
+          } else {
+            const row = this.palRowActions[Math.min(this.state.paletteSel, this.palRowActions.length - 1)];
+            if (row !== undefined) row.open(false);
+          }
         }
       }
     });
@@ -777,6 +796,9 @@ class App implements Ctx {
     this.applySnapshot(await this.api.snapshot());
     await this.reconcileEditors();
     await this.reconcileTemplates();
+    // Files changed under the Search view's result set: refetch the same
+    // query so the rows never show deleted or stale docs (WO-048).
+    if (this.state.searchResult !== null && anyEntry(this.tabState(), 'search')) this.fetchSearch(this.state.searchQuery);
     this.render();
   }
 
@@ -1697,14 +1719,61 @@ class App implements Ctx {
     });
   }
 
+  // ---- search view (WO-048, SRC-022) ----
+
+  /** Focus request for the Search view's query field ("focused on open"). */
+  private svFocus = false;
+  /** Caret position to restore after a query-edit re-render of the view. */
+  private svCaret: number | null = null;
+
+  svInput(): { focus: boolean; caret: number | null } {
+    const out = { focus: this.svFocus, caret: this.svCaret };
+    this.svFocus = false;
+    this.svCaret = null;
+    return out;
+  }
+
+  /** Same corpus, same docMru recency feed as the palette — the view shows
+      the identical ranking, unsliced (SRC-022: no new ranking). */
+  private fetchSearch(q: string): void {
+    void this.api.paletteSearch(q, this.docMru).then((result) => {
+      if (this.state.searchQuery === q) this.update({ searchResult: result });
+    });
+  }
+
+  setSearchQuery(q: string, caret: number | null): void {
+    this.svCaret = caret;
+    this.state.searchQuery = q; // no render — the input already shows it
+    this.fetchSearch(q);
+  }
+
+  /** Open the singleton Search view seeded with `query` (palette overflow
+      row, ⌘↩, or the palette's Search view row). Preview surface like every
+      other view tab. */
+  private openSearchView(query: string): void {
+    this.svFocus = true;
+    this.state.searchQuery = query;
+    this.state.searchResult = null;
+    this.fetchSearch(query);
+    this.applyTabs(navigate(this.tabState(), 'search', { surface: 'preview', previewTabs: this.state.previewTabs }), {
+      paletteOpen: false,
+    });
+  }
+
   /** Open semantics mirror the tabs design (SRC-018): Enter/click navigates
       the active tab in place, palette closes; ⌘Enter/⌘click = pinned tab in
       background, palette stays. */
   private openPaletteRow(row: PaletteRow, pinned: boolean): void {
-    if (row.kind === 'command') {
+    if (row.kind === 'overflow') {
+      // "See all N results ↵" (WO-048): the Search view, seeded.
+      this.openSearchView(this.state.paletteQuery);
+    } else if (row.kind === 'command') {
       // ⌘↩ means nothing for an action row — treat it as a plain activation.
       this.update({ paletteOpen: false });
       void this.startNewProject();
+    } else if (row.kind === 'view' && row.view === 'search') {
+      // The Search view row keeps its held query but still focuses the field.
+      this.openSearchView(this.state.searchQuery);
     } else if (row.kind === 'view') {
       this.applyTabs(navigate(this.tabState(), row.view, { surface: 'preview', previewTabs: this.state.previewTabs }), {
         paletteOpen: false,
@@ -1723,6 +1792,9 @@ class App implements Ctx {
     const chipStyle =
       meta !== undefined ? `color:${meta.color};background:${tint(meta.color)};` : 'color:#8B8893;background:#1B1B20;';
     const snippet = doc?.snippet ?? null;
+    const glyph = doc !== null ? doc.id : row.kind === 'overflow' ? '⌕' : (row as { glyph: string }).glyph;
+    const title =
+      doc !== null ? doc.title : row.kind === 'overflow' ? `See all ${row.count} results` : (row as { label: string }).label;
     // aria-activedescendant pattern: options are not tab stops — focus stays
     // on the combobox input and ↑↓ move the selection (SRC-019 layer table).
     return h(
@@ -1740,19 +1812,21 @@ class App implements Ctx {
       doc !== null && (doc.status === 'proposed' || (doc.type === 'requirement' && doc.status === 'draft'))
         ? h('span', { class: 'sb-pending', title: 'Awaiting review' })
         : null,
-      h('span', { class: 'pal-chip', style: chipStyle }, doc !== null ? doc.id : (row as { glyph: string }).glyph),
+      h('span', { class: 'pal-chip', style: chipStyle }, glyph),
       h(
         'div',
         { class: 'pal-main' },
         h(
           'div',
           { class: 'pal-title-line' },
-          h('span', { class: 'pal-title' }, doc !== null ? doc.title : (row as { label: string }).label),
-          h(
-            'span',
-            { class: 'pal-status', style: `color:${doc !== null ? statusColor(doc.status) : '#55525E'};` },
-            doc !== null ? doc.status : row.kind === 'command' ? 'command' : 'view',
-          ),
+          h('span', { class: 'pal-title' }, title),
+          row.kind === 'overflow'
+            ? null
+            : h(
+                'span',
+                { class: 'pal-status', style: `color:${doc !== null ? statusColor(doc.status) : '#55525E'};` },
+                doc !== null ? doc.status : row.kind === 'command' ? 'command' : 'view',
+              ),
         ),
         snippet !== null ? h('div', { class: 'pal-snippet' }, snippet) : null,
       ),
@@ -1765,7 +1839,7 @@ class App implements Ctx {
       this.palRowActions = [];
       return null;
     }
-    const result = this.state.paletteResult ?? { query: { text: '', type: null, statuses: [] }, hits: [] };
+    const result = this.state.paletteResult ?? { query: { text: '', type: null, statuses: [], related: null }, hits: [] };
     const rows = paletteRows(result);
     const sel = Math.min(this.state.paletteSel, Math.max(0, rows.length - 1));
     this.palRowActions = rows.map((row) => ({ open: (pinned: boolean) => this.openPaletteRow(row, pinned) }));
@@ -1812,7 +1886,7 @@ class App implements Ctx {
           { class: 'pal-foot' },
           h('span', {}, '↑↓ navigate'),
           h('span', {}, '↩ open'),
-          h('span', {}, '⌘↩ open pinned tab'),
+          h('span', {}, '⌘↩ all results'),
           h('span', { class: 'pal-foot-grammar' }, 'req: dec: wo: src: · is:proposed is:active is:done'),
         ),
       ),
@@ -2301,7 +2375,7 @@ class App implements Ctx {
   }
 
   /** The active view's scrollable regions, in document order. */
-  private static readonly SCROLL_SEL = '.reader, .panel-right, .screen-board, .screen-decisions, .screen-homeview, .mcp-view, .set-scroll';
+  private static readonly SCROLL_SEL = '.reader, .panel-right, .screen-board, .screen-decisions, .screen-homeview, .screen-search, .mcp-view, .set-scroll';
 
   render(): void {
     if (this.welcomeMode) {
@@ -2352,6 +2426,7 @@ class App implements Ctx {
     else if (view === 'board') screen = boardView(this);
     else if (view === 'graph') screen = graphView(this);
     else if (view === 'decisions') screen = decisionsView(this);
+    else if (view === 'search') screen = searchView(this);
     else if (view === 'settings') screen = settingsView(this);
     else screen = readerView(this);
     const palette = this.paletteEl();

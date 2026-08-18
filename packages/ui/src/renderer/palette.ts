@@ -15,7 +15,10 @@ export type CommandKey = 'new-project';
 export type PaletteRow =
   | { kind: 'doc'; hit: PaletteHit }
   | { kind: 'view'; view: ViewKey; label: string; glyph: string }
-  | { kind: 'command'; command: CommandKey; label: string; glyph: string };
+  | { kind: 'command'; command: CommandKey; label: string; glyph: string }
+  /** "See all N results ↵" (WO-048, SRC-022): when doc hits exceed the 8-row
+      cap, the last row hands the query to the Search view. */
+  | { kind: 'overflow'; count: number };
 
 /** Commands are actions, not destinations (SRC-007): unlike views they never
     show on an empty query — an empty palette is for navigation, and a
@@ -33,12 +36,12 @@ const VIEW_ALIASES: Partial<Record<ViewKey, string[]>> = {
 /** Views surface by label match, and are suppressed while a type/status
     filter is active (filters talk about documents, not views). */
 export function paletteRows(result: PaletteResult): PaletteRow[] {
-  const { text, type, statuses } = result.query;
+  const { text, type, statuses, related } = result.query;
   const scored: Array<{ row: PaletteRow; score: number }> = result.hits.map((hit) => ({
     row: { kind: 'doc', hit },
     score: hit.score,
   }));
-  if (type === null && statuses.length === 0) {
+  if (type === null && statuses.length === 0 && related === null) {
     for (const [view, meta] of Object.entries(VIEW_META) as Array<[ViewKey, (typeof VIEW_META)[ViewKey]]>) {
       const terms = [meta.label.toLowerCase(), ...(VIEW_ALIASES[view] ?? [])];
       if (text === '') scored.push({ row: { kind: 'view', view, label: meta.label, glyph: meta.glyph }, score: 0.5 });
@@ -52,8 +55,12 @@ export function paletteRows(result: PaletteResult): PaletteRow[] {
         scored.push({ row: { kind: 'command', command, label: meta.label, glyph: meta.glyph }, score: 58 });
     }
   }
-  return scored
+  const rows = scored
     .sort((a, b) => b.score - a.score)
     .slice(0, PALETTE_MAX_ROWS)
     .map((s) => s.row);
+  // More doc hits than the cap can show: the last row becomes the door to
+  // the full list (WO-048). The cap itself is untouched.
+  if (result.hits.length > PALETTE_MAX_ROWS) rows[PALETTE_MAX_ROWS - 1] = { kind: 'overflow', count: result.hits.length };
+  return rows;
 }

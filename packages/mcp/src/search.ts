@@ -58,6 +58,9 @@ export interface PaletteQuery {
   type: DocType | null;
   /** From `is:…`, normalized to letters only (`is:in-progress` ≡ `is:inprogress`). */
   statuses: string[];
+  /** From `related:ID` (WO-048, SRC-022) — lowercased id; last one wins.
+      Narrows hits to the id's 1-hop link neighborhood plus the id itself. */
+  related: string | null;
 }
 
 export interface PaletteHit {
@@ -77,9 +80,15 @@ export interface PaletteResult {
 
 export function parsePaletteQuery(raw: string): PaletteQuery {
   let type: DocType | null = null;
+  let related: string | null = null;
   const statuses: string[] = [];
   const text = raw
     .toLowerCase()
+    // `related:` first — its value must not feed the type-prefix pass.
+    .replace(/\brelated:([a-z0-9-]*)/g, (_m, id: string) => {
+      related = id;
+      return ' ';
+    })
     .replace(/\b(req|dec|wo|src):/g, (_m, t: string) => {
       type = TYPE_PREFIX[t] ?? null;
       return ' ';
@@ -90,7 +99,37 @@ export function parsePaletteQuery(raw: string): PaletteQuery {
     })
     .replace(/\s+/g, ' ')
     .trim();
-  return { text, type, statuses };
+  return { text, type, statuses, related };
+}
+
+/** Every id a document points at: frontmatter links, the supersession
+    pointer, and inline [[refs]] — the same edge set buildGraph derives and
+    the Connections panel shows (SRC-022). */
+function docTargets(doc: VeriDocument): string[] {
+  const targets = doc.links.map((link) => link.id);
+  if (doc.supersededBy !== undefined) targets.push(doc.supersededBy);
+  targets.push(...doc.inlineRefs);
+  return targets;
+}
+
+/**
+ * The 1-hop neighborhood of `id` (WO-048, SRC-022), as lowercased ids:
+ * documents it links to, documents linking to it — both directions over
+ * frontmatter links and inline refs — plus the id itself. An id no document
+ * carries yields the empty set: zero hits, never an error.
+ */
+export function relatedIds(documents: VeriDocument[], id: string): Set<string> {
+  const center = id.toLowerCase();
+  const hood = new Set<string>();
+  if (!documents.some((doc) => doc.id.toLowerCase() === center)) return hood;
+  hood.add(center);
+  for (const doc of documents) {
+    const docId = doc.id.toLowerCase();
+    const targets = docTargets(doc).map((t) => t.toLowerCase());
+    if (docId === center) for (const t of targets) hood.add(t);
+    else if (targets.includes(center)) hood.add(docId);
+  }
+  return hood;
 }
 
 /**
@@ -102,8 +141,10 @@ export function parsePaletteQuery(raw: string): PaletteQuery {
  */
 export function rankDocs(documents: VeriDocument[], query: PaletteQuery, recents: string[] = []): PaletteHit[] {
   const qId = query.text.replace(/[^a-z0-9]/g, '');
+  const hood = query.related === null ? null : relatedIds(documents, query.related);
   const hits: PaletteHit[] = [];
   for (const doc of documents) {
+    if (hood !== null && !hood.has(doc.id.toLowerCase())) continue;
     if (query.type !== null && doc.type !== query.type) continue;
     const status = doc.status.toLowerCase().replace(/[^a-z]/g, '');
     if (

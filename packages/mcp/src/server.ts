@@ -6,7 +6,7 @@ import { classifyFormat, formatStatement, isOperableFormat } from '@veri/core';
 import { z } from 'zod';
 import { assembleContext } from './context.ts';
 import { getDocument, getNeighbors } from './read.ts';
-import { searchDocs } from './search.ts';
+import { paletteSearch } from './search.ts';
 import { fileDecision, fileReceipt, fileWorkOrder } from './writeback.ts';
 
 const projectRoot = resolve(process.argv[2] ?? process.cwd());
@@ -50,19 +50,21 @@ server.registerTool(
 server.registerTool(
   'search',
   {
-    description: 'Find documents by case-insensitive substring match over id, title, and body.',
+    description:
+      'Find documents with the shared query grammar: case-insensitive free text over id, title, and body, ' +
+      'plus composable filters — req:/dec:/wo:/src: narrows by type, is:<status> by lifecycle ' +
+      '(is:active means living, is:proposed the review queue), and related:<ID> narrows to the 1-hop link ' +
+      'neighborhood of that id: documents it links to and documents linking to it, via frontmatter links ' +
+      'and inline [[refs]], plus the id itself. An unknown related: id returns no matches, never an error. ' +
+      'Example: "related:WO-028 is:active".',
     inputSchema: { query: z.string() },
   },
   async ({ query }) => {
     try {
       guardFormat();
-      const hits = await searchDocs(projectRoot, query);
+      const { hits } = await paletteSearch(projectRoot, query);
       if (hits.length === 0) return ok('no matches');
-      return ok(
-        hits
-          .map((hit) => `${hit.id}  ${hit.type}  ${hit.status}  ${hit.title}  (matched: ${hit.matched.join(', ')})`)
-          .join('\n'),
-      );
+      return ok(hits.map((hit) => `${hit.id}  ${hit.type}  ${hit.status}  ${hit.title}`).join('\n'));
     } catch (err) {
       return fail(err);
     }

@@ -9,7 +9,7 @@ function hit(id: string, score: number): PaletteHit {
 }
 
 function result(query: Partial<PaletteQuery>, hits: PaletteHit[]): PaletteResult {
-  return { query: { text: '', type: null, statuses: [], ...query }, hits };
+  return { query: { text: '', type: null, statuses: [], related: null, ...query }, hits };
 }
 
 test('typing a view name surfaces the view row among doc hits by score', () => {
@@ -36,10 +36,39 @@ test('empty query lists views below docs and caps the list at 8', () => {
   const hits = Array.from({ length: 10 }, (_, i) => hit(`WO-00${i}`, 1));
   const rows = paletteRows(result({}, hits));
   assert.equal(rows.length, PALETTE_MAX_ROWS);
-  assert.ok(rows.every((r) => r.kind === 'doc'), 'score-1 docs outrank score-0.5 views');
+  // >8 doc hits: the last row is the overflow door (WO-048); docs above it.
+  assert.ok(rows.slice(0, -1).every((r) => r.kind === 'doc'), 'score-1 docs outrank score-0.5 views');
+  assert.deepEqual(rows[PALETTE_MAX_ROWS - 1], { kind: 'overflow', count: 10 });
   const few = paletteRows(result({}, [hit('WO-001', 1)]));
   assert.equal(few.length, 1 + Object.keys(VIEW_META).length); // 1 doc + every view
   assert.equal(few[0].kind, 'doc');
+});
+
+// ---- overflow row (WO-048, SRC-022) ----
+
+test('more doc hits than the cap turns the last row into "See all N results"', () => {
+  const hits = Array.from({ length: 23 }, (_, i) => hit(`WO-${String(i).padStart(3, '0')}`, 55));
+  const rows = paletteRows(result({ text: 'export' }, hits));
+  assert.equal(rows.length, PALETTE_MAX_ROWS);
+  assert.deepEqual(rows[PALETTE_MAX_ROWS - 1], { kind: 'overflow', count: 23 });
+  assert.ok(rows.slice(0, -1).every((r) => r.kind === 'doc'));
+});
+
+test('exactly 8 hits or fewer shows no overflow row — the cap is untouched', () => {
+  const eight = paletteRows(result({ text: 'x' }, Array.from({ length: 8 }, (_, i) => hit(`WO-00${i}`, 55))));
+  assert.ok(eight.every((r) => r.kind !== 'overflow'));
+  assert.equal(eight.filter((r) => r.kind === 'doc').length, 8);
+});
+
+test('the overflow row appears under an active filter too', () => {
+  const hits = Array.from({ length: 9 }, (_, i) => hit(`WO-00${i}`, 1));
+  const rows = paletteRows(result({ type: 'work-order' }, hits));
+  assert.deepEqual(rows[PALETTE_MAX_ROWS - 1], { kind: 'overflow', count: 9 });
+});
+
+test('a related: filter suppresses view and command rows like other filters', () => {
+  const rows = paletteRows(result({ text: 'board', related: 'wo-028' }, [hit('WO-001', 55)]));
+  assert.ok(rows.every((r) => r.kind === 'doc'));
 });
 
 // ---- command rows (WO-018, SRC-007) ----
