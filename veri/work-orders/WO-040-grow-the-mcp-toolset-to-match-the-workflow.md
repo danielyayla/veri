@@ -2,7 +2,7 @@
 id: WO-040
 type: work-order
 title: Grow the MCP toolset to match the workflow
-status: backlog
+status: in-progress
 created: 2026-08-18
 updated: 2026-08-18
 links:

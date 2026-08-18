@@ -62,7 +62,17 @@ test('the built server answers tools/list and get_context over stdio', { skip: !
   );
 
   const toolNames = (responses.get(2)?.result?.tools ?? []).map((tool) => tool.name).sort();
-  assert.deepEqual(toolNames, ['file_decision', 'file_receipt', 'get_context', 'search']);
+  // The complete write surface: file_* only creates unapproved documents or
+  // appends receipts — no tool approves, promotes, or edits a body (REQ-017).
+  assert.deepEqual(toolNames, [
+    'file_decision',
+    'file_receipt',
+    'file_work_order',
+    'get_context',
+    'get_document',
+    'get_neighbors',
+    'search',
+  ]);
 
   const context = responses.get(3)?.result;
   assert.ok(context && !context.isError, JSON.stringify(context));

@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkProject, loadProject } from '@veri/core';
-import { fileDecision, fileReceipt } from './writeback.ts';
+import { fileDecision, fileReceipt, fileWorkOrder } from './writeback.ts';
 import { searchDocs } from './search.ts';
 
 const FIXTURE = fileURLToPath(new URL('../fixtures/writeback', import.meta.url));
@@ -58,6 +58,46 @@ test('file_decision consumes ids permanently via the shared record', async (t) =
   const second = await fileDecision(root, { title: 'Successor', choice: 'Y.' });
   assert.equal(second.id, 'DEC-002'); // DEC-001 is spent, deleted or not
   await assertClean(root);
+});
+
+test('file_work_order is born backlog and unapproved with the next free WO id', async (t) => {
+  const root = sandbox(t);
+  const result = await fileWorkOrder(root, {
+    title: 'Add widget polish',
+    summary: 'Polish the widgets.',
+    in_scope: '- The widgets',
+    out_of_scope: '- The gadgets',
+    acceptance_tests: '- [ ] Widgets are polished',
+    links: [{ id: 'REQ-001', rel: 'implements' }],
+  });
+  assert.equal(result.id, 'WO-003'); // fixture ships WO-001 and WO-002
+  await assertClean(root); // backlog is gate-safe by construction (DEC-022)
+
+  const content = readFileSync(join(root, result.file), 'utf8');
+  assert.match(content, /^status: backlog$/m);
+  assert.doesNotMatch(content, /^approved:/m); // no write path can promote (REQ-008)
+  assert.match(content, /## Summary/);
+  assert.match(content, /## In scope/);
+  assert.match(content, /## Out of scope/);
+  assert.match(content, /- \[\[REQ-001\]\] — implements/);
+  assert.match(content, /- \[ \] Widgets are polished/);
+  assert.match(content, /## Receipts\n\n\(none yet\)/);
+});
+
+test('file_work_order consumes its id permanently and rejects bad links', async (t) => {
+  const root = sandbox(t);
+  const first = await fileWorkOrder(root, { title: 'Ephemeral work', summary: 'X.' });
+  assert.equal(first.id, 'WO-003');
+  assert.match(readFileSync(join(root, 'veri', 'ids'), 'utf8'), /^WO 3$/m);
+
+  rmSync(join(root, first.file));
+  const second = await fileWorkOrder(root, { title: 'Successor work', summary: 'Y.' });
+  assert.equal(second.id, 'WO-004'); // WO-003 is spent, deleted or not (DEC-037)
+
+  await assert.rejects(
+    () => fileWorkOrder(root, { title: 'Bad', summary: 'Z.', links: [{ id: 'REQ-999', rel: 'implements' }] }),
+    /REQ-999 does not exist/,
+  );
 });
 
 test('file_decision rejects links to nonexistent documents', async (t) => {

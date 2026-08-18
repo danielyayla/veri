@@ -11,6 +11,15 @@ export interface FileDecisionInput {
   links?: Array<{ id: string; rel: string }>;
 }
 
+export interface FileWorkOrderInput {
+  title: string;
+  summary: string;
+  in_scope?: string;
+  out_of_scope?: string;
+  acceptance_tests?: string;
+  links?: Array<{ id: string; rel: string }>;
+}
+
 export interface FileReceiptInput {
   work_order_id: string;
   commit: string;
@@ -89,6 +98,69 @@ export async function fileDecision(
   mkdirSync(join(veriDir, 'decisions'), { recursive: true });
   writeFileSync(join(veriDir, file), `${frontmatter}\n\n${sections.join('\n\n')}\n`, { flag: 'wx' });
   recordIssuedId(veriDir, 'DEC', next);
+  return { id, file: `veri/${file}` };
+}
+
+/**
+ * Propose a work order with the next free WO id. Born `backlog`, so it is
+ * gate-safe by construction (DEC-022) and never binding on its own; the id
+ * is consumed permanently through the shared allocator (DEC-037).
+ */
+export async function fileWorkOrder(
+  projectRoot: string,
+  input: FileWorkOrderInput,
+): Promise<{ id: string; file: string }> {
+  const veriDir = requireVeriDir(projectRoot);
+  const { documents } = await loadProject(veriDir);
+
+  const known = new Set(documents.map((doc) => doc.id));
+  for (const link of input.links ?? []) {
+    if (!known.has(link.id)) {
+      throw new Error(`link target ${link.id} does not exist — the work order would fail veri check`);
+    }
+  }
+
+  const next = nextIdNumber(
+    veriDir,
+    'WO',
+    documents.map((doc) => doc.id),
+  );
+  const id = `WO-${String(next).padStart(3, '0')}`;
+
+  const date = today();
+  const frontmatter = [
+    '---',
+    `id: ${id}`,
+    'type: work-order',
+    `title: ${JSON.stringify(input.title)}`,
+    'status: backlog', // proposals never start started — the gate is on leaving backlog (DEC-022)
+    `created: ${date}`,
+    `updated: ${date}`,
+    ...(input.links && input.links.length > 0
+      ? ['links:', ...input.links.flatMap((link) => [`  - id: ${link.id}`, `    rel: ${link.rel}`])]
+      : []),
+    '---',
+  ].join('\n');
+
+  const sections = [`## Summary\n\n${input.summary.trim()}`];
+  if (input.in_scope !== undefined && input.in_scope.trim() !== '') {
+    sections.push(`## In scope\n\n${input.in_scope.trim()}`);
+  }
+  if (input.out_of_scope !== undefined && input.out_of_scope.trim() !== '') {
+    sections.push(`## Out of scope\n\n${input.out_of_scope.trim()}`);
+  }
+  if (input.links && input.links.length > 0) {
+    sections.push(`## Requirements\n\n${input.links.map((link) => `- [[${link.id}]] — ${link.rel}`).join('\n')}`);
+  }
+  if (input.acceptance_tests !== undefined && input.acceptance_tests.trim() !== '') {
+    sections.push(`## Acceptance tests\n\n${input.acceptance_tests.trim()}`);
+  }
+  sections.push('## Receipts\n\n(none yet)');
+
+  const file = join('work-orders', `${id}-${slugify(input.title)}.md`);
+  mkdirSync(join(veriDir, 'work-orders'), { recursive: true });
+  writeFileSync(join(veriDir, file), `${frontmatter}\n\n${sections.join('\n\n')}\n`, { flag: 'wx' });
+  recordIssuedId(veriDir, 'WO', next);
   return { id, file: `veri/${file}` };
 }
 

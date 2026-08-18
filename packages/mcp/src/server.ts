@@ -5,8 +5,9 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { classifyFormat, formatStatement, isOperableFormat } from '@veri/core';
 import { z } from 'zod';
 import { assembleContext } from './context.ts';
+import { getDocument, getNeighbors } from './read.ts';
 import { searchDocs } from './search.ts';
-import { fileDecision, fileReceipt } from './writeback.ts';
+import { fileDecision, fileReceipt, fileWorkOrder } from './writeback.ts';
 
 const projectRoot = resolve(process.argv[2] ?? process.cwd());
 
@@ -67,6 +68,58 @@ server.registerTool(
 );
 
 server.registerTool(
+  'get_document',
+  {
+    description:
+      'One document by id: its file path, then the file exactly as on disk (frontmatter and body). ' +
+      'Use to read in full any document a package, search hit, or link names.',
+    inputSchema: { id: z.string().describe('Document id, e.g. REQ-014') },
+  },
+  async ({ id }) => {
+    try {
+      guardFormat();
+      const doc = await getDocument(projectRoot, id);
+      return ok(`${doc.file}\n\n${doc.text}`);
+    } catch (err) {
+      return fail(err);
+    }
+  },
+);
+
+server.registerTool(
+  'get_neighbors',
+  {
+    description:
+      'A document\'s graph neighborhood: outbound links and backlinks, each with its relation and ' +
+      'whether it is declared in frontmatter, as an inline [[id]] mention, or by supersession.',
+    inputSchema: { id: z.string().describe('Document id, e.g. DEC-009') },
+  },
+  async ({ id }) => {
+    try {
+      guardFormat();
+      const hood = await getNeighbors(projectRoot, id);
+      const line = (edge: { id: string; rel: string; via: string; title: string | null; type: string | null; status: string | null }): string =>
+        edge.title === null
+          ? `${edge.id}  ${edge.rel}  [${edge.via}]  (no such document — broken link)`
+          : `${edge.id}  ${edge.rel}  [${edge.via}]  ${edge.type} · ${edge.status} · ${edge.title}`;
+      return ok(
+        [
+          `${hood.id} — ${hood.title} (${hood.type} · ${hood.status})`,
+          '',
+          'Outbound:',
+          ...(hood.outgoing.length === 0 ? ['(none)'] : hood.outgoing.map((edge) => `→ ${line(edge)}`)),
+          '',
+          'Backlinks:',
+          ...(hood.backlinks.length === 0 ? ['(none)'] : hood.backlinks.map((edge) => `← ${line(edge)}`)),
+        ].join('\n'),
+      );
+    } catch (err) {
+      return fail(err);
+    }
+  },
+);
+
+server.registerTool(
   'file_decision',
   {
     description:
@@ -92,6 +145,40 @@ server.registerTool(
         `Filed ${id} at ${file} as a proposal pending the user's review — not binding yet. ` +
           `Present it to the user: what it commits them to, what it rules out, and the alternatives rejected. ` +
           `They promote it with veri approve ${id} (or in the app).`,
+      );
+    } catch (err) {
+      return fail(err);
+    }
+  },
+);
+
+server.registerTool(
+  'file_work_order',
+  {
+    description:
+      'Propose a unit of work as a new work order with the next free WO id and status: backlog — ' +
+      'planned, not started, and not binding until the user reviews it. ' +
+      'Use when asked to implement something no existing work order covers.',
+    inputSchema: {
+      title: z.string(),
+      summary: z.string().describe('What this delivers'),
+      in_scope: z.string().optional().describe('Markdown list of what the work includes'),
+      out_of_scope: z.string().optional().describe('Markdown list of what is explicitly excluded'),
+      acceptance_tests: z.string().optional().describe('Markdown checklist, e.g. "- [ ] First test"'),
+      links: z
+        .array(z.object({ id: z.string(), rel: z.string() }))
+        .optional()
+        .describe('Documents this work order delivers or depends on, e.g. [{id: "REQ-002", rel: "implements"}]'),
+    },
+  },
+  async (input) => {
+    try {
+      guardFormat();
+      const { id, file } = await fileWorkOrder(projectRoot, input);
+      return ok(
+        `Filed ${id} at ${file} in backlog — a proposal, not started work. ` +
+          `Present it to the user; implementation begins only after they review it and move it out of backlog ` +
+          `(a started work order must link the requirement it implements).`,
       );
     } catch (err) {
       return fail(err);
