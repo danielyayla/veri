@@ -2,7 +2,7 @@
 id: WO-045
 type: work-order
 title: "First drift advisories on the advisory chassis"
-status: in-progress
+status: done
 created: 2026-08-18
 updated: 2026-08-18
 links:
@@ -50,15 +50,15 @@ The advisory chassis (WO-025/WO-026, DEC-025) checks structure but not time: not
 
 ## Acceptance tests
 
-- [ ] Editing a requirement after its implementing work order is done yields an advisory naming both documents; editing it before close yields nothing.
-- [ ] An in-progress work order linking a superseded decision yields an advisory; a done work order linking one does not.
-- [ ] Changing an approved document's body after its stamp yields an advisory; the approve flow's own guarded-line writes do not.
-- [ ] All three advisories appear in `veri check` output and the UI advisories surface through the existing pipeline with zero new renderer code; context packages carry the advisory tier's pure findings (including superseded-authority drift) for the subject work order, honoring DEC-037 and DEC-038.
-- [ ] `veri check` exit status is unaffected by drift advisories (DEC-025).
-- [ ] Detectors run from git history on demand; no new files or caches appear in the knowledge base.
-- [ ] This repo's own corpus is scanned: each finding is a true drift or the detector is fixed.
-- [ ] Full suite and `veri check` clean.
+- [x] Editing a requirement after its implementing work order is done yields an advisory naming both documents; editing it before close yields nothing.
+- [x] An in-progress work order linking a superseded decision yields an advisory; a done work order linking one does not.
+- [x] Changing an approved document's body after its stamp yields an advisory; the approve flow's own guarded-line writes do not.
+- [x] All three advisories appear in `veri check` output and the UI advisories surface through the existing pipeline with zero new renderer code; context packages carry the advisory tier's pure findings (including superseded-authority drift) for the subject work order, honoring DEC-037 and DEC-038.
+- [x] `veri check` exit status is unaffected by drift advisories (DEC-025).
+- [x] Detectors run from git history on demand; no new files or caches appear in the knowledge base.
+- [x] This repo's own corpus is scanned: each finding is a true drift or the detector is fixed.
+- [x] Full suite and `veri check` clean.
 
 ## Receipts
 
-(none yet)
+- 2026-08-18 — 1d0d6fb — packages/core/src (drift.ts new, drift.test.ts new, provenance.ts, types.ts, check.ts, context.ts, index.ts), packages/cli/src (git.ts, commands.ts, git.test.ts), packages/mcp/src/context.test.ts, packages/ui/src/lib/snapshot.ts(+test), veri/decisions/DEC-041 — three drift detectors shipped per [[DEC-041]] (history-position ordering, lifecycle-subject exclusion, pure-only context packages): superseded-authority drift pure in checkProject, edited-after-done and approved-edited over host-collected GitFacts in check and the desktop snapshot, context packages gain the pure advisory tier for the subject work order; corpus scan surfaced 10 drift findings, each verified true; 335 tests pass, veri check 0 issues (agent session, Claude Code)
