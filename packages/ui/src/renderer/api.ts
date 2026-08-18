@@ -54,6 +54,10 @@ export interface VeriApi {
   verifyConnection(): Promise<VerifyResult>;
   /** Welcome screen's open-existing picker: one shot, inline result. */
   welcomeOpen(): Promise<WelcomeOpen>;
+  /** Settings view facts (WO-036): version, packaging, home, format label. */
+  appInfo(): Promise<AppInfo>;
+  /** What the background updater has done so far (WO-028 surfaces). */
+  updateStatus(): Promise<UpdateStatus>;
   /** Fresh adapter detection (PATH + configs read from disk on every call). */
   agents(): Promise<AgentInfo[]>;
   /** Optionally write the veri entry, then launch; error message or null. */
@@ -79,6 +83,20 @@ export interface TemplateInfo {
   body: string;
   source: 'project' | 'builtin';
   customized: boolean;
+}
+
+/** Static facts for the Settings view (WO-036), one IPC read per launch. */
+export interface AppInfo {
+  version: string;
+  packaged: boolean;
+  home: string;
+  /** Core's classification of veri/format (REQ-015), ready to display. */
+  formatLabel: string;
+}
+
+export interface UpdateStatus {
+  downloadedVersion: string | null;
+  lastCheckAt: number | null;
 }
 
 export type NewProjectPick =

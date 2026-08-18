@@ -2,7 +2,7 @@
 id: WO-036
 type: work-order
 title: Settings area
-status: backlog
+status: in-progress
 created: 2026-08-18
 updated: 2026-08-18
 links:

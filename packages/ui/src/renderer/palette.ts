@@ -24,10 +24,10 @@ const COMMAND_META: Record<CommandKey, { label: string; glyph: string; terms: st
   'new-project': { label: 'New project…', glyph: '+', terms: ['new', 'project', 'create'] },
 };
 
-/** Extra query terms a view answers to beyond its label (SRC-009: the
-    Templates view surfaces for `settings` too). */
+/** Extra query terms a view answers to beyond its label (WO-036: the
+    Settings view answers for the sections it hosts). */
 const VIEW_ALIASES: Partial<Record<ViewKey, string[]>> = {
-  templates: ['settings'],
+  settings: ['templates', 'agent', 'connection', 'updates'],
 };
 
 /** Views surface by label match, and are suppressed while a type/status

@@ -14,7 +14,7 @@ const TOOLS: Array<[string, string]> = [
   ['file_receipt', 'Records commit, files, and summary when work completes'],
 ];
 
-function tildify(path: string, home: string): string {
+export function tildify(path: string, home: string): string {
   return path === home || path.startsWith(`${home}/`) ? `~${path.slice(home.length)}` : path;
 }
 

@@ -56,7 +56,7 @@ function startHereCard(ctx: Ctx): HTMLElement {
       'div',
       { class: 'hv-sh-actions' },
       h('div', { class: 'hv-sh-btn-primary', onClick: () => ctx.openNewDoc('requirement', null) }, 'New document'),
-      h('div', { class: 'hv-sh-btn-ghost', onClick: () => ctx.setView('mcp') }, 'Connect an agent →'),
+      h('div', { class: 'hv-sh-btn-ghost', onClick: () => ctx.openSettings('agent') }, 'Connect an agent →'),
     ),
     h(
       'div',

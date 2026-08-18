@@ -107,6 +107,6 @@ describe('retainTabs', () => {
   });
 
   it('view keys are recognized', () => {
-    strictEqual(isViewKey('board') && isViewKey('mcp') && !isViewKey('REQ-001'), true);
+    strictEqual(isViewKey('board') && isViewKey('settings') && !isViewKey('REQ-001'), true);
   });
 });

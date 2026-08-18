@@ -242,6 +242,8 @@ a:hover { color: #F49463; }
 .pop-glyph { width: 14px; text-align: center; font-family: var(--mono); font-size: 12px; color: var(--muted); }
 .pop-meta { margin-left: auto; display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 9.5px; color: var(--green); }
 .pop-meta .settings-dot { width: 5px; height: 5px; box-shadow: none; }
+.pop-meta-ghost { color: var(--ghost); }
+.pop-div { height: 1px; background: var(--hair); margin: 4px 4px; }
 
 /* Kept for the Templates view's type list (SRC-009). */
 .sb-swatch { width: 7px; height: 7px; border-radius: 2px; }
@@ -303,6 +305,41 @@ a:hover { color: #F49463; }
 .tp-ghost:hover .tp-ghost-hint { display: none; }
 .tp-ghost-action { display: none; font-size: 12px; color: var(--muted); }
 .tp-ghost:hover .tp-ghost-action { display: inline; }
+
+/* ===== Settings view (WO-036, design/sidebar-navigation/README.md) =====
+   One view tab: 190px sub-nav beside the section body. Templates and Agent
+   connection keep their own re-homed layouts; Project settings and Updates
+   use the 620px card grammar below. */
+.settings { flex: 1; display: flex; min-height: 0; min-width: 0; }
+.set-nav { width: 190px; flex: 0 0 auto; border-right: 1px solid var(--hair); padding: 26px 10px; }
+.set-label {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ghost); padding: 4px 9px 6px;
+}
+.set-item {
+  height: 28px; display: flex; align-items: center; gap: 8px;
+  padding: 0 9px; border-radius: 6px; font-size: 12.5px; color: var(--body-text);
+  cursor: pointer;
+}
+.set-item:hover { background: #1B1B20; }
+.set-item-active { background: rgba(232,112,58,0.09); color: var(--ember-light); }
+.set-glyph { width: 14px; text-align: center; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.set-item-active .set-glyph { color: var(--ember-light); }
+.set-item-soon { color: var(--faint); cursor: default; }
+.set-item-soon:hover { background: none; }
+.set-soon { margin-left: auto; font-family: var(--mono); font-size: 8.5px; color: var(--ghost); }
+.set-gap { height: 16px; }
+.set-body { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.set-scroll { flex: 1; overflow-y: auto; }
+.set-inner { max-width: 620px; padding: 30px 40px 60px; }
+.set-h1 { margin: 0 0 6px; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+.set-lede { margin: 0 0 22px; font-size: 13px; color: var(--muted); line-height: 1.55; text-wrap: pretty; }
+.set-card { background: var(--card); border: 1px solid var(--card-border); border-radius: 9px; padding: 0 14px; }
+.set-kv { display: flex; min-height: 30px; align-items: center; border-top: 1px solid var(--card-2); }
+.set-kv:first-child { border-top: none; }
+.set-kv-k { width: 130px; flex: 0 0 auto; font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
+.set-kv-v { font-size: 12.5px; color: var(--body-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.set-kv-v-mono { font-family: var(--mono); font-size: 11px; }
 
 /* ===== Editor area + tab strip (WO-012, tokens per SRC-004) ===== */
 .editor-area { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }

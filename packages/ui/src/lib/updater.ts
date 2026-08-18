@@ -8,6 +8,22 @@ const { autoUpdater } = updater;
 
 const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000;
 
+/** What the Settings → Updates section shows (WO-036). Failed checks leave
+    both fields alone: REQ-011 says an unreachable feed must behave exactly
+    like being up to date, and the log is where failures go (DEC-034). */
+export interface UpdateStatus {
+  /** Set once a background download completes; installs on restart or quit. */
+  downloadedVersion: string | null;
+  /** Epoch ms of the last check that reached the feed; null before then. */
+  lastCheckAt: number | null;
+}
+
+const status: UpdateStatus = { downloadedVersion: null, lastCheckAt: null };
+
+export function updateStatus(): UpdateStatus {
+  return { ...status };
+}
+
 /**
  * Background auto-update per REQ-011: check on launch and every few hours,
  * download silently, then ask — never force a restart. "Later" leaves the
@@ -29,6 +45,7 @@ export function startUpdater(log: Logger): void {
 
   const promptedVersions = new Set<string>();
   autoUpdater.on('update-downloaded', (info) => {
+    status.downloadedVersion = info.version;
     // Interval re-checks re-emit for the same download; ask once per version.
     if (promptedVersions.has(info.version)) return;
     promptedVersions.add(info.version);
@@ -48,7 +65,12 @@ export function startUpdater(log: Logger): void {
   });
 
   const check = (): void => {
-    autoUpdater.checkForUpdates().catch(() => {});
+    autoUpdater
+      .checkForUpdates()
+      .then(() => {
+        status.lastCheckAt = Date.now();
+      })
+      .catch(() => {});
   };
   // Off the launch path: the window is up before the first check runs.
   setTimeout(check, 10_000);

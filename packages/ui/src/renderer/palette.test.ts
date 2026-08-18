@@ -20,9 +20,9 @@ test('typing a view name surfaces the view row among doc hits by score', () => {
   );
 });
 
-test('partial label matches surface views ("agent" → Agent connection)', () => {
+test('partial label matches surface views ("agent" → Settings, via its alias)', () => {
   const rows = paletteRows(result({ text: 'agent' }, []));
-  assert.deepEqual(rows.map((r) => (r.kind === 'view' ? r.view : '')), ['mcp']);
+  assert.deepEqual(rows.map((r) => (r.kind === 'view' ? r.view : '')), ['settings']);
 });
 
 test('view rows are suppressed while a type or status filter is active', () => {
@@ -74,10 +74,11 @@ test('a doc hit outranks the command row at equal-ish scores', () => {
   assert.equal(rows[0]?.kind, 'doc');
 });
 
-test('the Templates view surfaces for both its label and the settings alias (SRC-009)', () => {
+test('the Settings view surfaces for its label and its section aliases (WO-036)', () => {
   const views = (rows: ReturnType<typeof paletteRows>): string[] =>
     rows.filter((r) => r.kind === 'view').map((r) => (r as { view: string }).view);
-  assert.ok(views(paletteRows(result({ text: 'templ' }, []))).includes('templates'));
-  assert.ok(views(paletteRows(result({ text: 'settings' }, []))).includes('templates'));
-  assert.ok(!views(paletteRows(result({ text: 'settings', type: 'decision' }, []))).includes('templates'));
+  assert.ok(views(paletteRows(result({ text: 'settings' }, []))).includes('settings'));
+  assert.ok(views(paletteRows(result({ text: 'templ' }, []))).includes('settings'));
+  assert.ok(views(paletteRows(result({ text: 'updates' }, []))).includes('settings'));
+  assert.ok(!views(paletteRows(result({ text: 'settings', type: 'decision' }, []))).includes('settings'));
 });

@@ -215,7 +215,7 @@ function agentPicker(ctx: Ctx): HTMLElement {
       'div',
       { class: 'ap-foot' },
       `launches in ${tildify(ctx.snap.root, home)} · `,
-      h('span', { class: 'mcp-snippet-link', onClick: () => ctx.setView('mcp') }, 'connection settings →'),
+      h('span', { class: 'mcp-snippet-link', onClick: () => ctx.openSettings('agent') }, 'connection settings →'),
     ),
   );
 }

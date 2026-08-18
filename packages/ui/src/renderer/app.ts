@@ -3,7 +3,7 @@ import type { Advisory, DocType, Issue, VeriDocument } from '@veri/core';
 import type { ContextPackage, PaletteResult } from '@veri/mcp';
 import type { Snapshot } from '../lib/snapshot.ts';
 import { api } from './api.ts';
-import type { ProjectInfo, TemplateInfo, VeriApi } from './api.ts';
+import type { AppInfo, ProjectInfo, TemplateInfo, UpdateStatus, VeriApi } from './api.ts';
 import { h } from './dom.ts';
 import { TYPE_META, relTime, statusColor, tint } from './theme.ts';
 import { advisoriesByDoc, docsById, isPending, issuesByDoc, packageSummary } from './derive.ts';
@@ -16,7 +16,6 @@ import type { AgentInfo } from '../lib/agents.ts';
 import { kickoffPrompt } from './derive.ts';
 import { readerView } from './views/reader.ts';
 import { homeView } from './views/home.ts';
-import { mcpView } from './views/mcp.ts';
 import { welcomeView } from './views/welcome.ts';
 import { workOrderView } from './views/workorder.ts';
 import { boardView } from './views/board.ts';
@@ -29,10 +28,14 @@ import { ipcErrorMessage, reconcileDisk } from './editlogic.ts';
 import { editorScreen } from './views/editor.ts';
 import { paletteRows } from './palette.ts';
 import type { PaletteRow } from './palette.ts';
-import { TPL_TYPES, templatesView } from './views/templates.ts';
+import { TPL_TYPES } from './views/templates.ts';
+import { settingsView } from './views/settings.ts';
 import { DEAD_LABEL, livingCount, panelList, pushRecent } from './sidebar.ts';
 
-export type View = 'home' | 'workorder' | 'homeview' | 'board' | 'graph' | 'decisions' | 'mcp' | 'templates';
+export type View = 'home' | 'workorder' | 'homeview' | 'board' | 'graph' | 'decisions' | 'settings';
+
+/** Sections of the Settings view (WO-036, SRC-014). */
+export type SettingsSection = 'templates' | 'agent' | 'project' | 'updates';
 
 export interface OpenDocOpts {
   preview?: boolean;
@@ -67,8 +70,10 @@ export interface State {
   panel: DocType | null;
   panelFilter: string;
   showDead: Partial<Record<DocType, boolean>>;
-  /** Interim settings popover at the sidebar foot (WO-035; WO-036 grows it). */
+  /** Settings popover at the sidebar foot (WO-036): transient, grouped. */
   settingsPop: boolean;
+  /** The Settings view's open section — session state, never persisted. */
+  settingsSection: SettingsSection;
   /** Review banner (SRC-006): approve-confirm popover and note composer. */
   reviewPop: boolean;
   /** Non-null while the request-changes composer is open; holds its draft. */
@@ -139,6 +144,12 @@ export interface Ctx {
   update(patch: Partial<State>): void;
   openDoc(id: string, opts?: OpenDocOpts): void;
   setView(view: View): void;
+  /** Open the Settings tab at a section (WO-036: popover rows, sub-nav). */
+  openSettings(section: SettingsSection): void;
+  /** Static launch facts for the Settings view; null until the IPC lands. */
+  appInfo: AppInfo | null;
+  /** What the background updater has done; refreshed on Updates opens. */
+  updStatus: UpdateStatus | null;
   /** Pin/unpin a doc in the sidebar working set (WO-014). */
   togglePin(id: string): void;
   refresh(): Promise<void>;
@@ -258,6 +269,7 @@ class App implements Ctx {
     panelFilter: '',
     showDead: {},
     settingsPop: false,
+    settingsSection: 'templates',
     reviewPop: false,
     reviewText: null,
     toast: null,
@@ -283,6 +295,8 @@ class App implements Ctx {
     mcpPrecheck: null,
     welcomeNotice: null,
   };
+  appInfo: AppInfo | null = null;
+  updStatus: UpdateStatus | null = null;
   /** Editing state per doc tab (WO-022); islands survive re-renders here. */
   private docEdit = new Map<string, DocEdit>();
   /** Template settings (WO-024): per-type buffers and the last-read info.
@@ -358,6 +372,10 @@ class App implements Ctx {
     this.state.pinned = ws.pinned.filter((id) => this.byId.has(id));
     this.state.recents = ws.recents.filter((id) => this.byId.has(id));
     await this.refreshMcp();
+    void this.api.appInfo().then((info) => {
+      this.appInfo = info;
+      this.render();
+    });
     const params = new URLSearchParams(location.search);
     const view = params.get('view');
     const doc = params.get('doc');
@@ -520,7 +538,7 @@ class App implements Ctx {
         reviewText: null,
         tplResetConfirm: false,
       });
-      if (active !== 'mcp') Object.assign(patch, this.leaveMcpPatch());
+      if (active !== 'settings') Object.assign(patch, this.leaveMcpPatch());
     }
     return patch;
   }
@@ -588,12 +606,32 @@ class App implements Ctx {
     this.applyTabs(openTab(this.tabState(), view, { preview: true, previewTabs: this.state.previewTabs }), closed);
   }
 
-  /** Leaving the agent-connection panel dismisses its banners and drops the
+  /** Leaving the agent-connection section dismisses its banners and drops the
       transient verify/pre-check results (SRC-002 — nothing is cached). */
   private leaveMcpPatch(): Partial<State> {
-    return this.state.view === 'mcp'
+    return this.state.view === 'settings' && this.state.settingsSection === 'agent'
       ? { mcpWrote: false, mcpExternal: false, mcpBuildCopied: false, mcpVerify: null, mcpVerifyCopied: false, mcpPrecheck: null }
       : {};
+  }
+
+  /** Popover rows and the sub-nav land here: one Settings tab (preview
+      semantics like Board), opened at the invoked section (WO-036). */
+  openSettings(section: SettingsSection): void {
+    if (section === 'updates') this.refreshUpdateStatus();
+    this.applyTabs(openTab(this.tabState(), 'settings', { preview: true, previewTabs: this.state.previewTabs }), {
+      settingsSection: section,
+      ...(section !== 'agent' ? this.leaveMcpPatch() : {}),
+      projectSwitcherOpen: false,
+      panel: null,
+      settingsPop: false,
+    });
+  }
+
+  private refreshUpdateStatus(): void {
+    void this.api.updateStatus().then((upd) => {
+      this.updStatus = upd;
+      this.render();
+    });
   }
 
   runVerify(): void {
@@ -616,8 +654,8 @@ class App implements Ctx {
       .runtimeProbe()
       .then((probe) => {
         this.precheckInFlight = false;
-        // Only meaningful while the panel is still up; a later visit re-probes.
-        if (this.state.view === 'mcp') this.update({ mcpPrecheck: probe });
+        // Only meaningful while the section is still up; a later visit re-probes.
+        if (this.state.view === 'settings' && this.state.settingsSection === 'agent') this.update({ mcpPrecheck: probe });
       })
       .catch(() => {
         this.precheckInFlight = false;
@@ -796,8 +834,8 @@ class App implements Ctx {
   saveActive(): void {
     const id = this.state.activeTabId;
     if (id === null) return;
-    if (id === 'templates') {
-      this.tplSave();
+    if (id === 'settings') {
+      if (this.state.settingsSection === 'templates') this.tplSave();
       return;
     }
     if (isViewKey(id)) return;
@@ -890,7 +928,7 @@ class App implements Ctx {
   /** Close ×/middle-click: a dirty editor gets the Save/Discard/Cancel
       prompt (SRC-008); everything else closes like before. */
   private requestCloseTab(id: string, anchor: DOMRect | null): void {
-    if (this.docEdit.get(id)?.dirty === true || (id === 'templates' && this.tplAnyDirty())) {
+    if (this.docEdit.get(id)?.dirty === true || (id === 'settings' && this.tplAnyDirty())) {
       this.update({
         closeConfirm: { id, x: anchor?.left ?? window.innerWidth / 2 - 130, y: (anchor?.bottom ?? 60) + 8 },
       });
@@ -901,9 +939,9 @@ class App implements Ctx {
 
   private forceCloseTab(id: string): void {
     this.dropEditor(id);
-    // Closing the Templates tab drops its buffers and infos: the next open
-    // reads everything fresh from the files (DEC-002).
-    if (id === 'templates') this.dropTemplates();
+    // Closing the Settings tab drops the template buffers and infos: the
+    // next open reads everything fresh from the files (DEC-002).
+    if (id === 'settings') this.dropTemplates();
     this.applyTabs(closeTab(this.tabState(), id), { closeConfirm: null });
   }
 
@@ -1067,7 +1105,7 @@ class App implements Ctx {
       silent reload when clean, banner when dirty. A deleted file is not a
       conflict — its effective body is the built-in default (DEC-023). */
   private async reconcileTemplates(): Promise<void> {
-    if (!this.state.tabs.some((t) => t.id === 'templates')) return;
+    if (!this.state.tabs.some((t) => t.id === 'settings')) return;
     for (const type of [...this.tplInfo.keys()]) {
       const info = await this.api.templateRead(type).catch(() => null);
       if (info === null) continue;
@@ -1684,37 +1722,48 @@ class App implements Ctx {
       );
     };
     const { healthy, label } = this.mcpSummary();
-    const popRow = (glyph: string, text: string, view: View, meta: HTMLElement | null = null): HTMLElement =>
+    const popRow = (glyph: string, text: string, section: SettingsSection, meta: HTMLElement | null = null): HTMLElement =>
       h(
         'div',
         {
           class: 'pop-row',
           onClick: (e) => {
             e.stopPropagation();
-            this.setView(view);
+            this.openSettings(section);
           },
         },
         h('span', { class: 'pop-glyph' }, glyph),
         h('span', {}, text),
         meta,
       );
-    // Interim popover (WO-035): just the two re-homed surfaces, reached
-    // unchanged. WO-036 grows this into the grouped Settings menu + view.
+    // The grouped Settings popover (WO-036, SRC-014): every row opens the
+    // Settings view at its section. The agent row's meta is the same static
+    // config-state dot as the gear's — no port, no liveness (the server is
+    // stdio-launched by the agent; REQ-005 forbids implying client status).
     const pop = this.state.settingsPop
       ? h(
           'div',
           { class: 'settings-pop', onClick: (e) => e.stopPropagation() },
-          h('div', { class: 'pop-label' }, 'Settings'),
+          h('div', { class: 'pop-label' }, 'Project'),
           popRow('⌧', 'Templates', 'templates'),
           popRow(
             '⌁',
             'Agent connection',
-            'mcp',
+            'agent',
             h(
               'span',
               { class: 'pop-meta' },
               h('span', { class: 'settings-dot', style: `background:${healthy ? '#7FAF8A' : '#D9A03F'};` }),
             ),
+          ),
+          popRow('▣', 'Project settings', 'project'),
+          h('div', { class: 'pop-div' }),
+          h('div', { class: 'pop-label' }, 'Application'),
+          popRow(
+            '↻',
+            'Updates',
+            'updates',
+            this.appInfo !== null ? h('span', { class: 'pop-meta pop-meta-ghost' }, this.appInfo.version) : null,
           ),
         )
       : null;
@@ -1734,10 +1783,7 @@ class App implements Ctx {
         h(
           'div',
           {
-            class:
-              this.state.activeTabId === 'templates' || this.state.activeTabId === 'mcp'
-                ? 'nav-item nav-item-active'
-                : 'nav-item',
+            class: this.state.activeTabId === 'settings' ? 'nav-item nav-item-active' : 'nav-item',
             title: label,
             onClick: (e) => {
               e.stopPropagation();
@@ -1877,7 +1923,7 @@ class App implements Ctx {
     const doc = view === null ? this.byId.get(t.id) : undefined;
     const title = view?.label ?? doc?.title ?? t.id;
     const active = t.id === this.state.activeTabId;
-    const dirty = this.docEdit.get(t.id)?.dirty === true || (t.id === 'templates' && this.tplAnyDirty());
+    const dirty = this.docEdit.get(t.id)?.dirty === true || (t.id === 'settings' && this.tplAnyDirty());
     const close = (el: Element | null): void => this.requestCloseTab(t.id, el?.getBoundingClientRect() ?? null);
     return h(
       'div',
@@ -1961,7 +2007,7 @@ class App implements Ctx {
   }
 
   /** The active view's scrollable regions, in document order. */
-  private static readonly SCROLL_SEL = '.reader, .panel-right, .screen-board, .screen-decisions, .screen-homeview, .mcp-view';
+  private static readonly SCROLL_SEL = '.reader, .panel-right, .screen-board, .screen-decisions, .screen-homeview, .mcp-view, .set-scroll';
 
   render(): void {
     if (this.welcomeMode) {
@@ -2000,11 +2046,10 @@ class App implements Ctx {
     else if (activeEdit !== null) screen = editorScreen(this, activeEdit);
     else if (view === 'workorder' && this.doc()?.type === 'work-order') screen = workOrderView(this);
     else if (view === 'homeview') screen = homeView(this);
-    else if (view === 'mcp') screen = mcpView(this);
     else if (view === 'board') screen = boardView(this);
     else if (view === 'graph') screen = graphView(this);
     else if (view === 'decisions') screen = decisionsView(this);
-    else if (view === 'templates') screen = templatesView(this);
+    else if (view === 'settings') screen = settingsView(this);
     else screen = readerView(this);
     const palette = this.paletteEl();
     const sheet = this.newProjectSheet();
@@ -2036,7 +2081,8 @@ class App implements Ctx {
       });
     }
     if (activeEdit !== null) this.docEdit.get(activeEdit.id)?.island?.restoreScroll();
-    if (view === 'templates') this.tplEdit.get(this.state.tplType)?.island?.restoreScroll();
+    if (view === 'settings' && this.state.settingsSection === 'templates')
+      this.tplEdit.get(this.state.tplType)?.island?.restoreScroll();
   }
 
   /** The creation popover and the dirty-close prompt (WO-022, SRC-008). */
@@ -2102,7 +2148,7 @@ class App implements Ctx {
           h(
             'div',
             { class: 'cc-text' },
-            cc.id === 'templates' ? "Template edits aren't saved." : `${cc.id} has edits that aren't saved.`,
+            cc.id === 'settings' ? "Template edits aren't saved." : `${cc.id} has edits that aren't saved.`,
           ),
           h(
             'div',
@@ -2115,7 +2161,7 @@ class App implements Ctx {
                 class: 'nd-btn-primary',
                 onClick: () => {
                   this.update({ closeConfirm: null });
-                  if (cc.id === 'templates') this.tplSaveAll(() => this.forceCloseTab(cc.id));
+                  if (cc.id === 'settings') this.tplSaveAll(() => this.forceCloseTab(cc.id));
                   else this.saveEditor(cc.id, () => this.forceCloseTab(cc.id));
                 },
               },

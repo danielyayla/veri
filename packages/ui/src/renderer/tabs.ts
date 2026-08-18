@@ -6,15 +6,15 @@
  */
 
 /** View tabs alongside document tabs; ids are doc ids or these keys. */
-export type ViewKey = 'homeview' | 'board' | 'graph' | 'decisions' | 'mcp' | 'templates';
+export type ViewKey = 'homeview' | 'board' | 'graph' | 'decisions' | 'settings';
 
 export const VIEW_META: Record<ViewKey, { label: string; glyph: string }> = {
   homeview: { label: 'Home', glyph: '⌂' },
   board: { label: 'Board', glyph: '▤' },
   graph: { label: 'Graph', glyph: '◉' },
   decisions: { label: 'Decisions', glyph: '§' },
-  mcp: { label: 'Agent connection', glyph: '⌁' },
-  templates: { label: 'Templates', glyph: '⚙' },
+  // One Settings tab hosts Templates and Agent connection too (WO-036).
+  settings: { label: 'Settings', glyph: '⚙' },
 };
 
 export function isViewKey(id: string): id is ViewKey {

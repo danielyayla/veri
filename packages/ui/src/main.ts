@@ -30,7 +30,7 @@ import { buildSnapshot } from './lib/snapshot.ts';
 import { loadWorkspaceState, saveWorkspaceState } from './lib/workspace.ts';
 import type { WorkspaceState } from './lib/workspace.ts';
 import { appendNote, appendReviewNote, approveDoc, setStatus } from './lib/write.ts';
-import { startUpdater } from './lib/updater.ts';
+import { startUpdater, updateStatus } from './lib/updater.ts';
 import { createLogger } from './lib/log.ts';
 import { buildIssueUrl } from './lib/report.ts';
 import type { ProjectInfo } from './renderer/api.ts';
@@ -193,6 +193,20 @@ function registerIpc(): void {
       searchId,
     });
   });
+  // Settings view (WO-036): identity facts for the Project settings and
+  // Updates sections. The format label comes from core's classification of
+  // the file on disk (REQ-015) — computed per call, so a project switch or
+  // an external `veri migrate` is reflected on the next render.
+  ipcMain.handle('veri:app-info', () => {
+    const format = classifyFormat(join(projectRoot, 'veri'));
+    return {
+      version: app.getVersion(),
+      packaged: app.isPackaged,
+      home: app.getPath('home'),
+      formatLabel: format.kind === 'current' ? `veri/format v${format.version}` : (formatStatement(format) ?? ''),
+    };
+  });
+  ipcMain.handle('veri:update-status', () => updateStatus());
   ipcMain.handle('veri:agents', () => detectAgents(projectRoot));
   // Start agent session (WO-011): optional config write (DEC-011-gated),
   // then spawn the agent in a terminal. Resolves to an error message or null

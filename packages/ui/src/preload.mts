@@ -24,6 +24,8 @@ contextBridge.exposeInMainWorld('veri', {
   runtimeProbe: () => ipcRenderer.invoke('veri:runtime-probe'),
   verifyConnection: () => ipcRenderer.invoke('veri:verify-connection'),
   welcomeOpen: () => ipcRenderer.invoke('veri:welcome-open'),
+  appInfo: () => ipcRenderer.invoke('veri:app-info'),
+  updateStatus: () => ipcRenderer.invoke('veri:update-status'),
   agents: () => ipcRenderer.invoke('veri:agents'),
   agentLaunch: (id: string, binPath: string, prompt: string, setup: boolean) =>
     ipcRenderer.invoke('veri:agent-launch', id, binPath, prompt, setup),

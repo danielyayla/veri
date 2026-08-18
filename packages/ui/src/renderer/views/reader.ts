@@ -144,7 +144,7 @@ export function readerView(ctx: Ctx): HTMLElement {
                   class: 'adv-tpl',
                   onClick: () => {
                     ctx.update({ tplType: doc.type, tplResetConfirm: false });
-                    ctx.setView('templates');
+                    ctx.openSettings('templates');
                   },
                 },
                 'template ↗',
