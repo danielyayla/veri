@@ -38,12 +38,22 @@ export function livingCount(docs: VeriDocument[], type: DocType): number {
 const newestFirst = (a: VeriDocument, b: VeriDocument): number =>
   b.id.localeCompare(a.id, undefined, { numeric: true });
 
+/** Decisions read as a chronological feed (SRC-023): the panel inherits the
+    retired Decision log's ordering — created date, newest first, ids as the
+    tiebreak. Every other type keeps the id order (ids and dates agree there
+    unless a doc is backdated, which decisions are the ones known to do). */
+const newestCreatedFirst = (a: VeriDocument, b: VeriDocument): number =>
+  a.created === b.created ? newestFirst(a, b) : b.created.localeCompare(a.created);
+
+const panelOrder = (type: DocType): ((a: VeriDocument, b: VeriDocument) => number) =>
+  type === 'decision' ? newestCreatedFirst : newestFirst;
+
 export interface PanelList {
   /** PINNED group: this type's pinned docs, in the workspace-state order. */
   pinned: VeriDocument[];
-  /** Living, unpinned, newest id first, filter-matched. */
+  /** Living, unpinned, newest first (per panelOrder), filter-matched. */
   living: VeriDocument[];
-  /** Dead docs behind the expander, newest id first, filter-matched. */
+  /** Dead docs behind the expander, newest first (per panelOrder), filter-matched. */
   dead: VeriDocument[];
   /** Total for the panel header — every doc of the type, unfiltered. */
   total: number;
@@ -60,10 +70,11 @@ export function panelList(docs: VeriDocument[], type: DocType, filter: string, p
   const pinnedRows = pinned
     .map((id) => living.find((d) => d.id === id))
     .filter((d): d is VeriDocument => d !== undefined);
+  const order = panelOrder(type);
   return {
     pinned: pinnedRows,
-    living: living.filter((d) => !pinned.includes(d.id)).sort(newestFirst),
-    dead: all.filter((d) => !isLiving(d) && match(d)).sort(newestFirst),
+    living: living.filter((d) => !pinned.includes(d.id)).sort(order),
+    dead: all.filter((d) => !isLiving(d) && match(d)).sort(order),
     total: all.length,
   };
 }

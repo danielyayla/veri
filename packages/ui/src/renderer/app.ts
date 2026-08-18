@@ -20,7 +20,6 @@ import { welcomeView } from './views/welcome.ts';
 import { workOrderView } from './views/workorder.ts';
 import { boardView } from './views/board.ts';
 import { graphView } from './views/graph.ts';
-import { decisionsView } from './views/decisions.ts';
 import { searchView } from './views/search.ts';
 import {
   VIEW_META,
@@ -51,7 +50,7 @@ import { TPL_TYPES } from './views/templates.ts';
 import { settingsView } from './views/settings.ts';
 import { DEAD_LABEL, livingCount, panelList, pushRecent } from './sidebar.ts';
 
-export type View = 'home' | 'workorder' | 'homeview' | 'board' | 'graph' | 'decisions' | 'search' | 'settings';
+export type View = 'home' | 'workorder' | 'homeview' | 'board' | 'graph' | 'search' | 'settings';
 
 /** Sections of the Settings view (WO-036, SRC-014). */
 export type SettingsSection = 'templates' | 'agent' | 'project' | 'updates';
@@ -2375,7 +2374,7 @@ class App implements Ctx {
   }
 
   /** The active view's scrollable regions, in document order. */
-  private static readonly SCROLL_SEL = '.reader, .panel-right, .screen-board, .screen-decisions, .screen-homeview, .screen-search, .mcp-view, .set-scroll';
+  private static readonly SCROLL_SEL = '.reader, .panel-right, .screen-board, .screen-homeview, .screen-search, .mcp-view, .set-scroll';
 
   render(): void {
     if (this.welcomeMode) {
@@ -2425,7 +2424,6 @@ class App implements Ctx {
     else if (view === 'homeview') screen = homeView(this);
     else if (view === 'board') screen = boardView(this);
     else if (view === 'graph') screen = graphView(this);
-    else if (view === 'decisions') screen = decisionsView(this);
     else if (view === 'search') screen = searchView(this);
     else if (view === 'settings') screen = settingsView(this);
     else screen = readerView(this);

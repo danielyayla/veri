@@ -735,27 +735,6 @@ a:hover { color: #F49463; }
 }
 .gr-pop-open:hover { border-color: var(--hover-border-2); }
 
-/* ===== Decision log ===== */
-.screen-decisions { flex: 1; overflow-y: auto; min-width: 0; }
-.dl-col { max-width: 680px; margin: 0 auto; padding: 26px 40px 60px; }
-.dl-list { margin-top: 22px; display: flex; flex-direction: column; gap: 12px; }
-.dl-card { border: 1px solid var(--card-border); border-radius: 9px; background: var(--card); padding: 14px 16px; }
-.dl-head { display: flex; align-items: center; gap: 10px; }
-.dl-id { font-family: var(--mono); font-size: 11px; color: #CFA83D; cursor: pointer; }
-.dl-date { font-family: var(--mono); font-size: 10.5px; color: var(--ghost); }
-.dl-badge { margin-left: auto; font-family: var(--mono); font-size: 10px; border-radius: 4px; padding: 2px 7px; }
-.dl-title { font-size: 15px; font-weight: 600; color: var(--text); margin-top: 7px; }
-.dl-choice { font-size: 13.5px; color: var(--secondary); margin-top: 4px; line-height: 1.55; text-wrap: pretty; }
-.dl-row { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.dl-micro { font-family: var(--mono); font-size: 9.5px; color: var(--ghost); }
-.dl-rejected {
-  font-size: 11.5px; color: var(--faint); text-decoration: line-through;
-  border: 1px solid var(--card-border-2); border-radius: 4px; padding: 2px 8px;
-}
-.dl-link { font-family: var(--mono); font-size: 10.5px; border-radius: 4px; padding: 2px 7px; cursor: pointer; }
-.dl-sup { margin-top: 10px; display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--amber); cursor: pointer; }
-.dl-sup-id { font-family: var(--mono); font-size: 11px; }
-
 /* ===== Agent connection (WO-007, tokens per SRC-002) ===== */
 .mcp-snippet-link { color: var(--ember); cursor: pointer; }
 .mcp-snippet-link:hover { color: #F49463; }

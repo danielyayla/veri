@@ -2,7 +2,7 @@
 id: WO-049
 type: work-order
 title: "Resolve the Decision log — retire the view"
-status: backlog
+status: in-progress
 created: 2026-08-18
 updated: 2026-08-18
 links:
@@ -42,12 +42,12 @@ links:
 
 ## Acceptance tests
 
-- [ ] The decisions view is gone: no ViewKey, no palette row, no reachable route; the app builds and runs
-- [ ] The Decisions type panel lists decisions newest-first by created date with status chips
-- [ ] A workspace file persisting a decisions view tab restores without error and without the tab (covered by a test)
+- [x] The decisions view is gone: no ViewKey, no palette row, no reachable route; the app builds and runs
+- [x] The Decisions type panel lists decisions newest-first by created date with status chips
+- [x] A workspace file persisting a decisions view tab restores without error and without the tab (covered by a test)
 - [ ] REQ-004 describes four screens and the edit surfaces as a drift advisory, not an issue
-- [ ] A proposed decision records the retirement with rejected alternatives and links this work order
-- [ ] npm test passes; veri check reports zero issues
+- [x] A proposed decision records the retirement with rejected alternatives and links this work order
+- [x] npm test passes; veri check reports zero issues
 
 ## Receipts
 

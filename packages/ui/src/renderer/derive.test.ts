@@ -8,7 +8,6 @@ import {
   autocomplete,
   boardColumns,
   connections,
-  decisionLog,
   docsById,
   gatingDocs,
   graphLayout,
@@ -141,31 +140,6 @@ test('issue-driven health surfaces ignore advisories entirely', () => {
   // issuesByDoc; a doc with only advisories stays healthy (DEC-025).
   const card = boardColumns(s)[0].cards[0];
   assert.equal(card.health, false);
-});
-
-test('decisionLog sorts newest first and extracts choice, rejected chips, supersession', () => {
-  const dec1 = doc({
-    id: 'DEC-001',
-    type: 'decision',
-    title: 'Old way',
-    status: 'superseded',
-    created: '2026-07-01',
-    supersededBy: 'DEC-002',
-    body: '## Choice\n\nDo it the old way.\n\n## Rejected alternatives\n\n- **New way** — too new.\n',
-  });
-  const dec2 = doc({
-    id: 'DEC-002',
-    type: 'decision',
-    title: 'New way',
-    status: 'active',
-    created: '2026-07-20',
-    body: '## Choice\n\nDo it the new way.\n\n## Rejected alternatives\n\n- **Old way** — superseded.\n- Something plain — meh.\n',
-  });
-  const log = decisionLog(snap([dec1, dec2]));
-  assert.deepEqual(log.map((e) => e.id), ['DEC-002', 'DEC-001']);
-  assert.equal(log[0].choice, 'Do it the new way.');
-  assert.deepEqual(log[0].rejected, ['Old way', 'Something plain']);
-  assert.equal(log[1].supersededBy, 'DEC-002');
 });
 
 test('graphLayout places every doc, sizes by degree, dims superseded', () => {

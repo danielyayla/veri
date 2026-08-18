@@ -5,7 +5,6 @@
 import type { Advisory, Edge, Issue, VeriDocument } from '@veri/core';
 import type { Snapshot } from '../lib/snapshot.ts';
 import { sections, parseBlocks, plainText } from './markdown.ts';
-import type { Block } from './markdown.ts';
 
 /**
  * Mirrors @veri/core's PACKAGE_RULES for the package panel footer. The
@@ -166,54 +165,6 @@ export function boardColumns(snap: Snapshot): BoardColumn[] {
     });
   }
   return cols;
-}
-
-export interface DecisionEntry {
-  id: string;
-  date: string;
-  title: string;
-  status: string;
-  choice: string;
-  rejected: string[];
-  links: Array<{ id: string; type: VeriDocument['type'] }>;
-  supersededBy: string | null;
-}
-
-/** Chip label for a rejected alternative: its **bold** lead-in, else a trimmed prefix. */
-export function rejectedLabel(block: Block): string {
-  if (block.kind !== 'li') return '';
-  const bold = block.segs.find((s) => s.kind === 'bold');
-  if (bold !== undefined && bold.kind === 'bold') return bold.text;
-  const text = plainText(block.segs);
-  const dash = text.indexOf(' — ');
-  const head = dash >= 0 ? text.slice(0, dash) : text;
-  return head.length > 42 ? `${head.slice(0, 39)}…` : head;
-}
-
-export function decisionLog(snap: Snapshot): DecisionEntry[] {
-  const byId = docsById(snap);
-  return snap.documents
-    .filter((d) => d.type === 'decision')
-    .sort((a, b) => (a.created === b.created ? b.id.localeCompare(a.id) : b.created.localeCompare(a.created)))
-    .map((d) => {
-      const secs = sections(d.body);
-      const choiceBlock = (secs.get('Choice') ?? []).find((b) => b.kind === 'para');
-      const rejected = (secs.get('Rejected alternatives') ?? [])
-        .filter((b) => b.kind === 'li')
-        .map((b) => rejectedLabel(b));
-      return {
-        id: d.id,
-        date: d.created,
-        title: d.title,
-        status: d.status,
-        choice: choiceBlock !== undefined && choiceBlock.kind === 'para' ? plainText(choiceBlock.segs) : '',
-        rejected,
-        links: d.links
-          .filter((l) => byId.has(l.id))
-          .map((l) => ({ id: l.id, type: byId.get(l.id)!.type })),
-        supersededBy: d.supersededBy ?? null,
-      };
-    });
 }
 
 export interface GraphNode {

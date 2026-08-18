@@ -81,6 +81,25 @@ test('proposed decisions are living — pending docs stay visible (SRC-006)', ()
   assert.equal(livingCount(docs, 'decision'), 2);
 });
 
+test('the Decisions panel is the chronological feed: created desc, id as tiebreak (SRC-023)', () => {
+  // A backdated decision (DEC-003 created before DEC-002) must sort by its
+  // date, not its id — the retired Decision log's ordering, inherited here.
+  const docs = [
+    { ...doc('DEC-001', 'decision', 'active'), created: '2026-07-01' },
+    { ...doc('DEC-003', 'decision', 'proposed'), created: '2026-07-10' },
+    { ...doc('DEC-002', 'decision', 'active'), created: '2026-07-20' },
+    { ...doc('DEC-004', 'decision', 'superseded'), created: '2026-07-05' },
+    { ...doc('DEC-005', 'decision', 'superseded'), created: '2026-07-05' },
+  ];
+  const dec = panelList(docs, 'decision', '', []);
+  assert.deepEqual(dec.living.map((d) => d.id), ['DEC-002', 'DEC-003', 'DEC-001']);
+  // The dead expander follows the same feed order; equal dates fall back to id desc.
+  assert.deepEqual(dec.dead.map((d) => d.id), ['DEC-005', 'DEC-004']);
+  // Other types keep the id order.
+  const wo = panelList([{ ...doc('WO-001', 'work-order', 'backlog'), created: '2026-08-09' }, { ...doc('WO-002', 'work-order', 'backlog'), created: '2026-08-01' }], 'work-order', '', []);
+  assert.deepEqual(wo.living.map((d) => d.id), ['WO-002', 'WO-001']);
+});
+
 test('pushRecent fronts, dedupes, and caps at 10', () => {
   assert.deepEqual(pushRecent(['A', 'B'], 'B'), ['B', 'A']);
   const ten = Array.from({ length: 10 }, (_, i) => `D${i}`);

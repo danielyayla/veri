@@ -220,6 +220,19 @@ describe('retainTabs', () => {
     const next = retainTabs(s([{ t: ['board', 'A'] }], 0), gone(['A']));
     deepStrictEqual(targets(next.tabs[0]), ['board']);
   });
+
+  // WO-049: workspaces persisted before the Decision log retirement may still
+  // hold a 'decisions' view tab. It is no ViewKey and no doc, so restore
+  // drops the entry — no migration; a tab left empty closes like a × click.
+  it("a persisted 'decisions' view tab from before the retirement restores away cleanly", () => {
+    ok(!isViewKey('decisions'));
+    const lone = retainTabs(s([{ t: ['decisions'] }, { t: ['board'] }], 0), () => false);
+    deepStrictEqual(lone.tabs.map((t) => targets(t)), [['board']]);
+    strictEqual(lone.activeKey, 't2');
+    // Mixed history: the dead view entry drops, surviving doc entries stay.
+    const mixed = retainTabs(s([{ t: ['decisions', 'REQ-001'], i: 0 }], 0), (id) => id === 'REQ-001');
+    deepStrictEqual(targets(mixed.tabs[0]), ['REQ-001']);
+  });
 });
 
 describe('helpers', () => {
