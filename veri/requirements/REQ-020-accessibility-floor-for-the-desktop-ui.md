@@ -2,7 +2,8 @@
 id: REQ-020
 type: requirement
 title: Accessibility floor for the desktop UI
-status: draft
+status: accepted
+approved: 2026-08-18
 created: 2026-08-18
 updated: 2026-08-18
 links:

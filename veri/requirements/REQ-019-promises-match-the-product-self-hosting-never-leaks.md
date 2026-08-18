@@ -2,7 +2,8 @@
 id: REQ-019
 type: requirement
 title: Promises match the product; self-hosting never leaks
-status: draft
+status: accepted
+approved: 2026-08-18
 created: 2026-08-18
 updated: 2026-08-18
 links:

@@ -2,7 +2,8 @@
 id: REQ-016
 type: requirement
 title: Navigation history and visible working context
-status: draft
+status: accepted
+approved: 2026-08-18
 created: 2026-08-18
 updated: 2026-08-18
 links:

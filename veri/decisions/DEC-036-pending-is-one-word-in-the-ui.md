@@ -2,7 +2,8 @@
 id: DEC-036
 type: decision
 title: Pending is one word in the UI
-status: proposed
+status: active
+approved: 2026-08-18
 created: 2026-08-18
 updated: 2026-08-18
 links:

@@ -2,7 +2,8 @@
 id: REQ-017
 type: requirement
 title: Agent parity with the workflow it is handed
-status: draft
+status: accepted
+approved: 2026-08-18
 created: 2026-08-18
 updated: 2026-08-18
 links:

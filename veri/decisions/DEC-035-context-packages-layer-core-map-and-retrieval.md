@@ -2,7 +2,8 @@
 id: DEC-035
 type: decision
 title: "Context packages layer core, map, and retrieval"
-status: proposed
+status: active
+approved: 2026-08-18
 created: 2026-08-18
 updated: 2026-08-18
 links:

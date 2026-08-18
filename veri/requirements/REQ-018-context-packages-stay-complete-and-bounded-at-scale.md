@@ -2,7 +2,8 @@
 id: REQ-018
 type: requirement
 title: Context packages stay complete and bounded at scale
-status: draft
+status: accepted
+approved: 2026-08-18
 created: 2026-08-18
 updated: 2026-08-18
 links:
