@@ -2,7 +2,7 @@
 id: WO-044
 type: work-order
 title: "Receipt verification against git"
-status: in-progress
+status: done
 created: 2026-08-18
 updated: 2026-08-18
 links:
@@ -44,15 +44,15 @@ Receipts are the proof that a work order happened, but nothing checks them: a re
 
 ## Acceptance tests
 
-- [ ] A receipt citing a SHA absent from history yields an advisory naming the work order and the SHA.
-- [ ] A receipt whose commit touched none of the files the receipt names yields an advisory.
-- [ ] A commit cited by WO-nnn whose message lacks the `WO-nnn:` prefix yields an advisory.
-- [ ] A `done` work order with no verifiable receipt yields an advisory.
-- [ ] `veri implemented <path>` (or the agreed spelling) lists the work orders whose commits touched the file, derived live from git.
-- [ ] Outside a git repo, verification skips with a note and `veri check` still passes.
-- [ ] All existing receipts in this repo verify clean, or each mismatch is a true finding.
-- [ ] Full suite and `veri check` clean.
+- [x] A receipt citing a SHA absent from history yields an advisory naming the work order and the SHA.
+- [x] A receipt whose commit touched none of the files the receipt names yields an advisory.
+- [x] A commit cited by WO-nnn whose message lacks the `WO-nnn:` prefix yields an advisory.
+- [x] A `done` work order with no verifiable receipt yields an advisory.
+- [x] `veri implemented <path>` (or the agreed spelling) lists the work orders whose commits touched the file, derived live from git.
+- [x] Outside a git repo, verification skips with a note and `veri check` still passes.
+- [x] All existing receipts in this repo verify clean, or each mismatch is a true finding.
+- [x] Full suite and `veri check` clean.
 
 ## Receipts
 
-(none yet)
+- 2026-08-18 — 7317277 — packages/core/src (provenance.ts new, provenance.test.ts new, types.ts, check.ts, index.ts), packages/cli/src (git.ts new, git.test.ts new, commands.ts, commands.test.ts, cli.ts), veri/decisions/DEC-040 — receipt verification shipped per [[DEC-040]] (pure provenance in core over host-collected GitFacts): lenient parser for the corpus's receipt shapes, four advisory kinds on the DEC-025 tier, derived implemented-in index off the WO-nnn: convention, veri implemented <path>, skip-with-note outside a repository; this repo yields 9 advisories, each a true finding (unprefixed fix:/ui:/v0.1.x:/DEC-approval commits cited by receipts, one receipt citing the WO-030 revert instead of 8726e91); 321 tests pass, veri check 0 issues (agent session, Claude Code)
