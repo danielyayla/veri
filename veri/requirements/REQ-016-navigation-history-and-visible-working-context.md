@@ -14,7 +14,7 @@ links:
 ---
 
 Veri's knowledge is relational, and its core reading act is following a
-trail — WO → REQ → DEC → SRC — yet the app gives that trail no memory.
+trail — SRC → REQ → DEC → WO — yet the app gives that trail no memory.
 There is no back/forward, the breadcrumb is decorative, and the recents
 list is tracked and persisted but rendered nowhere (it only feeds the
 palette's recency boost). [[SRC-016]] scored context preservation 2/5,
