@@ -2,7 +2,7 @@
 id: WO-041
 type: work-order
 title: Layer context packages into core, map, and retrieval
-status: backlog
+status: done
 created: 2026-08-18
 updated: 2026-08-18
 links:
@@ -55,17 +55,18 @@ size is bounded, and nothing relevant is silently invisible.
 
 ## Acceptance tests
 
-- [ ] The binding set (workflow, work order, gate-relevant documents)
+- [x] The binding set (workflow, work order, gate-relevant documents)
       arrives in full at every corpus size; no budget can truncate it.
-- [ ] Against a dense synthetic corpus, package tokens grow with the
+- [x] Against a dense synthetic corpus, package tokens grow with the
       work order's direct neighborhood, not corpus size.
-- [ ] Every neighborhood document not inlined appears in the map with
+- [x] Every neighborhood document not inlined appears in the map with
       id, title, and relation.
-- [ ] Identical files produce byte-identical packages, on both sides of
+- [x] Identical files produce byte-identical packages, on both sides of
       the inline threshold.
-- [ ] The package panel shows inlined vs enumerated exactly as served.
-- [ ] Full suite and `veri check` clean.
+- [x] The package panel shows inlined vs enumerated exactly as served.
+- [x] Full suite and `veri check` clean.
 
 ## Receipts
 
 - 2026-08-18 — fc44d8c — packages/core/src/schema.ts, packages/mcp/src/context.ts (+tests) — layered assembly per [[DEC-035]]: INLINE_THRESHOLD_TOKENS in core, byte-identical inline mode under it, core + context map over it (WO-028 live: ~19.8k → ~10.1k tokens, 66 mapped); 272 tests pass; panel update pending design approval of [[SRC-017]] (agent session, Claude Code)
+- 2026-08-18 — 7a2ea36 — packages/ui/src/renderer/derive.ts (+tests), packages/ui/src/renderer/views/workorder.ts, packages/ui/renderer/styles.css — package panel context-map aggregate per [[SRC-017]] (design approved by Daniel in session); hollow-swatch row derived from served text; verified live on WO-028 (66 mapped · 2.1k map tokens · ~10.1k total); 273 tests pass, veri check clean (agent session, Claude Code)
