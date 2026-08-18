@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { VeriDocument } from '@veri/core';
-import { buildGraph } from '@veri/core';
+import { PACKAGE_RULES, buildGraph } from '@veri/core';
 import type { Snapshot } from '../lib/snapshot.ts';
 import {
   advisoriesByDoc,
@@ -21,7 +21,14 @@ import {
   kickoffPrompt,
   packageSummary,
   receipts,
+  PACKAGE_RULES_TEXT,
 } from './derive.ts';
+
+// REQ-019: the footer's mirrored copy may never drift from the contract line
+// core owns (the renderer bundle can't import core's node-flavored runtime).
+test('the PACKAGE RULES footer text equals core PACKAGE_RULES', () => {
+  assert.equal(PACKAGE_RULES_TEXT, PACKAGE_RULES);
+});
 
 function doc(partial: Partial<VeriDocument> & Pick<VeriDocument, 'id' | 'type' | 'title' | 'status'>): VeriDocument {
   return {

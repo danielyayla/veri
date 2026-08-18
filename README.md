@@ -74,16 +74,25 @@ Or add a project-scoped `.mcp.json` next to your `veri/` directory:
 
 (This repository's own [.mcp.json](.mcp.json) does exactly that.)
 
-The server exposes four tools:
+The server exposes seven tools:
 
-- `get_context(id)` — context package for a work order: project
-  conventions (CLAUDE.md), the work order, all transitively linked
-  requirements and active decisions (2 hops), source excerpts; superseded
-  decisions are named as already rejected, bodies omitted; per-document
-  and total token estimates
+- `get_context(id)` — context package for a work order: the project
+  workflow first, then the work order, its linked requirements and
+  decisions (2 hops), pending proposals labeled non-binding, source
+  excerpts, and the project's document templates, with per-document and
+  total token estimates; superseded decisions are named as already
+  rejected, bodies omitted; when the neighborhood is too large to
+  inline, its outer ring arrives as a context map to retrieve from
+  instead of full bodies (the same package `veri context <WO-id>`
+  prints in a terminal)
 - `search(query)` — case-insensitive substring match over id, title, body
+- `get_document(id)` — one document in full, exactly as on disk
+- `get_neighbors(id)` — a document's outbound links and backlinks, with
+  relations
 - `file_decision(title, choice, …)` — record a decision with the next
   free DEC id, `status: proposed` (awaiting the user's approval)
+- `file_work_order(title, summary, …)` — propose a unit of work with the
+  next free WO id, `status: backlog`
 - `file_receipt(work_order_id, commit, files, summary)` — append a
   work-session receipt to a work order; receipts accumulate, never
   overwrite

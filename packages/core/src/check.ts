@@ -116,26 +116,34 @@ export function checkGatedWorkOrders(documents: VeriDocument[]): Issue[] {
 }
 
 /**
- * DEC-012's design gate, machine-checked (WO-010): a work order whose body
- * mentions `packages/ui` and has started (in-progress/done) must link at
- * least one existing document with rel "designed-by". Body-text mention is
- * the v1 heuristic — not git diffs or file lists. A designed-by link whose
- * target id doesn't exist does not satisfy the gate; the broken-link check
- * reports that link separately.
+ * The design gate, machine-checked (WO-010): a work order whose body mentions
+ * a design-gated path and has started (in-progress/done) must link at least
+ * one existing document with rel "designed-by". The trigger paths are
+ * project-defined — declared as `design_gate_paths` on the workflow document
+ * (DEC-039) — so core carries nothing specific to any repo's layout; with no
+ * paths declared the gate is inert. Body-text mention is the v1 heuristic —
+ * not git diffs or file lists. A designed-by link whose target id doesn't
+ * exist does not satisfy the gate; the broken-link check reports that link
+ * separately.
  */
 export function checkDesignGate(documents: VeriDocument[]): Issue[] {
+  const paths = documents
+    .filter((doc) => doc.type === 'workflow' && doc.status !== 'retired')
+    .flatMap((doc) => (doc.frontmatter['design_gate_paths'] as string[] | undefined) ?? []);
+  if (paths.length === 0) return [];
   const ids = new Set(documents.map((doc) => doc.id));
   const issues: Issue[] = [];
   for (const doc of documents) {
     if (doc.type !== 'work-order' || doc.status === 'backlog') continue;
-    if (!doc.body.includes('packages/ui')) continue;
+    const touched = paths.find((path) => doc.body.includes(path));
+    if (touched === undefined) continue;
     const designed = doc.links.some((link) => link.rel === 'designed-by' && ids.has(link.id));
     if (!designed) {
       issues.push({
         kind: 'ui-wo-without-design',
         file: doc.file,
         id: doc.id,
-        message: `UI work order ${doc.id} has no designed-by link — DEC-012 requires a design document before implementation`,
+        message: `work order ${doc.id} touches design-gated ${touched} but links no designed-by design document — this project's workflow requires the design first`,
       });
     }
   }

@@ -55,6 +55,10 @@ const workflowSchema = z
     type: z.literal('workflow'),
     status: z.enum(['draft', 'accepted', 'retired']),
     approved: dateField.optional(),
+    // DEC-039: the design gate's trigger paths are project-defined here, not
+    // hardcoded in core. A started work order whose body mentions any of
+    // these must link a designed-by design document. Absent → gate inert.
+    design_gate_paths: z.array(z.string().min(1)).optional(),
   })
   .passthrough();
 
@@ -122,3 +126,12 @@ export function packingFor(type: DocType, status: string): Packing {
  * Part of the assembly contract — an enforced lever, not a style choice.
  */
 export const INLINE_THRESHOLD_TOKENS = 15_000;
+
+/**
+ * The assembly contract in one human-readable line, for any surface that
+ * summarizes a package (REQ-019: one description, owned next to the policy
+ * it describes, so summaries cannot drift from what assembly emits).
+ */
+export const PACKAGE_RULES =
+  'Workflow always first · linked requirements and decisions in full · sources as excerpts · ' +
+  'superseded decisions named only · oversized neighborhoods enumerated as a context map';

@@ -5,7 +5,9 @@ title: Veri project workflow
 status: accepted
 approved: 2026-08-12
 created: 2026-08-12
-updated: 2026-08-12
+updated: 2026-08-18
+design_gate_paths:
+  - packages/ui
 ---
 
 How work moves through this repo. Veri is self-hosted: it is built by
@@ -45,4 +47,5 @@ receipts.
    (`rel: designed-by`) before implementation ([[DEC-012]]). If none
    exists, produce the design first with Claude Design, commit it as a
    `source` document in `veri/`, and stop for user approval before
-   writing code.
+   writing code. `veri check` enforces this via the `design_gate_paths`
+   list in this document's frontmatter ([[DEC-039]]).

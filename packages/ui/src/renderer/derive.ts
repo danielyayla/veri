@@ -7,6 +7,16 @@ import type { Snapshot } from '../lib/snapshot.ts';
 import { sections, parseBlocks, plainText } from './markdown.ts';
 import type { Block } from './markdown.ts';
 
+/**
+ * Mirrors @veri/core's PACKAGE_RULES for the package panel footer. The
+ * renderer bundle can't import core's node-flavored runtime, so the string is
+ * mirrored here and a drift test asserts equality with the core export
+ * (REQ-019) — edit both or the suite fails.
+ */
+export const PACKAGE_RULES_TEXT =
+  'Workflow always first · linked requirements and decisions in full · sources as excerpts · ' +
+  'superseded decisions named only · oversized neighborhoods enumerated as a context map';
+
 export type DocsById = Map<string, VeriDocument>;
 
 export function docsById(snap: Snapshot): DocsById {

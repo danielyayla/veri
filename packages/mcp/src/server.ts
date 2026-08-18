@@ -30,9 +30,11 @@ server.registerTool(
   'get_context',
   {
     description:
-      'Context package for a work order: project conventions, the work order, all transitively linked ' +
-      'requirements and active decisions (2 hops), and source excerpts. Superseded decisions are named ' +
-      'as already rejected but their bodies are omitted.',
+      'Context package for a work order: the project workflow first, then the work order, its linked ' +
+      'requirements and decisions (2 hops), pending proposals labeled non-binding, source excerpts, and ' +
+      'the project document templates. Superseded decisions are named as already rejected, bodies omitted. ' +
+      'When the neighborhood is too large to inline, its outer ring arrives as a context map — rows to ' +
+      'retrieve via get_document — instead of full bodies.',
     inputSchema: { id: z.string().describe('Work order id, e.g. WO-002') },
   },
   async ({ id }) => {

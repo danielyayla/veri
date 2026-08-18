@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, checkProject, createDocument, formatStatement, loadProject, migrateProject, scaffoldProject } from '@veri/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, checkProject, classifyFormat, createDocument, formatStatement, isOperableFormat, loadProject, migrateProject, scaffoldProject } from '@veri/core';
 import type { DocType, FormatClassification, Issue } from '@veri/core';
 
 export interface CmdResult {
@@ -106,6 +106,30 @@ export async function check(cwd: string): Promise<CmdResult> {
       `${issues.length} issue(s) · ${advisories.length} advisories`,
     ],
   };
+}
+
+/**
+ * Print the exact package `get_context` serves (DEC-038): assembly lives in
+ * core, so the terminal and MCP channels cannot drift apart. Same format
+ * guard as the server (REQ-015): a newer veri/ gets a statement, not a
+ * misparse.
+ */
+export async function context(cwd: string, idArg: string | undefined): Promise<CmdResult> {
+  if (idArg === undefined || idArg.trim() === '') {
+    return { code: 1, lines: ['usage: veri context <WO-id>'] };
+  }
+  const dir = requireVeriDir(cwd);
+  if (dir === null) return NO_VERI_DIR;
+  const format = classifyFormat(dir);
+  if (!isOperableFormat(format)) {
+    return { code: 1, lines: [formatStatement(format) ?? 'format mismatch'] };
+  }
+  try {
+    const pkg = await assembleContext(cwd, idArg.trim());
+    return { code: 0, lines: [pkg.text] };
+  } catch (err) {
+    return { code: 1, lines: [(err as Error).message] };
+  }
 }
 
 /** The user's consent act for REQ-015 migrations: invoking this command IS the consent. */

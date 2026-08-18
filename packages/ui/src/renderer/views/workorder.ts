@@ -4,7 +4,7 @@ import { h } from '../dom.ts';
 import { TYPE_META, fmtTokens, statusColor, tint } from '../theme.ts';
 import { plainText, sections } from '../markdown.ts';
 import type { Block } from '../markdown.ts';
-import { fileActivity, gatingDocs, receipts } from '../derive.ts';
+import { PACKAGE_RULES_TEXT, fileActivity, gatingDocs, receipts } from '../derive.ts';
 import { activityFeed, dirtyStrip, modeToggle, pinChip, renderBlocks } from '../widgets.ts';
 import type { Ctx } from '../app.ts';
 
@@ -352,11 +352,7 @@ function contextPanel(ctx: Ctx, doc: VeriDocument): HTMLElement {
     ),
     h('div', { class: 'pkg-buttons-col' }, start, kickoff, fullCopy, feedback, ctx.state.agentsOpen ? agentPicker(ctx) : null),
     h('div', { class: 'micro-label', style: 'margin-top:22px;' }, 'PACKAGE RULES'),
-    h(
-      'div',
-      { class: 'pkg-rules' },
-      'Linked requirements and decisions in full · cited sources as excerpts · project conventions always included · superseded decisions excluded.',
-    ),
+    h('div', { class: 'pkg-rules' }, PACKAGE_RULES_TEXT),
   );
 }
 

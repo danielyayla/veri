@@ -5,13 +5,18 @@ import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { AGENTS_MD } from '@veri/core';
 
 const SERVER = fileURLToPath(new URL('../dist/server.js', import.meta.url));
 const FIXTURE = fileURLToPath(new URL('../fixtures/superseded-chain', import.meta.url));
 
 interface RpcResponse {
   id?: number;
-  result?: { tools?: Array<{ name: string }>; content?: Array<{ type: string; text: string }>; isError?: boolean };
+  result?: {
+    tools?: Array<{ name: string; description?: string }>;
+    content?: Array<{ type: string; text: string }>;
+    isError?: boolean;
+  };
 }
 
 /** Speak newline-delimited JSON-RPC to the server over stdio, as an MCP client would. */
@@ -83,6 +88,57 @@ test('the built server answers tools/list and get_context over stdio', { skip: !
 
   const search = responses.get(4)?.result;
   assert.match(search?.content?.[0]?.text ?? '', /DEC-001\s+decision\s+active/);
+});
+
+// REQ-019's drift test, MCP side: the tool names scaffolded harness files
+// instruct must exist on the live server, and get_context's description must
+// match what assembly actually emits — both checked against the build.
+test('scaffolded tool mentions and the get_context description match the build (REQ-019)', { skip: !existsSync(SERVER) }, async () => {
+  const responses = await rpcSession(
+    [
+      {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test', version: '0.0.0' } },
+      },
+      { jsonrpc: '2.0', method: 'notifications/initialized' },
+      { jsonrpc: '2.0', id: 2, method: 'tools/list' },
+      { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'get_context', arguments: { id: 'WO-001' } } },
+    ],
+    [1, 2, 3],
+  );
+
+  const tools = responses.get(2)?.result?.tools ?? [];
+  const names = new Set(tools.map((tool) => tool.name));
+  const instructed = [...new Set([...AGENTS_MD.matchAll(/`([a-z_]+)\(/g)].map((m) => m[1]!))];
+  assert.ok(instructed.includes('get_context'), 'expected AGENTS.md to instruct get_context');
+  for (const name of instructed) {
+    assert.ok(names.has(name), `scaffolded AGENTS.md instructs ${name} but the server does not expose it`);
+  }
+
+  const description = tools.find((tool) => tool.name === 'get_context')?.description ?? '';
+  const text = responses.get(3)?.result?.content?.[0]?.text ?? '';
+  // Every section the real package emits is named in the description…
+  const sections: Array<[RegExp, string]> = [
+    [/^## Workflow · /m, 'workflow'],
+    [/^## Work order /m, 'work order'],
+    [/^## Requirements$/m, 'requirement'],
+    [/^## Decisions$/m, 'decision'],
+    [/^## Sources \(excerpts\)$/m, 'source'],
+    [/^## Templates — /m, 'template'],
+  ];
+  for (const [emitted, term] of sections) {
+    if (emitted.test(text)) {
+      assert.ok(description.toLowerCase().includes(term), `package emits a section the description never names: ${term}`);
+    }
+  }
+  // …the layered contract is described even when this corpus inlines…
+  assert.ok(description.toLowerCase().includes('context map'), 'description must name the context map (DEC-035)');
+  // …and nothing DEC-018 removed is still claimed.
+  for (const stale of ['CLAUDE.md', 'conventions']) {
+    assert.ok(!description.includes(stale), `description still claims "${stale}" — removed by DEC-018`);
+  }
 });
 
 test('every tool states a newer format instead of operating (REQ-015)', { skip: !existsSync(SERVER) }, async (t) => {

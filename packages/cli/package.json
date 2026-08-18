@@ -1,7 +1,7 @@
 {
   "name": "@veri/cli",
   "version": "0.1.0",
-  "description": "CLI for Veri knowledge bases: init, new, check, list",
+  "description": "CLI for Veri knowledge bases over the veri/ directory",
   "type": "module",
   "engines": {
     "node": ">=20"

@@ -5,7 +5,8 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { approve, check, init, list, migrate, newDoc, open } from './commands.ts';
+import { assembleContext } from '@veri/core';
+import { approve, check, context, init, list, migrate, newDoc, open } from './commands.ts';
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const FIVE_ISSUES = fileURLToPath(new URL('../fixtures/five-issues', import.meta.url));
@@ -202,6 +203,27 @@ test('migrate stamps a pre-marker project; a second run is a no-op; newer refuse
 test('check on this repository exits 0', async () => {
   const result = await check(REPO_ROOT);
   assert.equal(result.code, 0, result.lines.join('\n'));
+});
+
+test('context prints the exact package get_context serves (DEC-038)', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  assert.equal(init(cwd, { demo: false }).code, 0);
+  assert.equal((await newDoc(cwd, 'work-order', 'Ship the thing')).code, 0);
+
+  const result = await context(cwd, 'WO-001');
+  assert.equal(result.code, 0, result.lines.join('\n'));
+  // Byte-identical to the shared assembly — one implementation, two channels.
+  assert.equal(result.lines.join('\n'), (await assembleContext(cwd, 'WO-001')).text);
+  assert.match(result.lines[0]!, /^# Context package · WO-001 — Ship the thing/);
+
+  assert.equal((await context(cwd, undefined)).code, 1);
+  const missing = await context(cwd, 'WO-999');
+  assert.equal(missing.code, 1);
+  assert.match(missing.lines[0]!, /no document with id WO-999/);
+  const notWo = await context(cwd, 'WF-001');
+  assert.equal(notWo.code, 1);
+  assert.match(notWo.lines[0]!, /expects a work order id/);
 });
 
 test('list prints id, status, title sorted by id', async (t) => {

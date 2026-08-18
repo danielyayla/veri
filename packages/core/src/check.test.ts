@@ -123,6 +123,11 @@ test('a resolvable designed-by link satisfies the design gate; backlog is exempt
   const dir = mkdtempSync(join(tmpdir(), 'veri-design-gate-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   for (const sub of ['requirements', 'work-orders', 'sources']) mkdirSync(join(dir, sub), { recursive: true });
+  // The gate's trigger paths come from the workflow document (DEC-039).
+  writeFileSync(
+    join(dir, 'workflow.md'),
+    '---\nid: WF-001\ntype: workflow\ntitle: W\nstatus: accepted\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\ndesign_gate_paths:\n  - packages/ui\n---\nRules.\n',
+  );
   writeFileSync(
     join(dir, 'requirements', 'REQ-001-ui.md'),
     '---\nid: REQ-001\ntype: requirement\ntitle: T\nstatus: accepted\ncreated: 2026-08-01\nupdated: 2026-08-01\napproved: 2026-08-01\n---\n## Acceptance criteria\n\n- [ ] x\n',
@@ -141,6 +146,15 @@ test('a resolvable designed-by link satisfies the design gate; backlog is exempt
 
   // Backlog with no designed-by link: exempt — the gate fires on starting work.
   writeFileSync(woPath, wo('backlog', '  - id: REQ-001\n    rel: implements\n'));
+  assert.deepEqual(checkProject(await loadProject(dir)).issues, []);
+
+  // No declared design_gate_paths: the gate is inert, whatever bodies mention
+  // (DEC-039) — core ships the mechanism, never a repo-specific trigger.
+  writeFileSync(woPath, wo('in-progress', '  - id: REQ-001\n    rel: implements\n'));
+  writeFileSync(
+    join(dir, 'workflow.md'),
+    '---\nid: WF-001\ntype: workflow\ntitle: W\nstatus: accepted\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\n---\nRules.\n',
+  );
   assert.deepEqual(checkProject(await loadProject(dir)).issues, []);
 });
 
