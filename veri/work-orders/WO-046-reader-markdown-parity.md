@@ -2,7 +2,7 @@
 id: WO-046
 type: work-order
 title: "Reader markdown parity"
-status: in-progress
+status: done
 created: 2026-08-18
 updated: 2026-08-18
 links:
@@ -55,4 +55,4 @@ Close the reader's markdown gap named by [[SRC-016]]: the rendered subset (no or
 
 ## Receipts
 
-(none yet)
+- 2026-08-18 — 3f80d1a — packages/ui/src/renderer/markdown.ts, packages/ui/src/renderer/markdown.test.ts, packages/ui/src/renderer/widgets.ts, packages/ui/src/renderer/dom.ts, packages/ui/src/renderer/views/reader.ts, packages/ui/src/renderer/views/workorder.ts, packages/ui/renderer/styles.css — Extended the reader's parser and renderer to the corpus-evidenced subset (WF chips, ordered lists, opaque fences, tables, blockquotes, images with amber broken treatment, italic); filed DEC-042; 165 tests and veri check green.
