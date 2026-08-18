@@ -2,7 +2,7 @@
 id: WO-037
 type: work-order
 title: macOS app icon
-status: in-progress
+status: done
 created: 2026-08-18
 updated: 2026-08-18
 links:
@@ -56,3 +56,9 @@ the visual spec ([[DEC-012]] gate satisfied on its approval,
 - [x] `veri check` reports zero issues.
 
 ## Receipts
+
+- 2026-08-18 · f063408 · design/app-icon/{README.md,veri-app-icon.svg},
+  packages/ui/build/icon.png, packages/ui/src/main.ts,
+  veri/sources/SRC-015-app-icon-design.md — check-V icon designed,
+  rendered, and wired into packaging and dev Dock; all acceptance
+  tests pass.
