@@ -2,7 +2,8 @@
 id: DEC-038
 type: decision
 title: "veri context prints the same package by moving assembly into core"
-status: proposed
+status: active
+approved: 2026-08-18
 created: 2026-08-18
 updated: 2026-08-18
 links:
