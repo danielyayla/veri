@@ -2,7 +2,7 @@
 id: WO-043
 type: work-order
 title: An accessibility floor across the renderer
-status: in-progress
+status: done
 created: 2026-08-18
 updated: 2026-08-18
 links:
@@ -58,18 +58,31 @@ to generalize; a focus/roles addendum bundle may be the right artifact.
 
 ## Acceptance tests
 
-- [ ] Every interactive control is a real button/link/input or carries
+- [x] Every interactive control is a real button/link/input or carries
       an explicit keyboard-activatable role.
-- [ ] Every focusable element shows a visible focus state; tab order
+- [x] Every focusable element shows a visible focus state; tab order
       matches visual order across the named surfaces.
-- [ ] Palette, popovers, and menus have correct roles, trap focus, and
+- [x] Palette, popovers, and menus have correct roles, trap focus, and
       restore it on close; Escape closes the topmost layer.
-- [ ] Guard rejections and copy confirmations announce via `aria-live`.
-- [ ] No state is color-only.
-- [ ] Approve, status change, tab management, and link navigation each
+- [x] Guard rejections and copy confirmations announce via `aria-live`.
+- [x] No state is color-only.
+- [x] Approve, status change, tab management, and link navigation each
       complete start-to-finish with the keyboard alone, covered by UI
       tests. Full suite and `veri check` clean.
 
 ## Receipts
 
-(none yet)
+- 2026-08-18 — b1e182c — packages/ui/src/renderer (a11y.ts + a11y.test.ts
+  new, dom.ts, app.ts, widgets.ts, all twelve views),
+  packages/ui/renderer/styles.css — accessibility floor per [[SRC-019]]:
+  every control a real `<button>` (btn-reset, visually inert), focus
+  captured/restored across the replaceChildren rebuild by stable
+  data-fkey, one layer stack (dialog/alertdialog/menu/combobox roles,
+  trap, Escape-topmost, invoker restore), one polite live region fed by
+  guard rejections and copy confirmations, tablist + status radiogroup
+  with roving tabindex, `:focus-visible` ring generalized from SRC-008,
+  non-color channels for dirty/broken/health states; 299 tests pass
+  (ui 143→157), `veri check` clean, all four keyboard flows (approve,
+  status change, tab management, link navigation) verified end-to-end
+  in the headless Electron harness against a scratch project (agent
+  session, Claude Code)
