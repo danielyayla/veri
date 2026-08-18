@@ -104,9 +104,14 @@ export function checkDrift(documents: VeriDocument[], facts: GitFacts, veriPath:
       if (link.rel !== 'implements') continue;
       const target = byId.get(link.id);
       if (target === undefined || (target.type !== 'requirement' && target.type !== 'decision')) continue;
-      const offending = commitsTouching(facts, repoPath(veriPath, target))
+      const touching = commitsTouching(facts, repoPath(veriPath, target));
+      // A re-approval newer than an edit resolves it: the human has ratified
+      // the current text, so drift clears — the remedy the advisory names.
+      const ratifiedAt = touching.find(({ commit }) => isLifecycleCommit(target.id, commit.subject))?.index;
+      const offending = touching
         .filter(({ index }) => index < closeIndex)
-        .filter(({ commit }) => !isLifecycleCommit(target.id, commit.subject));
+        .filter(({ commit }) => !isLifecycleCommit(target.id, commit.subject))
+        .filter(({ index }) => ratifiedAt === undefined || index < ratifiedAt);
       if (offending.length > 0) {
         const newest = offending[0].commit;
         advisories.push({

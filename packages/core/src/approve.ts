@@ -43,7 +43,10 @@ export async function approveDocument(
   if (promotion === undefined) {
     throw new Error(`${wanted} is a ${doc.type} — only requirements, decisions and workflows are approved`);
   }
-  if (doc.status !== promotion.from) {
+  // Already-promoted documents may be approved again: a re-approval
+  // re-stamps `approved:` in place, ratifying the current text — the remedy
+  // WO-045's drift advisories name. Any other status has nothing to approve.
+  if (doc.status !== promotion.from && doc.status !== promotion.to) {
     throw new Error(`nothing to approve — ${wanted} is ${doc.status}, not ${promotion.from}`);
   }
 
@@ -75,5 +78,5 @@ export async function approveDocument(
     throw new Error(`internal error — the approval edit would corrupt ${doc.file}: ${outcome.issues[0]?.message}`);
   }
   await writeFile(path, next);
-  return { id: wanted, file: doc.file, from: promotion.from, to: promotion.to, approved: date };
+  return { id: wanted, file: doc.file, from: doc.status, to: promotion.to, approved: date };
 }

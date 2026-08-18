@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -56,10 +56,13 @@ test('approving a proposed decision makes it active and the project stays check-
   assert.deepEqual(issues, []);
 });
 
-test('approve refuses documents that are not pending', async (t) => {
+test('approve refuses documents in a non-approvable status', async (t) => {
+  // Pending → approve, promoted → re-stamp (WO-045); anything else — a
+  // retired requirement, a superseded decision — has nothing to approve.
   const dir = sandbox(t);
-  await approveDocument(dir, 'REQ-001', '2026-08-10');
-  await assert.rejects(() => approveDocument(dir, 'REQ-001'), /nothing to approve — REQ-001 is accepted/);
+  const file = join(dir, 'requirements/REQ-001-clean-draft.md');
+  writeFileSync(file, readFileSync(file, 'utf8').replace('status: draft', 'status: retired'));
+  await assert.rejects(() => approveDocument(dir, 'REQ-001'), /nothing to approve — REQ-001 is retired/);
 });
 
 test('approve refuses non-approvable types and unknown ids', async (t) => {
@@ -96,4 +99,22 @@ test('approve refuses a document with outstanding check issues', async (t) => {
 test('approve validates the date format', async (t) => {
   const dir = sandbox(t);
   await assert.rejects(() => approveDocument(dir, 'REQ-001', 'tomorrow'), /must be YYYY-MM-DD/);
+});
+
+test('re-approving an already-accepted document re-stamps in place (WO-045 drift remedy)', async (t) => {
+  const dir = sandbox(t);
+  await approveDocument(dir, 'REQ-001', '2026-08-10');
+
+  const again = await approveDocument(dir, 'REQ-001', '2026-08-18');
+  assert.deepEqual(again, {
+    id: 'REQ-001',
+    file: 'requirements/REQ-001-clean-draft.md',
+    from: 'accepted',
+    to: 'accepted',
+    approved: '2026-08-18',
+  });
+  const after = readFileSync(join(dir, again.file), 'utf8');
+  assert.match(after, /^status: accepted$/m);
+  assert.match(after, /^approved: 2026-08-18$/m);
+  assert.equal((after.match(/^approved: /gm) ?? []).length, 1, 'one approved line, replaced not duplicated');
 });

@@ -188,3 +188,26 @@ test('a veri/ directory at the repo root maps document paths without a prefix', 
   };
   assert.equal(checkDrift(documents, facts, '').length, 1);
 });
+
+test('a re-approval newer than the offending edit resolves drift-edited-after-done', () => {
+  const ratified: GitFacts = {
+    commits: [
+      commit('d', '2026-08-13', 'REQ-001: re-approved', ['veri/requirements/REQ-001.md']),
+      commit('a', '2026-08-12', 'REQ-001: sharpen wording', ['veri/requirements/REQ-001.md']),
+      commit('b', '2026-08-10', 'WO-001: done — receipt', ['veri/work-orders/WO-001.md']),
+    ],
+  };
+  assert.deepEqual(checkDrift(implementingPair(), ratified, 'veri'), []);
+  // A ratification older than the edit covers nothing: still drift.
+  const staleRatification: GitFacts = {
+    commits: [
+      commit('a', '2026-08-14', 'REQ-001: sharpen wording', ['veri/requirements/REQ-001.md']),
+      commit('d', '2026-08-13', 'REQ-001: approved', ['veri/requirements/REQ-001.md']),
+      commit('b', '2026-08-10', 'WO-001: done — receipt', ['veri/work-orders/WO-001.md']),
+    ],
+  };
+  assert.deepEqual(
+    checkDrift(implementingPair(), staleRatification, 'veri').map((a) => a.kind),
+    ['drift-edited-after-done'],
+  );
+});

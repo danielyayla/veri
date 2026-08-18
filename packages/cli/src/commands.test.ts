@@ -54,9 +54,10 @@ test('new documents are born unapproved and veri approve promotes them with a st
   assert.match(content, /^approved: \d{4}-\d{2}-\d{2}$/m);
   assert.equal((await check(cwd)).code, 0);
 
+  // Approving again re-stamps in place (WO-045's drift remedy).
   const again = await approve(cwd, 'DEC-001');
-  assert.equal(again.code, 1);
-  assert.match(again.lines[0] ?? '', /nothing to approve/);
+  assert.equal(again.code, 0, again.lines.join('\n'));
+  assert.match(again.lines[0] ?? '', /^DEC-001 active → active — approved: \d{4}-\d{2}-\d{2}/);
   assert.equal((await approve(cwd, undefined)).code, 1);
 });
 
