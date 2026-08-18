@@ -10,6 +10,8 @@ links:
     rel: implements
   - id: DEC-035
     rel: follows-from
+  - id: SRC-017
+    rel: designed-by
 ---
 
 ## Summary
@@ -66,4 +68,4 @@ size is bounded, and nothing relevant is silently invisible.
 
 ## Receipts
 
-(none yet)
+- 2026-08-18 — fc44d8c — packages/core/src/schema.ts, packages/mcp/src/context.ts (+tests) — layered assembly per [[DEC-035]]: INLINE_THRESHOLD_TOKENS in core, byte-identical inline mode under it, core + context map over it (WO-028 live: ~19.8k → ~10.1k tokens, 66 mapped); 272 tests pass; panel update pending design approval of [[SRC-017]] (agent session, Claude Code)
