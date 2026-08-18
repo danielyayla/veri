@@ -217,6 +217,24 @@ a:hover { color: #F49463; }
 .nav-item-active .nav-caret { color: var(--ember-light); }
 .side-div { height: 1px; background: var(--hair); margin: 8px 6px; flex: 0 0 auto; }
 .side-fill { flex: 1; }
+
+/* Sidebar RECENT group (WO-039, SRC-018 — reverses SRC-014's retirement) */
+.side-label {
+  flex: 0 0 auto; font-family: var(--mono); font-size: 9.5px;
+  letter-spacing: .08em; color: var(--ghost); margin: 0 9px 6px;
+}
+.sb-recent {
+  min-height: 24px; flex: 0 0 auto; display: flex; align-items: center; gap: 6px;
+  padding: 0 9px; border-radius: 6px; cursor: pointer; user-select: none;
+}
+.sb-recent:hover { background: #1B1B20; }
+.sb-recent-active { background: rgba(232,112,58,0.09); }
+.sb-recent-active .sb-recent-ttl { color: var(--ember-light); }
+.sb-recent-id { font-family: var(--mono); font-size: 10px; flex: 0 0 auto; }
+.sb-recent-ttl {
+  font-size: 12.5px; color: #A8A5AF;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 /* Settings foot row: agent-connection config state as a static dot (REQ-005
    forbids implying live client status, so no pulse). */
 .settings-row { position: relative; }
@@ -372,6 +390,21 @@ a:hover { color: #F49463; }
 .tab-close:hover { background: var(--int-border); color: var(--text); }
 .tabstrip-fill { flex: 1; min-width: 24px; border-bottom: 1px solid var(--hair); }
 
+/* Back/forward history buttons (WO-039, SRC-018) */
+.nav-hist {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 2px; padding: 0 4px;
+  border-bottom: 1px solid var(--hair);
+}
+.hist-btn {
+  width: 24px; height: 24px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 14px; color: var(--muted);
+  cursor: pointer; user-select: none;
+}
+.hist-btn:hover { background: var(--int-border); color: var(--text); }
+.hist-btn-off { color: #3F3D47; cursor: default; }
+.hist-btn-off:hover { background: none; color: #3F3D47; }
+
 .empty-tabs { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; text-align: center; }
 .empty-tabs-label { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; color: var(--ghost); }
 .empty-tabs-hint { margin-top: 12px; font-size: 13px; color: var(--faint); line-height: 2.1; }
@@ -387,6 +420,9 @@ a:hover { color: #F49463; }
 .reader-col-wo { max-width: 720px; }
 .crumb { font-family: var(--mono); font-size: 11px; color: var(--faint); display: flex; gap: 6px; align-items: center; }
 .crumb-sep { color: #3A3841; }
+/* Live type crumb (WO-039, SRC-018): clicking opens the type panel. */
+.crumb-live { cursor: pointer; }
+.crumb-live:hover { color: var(--body-text); }
 .doc-title { margin: 10px 0 0; font-size: 24px; font-weight: 600; letter-spacing: -.01em; line-height: 1.25; }
 /* Document-header pin chip (WO-014): ☆ Pin / ★ Pinned right of the title. */
 .doc-head { display: flex; align-items: flex-start; gap: 12px; }

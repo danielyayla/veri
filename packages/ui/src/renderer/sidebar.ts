@@ -69,8 +69,8 @@ export function panelList(docs: VeriDocument[], type: DocType, filter: string, p
 }
 
 /** Recents update on every doc open: front of the list, deduped, capped at 10.
-    The sidebar's RECENT section is gone (SRC-014) — the data stays persisted
-    for Home and the palette's recency boost. */
+    The sidebar's RECENT group renders the first 6 (SRC-018, reversing
+    SRC-014's retirement); the palette's recency boost reads the same list. */
 export function pushRecent(recents: string[], id: string): string[] {
   return [id, ...recents.filter((r) => r !== id)].slice(0, 10);
 }

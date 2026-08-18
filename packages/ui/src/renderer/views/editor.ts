@@ -71,7 +71,15 @@ export function editorScreen(ctx: Ctx, edit: ActiveEdit): HTMLElement {
         h(
           'div',
           { class: 'crumb crumb-row' },
-          meta !== null ? h('span', {}, meta.crumb) : null,
+          meta !== null
+            ? type !== undefined && type !== 'workflow'
+              ? h(
+                  'span',
+                  { class: 'crumb-live', title: `Browse ${meta.crumb.toLowerCase()}`, onClick: () => ctx.openPanel(type) },
+                  meta.crumb,
+                )
+              : h('span', {}, meta.crumb)
+            : null,
           meta !== null ? h('span', { class: 'crumb-sep' }, '/') : null,
           h('span', { style: meta !== null ? `color:${meta.color};` : undefined }, edit.id),
           // A deleted file has no read mode to show; the banner is the exit.

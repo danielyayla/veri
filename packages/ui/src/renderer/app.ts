@@ -21,8 +21,24 @@ import { workOrderView } from './views/workorder.ts';
 import { boardView } from './views/board.ts';
 import { graphView } from './views/graph.ts';
 import { decisionsView } from './views/decisions.ts';
-import { VIEW_META, activateTab, closeTab, cycleTab, isViewKey, openTab, pinTab, reorderTab, retainTabs } from './tabs.ts';
-import type { Tab, TabState } from './tabs.ts';
+import {
+  VIEW_META,
+  activateTab,
+  activeTab,
+  activeTarget,
+  anyEntry,
+  back,
+  closeTab,
+  currentTarget,
+  cycleTab,
+  forward,
+  isViewKey,
+  navigate,
+  pinTab,
+  reorderTab,
+  retainTabs,
+} from './tabs.ts';
+import type { Entry, Surface, Tab, TabState } from './tabs.ts';
 import { EditorIsland } from './editor.ts';
 import { ipcErrorMessage, reconcileDisk } from './editlogic.ts';
 import { editorScreen } from './views/editor.ts';
@@ -43,9 +59,12 @@ export interface OpenDocOpts {
 }
 
 export interface State {
-  /** Ordered tab strip (SRC-004): ids are doc ids or view keys. */
+  /** Ordered tab strip (SRC-004, SRC-018): each tab is a history surface. */
   tabs: Tab[];
+  /** The active tab's KEY — what it shows is its current history entry. */
   activeTabId: string | null;
+  /** Tab-key allocator; travels with the pure TabState (SRC-018). */
+  nextTabKey: number;
   /** SRC-004 settings flag — false makes every click open a pinned tab. */
   previewTabs: boolean;
   /** Derived from the active tab; views keep reading these. */
@@ -92,8 +111,10 @@ export interface State {
   /** New-document popover (WO-022, SRC-008): type + title, nothing else.
       `anchor` is the sidebar `+` position; null centers it (⌘N). */
   newDoc: { type: DocType; title: string; anchor: { x: number; y: number } | null } | null;
-  /** Save/Discard/Cancel prompt for closing a dirty editor tab (SRC-008). */
-  closeConfirm: { id: string; x: number; y: number } | null;
+  /** Save/Discard/Cancel prompt for closing a tab whose history still
+      references dirty buffers (SRC-008, SRC-018): the docs (and template
+      edits) that would be orphaned by closing tab `key`. */
+  closeConfirm: { key: string; docs: string[]; settings: boolean; x: number; y: number } | null;
   /** Templates settings view (WO-024, SRC-009): active type + reset confirm. */
   tplType: DocType;
   tplResetConfirm: boolean;
@@ -152,6 +173,8 @@ export interface Ctx {
   updStatus: UpdateStatus | null;
   /** Pin/unpin a doc in the sidebar working set (WO-014). */
   togglePin(id: string): void;
+  /** Live type crumb (WO-039): open a collection's type panel. */
+  openPanel(type: DocType): void;
   refresh(): Promise<void>;
   loadPackage(id: string): void;
   refreshMcp(): Promise<void>;
@@ -195,6 +218,11 @@ export interface Ctx {
 }
 
 const TYPE_ORDER = ['requirement', 'decision', 'work-order', 'source'] as const;
+
+/** ⌘[ etc. stay out of text-editing surfaces (CM6 binds Mod-[ to indent). */
+function inTextTarget(e: KeyboardEvent): boolean {
+  return e.target instanceof Element && e.target.closest('.cm-editor, input, textarea') !== null;
+}
 
 export interface EditState {
   mode: 'read' | 'edit';
@@ -250,6 +278,7 @@ class App implements Ctx {
   state: State = {
     tabs: [],
     activeTabId: null,
+    nextTabKey: 1,
     previewTabs: true,
     view: 'home',
     docId: null,
@@ -314,9 +343,10 @@ class App implements Ctx {
   private palRowActions: Array<{ open(pinned: boolean): void }> = [];
   /** Caret position to restore after a name-edit re-render of the sheet. */
   private npNameCaret: number | null = null;
-  /** Per-tab scroll positions (SRC-004 "State Management"), saved on re-render. */
-  private scrollPos = new Map<string, number[]>();
-  private renderedTabId: string | null = null;
+  /** The history entry the current DOM was rendered for — scroll positions
+      are captured into it (by reference) before every re-render, so back/
+      forward restore them (SRC-018 history rule 4). */
+  private renderedEntry: Entry | null = null;
   private copyTimer: ReturnType<typeof setTimeout> | undefined;
   private toastTimer: ReturnType<typeof setTimeout> | undefined;
   private kickoffTimer: ReturnType<typeof setTimeout> | undefined;
@@ -388,10 +418,12 @@ class App implements Ctx {
       }, 5000);
     }
     if (doc !== null && this.byId.has(doc)) this.openDoc(doc);
-    if (view !== null && isViewKey(view)) this.applyTabs(openTab(this.tabState(), view));
+    if (view !== null && isViewKey(view)) {
+      this.applyTabs(navigate(this.tabState(), view, { surface: 'preview', previewTabs: false }));
+    }
     if (this.state.tabs.length === 0) {
       // Home is the default tab on project open (SRC-005 layer 4).
-      this.applyTabs(openTab(this.tabState(), 'homeview', { preview: true, previewTabs: this.state.previewTabs }));
+      this.applyTabs(navigate(this.tabState(), 'homeview', { surface: 'preview', previewTabs: this.state.previewTabs }));
     }
     this.api.onChanged(() => void this.refresh());
     this.api.onMcpChanged((external) => {
@@ -419,6 +451,15 @@ class App implements Ctx {
       } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
         this.saveActive();
+      } else if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && (e.key === '[' || e.key === ']') && !inTextTarget(e)) {
+        // ⌘[ / ⌘] walk the active tab's history (WO-039); the CM6 editor
+        // keeps its own Mod-[ indent bindings, hence the target guard.
+        e.preventDefault();
+        this.applyTabs(e.key === '[' ? back(this.tabState()) : forward(this.tabState()));
+      } else if (e.altKey && !e.metaKey && !e.ctrlKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !inTextTarget(e)) {
+        // The platform equivalent off-mac (SRC-018).
+        e.preventDefault();
+        this.applyTabs(e.key === 'ArrowLeft' ? back(this.tabState()) : forward(this.tabState()));
       } else if (e.key === 'Escape' && this.state.newDoc !== null) {
         this.update({ newDoc: null });
       } else if (e.key === 'Escape' && this.state.closeConfirm !== null) {
@@ -498,34 +539,36 @@ class App implements Ctx {
     const survives = (id: string): boolean => this.byId.has(id) || this.docEdit.get(id)?.dirty === true;
     Object.assign(this.state, this.activationPatch(retainTabs(this.tabState(), survives)));
     if (this.state.docId !== null && !survives(this.state.docId)) this.state.docId = null;
-    // Editor state for tabs that no longer exist goes with them.
+    // Editor state lives while some tab's history still references the doc
+    // (SRC-018: navigating away keeps buffer, mode, and dirty state).
     for (const id of this.docEdit.keys()) {
-      if (!this.state.tabs.some((t) => t.id === id)) this.dropEditor(id);
+      if (!anyEntry(this.tabState(), id)) this.dropEditor(id);
     }
   }
 
   private tabState(): TabState {
-    return { tabs: this.state.tabs, activeTabId: this.state.activeTabId };
+    return { tabs: this.state.tabs, activeKey: this.state.activeTabId, nextKey: this.state.nextTabKey };
   }
 
   /**
    * The state that follows from a tab-strip change: derived view/doc for the
-   * active tab, the Documents-nav MRU, and — only when the activation actually
-   * moved — the per-tab transient resets (popovers, editor draft, feedback).
+   * active tab's current entry, the Documents-nav MRU, and — only when the
+   * displayed target actually changed — the per-view transient resets
+   * (popovers, editor draft, feedback).
    */
   private activationPatch(next: TabState): Partial<State> {
-    const patch: Partial<State> = { tabs: next.tabs, activeTabId: next.activeTabId };
-    const active = next.activeTabId;
-    if (active !== null) {
-      if (isViewKey(active)) {
-        patch.view = active;
+    const patch: Partial<State> = { tabs: next.tabs, activeTabId: next.activeKey, nextTabKey: next.nextKey };
+    const target = activeTarget(next);
+    if (target !== null) {
+      if (isViewKey(target)) {
+        patch.view = target;
       } else {
-        patch.docId = active;
-        patch.view = this.byId.get(active)?.type === 'work-order' ? 'workorder' : 'home';
-        this.docMru = [active, ...this.docMru.filter((id) => id !== active)];
+        patch.docId = target;
+        patch.view = this.byId.get(target)?.type === 'work-order' ? 'workorder' : 'home';
+        this.docMru = [target, ...this.docMru.filter((id) => id !== target)];
       }
     }
-    if (active !== this.state.activeTabId) {
+    if (target !== activeTarget(this.tabState())) {
       Object.assign(patch, {
         graphSel: null,
         editorText: '',
@@ -538,7 +581,7 @@ class App implements Ctx {
         reviewText: null,
         tplResetConfirm: false,
       });
-      if (active !== 'settings') Object.assign(patch, this.leaveMcpPatch());
+      if (target !== 'settings') Object.assign(patch, this.leaveMcpPatch());
     }
     return patch;
   }
@@ -564,12 +607,14 @@ class App implements Ctx {
     this.render();
   }
 
-  /** Doc navigation is tab navigation (SRC-004 rules 1–4). Default is a
-      pinned link-open; browsing surfaces pass `preview`. Every doc open
-      feeds the persisted recents (WO-014). */
+  /** Doc navigation is tab navigation (SRC-018). Default is an in-place
+      link-follow on the active tab; browsing surfaces pass `preview` (the
+      shared preview tab); ⌘-click passes `background` (new pinned tab).
+      Every doc open feeds the persisted recents (WO-014). */
   openDoc(id: string, opts: OpenDocOpts = {}): void {
     if (!this.byId.has(id)) return;
-    this.applyTabs(openTab(this.tabState(), id, { ...opts, previewTabs: this.state.previewTabs }), {
+    const surface: Surface = opts.background === true ? 'background' : opts.preview === true ? 'preview' : 'inplace';
+    this.applyTabs(navigate(this.tabState(), id, { surface, previewTabs: this.state.previewTabs }), {
       projectSwitcherOpen: false,
       recents: pushRecent(this.state.recents, id),
     });
@@ -592,18 +637,20 @@ class App implements Ctx {
     // Selecting any view closes the type panel and the settings popover (SRC-014).
     const closed = { projectSwitcherOpen: false, panel: null, settingsPop: false };
     if (view === 'home' || view === 'workorder') {
-      // Documents nav: focus the most recent doc tab, else open the first doc as preview.
-      const open = new Set(this.state.tabs.map((t) => t.id));
-      const recent = this.docMru.find((id) => open.has(id)) ?? this.state.tabs.find((t) => !isViewKey(t.id))?.id;
-      if (recent !== undefined) {
-        this.applyTabs(activateTab(this.tabState(), recent), closed);
+      // Documents nav: focus the tab showing the most recent doc, else open
+      // the first doc as preview.
+      const byTarget = new Map(this.state.tabs.map((t) => [currentTarget(t), t.key]));
+      const recent = this.docMru.find((id) => byTarget.has(id));
+      const key = recent !== undefined ? byTarget.get(recent) : this.state.tabs.find((t) => !isViewKey(currentTarget(t)))?.key;
+      if (key !== undefined) {
+        this.applyTabs(activateTab(this.tabState(), key), closed);
       } else {
         const first = this.firstDocId();
         if (first !== null) this.openDoc(first, { preview: true });
       }
       return;
     }
-    this.applyTabs(openTab(this.tabState(), view, { preview: true, previewTabs: this.state.previewTabs }), closed);
+    this.applyTabs(navigate(this.tabState(), view, { surface: 'preview', previewTabs: this.state.previewTabs }), closed);
   }
 
   /** Leaving the agent-connection section dismisses its banners and drops the
@@ -618,7 +665,7 @@ class App implements Ctx {
       semantics like Board), opened at the invoked section (WO-036). */
   openSettings(section: SettingsSection): void {
     if (section === 'updates') this.refreshUpdateStatus();
-    this.applyTabs(openTab(this.tabState(), 'settings', { preview: true, previewTabs: this.state.previewTabs }), {
+    this.applyTabs(navigate(this.tabState(), 'settings', { surface: 'preview', previewTabs: this.state.previewTabs }), {
       settingsSection: section,
       ...(section !== 'agent' ? this.leaveMcpPatch() : {}),
       projectSwitcherOpen: false,
@@ -795,7 +842,8 @@ class App implements Ctx {
           this.render();
         },
         onNotice: (text) => this.editNotice(id, text, true),
-        onNavigate: (target) => this.openDoc(target, { background: true }),
+        // ⌘-click follows in place (SRC-018 gesture table); ⌘⌥-click backgrounds.
+        onNavigate: (target, background) => this.openDoc(target, background ? { background: true } : {}),
       });
       if (text === null) ed.conflict = 'deleted';
       this.render();
@@ -804,13 +852,13 @@ class App implements Ctx {
   }
 
   private toggleEditMode(): void {
-    const id = this.state.activeTabId;
+    const id = activeTarget(this.tabState());
     if (id === null || isViewKey(id)) return;
     this.setEditMode(id, this.docEdit.get(id)?.mode === 'edit' ? 'read' : 'edit');
   }
 
   editView(): ActiveEdit | null {
-    const id = this.state.activeTabId;
+    const id = activeTarget(this.tabState());
     if (id === null || isViewKey(id)) return null;
     const ed = this.docEdit.get(id);
     if (ed === undefined || ed.mode !== 'edit') return null;
@@ -832,7 +880,7 @@ class App implements Ctx {
   }
 
   saveActive(): void {
-    const id = this.state.activeTabId;
+    const id = activeTarget(this.tabState());
     if (id === null) return;
     if (id === 'settings') {
       if (this.state.settingsSection === 'templates') this.tplSave();
@@ -860,7 +908,7 @@ class App implements Ctx {
   }
 
   resolveConflict(action: 'reload' | 'keep' | 'restore' | 'closetab'): void {
-    const id = this.state.activeTabId;
+    const id = activeTarget(this.tabState());
     if (id === null) return;
     const ed = this.docEdit.get(id);
     if (ed?.island == null) return;
@@ -883,8 +931,8 @@ class App implements Ctx {
     } else if (action === 'restore') {
       ed.dirty = true; // the buffer is the only copy; force the write through
       this.saveEditor(id);
-    } else {
-      this.forceCloseTab(id);
+    } else if (this.state.activeTabId !== null) {
+      this.forceCloseTab(this.state.activeTabId);
     }
   }
 
@@ -925,24 +973,43 @@ class App implements Ctx {
     this.docEdit.delete(id);
   }
 
-  /** Close ×/middle-click: a dirty editor gets the Save/Discard/Cancel
-      prompt (SRC-008); everything else closes like before. */
-  private requestCloseTab(id: string, anchor: DOMRect | null): void {
-    if (this.docEdit.get(id)?.dirty === true || (id === 'settings' && this.tplAnyDirty())) {
+  /** Close ×/middle-click: closing the last tab whose history references
+      dirty buffers gets the Save/Discard/Cancel prompt (SRC-008, SRC-018);
+      everything else closes like before. */
+  private requestCloseTab(key: string, anchor: DOMRect | null): void {
+    const tab = this.state.tabs.find((t) => t.key === key);
+    if (tab === undefined) return;
+    const others: TabState = { tabs: this.state.tabs.filter((t) => t.key !== key), activeKey: null, nextKey: 0 };
+    const docs = [...new Set(tab.entries.map((e) => e.target))].filter(
+      (id) => this.docEdit.get(id)?.dirty === true && !anyEntry(others, id),
+    );
+    const settings =
+      this.tplAnyDirty() && tab.entries.some((e) => e.target === 'settings') && !anyEntry(others, 'settings');
+    if (docs.length > 0 || settings) {
       this.update({
-        closeConfirm: { id, x: anchor?.left ?? window.innerWidth / 2 - 130, y: (anchor?.bottom ?? 60) + 8 },
+        closeConfirm: { key, docs, settings, x: anchor?.left ?? window.innerWidth / 2 - 130, y: (anchor?.bottom ?? 60) + 8 },
       });
       return;
     }
-    this.forceCloseTab(id);
+    this.forceCloseTab(key);
   }
 
-  private forceCloseTab(id: string): void {
-    this.dropEditor(id);
-    // Closing the Settings tab drops the template buffers and infos: the
-    // next open reads everything fresh from the files (DEC-002).
-    if (id === 'settings') this.dropTemplates();
-    this.applyTabs(closeTab(this.tabState(), id), { closeConfirm: null });
+  private forceCloseTab(key: string): void {
+    const tab = this.state.tabs.find((t) => t.key === key);
+    const next = closeTab(this.tabState(), key);
+    // Buffers whose last referencing tab just closed go with it; a closed
+    // Settings tab drops the template buffers so the next open reads the
+    // files fresh (DEC-002).
+    if (tab !== undefined) {
+      for (const target of new Set(tab.entries.map((e) => e.target))) {
+        if (target === 'settings') {
+          if (!anyEntry(next, 'settings')) this.dropTemplates();
+        } else if (!anyEntry(next, target)) {
+          this.dropEditor(target);
+        }
+      }
+    }
+    this.applyTabs(next, { closeConfirm: null });
   }
 
   // ---- template settings (WO-024, SRC-009) ----
@@ -1105,7 +1172,7 @@ class App implements Ctx {
       silent reload when clean, banner when dirty. A deleted file is not a
       conflict — its effective body is the built-in default (DEC-023). */
   private async reconcileTemplates(): Promise<void> {
-    if (!this.state.tabs.some((t) => t.id === 'settings')) return;
+    if (!anyEntry(this.tabState(), 'settings')) return;
     for (const type of [...this.tplInfo.keys()]) {
       const info = await this.api.templateRead(type).catch(() => null);
       if (info === null) continue;
@@ -1539,21 +1606,22 @@ class App implements Ctx {
     });
   }
 
-  /** Open semantics mirror the tabs design: Enter/click = shared preview tab,
-      palette closes; ⌘Enter/⌘click = pinned tab in background, palette stays. */
+  /** Open semantics mirror the tabs design (SRC-018): Enter/click navigates
+      the active tab in place, palette closes; ⌘Enter/⌘click = pinned tab in
+      background, palette stays. */
   private openPaletteRow(row: PaletteRow, pinned: boolean): void {
     if (row.kind === 'command') {
       // ⌘↩ means nothing for an action row — treat it as a plain activation.
       this.update({ paletteOpen: false });
       void this.startNewProject();
     } else if (row.kind === 'view') {
-      this.applyTabs(openTab(this.tabState(), row.view, { preview: true, previewTabs: this.state.previewTabs }), {
+      this.applyTabs(navigate(this.tabState(), row.view, { surface: 'preview', previewTabs: this.state.previewTabs }), {
         paletteOpen: false,
       });
     } else if (pinned) {
       this.openDoc(row.hit.id, { background: true });
     } else {
-      this.openDoc(row.hit.id, { preview: true });
+      this.openDoc(row.hit.id);
       this.update({ paletteOpen: false });
     }
   }
@@ -1678,6 +1746,15 @@ class App implements Ctx {
     this.update({ panel, panelFilter: '', settingsPop: false });
   }
 
+  /** The live type crumb (WO-039, SRC-018): open that type's panel — a
+      browser, not a route; the active tab does not change. */
+  openPanel(type: DocType): void {
+    if (!App.COLLECTIONS.includes(type)) return;
+    this.tpFocus = true;
+    this.panelScroll = 0;
+    this.update({ panel: type, panelFilter: '', settingsPop: false });
+  }
+
   /** Honest config state of the agent connection — a static dot (no pulse:
       a pulse would imply liveness), never live client status. */
   private mcpSummary(): { healthy: boolean; label: string } {
@@ -1696,11 +1773,12 @@ class App implements Ctx {
       Board, Graph, and the Settings gear at the foot. Replaces the icon
       rail and the working-set tree. */
   private sidebar(): HTMLElement {
+    const target = activeTarget(this.tabState());
     const viewItem = (key: View, label: string, glyph: string): HTMLElement =>
       h(
         'div',
         {
-          class: this.state.activeTabId === key ? 'nav-item nav-item-active' : 'nav-item',
+          class: target === key ? 'nav-item nav-item-active' : 'nav-item',
           onClick: () => this.setView(key),
         },
         h('span', { class: 'nav-glyph' }, glyph),
@@ -1767,6 +1845,22 @@ class App implements Ctx {
           ),
         )
       : null;
+    // The working-context group (WO-039, SRC-018): the persisted recents,
+    // newest-first, capped at 6, hidden entirely when empty.
+    const recents = this.state.recents.filter((id) => this.byId.has(id)).slice(0, 6);
+    const recentRows = recents.map((id) => {
+      const doc = this.byId.get(id)!;
+      return h(
+        'div',
+        {
+          class: target === id ? 'sb-recent sb-recent-active' : 'sb-recent',
+          title: `${id} — ${doc.title}`,
+          onClick: (e) => this.openDoc(id, { preview: true, background: e.metaKey || e.ctrlKey }),
+        },
+        h('span', { class: 'sb-recent-id', style: `color:${TYPE_META[doc.type].color};` }, id),
+        h('span', { class: 'sb-recent-ttl' }, doc.title),
+      );
+    });
     return h(
       'div',
       { class: 'sidebar' },
@@ -1776,6 +1870,9 @@ class App implements Ctx {
       h('div', { class: 'side-div' }),
       viewItem('board', 'Board', '▤'),
       viewItem('graph', 'Graph', '◉'),
+      ...(recents.length > 0
+        ? [h('div', { class: 'side-div' }), h('div', { class: 'side-label' }, 'RECENT'), ...recentRows]
+        : []),
       h('div', { class: 'side-fill' }),
       h(
         'div',
@@ -1783,7 +1880,7 @@ class App implements Ctx {
         h(
           'div',
           {
-            class: this.state.activeTabId === 'settings' ? 'nav-item nav-item-active' : 'nav-item',
+            class: target === 'settings' ? 'nav-item nav-item-active' : 'nav-item',
             title: label,
             onClick: (e) => {
               e.stopPropagation();
@@ -1809,13 +1906,20 @@ class App implements Ctx {
     const meta = TYPE_META[type];
     const list = panelList(this.snap.documents, type, this.state.panelFilter, this.state.pinned);
     const showDead = this.state.showDead[type] === true;
+    const target = activeTarget(this.tabState());
+    // Double-click pins the tab currently showing the doc (the preview tab
+    // the first click just opened).
+    const pinShowing = (id: string): void => {
+      const tab = this.state.tabs.find((t) => currentTarget(t) === id);
+      if (tab !== undefined) this.applyTabs(pinTab(this.tabState(), tab.key));
+    };
     const row = (d: VeriDocument, pin: boolean): HTMLElement =>
       h(
         'div',
         {
-          class: this.state.activeTabId === d.id ? 'tp-row tp-row-active' : 'tp-row',
+          class: target === d.id ? 'tp-row tp-row-active' : 'tp-row',
           onClick: (e) => this.openDoc(d.id, { preview: true, background: e.metaKey || e.ctrlKey }),
-          onDblclick: () => this.applyTabs(pinTab(this.tabState(), d.id)),
+          onDblclick: () => pinShowing(d.id),
         },
         pin ? h('span', { class: 'tp-star' }, '★') : null,
         h('span', { class: 'tp-id', style: `color:${meta.color};` }, d.id),
@@ -1916,23 +2020,25 @@ class App implements Ctx {
     );
   }
 
-  /** One tab: type-colored id chip (docs) or glyph (views), ellipsized title
-      — italic for the preview tab — and the close ×. All SRC-004 gestures. */
+  /** One tab: type-colored id chip (docs) or glyph (views) for its current
+      history entry, ellipsized title — italic for the preview tab — and the
+      close ×. All SRC-004 gestures, keyed by tab identity (SRC-018). */
   private tabEl(t: Tab, i: number): HTMLElement {
-    const view = isViewKey(t.id) ? VIEW_META[t.id] : null;
-    const doc = view === null ? this.byId.get(t.id) : undefined;
-    const title = view?.label ?? doc?.title ?? t.id;
-    const active = t.id === this.state.activeTabId;
-    const dirty = this.docEdit.get(t.id)?.dirty === true || (t.id === 'settings' && this.tplAnyDirty());
-    const close = (el: Element | null): void => this.requestCloseTab(t.id, el?.getBoundingClientRect() ?? null);
+    const target = currentTarget(t);
+    const view = isViewKey(target) ? VIEW_META[target] : null;
+    const doc = view === null ? this.byId.get(target) : undefined;
+    const title = view?.label ?? doc?.title ?? target;
+    const active = t.key === this.state.activeTabId;
+    const dirty = this.docEdit.get(target)?.dirty === true || (target === 'settings' && this.tplAnyDirty());
+    const close = (el: Element | null): void => this.requestCloseTab(t.key, el?.getBoundingClientRect() ?? null);
     return h(
       'div',
       {
         class: `tab${active ? ' tab-active' : ''}${t.preview ? ' tab-preview' : ''}${dirty ? ' tab-dirty' : ''}`,
-        title: (view !== null ? title : `${t.id} — ${title}`) + (t.preview ? ' · preview — double-click to keep open' : ''),
+        title: (view !== null ? title : `${target} — ${title}`) + (t.preview ? ' · preview — double-click to keep open' : ''),
         draggable: true,
-        onClick: () => this.applyTabs(activateTab(this.tabState(), t.id)),
-        onDblclick: () => this.applyTabs(pinTab(activateTab(this.tabState(), t.id), t.id)),
+        onClick: () => this.applyTabs(activateTab(this.tabState(), t.key)),
+        onDblclick: () => this.applyTabs(pinTab(activateTab(this.tabState(), t.key), t.key)),
         onMousedown: (e) => {
           if (e.button === 1) {
             e.preventDefault();
@@ -1954,8 +2060,8 @@ class App implements Ctx {
       },
       h(
         'span',
-        { class: 'tab-id', style: `color:${view !== null ? '#8B8893' : TYPE_META[doc!.type].color};` },
-        view?.glyph ?? t.id,
+        { class: 'tab-id', style: `color:${doc !== undefined ? TYPE_META[doc.type].color : '#8B8893'};` },
+        view?.glyph ?? target,
       ),
       h('span', { class: 'tab-title' }, title),
       h(
@@ -1976,10 +2082,35 @@ class App implements Ctx {
     );
   }
 
+  /** The ‹ › history buttons (WO-039, SRC-018), leftmost in the strip,
+      acting on the active tab; hidden in the no-tabs empty state. */
   private tabStrip(): HTMLElement {
+    const act = activeTab(this.tabState());
+    const canBack = act !== null && act.index > 0;
+    const canFwd = act !== null && act.index < act.entries.length - 1;
+    const histBtn = (glyph: string, on: boolean, title: string, go: () => void): HTMLElement =>
+      h(
+        'div',
+        {
+          class: on ? 'hist-btn' : 'hist-btn hist-btn-off',
+          title,
+          onClick: () => {
+            if (on) go();
+          },
+        },
+        glyph,
+      );
     return h(
       'div',
       { class: 'tabstrip' },
+      this.state.tabs.length > 0
+        ? h(
+            'div',
+            { class: 'nav-hist' },
+            histBtn('‹', canBack, 'Back ⌘[', () => this.applyTabs(back(this.tabState()))),
+            histBtn('›', canFwd, 'Forward ⌘]', () => this.applyTabs(forward(this.tabState()))),
+          )
+        : null,
       ...this.state.tabs.map((t, i) => this.tabEl(t, i)),
       h('div', { class: 'tabstrip-fill' }),
     );
@@ -2025,15 +2156,14 @@ class App implements Ctx {
       );
       return;
     }
-    // Save the outgoing DOM's scroll positions (per tab, plus the type panel)
-    // so full re-renders and tab switches restore them (SRC-004 expectation).
+    // Save the outgoing DOM's scroll positions into the history entry it was
+    // rendered for (plus the type panel), so tab switches AND back/forward
+    // restore them (SRC-018 history rule 4). The entry object is shared with
+    // the tab state by reference, so this survives navigation ops.
     const oldList = this.root.querySelector('.tp-list');
     if (oldList !== null) this.panelScroll = oldList.scrollTop;
-    if (this.renderedTabId !== null) {
-      this.scrollPos.set(
-        this.renderedTabId,
-        Array.from(this.root.querySelectorAll(App.SCROLL_SEL), (el) => el.scrollTop),
-      );
+    if (this.renderedEntry !== null) {
+      this.renderedEntry.scroll = Array.from(this.root.querySelectorAll(App.SCROLL_SEL), (el) => el.scrollTop);
     }
     // Editor islands lose their scroll when replaceChildren detaches them.
     for (const ed of this.docEdit.values()) ed.island?.saveScroll();
@@ -2073,9 +2203,10 @@ class App implements Ctx {
 
     const newList = this.root.querySelector('.tp-list');
     if (newList !== null) newList.scrollTop = this.panelScroll;
-    this.renderedTabId = this.state.tabs.length === 0 ? null : this.state.activeTabId;
-    const saved = this.renderedTabId !== null ? this.scrollPos.get(this.renderedTabId) : undefined;
-    if (saved !== undefined) {
+    const act = activeTab(this.tabState());
+    this.renderedEntry = act === null ? null : act.entries[act.index];
+    if (this.renderedEntry !== null) {
+      const saved = this.renderedEntry.scroll;
       this.root.querySelectorAll(App.SCROLL_SEL).forEach((el, i) => {
         if (saved[i] !== undefined) el.scrollTop = saved[i];
       });
@@ -2140,33 +2271,35 @@ class App implements Ctx {
     const cc = this.state.closeConfirm;
     if (cc !== null) {
       const style = `top:${cc.y}px;left:${Math.max(8, Math.min(cc.x - 120, window.innerWidth - 268))}px;`;
+      // This tab's history is the last reference to these buffers (SRC-018).
+      const text =
+        cc.docs.length === 0
+          ? "Template edits aren't saved."
+          : `${cc.docs.join(', ')} ${cc.docs.length === 1 ? 'has' : 'have'} edits that aren't saved${cc.settings ? ', and neither are template edits' : ''}.`;
+      const saveAll = (): void => {
+        this.update({ closeConfirm: null });
+        const finish = (): void => (cc.settings ? this.tplSaveAll(() => this.forceCloseTab(cc.key)) : this.forceCloseTab(cc.key));
+        const saveDoc = (i: number): void => {
+          if (i >= cc.docs.length) {
+            finish();
+            return;
+          }
+          this.saveEditor(cc.docs[i], () => saveDoc(i + 1));
+        };
+        saveDoc(0);
+      };
       out.push(
         h(
           'div',
           { class: 'cc-pop', style, onClick: (e) => e.stopPropagation() },
           h('div', { class: 'cc-title' }, 'Unsaved changes'),
-          h(
-            'div',
-            { class: 'cc-text' },
-            cc.id === 'settings' ? "Template edits aren't saved." : `${cc.id} has edits that aren't saved.`,
-          ),
+          h('div', { class: 'cc-text' }, text),
           h(
             'div',
             { class: 'cc-acts' },
             h('button', { class: 'nd-btn-ghost', onClick: () => this.update({ closeConfirm: null }) }, 'Cancel'),
-            h('button', { class: 'nd-btn-ghost', onClick: () => this.forceCloseTab(cc.id) }, 'Discard'),
-            h(
-              'button',
-              {
-                class: 'nd-btn-primary',
-                onClick: () => {
-                  this.update({ closeConfirm: null });
-                  if (cc.id === 'settings') this.tplSaveAll(() => this.forceCloseTab(cc.id));
-                  else this.saveEditor(cc.id, () => this.forceCloseTab(cc.id));
-                },
-              },
-              'Save',
-            ),
+            h('button', { class: 'nd-btn-ghost', onClick: () => this.forceCloseTab(cc.key) }, 'Discard'),
+            h('button', { class: 'nd-btn-primary', onClick: saveAll }, 'Save'),
           ),
         ),
       );

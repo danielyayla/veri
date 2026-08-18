@@ -165,7 +165,17 @@ export function readerView(ctx: Ctx): HTMLElement {
         h(
           'div',
           { class: 'crumb crumb-row' },
-          h('span', {}, meta.crumb),
+          doc.type !== 'workflow'
+            ? h(
+                'span',
+                {
+                  class: 'crumb-live',
+                  title: `Browse ${meta.crumb.toLowerCase()}`,
+                  onClick: () => ctx.openPanel(doc.type),
+                },
+                meta.crumb,
+              )
+            : h('span', {}, meta.crumb),
           h('span', { class: 'crumb-sep' }, '/'),
           h('span', { style: `color:${meta.color};` }, doc.id),
           modeToggle(ctx, doc.id),

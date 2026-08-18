@@ -1,112 +1,235 @@
-import { deepStrictEqual, strictEqual } from 'node:assert';
+import { deepStrictEqual, ok, strictEqual } from 'node:assert';
 import { describe, it } from 'node:test';
-import { activateTab, closeTab, cycleTab, isViewKey, openTab, pinTab, reorderTab, retainTabs } from './tabs.ts';
-import type { TabState } from './tabs.ts';
+import {
+  EMPTY_TABS,
+  activateTab,
+  activeTarget,
+  anyEntry,
+  back,
+  closeTab,
+  currentTarget,
+  cycleTab,
+  forward,
+  isViewKey,
+  navigate,
+  pinTab,
+  reorderTab,
+  retainTabs,
+} from './tabs.ts';
+import type { Tab, TabState } from './tabs.ts';
 
-const s = (tabs: Array<[string, boolean]>, active: string | null): TabState => ({
-  tabs: tabs.map(([id, preview]) => ({ id, preview })),
-  activeTabId: active,
+/** Terse state builder: each tab is [targets..., index, preview]. */
+const s = (tabs: Array<{ t: string[]; i?: number; pv?: boolean }>, active: number | null, nextKey = 100): TabState => ({
+  tabs: tabs.map((spec, n) => ({
+    key: `t${n + 1}`,
+    preview: spec.pv === true,
+    entries: spec.t.map((target) => ({ target, scroll: [] })),
+    index: spec.i ?? spec.t.length - 1,
+  })),
+  activeKey: active === null ? null : `t${active + 1}`,
+  nextKey,
 });
 
-describe('openTab', () => {
-  it('link open inserts a pinned tab immediately after the active tab and focuses it', () => {
-    const next = openTab(s([['REQ-001', false], ['WO-005', false]], 'REQ-001'), 'DEC-002');
-    deepStrictEqual(next, s([['REQ-001', false], ['DEC-002', false], ['WO-005', false]], 'DEC-002'));
+const targets = (tab: Tab): string[] => tab.entries.map((e) => e.target);
+
+describe('navigate inplace', () => {
+  it('pushes onto the active tab and keeps focus there', () => {
+    const next = navigate(s([{ t: ['REQ-001'] }], 0), 'DEC-002');
+    strictEqual(next.tabs.length, 1);
+    deepStrictEqual(targets(next.tabs[0]), ['REQ-001', 'DEC-002']);
+    strictEqual(next.tabs[0].index, 1);
+    strictEqual(next.activeKey, 't1');
   });
 
-  it('appends when there is no active tab (empty strip)', () => {
-    deepStrictEqual(openTab(s([], null), 'REQ-001'), s([['REQ-001', false]], 'REQ-001'));
+  it('the acceptance trail: four opens then four backs return through all of them in order', () => {
+    let st = s([{ t: ['WO-031'] }], 0);
+    for (const id of ['REQ-014', 'DEC-009', 'SRC-021', 'REQ-002']) st = navigate(st, id);
+    const seen: string[] = [];
+    for (let i = 0; i < 4; i++) {
+      st = back(st);
+      seen.push(activeTarget(st)!);
+    }
+    deepStrictEqual(seen, ['SRC-021', 'DEC-009', 'REQ-014', 'WO-031']);
+    strictEqual(back(st), st); // at the start: no-op
   });
 
-  it('focuses an existing tab instead of duplicating', () => {
-    const state = s([['REQ-001', false], ['DEC-002', false]], 'DEC-002');
-    deepStrictEqual(openTab(state, 'REQ-001'), s([['REQ-001', false], ['DEC-002', false]], 'REQ-001'));
+  it('forward re-walks the same trail; navigating from mid-history truncates the forward stack', () => {
+    let st = s([{ t: ['A', 'B', 'C'] }], 0);
+    st = back(back(st));
+    strictEqual(activeTarget(st), 'A');
+    st = forward(st);
+    strictEqual(activeTarget(st), 'B');
+    st = navigate(st, 'D'); // browser-style: C is gone
+    deepStrictEqual(targets(st.tabs[0]), ['A', 'B', 'D']);
+    strictEqual(forward(st), st);
   });
 
-  it('a pinned open of the current preview tab pins it in place', () => {
-    const next = openTab(s([['REQ-001', false], ['DEC-002', true]], 'REQ-001'), 'DEC-002');
-    deepStrictEqual(next, s([['REQ-001', false], ['DEC-002', false]], 'DEC-002'));
+  it('navigating to the current target is a no-op (no duplicate consecutive entries)', () => {
+    const st = s([{ t: ['REQ-001'] }], 0);
+    deepStrictEqual(targets(navigate(st, 'REQ-001').tabs[0]), ['REQ-001']);
   });
 
-  it('a preview click on an already-pinned tab does not demote it', () => {
-    const next = openTab(s([['REQ-001', false]], 'REQ-001'), 'REQ-001', { preview: true });
-    deepStrictEqual(next, s([['REQ-001', false]], 'REQ-001'));
+  it('caps the stack at 50 entries, dropping the oldest', () => {
+    let st = s([{ t: ['D0'] }], 0);
+    for (let i = 1; i <= 60; i++) st = navigate(st, `D${i}`);
+    strictEqual(st.tabs[0].entries.length, 50);
+    strictEqual(targets(st.tabs[0])[0], 'D11');
+    strictEqual(activeTarget(st), 'D60');
   });
 
-  it('preview opens reuse the single preview tab in place', () => {
-    const state = s([['DEC-002', true], ['REQ-001', false]], 'REQ-001');
-    const next = openTab(state, 'WO-005', { preview: true });
-    deepStrictEqual(next, s([['WO-005', true], ['REQ-001', false]], 'WO-005'));
+  it('does not change pinned-ness: a preview tab stays a preview while a trail runs through it', () => {
+    const next = navigate(s([{ t: ['REQ-001'], pv: true }], 0), 'DEC-002');
+    strictEqual(next.tabs[0].preview, true);
   });
 
-  it('first preview open inserts after the active tab', () => {
-    const next = openTab(s([['REQ-001', false], ['WO-005', false]], 'REQ-001'), 'DEC-002', { preview: true });
-    deepStrictEqual(next, s([['REQ-001', false], ['DEC-002', true], ['WO-005', false]], 'DEC-002'));
+  it('with no tabs at all, opens a preview tab (palette from the empty state)', () => {
+    const next = navigate(EMPTY_TABS, 'REQ-001');
+    strictEqual(next.tabs.length, 1);
+    strictEqual(next.tabs[0].preview, true);
+    strictEqual(next.activeKey, next.tabs[0].key);
   });
 
-  it('background open keeps the current tab focused', () => {
-    const next = openTab(s([['REQ-001', false]], 'REQ-001'), 'DEC-002', { background: true });
-    deepStrictEqual(next, s([['REQ-001', false], ['DEC-002', false]], 'REQ-001'));
+  it('earlier entry objects survive a push by reference (scroll capture depends on it)', () => {
+    const st = s([{ t: ['A'] }], 0);
+    const entry = st.tabs[0].entries[0];
+    const next = navigate(st, 'B');
+    entry.scroll = [120];
+    deepStrictEqual(back(next).tabs[0].entries[0].scroll, [120]);
+  });
+});
+
+describe('navigate preview', () => {
+  it('reuses the single preview tab in place, accumulating its history', () => {
+    const st = s([{ t: ['DEC-002'], pv: true }, { t: ['REQ-001'] }], 1);
+    const next = navigate(st, 'WO-005', { surface: 'preview' });
+    deepStrictEqual(targets(next.tabs[0]), ['DEC-002', 'WO-005']);
+    strictEqual(next.tabs[0].preview, true);
+    strictEqual(next.activeKey, 't1');
   });
 
-  it('previewTabs=false turns preview opens into pinned opens', () => {
-    const state = s([['DEC-002', true], ['REQ-001', false]], 'REQ-001');
-    const next = openTab(state, 'WO-005', { preview: true, previewTabs: false });
-    deepStrictEqual(next, s([['DEC-002', true], ['REQ-001', false], ['WO-005', false]], 'WO-005'));
+  it('creates the preview tab after the active tab when none exists', () => {
+    const next = navigate(s([{ t: ['REQ-001'] }, { t: ['WO-005'] }], 0), 'DEC-002', { surface: 'preview' });
+    strictEqual(next.tabs.length, 3);
+    strictEqual(currentTarget(next.tabs[1]), 'DEC-002');
+    strictEqual(next.tabs[1].preview, true);
+    strictEqual(next.activeKey, next.tabs[1].key);
+  });
+
+  it('previewTabs=false opens a focused pinned tab instead', () => {
+    const next = navigate(s([{ t: ['REQ-001'] }], 0), 'DEC-002', { surface: 'preview', previewTabs: false });
+    strictEqual(next.tabs.length, 2);
+    strictEqual(next.tabs[1].preview, false);
+    strictEqual(next.activeKey, next.tabs[1].key);
+  });
+});
+
+describe('navigate background', () => {
+  it('opens a pinned tab after the active one without focusing it', () => {
+    const st = s([{ t: ['REQ-001'] }, { t: ['WO-005'] }], 0);
+    const next = navigate(st, 'DEC-002', { surface: 'background' });
+    deepStrictEqual(next.tabs.map((t) => currentTarget(t)), ['REQ-001', 'DEC-002', 'WO-005']);
+    strictEqual(next.tabs[1].preview, false);
+    strictEqual(next.activeKey, 't1');
+  });
+
+  it('allows the same document in two tabs (SRC-018 supersedes the no-duplicate rule for docs)', () => {
+    const st = s([{ t: ['REQ-001'] }, { t: ['DEC-002'] }], 0);
+    const next = navigate(st, 'DEC-002', { surface: 'background' });
+    strictEqual(next.tabs.filter((t) => currentTarget(t) === 'DEC-002').length, 2);
+  });
+});
+
+describe('view singletons', () => {
+  it('focuses the tab already showing a view instead of duplicating it', () => {
+    const st = s([{ t: ['board'] }, { t: ['REQ-001'] }], 1);
+    const next = navigate(st, 'board', { surface: 'preview' });
+    strictEqual(next.tabs.length, 2);
+    strictEqual(next.activeKey, 't1');
+  });
+
+  it('a view in back-history does not count as showing it', () => {
+    const st = s([{ t: ['board', 'REQ-001'] }, { t: ['WO-005'] }], 1);
+    const next = navigate(st, 'board', { surface: 'preview' });
+    strictEqual(next.tabs.length, 3); // t1 currently shows REQ-001
+  });
+
+  it('views may sit in history: navigating from a view pushes past it and back returns', () => {
+    let st = navigate(s([{ t: ['graph'] }], 0), 'REQ-001');
+    deepStrictEqual(targets(st.tabs[0]), ['graph', 'REQ-001']);
+    st = back(st);
+    strictEqual(activeTarget(st), 'graph');
   });
 });
 
 describe('closeTab', () => {
-  it('closing the active tab activates the right neighbor', () => {
-    const next = closeTab(s([['A', false], ['B', false], ['C', false]], 'B'), 'B');
-    deepStrictEqual(next, s([['A', false], ['C', false]], 'C'));
+  it('closing the active tab activates the right neighbor, else the left', () => {
+    const st = s([{ t: ['A'] }, { t: ['B'] }, { t: ['C'] }], 1);
+    strictEqual(closeTab(st, 't2').activeKey, 't3');
+    strictEqual(closeTab(closeTab(st, 't3'), 't2').activeKey, 't1');
+    strictEqual(closeTab(st, 't1').activeKey, 't2'); // closing an inactive tab keeps focus
   });
 
-  it('closing the active last tab falls back to the left neighbor', () => {
-    const next = closeTab(s([['A', false], ['B', false]], 'B'), 'B');
-    deepStrictEqual(next, s([['A', false]], 'A'));
-  });
-
-  it('closing an inactive tab keeps the active tab', () => {
-    const next = closeTab(s([['A', false], ['B', false]], 'B'), 'A');
-    deepStrictEqual(next, s([['B', false]], 'B'));
-  });
-
-  it('closing the only tab empties the strip', () => {
-    deepStrictEqual(closeTab(s([['A', false]], 'A'), 'A'), s([], null));
+  it('closing the last tab empties the strip', () => {
+    const next = closeTab(s([{ t: ['A'] }], 0), 't1');
+    deepStrictEqual(next.tabs, []);
+    strictEqual(next.activeKey, null);
   });
 });
 
-describe('pin / activate / reorder / cycle', () => {
-  it('pinTab clears the preview flag', () => {
-    deepStrictEqual(pinTab(s([['A', true]], 'A'), 'A'), s([['A', false]], 'A'));
+describe('pin, activate, reorder, cycle', () => {
+  it('pinTab clears preview by key', () => {
+    strictEqual(pinTab(s([{ t: ['A'], pv: true }], 0), 't1').tabs[0].preview, false);
   });
 
-  it('activateTab focuses an open tab and ignores unknown ids', () => {
-    strictEqual(activateTab(s([['A', false]], 'A'), 'B').activeTabId, 'A');
-    strictEqual(activateTab(s([['A', false], ['B', false]], 'A'), 'B').activeTabId, 'B');
+  it('activateTab ignores unknown keys', () => {
+    const st = s([{ t: ['A'] }], 0);
+    strictEqual(activateTab(st, 'nope'), st);
+    strictEqual(activateTab(s([{ t: ['A'] }, { t: ['B'] }], 0), 't2').activeKey, 't2');
   });
 
-  it('reorderTab moves a tab without changing focus', () => {
-    const next = reorderTab(s([['A', false], ['B', false], ['C', false]], 'A'), 0, 2);
-    deepStrictEqual(next, s([['B', false], ['C', false], ['A', false]], 'A'));
-  });
-
-  it('cycleTab wraps in both directions', () => {
-    const state = s([['A', false], ['B', false], ['C', false]], 'C');
-    strictEqual(cycleTab(state, 1).activeTabId, 'A');
-    strictEqual(cycleTab({ ...state, activeTabId: 'A' }, -1).activeTabId, 'C');
+  it('reorderTab moves a tab; cycleTab wraps in both directions', () => {
+    const st = s([{ t: ['A'] }, { t: ['B'] }, { t: ['C'] }], 2);
+    deepStrictEqual(reorderTab(st, 0, 2).tabs.map((t) => currentTarget(t)), ['B', 'C', 'A']);
+    strictEqual(cycleTab(st, 1).activeKey, 't1');
+    strictEqual(cycleTab(st, -1).activeKey, 't2');
   });
 });
 
 describe('retainTabs', () => {
-  it('drops tabs for deleted docs, keeps view tabs, and re-activates like a close', () => {
-    const state = s([['REQ-001', false], ['board', false], ['DEC-002', false]], 'DEC-002');
-    const next = retainTabs(state, (id) => id === 'REQ-001');
-    deepStrictEqual(next, s([['REQ-001', false], ['board', false]], 'board'));
+  const gone = (dead: string[]) => (id: string) => !dead.includes(id);
+
+  it('prunes vanished docs from history and re-anchors the index', () => {
+    const st = s([{ t: ['A', 'B', 'C'], i: 2 }], 0);
+    const next = retainTabs(st, gone(['B']));
+    deepStrictEqual(targets(next.tabs[0]), ['A', 'C']);
+    strictEqual(next.tabs[0].index, 1); // still on C
   });
 
-  it('view keys are recognized', () => {
-    strictEqual(isViewKey('board') && isViewKey('settings') && !isViewKey('REQ-001'), true);
+  it('a pruned current entry falls back to the nearest earlier survivor', () => {
+    const next = retainTabs(s([{ t: ['A', 'B', 'C'], i: 1 }], 0), gone(['B']));
+    strictEqual(activeTarget(next), 'A');
+  });
+
+  it('a tab whose whole history vanished closes', () => {
+    const next = retainTabs(s([{ t: ['A'] }, { t: ['B'] }], 0), gone(['A']));
+    strictEqual(next.tabs.length, 1);
+    strictEqual(next.activeKey, 't2');
+  });
+
+  it('view entries always survive', () => {
+    const next = retainTabs(s([{ t: ['board', 'A'] }], 0), gone(['A']));
+    deepStrictEqual(targets(next.tabs[0]), ['board']);
+  });
+});
+
+describe('helpers', () => {
+  it('anyEntry sees back-history, not just current entries', () => {
+    const st = s([{ t: ['A', 'B'], i: 1 }], 0);
+    ok(anyEntry(st, 'A'));
+    ok(!anyEntry(st, 'C'));
+  });
+
+  it('isViewKey knows the five views', () => {
+    ok(isViewKey('board') && isViewKey('settings') && !isViewKey('REQ-001'));
   });
 });

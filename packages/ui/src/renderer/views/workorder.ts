@@ -389,7 +389,11 @@ export function workOrderView(ctx: Ctx): HTMLElement {
         h(
           'div',
           { class: 'crumb crumb-row' },
-          h('span', {}, 'Work Orders'),
+          h(
+            'span',
+            { class: 'crumb-live', title: 'Browse work orders', onClick: () => ctx.openPanel('work-order') },
+            'Work Orders',
+          ),
           h('span', { class: 'crumb-sep' }, '/'),
           h('span', { style: 'color:#E8703A;' }, doc.id),
           modeToggle(ctx, doc.id),

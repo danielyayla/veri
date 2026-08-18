@@ -32,7 +32,8 @@ export interface EditorHooks {
   /** Guard rejections and other transient notices for the status row. */
   onNotice(text: string): void;
   /** ⌘-click on a `[[ID]]` link — background tab per SRC-004 rule 4. */
-  onNavigate(id: string): void;
+  /** ⌘-click follow (SRC-018: in place); background=true on ⌘⌥-click. */
+  onNavigate(id: string, background: boolean): void;
 }
 
 /** Markdown source palette per SRC-008 — marks recede, headings assert. */
@@ -169,7 +170,7 @@ export class EditorIsland {
           const id = wikiIdAt(view, event);
           if (id === null || !this.hooks.docs().some((d) => d.id === id)) return false;
           event.preventDefault();
-          this.hooks.onNavigate(id);
+          this.hooks.onNavigate(id, event.altKey);
           return true;
         },
       }),
