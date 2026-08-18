@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { approve, check, context, init, list, migrate, newDoc, open } from './commands.ts';
+import { approve, check, context, implemented, init, list, migrate, newDoc, open } from './commands.ts';
 import type { CmdResult } from './commands.ts';
 
 const USAGE = `usage: veri <command>
@@ -10,6 +10,7 @@ const USAGE = `usage: veri <command>
   veri approve <id>          approve a pending document (stamps approved: today)
   veri migrate               bring veri/ to the current on-disk format
   veri context <WO-id>       print the context package an agent receives
+  veri implemented <path>    work orders whose commits touched the path
   veri list [type]           list documents: id, status, title
   veri open [dir]            open the project in the Veri desktop app
 `;
@@ -36,6 +37,9 @@ switch (command) {
     break;
   case 'context':
     result = await context(cwd, rest[0]);
+    break;
+  case 'implemented':
+    result = await implemented(cwd, rest[0]);
     break;
   case 'open':
     result = open(cwd, rest[0]);

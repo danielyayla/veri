@@ -2,7 +2,7 @@
 id: WO-044
 type: work-order
 title: "Receipt verification against git"
-status: backlog
+status: in-progress
 created: 2026-08-18
 updated: 2026-08-18
 links:

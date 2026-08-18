@@ -172,7 +172,7 @@ export function checkApprovalStamps(documents: VeriDocument[]): Issue[] {
 const UNCHECKED_BOX_RE = /^\s*[-*]\s+\[ \]/m;
 const LIST_ITEM_RE = /^\s*[-*]\s+\S/m;
 
-function receiptsSection(body: string): string | null {
+export function receiptsSection(body: string): string | null {
   const start = body.search(/^##\s+Receipts\s*$/m);
   if (start < 0) return null;
   const afterHeading = body.slice(start).replace(/^.*(\r?\n|$)/, '');

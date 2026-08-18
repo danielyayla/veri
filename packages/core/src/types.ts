@@ -31,14 +31,22 @@ export interface VeriDocument {
  * issue, but a separate tier — advisories never affect the issue count,
  * check's exit code, or any gate.
  */
-export type Advisory = {
-  kind: 'missing-section';
-  file: string;
-  id: string;
-  /** The expected `##` heading text, without the `##` marker. */
-  section: string;
-  message: string;
-};
+export type Advisory =
+  | {
+      kind: 'missing-section';
+      file: string;
+      id: string;
+      /** The expected `##` heading text, without the `##` marker. */
+      section: string;
+      message: string;
+    }
+  // Receipt verification (WO-044, REQ-021): a receipt's git claims did not
+  // check out against collected history. Advisory by design — provenance
+  // informs, never blocks (DEC-025).
+  | { kind: 'receipt-commit-missing'; file: string; id: string; sha: string; message: string }
+  | { kind: 'receipt-prefix'; file: string; id: string; sha: string; subject: string; message: string }
+  | { kind: 'receipt-files'; file: string; id: string; sha: string; message: string }
+  | { kind: 'receipt-unverified'; file: string; id: string; message: string };
 
 export type Issue =
   | {

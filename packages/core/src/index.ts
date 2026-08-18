@@ -13,4 +13,5 @@ export * from './create.ts';
 export * from './idstore.ts';
 export * from './templates.ts';
 export * from './context.ts';
+export * from './provenance.ts';
 export * from './workflow-default.ts';

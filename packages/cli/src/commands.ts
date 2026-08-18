@@ -3,8 +3,9 @@ import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, checkProject, classifyFormat, createDocument, formatStatement, isOperableFormat, loadProject, migrateProject, scaffoldProject } from '@veri/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, checkProject, checkProvenance, classifyFormat, createDocument, formatStatement, isOperableFormat, loadProject, migrateProject, scaffoldProject, workOrdersTouching } from '@veri/core';
 import type { DocType, FormatClassification, Issue } from '@veri/core';
+import { collectGitFacts } from './git.ts';
 
 export interface CmdResult {
   code: number;
@@ -83,6 +84,13 @@ export async function check(cwd: string): Promise<CmdResult> {
   if (dir === null) return NO_VERI_DIR;
   const load = await loadProject(dir);
   const { issues, advisories } = checkProject(load);
+  // Receipt verification (WO-044): git facts come from the host, checks stay
+  // pure in core (DEC-040). No repository means a note, never a failure.
+  const git = collectGitFacts(cwd);
+  if (git.kind === 'ok') {
+    advisories.push(...checkProvenance(load.documents, git.facts));
+  }
+  const skipNote = git.kind === 'ok' ? [] : [`(provenance: skipped — ${git.reason})`];
   // Advisories print after issues and never touch the count or exit code (DEC-025).
   const advisoryLines = advisories.map((advisory) => `(advisory) ${advisory.file}: ${advisory.message}`);
   // The format line leads the report (REQ-015); issues, then advisories, then
@@ -93,6 +101,7 @@ export async function check(cwd: string): Promise<CmdResult> {
       lines: [
         formatLine(load.format),
         ...advisoryLines,
+        ...skipNote,
         `ok — ${load.documents.length} documents, 0 issues · ${advisories.length} advisories`,
       ],
     };
@@ -103,8 +112,42 @@ export async function check(cwd: string): Promise<CmdResult> {
       formatLine(load.format),
       ...issues.map((issue) => `${fileOf(issue)}: ${issue.message}`),
       ...advisoryLines,
+      ...skipNote,
       `${issues.length} issue(s) · ${advisories.length} advisories`,
     ],
+  };
+}
+
+/**
+ * The reverse of a receipt (WO-044, REQ-021): which work orders' commits
+ * touched this path, derived live from the WO-nnn: commit convention —
+ * never from a stored index. Titles are best-effort decoration: the index
+ * works in a repo with no veri/ at all.
+ */
+export async function implemented(cwd: string, pathArg: string | undefined): Promise<CmdResult> {
+  if (pathArg === undefined || pathArg.trim() === '') {
+    return { code: 1, lines: ['usage: veri implemented <path>'] };
+  }
+  const git = collectGitFacts(cwd);
+  if (git.kind !== 'ok') {
+    return { code: 1, lines: [`cannot derive implemented-in: ${git.reason}`] };
+  }
+  const hits = workOrdersTouching(git.facts, pathArg.trim());
+  if (hits.length === 0) {
+    return { code: 0, lines: [`no WO-prefixed commits touched ${pathArg.trim()}`] };
+  }
+  const titles = new Map<string, string>();
+  const dir = requireVeriDir(cwd);
+  if (dir !== null) {
+    for (const doc of (await loadProject(dir)).documents) titles.set(doc.id, doc.title);
+  }
+  return {
+    code: 0,
+    lines: hits.map(({ id, commits }) => {
+      const shas = commits.map((commit) => commit.sha.slice(0, 7)).join(' ');
+      const title = titles.get(id);
+      return `${id.padEnd(8)} ${shas}${title === undefined ? '' : `  ${title}`}`;
+    }),
   };
 }
 

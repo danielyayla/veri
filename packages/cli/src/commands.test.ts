@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -137,13 +137,18 @@ test('new rejects unknown types and missing titles', async (t) => {
   assert.equal((await newDoc(cwd, 'requirement', undefined)).code, 1);
 });
 
-test('check on the five-issues fixture reports exactly 5 issues and exits 1', async () => {
-  const result = await check(FIVE_ISSUES);
+test('check on the five-issues fixture reports exactly 5 issues and exits 1', async (t) => {
+  // Copied out of this repo so provenance skips deterministically (WO-044):
+  // in place, the fixture would borrow this repo's git history.
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  cpSync(FIVE_ISSUES, cwd, { recursive: true });
+  const result = await check(cwd);
   assert.equal(result.code, 1);
   assert.equal(result.lines.at(-1), '5 issue(s) · 11 advisories', result.lines.join('\n'));
   // The fixture predates the marker: the leading format line says so.
   assert.match(result.lines[0] ?? '', /^format 0 \(pre-marker/);
-  const body = result.lines.slice(1, -1);
+  const body = result.lines.slice(1, -1).filter((line) => !line.startsWith('(provenance:'));
   const issueLines = body.filter((line) => !line.startsWith('(advisory) '));
   const advisoryLines = body.filter((line) => line.startsWith('(advisory) '));
   assert.equal(issueLines.length, 5);
