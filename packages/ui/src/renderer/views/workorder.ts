@@ -6,6 +6,7 @@ import { plainText, sections } from '../markdown.ts';
 import type { Block } from '../markdown.ts';
 import { PACKAGE_RULES_TEXT, fileActivity, gatingDocs, receipts } from '../derive.ts';
 import { activityFeed, dirtyStrip, modeToggle, pinChip, renderBlocks } from '../widgets.ts';
+import { roveIndex, roveKey } from '../a11y.ts';
 import type { Ctx } from '../app.ts';
 
 const STATUS_SEGMENTS: Array<{ status: string; label: string }> = [
@@ -15,16 +16,38 @@ const STATUS_SEGMENTS: Array<{ status: string; label: string }> = [
 ];
 
 function statusControl(ctx: Ctx, doc: VeriDocument): HTMLElement {
-  return h(
+  // SRC-019: a radiogroup — roving tabindex, ←/→ move focus, ↩/Space apply
+  // (native button activation). Arrow moves are DOM-only; no state changes
+  // until a segment is pressed.
+  const segs: HTMLButtonElement[] = [];
+  const group = h(
     'div',
-    { class: 'seg' },
+    {
+      class: 'seg',
+      role: 'radiogroup',
+      label: 'Status',
+      onKeydown: (e) => {
+        const move = roveKey(e.key);
+        if (move === null) return;
+        e.preventDefault();
+        const cur = segs.findIndex((s) => s === document.activeElement);
+        const next = roveIndex(segs.length, cur, move);
+        if (next === -1) return;
+        segs.forEach((s, i) => (s.tabIndex = i === next ? 0 : -1));
+        segs[next].focus();
+      },
+    },
     ...STATUS_SEGMENTS.map(({ status, label }) => {
       const active = doc.status === status;
       const color = statusColor(status);
-      return h(
-        'div',
+      const btn = h(
+        'button',
         {
-          class: 'seg-item',
+          class: 'btn-reset seg-item',
+          role: 'radio',
+          checked: active,
+          tabindex: active ? 0 : -1,
+          fkey: `status:${status}`,
           style: active ? `background:${tint(color, 0.14)};color:${color};` : '',
           onClick: () => {
             if (active) return;
@@ -33,8 +56,11 @@ function statusControl(ctx: Ctx, doc: VeriDocument): HTMLElement {
         },
         label,
       );
+      segs.push(btn as HTMLButtonElement);
+      return btn;
     }),
   );
+  return group;
 }
 
 function receiptCards(ctx: Ctx, doc: VeriDocument): HTMLElement[] {
@@ -82,9 +108,11 @@ function linkedCard(
     'div',
     { class: 'linked-card', style: `border-color:${border};` },
     h(
-      'div',
+      'button',
       {
-        class: 'linked-head',
+        class: 'btn-reset btn-block linked-head',
+        expanded: open,
+        fkey: `linked:${target.id}`,
         onClick: () => {
           const expanded = new Set(ctx.state.expanded);
           if (open) expanded.delete(key);
@@ -159,7 +187,7 @@ function agentPicker(ctx: Ctx): HTMLElement {
       const chip = (label: string, cls: string): HTMLElement =>
         launching
           ? h('span', { class: 'ap-launching' }, 'launching…')
-          : h('span', { class: `ap-chip ${cls}`, onClick: () => ctx.launchAgent(a) }, label);
+          : h('button', { class: `btn-reset ap-chip ${cls}`, fkey: `ap:${a.id}`, onClick: () => ctx.launchAgent(a) }, label);
       if (a.status === 'not-installed') {
         rows.push(
           h(
@@ -197,7 +225,7 @@ function agentPicker(ctx: Ctx): HTMLElement {
 
   return h(
     'div',
-    { class: 'ap-pop', onClick: (e) => e.stopPropagation() },
+    { class: 'ap-pop', role: 'menu', label: 'Start a session in', onClick: (e) => e.stopPropagation() },
     h('div', { class: 'ap-head micro-label' }, 'START A SESSION IN'),
     ...rows,
     h(
@@ -209,13 +237,13 @@ function agentPicker(ctx: Ctx): HTMLElement {
         h('div', { class: 'ap-name' }, 'Web chat (ChatGPT, Claude.ai, …)'),
         h('div', { class: 'ap-detail' }, "can't be launched with a local MCP server"),
       ),
-      h('span', { class: 'ap-chip ap-chip-copy', onClick: () => ctx.copyKickoff() }, 'Copy prompt'),
+      h('button', { class: 'btn-reset ap-chip ap-chip-copy', fkey: 'ap:web', onClick: () => ctx.copyKickoff() }, 'Copy prompt'),
     ),
     h(
       'div',
       { class: 'ap-foot' },
       `launches in ${tildify(ctx.snap.root, home)} · `,
-      h('span', { class: 'mcp-snippet-link', onClick: () => ctx.openSettings('agent') }, 'connection settings →'),
+      h('button', { class: 'btn-reset mcp-snippet-link', fkey: 'ap:settings', onClick: () => ctx.openSettings('agent') }, 'connection settings →'),
     ),
   );
 }
@@ -223,10 +251,12 @@ function agentPicker(ctx: Ctx): HTMLElement {
 /** SRC-006 gate chip: `gated · REQ-008`, one per pending direct link. */
 function gateChip(ctx: Ctx, id: string): HTMLElement {
   return h(
-    'span',
+    'button',
     {
-      class: 'gate-chip',
+      class: 'btn-reset gate-chip',
       title: 'Depends on a document awaiting review',
+      label: `Gated — open ${id}, awaiting review`,
+      fkey: `gate:${id}`,
       onClick: (e) => {
         e.stopPropagation();
         ctx.openDoc(id, { background: e.metaKey || e.ctrlKey });
@@ -281,9 +311,11 @@ function contextPanel(ctx: Ctx, doc: VeriDocument): HTMLElement {
     gates.length > 0
       ? h('div', { class: 'btn-primary btn-gated' }, 'Start agent session ', h('span', { class: 'ap-caret' }, '▾'), gateTip)
       : h(
-          'div',
+          'button',
           {
-            class: 'btn-primary',
+            class: 'btn-reset btn-block btn-primary',
+            expanded: ctx.state.agentsOpen,
+            fkey: 'pkg-start',
             onClick: (e) => {
               e.stopPropagation();
               ctx.toggleAgentPicker();
@@ -297,19 +329,21 @@ function contextPanel(ctx: Ctx, doc: VeriDocument): HTMLElement {
     gates.length > 0
       ? h('div', { class: 'btn-secondary btn-gated' }, 'Copy kickoff prompt', gateTip?.cloneNode(true) as HTMLElement)
       : h(
-          'div',
+          'button',
           {
-            class: 'btn-secondary',
+            class: 'btn-reset btn-block btn-secondary',
             style: ctx.state.kickoffCopied ? 'color:#7FAF8A;border-color:#243026;' : '',
+            fkey: 'pkg-kickoff',
             onClick: () => ctx.copyKickoff(),
           },
           ctx.state.kickoffCopied ? '✓ Copied' : 'Copy kickoff prompt',
         );
 
   const fullCopy = h(
-    'div',
+    'button',
     {
-      class: 'pkg-ghost',
+      class: 'btn-reset btn-block pkg-ghost',
+      fkey: 'pkg-full',
       onClick: () => {
         if (pkg === undefined) return;
         void ctx.api.copyText(pkg.text).then(() => {
@@ -390,8 +424,8 @@ export function workOrderView(ctx: Ctx): HTMLElement {
           'div',
           { class: 'crumb crumb-row' },
           h(
-            'span',
-            { class: 'crumb-live', title: 'Browse work orders', onClick: () => ctx.openPanel('work-order') },
+            'button',
+            { class: 'btn-reset crumb-live', title: 'Browse work orders', fkey: 'crumb-live', onClick: () => ctx.openPanel('work-order') },
             'Work Orders',
           ),
           h('span', { class: 'crumb-sep' }, '/'),

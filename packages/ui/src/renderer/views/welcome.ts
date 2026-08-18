@@ -20,10 +20,10 @@ export interface WelcomeHost {
 
 function actionCard(glyph: string, glyphColor: string, title: string, body: HTMLElement, onClick: () => void): HTMLElement {
   return h(
-    'div',
-    { class: 'wl-card', onClick },
+    'button',
+    { class: 'btn-reset btn-block wl-card', fkey: `wl:${title}`, onClick },
     h(
-      'div',
+      'span',
       { class: 'wl-card-title' },
       h('span', { class: 'wl-card-glyph', style: `color:${glyphColor};` }, glyph),
       h('span', {}, title),
@@ -54,21 +54,21 @@ export function welcomeView(host: WelcomeHost): HTMLElement {
           '+',
           '#E8703A',
           'Create a new project',
-          h('div', { class: 'wl-card-body' }, 'Pick a folder — Veri scaffolds a ', code('veri/'), ' directory inside it. Works in an existing repo.'),
+          h('span', { class: 'wl-card-body' }, 'Pick a folder — Veri scaffolds a ', code('veri/'), ' directory inside it. Works in an existing repo.'),
           () => host.createNew(false),
         ),
         actionCard(
           '◈',
           '#908BA8',
           'Explore the sample project',
-          h('div', { class: 'wl-card-body' }, 'A working invoicing-app knowledge base — 16 documents you can read, edit, and connect an agent to.'),
+          h('span', { class: 'wl-card-body' }, 'A working invoicing-app knowledge base — 16 documents you can read, edit, and connect an agent to.'),
           () => host.createNew(true),
         ),
         actionCard(
           '→',
           '#7EA6C4',
           'Open an existing folder',
-          h('div', { class: 'wl-card-body' }, 'A repo that already has a ', code('veri/'), ' directory.'),
+          h('span', { class: 'wl-card-body' }, 'A repo that already has a ', code('veri/'), ' directory.'),
           () => host.openExisting(),
         ),
       ),

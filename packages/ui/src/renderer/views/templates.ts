@@ -65,13 +65,13 @@ function cardHead(ctx: Ctx, tpl: ActiveTpl): HTMLElement {
   const resetArea = ctx.state.tplResetConfirm
     ? h(
         'span',
-        { class: 'tpl-reset-confirm' },
+        { class: 'tpl-reset-confirm', role: 'alertdialog', label: 'Reset template? replaces this file' },
         'Reset? replaces this file',
-        h('span', { class: 'tpl-reset-yes', onClick: () => ctx.tplReset() }, '✓'),
-        h('span', { class: 'tpl-reset-no', onClick: () => ctx.tplSetResetConfirm(false) }, '✕'),
+        h('button', { class: 'btn-reset tpl-reset-yes', label: 'Reset template', fkey: 'tpl-reset-yes', onClick: () => ctx.tplReset() }, '✓'),
+        h('button', { class: 'btn-reset tpl-reset-no', label: 'Keep template', fkey: 'tpl-reset-no', onClick: () => ctx.tplSetResetConfirm(false) }, '✕'),
       )
     : tpl.customized
-      ? h('button', { class: 'tpl-reset-btn', onClick: () => ctx.tplSetResetConfirm(true) }, 'Reset to default')
+      ? h('button', { class: 'tpl-reset-btn', fkey: 'tpl-reset', onClick: () => ctx.tplSetResetConfirm(true) }, 'Reset to default')
       : null;
   return h(
     'div',
@@ -82,16 +82,17 @@ function cardHead(ctx: Ctx, tpl: ActiveTpl): HTMLElement {
       'span',
       { class: 'tpl-head-right' },
       resetArea,
-      h(
-        'span',
-        {
-          class: `tpl-save${tpl.dirty ? ' tpl-save-dirty' : ''}${tpl.notice?.warn === true ? ' tpl-save-warn' : ''}`,
-          onClick: () => {
-            if (tpl.dirty) ctx.tplSave();
-          },
-        },
-        saveStateText(tpl),
-      ),
+      tpl.dirty
+        ? h(
+            'button',
+            {
+              class: `btn-reset tpl-save tpl-save-dirty${tpl.notice?.warn === true ? ' tpl-save-warn' : ''}`,
+              fkey: 'tpl-save',
+              onClick: () => ctx.tplSave(),
+            },
+            saveStateText(tpl),
+          )
+        : h('span', { class: `tpl-save${tpl.notice?.warn === true ? ' tpl-save-warn' : ''}` }, saveStateText(tpl)),
     ),
   );
 }
@@ -99,7 +100,7 @@ function cardHead(ctx: Ctx, tpl: ActiveTpl): HTMLElement {
 function conflictBanner(ctx: Ctx, tpl: ActiveTpl): HTMLElement | null {
   if (tpl.conflict !== 'disk-changed') return null;
   const btn = (label: string, action: 'reload' | 'keep'): HTMLElement =>
-    h('button', { class: 'ed-banner-btn', onClick: () => ctx.tplResolveConflict(action) }, label);
+    h('button', { class: 'ed-banner-btn', fkey: `tpl-conflict:${action}`, onClick: () => ctx.tplResolveConflict(action) }, label);
   return h(
     'div',
     { class: 'ed-banner' },
@@ -116,9 +117,11 @@ export function templatesView(ctx: Ctx): HTMLElement {
   const rows = TPL_TYPES.map((type) => {
     const customized = ctx.tplChip(type);
     return h(
-      'div',
+      'button',
       {
-        class: type === active ? 'tpl-row tpl-row-active' : 'tpl-row',
+        class: type === active ? 'btn-reset btn-block tpl-row tpl-row-active' : 'btn-reset btn-block tpl-row',
+        pressed: type === active,
+        fkey: `tpl:${type}`,
         onClick: () => ctx.tplSelect(type),
       },
       h('span', { class: 'sb-swatch', style: `background:${TYPE_META[type].color};` }),

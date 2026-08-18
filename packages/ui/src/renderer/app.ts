@@ -40,6 +40,8 @@ import {
 } from './tabs.ts';
 import type { Entry, Surface, Tab, TabState } from './tabs.ts';
 import { EditorIsland } from './editor.ts';
+import { FOCUSABLE_SEL, resolveFocus, roveIndex, roveKey, trapTarget } from './a11y.ts';
+import { resetChipKeys } from './widgets.ts';
 import { ipcErrorMessage, reconcileDisk } from './editlogic.ts';
 import { editorScreen } from './views/editor.ts';
 import { paletteRows } from './palette.ts';
@@ -184,6 +186,8 @@ export interface Ctx {
   flashCopied(): void;
   /** Show a transient bottom-center toast (auto-dismissed). */
   flashToast(text: string): void;
+  /** Write into the one polite live region (SRC-019 rule 4). */
+  announce(text: string): void;
   /** Editor state for a doc tab (WO-022): null when never opened for editing. */
   editFor(id: string): EditState | null;
   /** Flip a doc tab between the rendered reader and the editor (⌘E). */
@@ -353,9 +357,89 @@ class App implements Ctx {
   private mcpCmdTimer: ReturnType<typeof setTimeout> | undefined;
   private root: HTMLElement;
   private recentProjects: ProjectInfo[] = [];
+  /** The one polite live region (SRC-019 rule 4). Lives on <body>, outside
+      the rebuilt tree, so announcements survive replaceChildren. */
+  private live: HTMLElement;
+  /** Layer kinds present in the last render, for open/close detection. */
+  private renderedLayers: string[] = [];
+  /** Invoker fkey per open layer; focus returns there on close (SRC-019). */
+  private layerInvoker = new Map<string, string | null>();
 
   constructor(root: HTMLElement) {
     this.root = root;
+    this.live = h('div', { class: 'sr-live', live: 'polite' });
+    document.body.append(this.live);
+  }
+
+  announce(text: string): void {
+    // Clear-then-set so repeating the same message re-announces.
+    this.live.textContent = '';
+    queueMicrotask(() => {
+      this.live.textContent = text;
+    });
+  }
+
+  /**
+   * The open transient layers, topmost first (SRC-019 rule 3): Escape closes
+   * the head of this list, Tab cycles inside the first trapping entry, and
+   * focus restoration on close uses the invoker recorded when it opened.
+   */
+  private layerDefs(): Array<{ kind: string; sel: string; trap: boolean; initial?: string; close(): void }> {
+    const layers: Array<{ kind: string; sel: string; trap: boolean; initial?: string; close(): void }> = [];
+    if (this.state.closeConfirm !== null)
+      layers.push({ kind: 'closeConfirm', sel: '.cc-pop', trap: true, close: () => this.update({ closeConfirm: null }) });
+    if (this.state.newDoc !== null)
+      layers.push({ kind: 'newDoc', sel: '.nd-pop', trap: true, initial: 'nd-title', close: () => this.update({ newDoc: null }) });
+    if (this.state.tplResetConfirm)
+      layers.push({ kind: 'tplReset', sel: '.tpl-reset-confirm', trap: true, initial: 'tpl-reset-no', close: () => this.update({ tplResetConfirm: false }) });
+    if (this.state.reviewPop)
+      layers.push({ kind: 'reviewPop', sel: '.rv-pop', trap: true, close: () => this.update({ reviewPop: false }) });
+    if (this.state.paletteOpen)
+      layers.push({ kind: 'palette', sel: '.pal-panel', trap: true, initial: 'pal-input', close: () => this.update({ paletteOpen: false }) });
+    if (this.state.newProject !== null)
+      layers.push({ kind: 'newProject', sel: '.np-sheet', trap: true, initial: 'np-name', close: () => this.closeNewProject() });
+    if (this.state.settingsPop)
+      layers.push({ kind: 'settingsPop', sel: '.settings-pop', trap: true, close: () => this.update({ settingsPop: false }) });
+    if (this.state.projectSwitcherOpen)
+      layers.push({ kind: 'projSwitcher', sel: '.proj-pop', trap: true, close: () => this.update({ projectSwitcherOpen: false }) });
+    if (this.state.agentsOpen)
+      layers.push({ kind: 'agents', sel: '.ap-pop', trap: true, close: () => this.update({ agentsOpen: false }) });
+    if (this.state.graphSel !== null)
+      layers.push({ kind: 'graphPop', sel: '.gr-pop', trap: false, close: () => this.update({ graphSel: null }) });
+    if (this.state.panel !== null)
+      layers.push({ kind: 'panel', sel: '.typepanel', trap: false, close: () => this.update({ panel: null }) });
+    return layers;
+  }
+
+  /** Escape: close the topmost layer; with none open, dismiss notices. */
+  private handleEscape(): boolean {
+    const top = this.layerDefs()[0];
+    if (top !== undefined) {
+      top.close();
+      return true;
+    }
+    if (this.state.projectError !== null || this.state.projectNotice !== null) {
+      this.update({ projectError: null, projectNotice: null });
+      return true;
+    }
+    return false;
+  }
+
+  /** Tab inside the topmost trapping layer cycles instead of leaving. */
+  private trapTab(e: KeyboardEvent): boolean {
+    const top = this.layerDefs().find((l) => l.trap);
+    if (top === undefined) return false;
+    const host = this.root.querySelector(top.sel);
+    if (host === null) return false;
+    const els = Array.from(host.querySelectorAll<HTMLElement>(FOCUSABLE_SEL));
+    if (els.length === 0) return false;
+    const keys = els.map((el, i) => el.dataset['fkey'] ?? `#${i}`);
+    const cur = els.indexOf(document.activeElement as HTMLElement);
+    const target = trapTarget(keys, cur === -1 ? null : keys[cur], e.shiftKey);
+    if (target === null) return false;
+    e.preventDefault();
+    els[keys.indexOf(target)].focus();
+    return true;
   }
 
   /** Cold-start mode (WO-030, SRC-013): no project is open, so no snapshot,
@@ -460,23 +544,18 @@ class App implements Ctx {
         // The platform equivalent off-mac (SRC-018).
         e.preventDefault();
         this.applyTabs(e.key === 'ArrowLeft' ? back(this.tabState()) : forward(this.tabState()));
-      } else if (e.key === 'Escape' && this.state.newDoc !== null) {
-        this.update({ newDoc: null });
-      } else if (e.key === 'Escape' && this.state.closeConfirm !== null) {
-        this.update({ closeConfirm: null });
-      } else if (e.key === 'Escape' && this.state.tplResetConfirm) {
-        this.update({ tplResetConfirm: false });
-      } else if (e.key === 'Escape' && this.state.newProject !== null) {
-        this.closeNewProject();
+      } else if (e.key === 'Escape') {
+        // One rule for every transient layer (SRC-019): topmost closes first.
+        if (this.handleEscape()) e.preventDefault();
       } else if (e.ctrlKey && !e.metaKey && e.key === 'Tab') {
         // ⌃Tab / ⌃⇧Tab: cycle through the strip in order (SRC-004 recommended).
         e.preventDefault();
         this.applyTabs(cycleTab(this.tabState(), e.shiftKey ? -1 : 1));
+      } else if (e.key === 'Tab' && !e.metaKey && !e.ctrlKey && !e.altKey && this.trapTab(e)) {
+        // Focus stayed inside the topmost trapping layer (SRC-019 rule 3).
       } else if (this.state.paletteOpen) {
-        // ↑↓ / ↩ / ⌘↩ / esc while the palette is up (SRC-005 layer 2).
-        if (e.key === 'Escape') {
-          this.update({ paletteOpen: false });
-        } else if (e.key === 'ArrowDown') {
+        // ↑↓ / ↩ / ⌘↩ while the palette is up (SRC-005 layer 2).
+        if (e.key === 'ArrowDown') {
           e.preventDefault();
           this.update({ paletteSel: Math.min(this.state.paletteSel + 1, Math.max(0, this.palRowActions.length - 1)) });
         } else if (e.key === 'ArrowUp') {
@@ -487,21 +566,6 @@ class App implements Ctx {
           const row = this.palRowActions[Math.min(this.state.paletteSel, this.palRowActions.length - 1)];
           if (row !== undefined) row.open(e.metaKey || e.ctrlKey);
         }
-      } else if (
-        e.key === 'Escape' &&
-        (this.state.projectSwitcherOpen ||
-          this.state.agentsOpen ||
-          this.state.settingsPop ||
-          this.state.projectError !== null ||
-          this.state.projectNotice !== null)
-      ) {
-        this.update({
-          projectSwitcherOpen: false,
-          agentsOpen: false,
-          settingsPop: false,
-          projectError: null,
-          projectNotice: null,
-        });
       }
     });
     document.addEventListener('click', () => {
@@ -730,12 +794,14 @@ class App implements Ctx {
 
   flashCopied(): void {
     clearTimeout(this.copyTimer);
+    this.announce('Copied the full context package');
     this.update({ copied: true });
     this.copyTimer = setTimeout(() => this.update({ copied: false }), 1800);
   }
 
   flashToast(text: string): void {
     clearTimeout(this.toastTimer);
+    this.announce(text);
     this.update({ toast: text });
     this.toastTimer = setTimeout(() => this.update({ toast: null }), 2400);
   }
@@ -784,6 +850,7 @@ class App implements Ctx {
     void this.api.copyText(kickoffPrompt(doc.id, doc.title)).then(() => {
       this.sessionLog(doc.id, { agent: false, text: 'Copied the kickoff prompt', time: 'today' });
       clearTimeout(this.kickoffTimer);
+      this.announce('Copied the kickoff prompt');
       this.update({ kickoffCopied: true, agentsOpen: false });
       this.kickoffTimer = setTimeout(() => this.update({ kickoffCopied: false }), 1800);
     });
@@ -791,6 +858,7 @@ class App implements Ctx {
 
   flashMcpCmdCopied(): void {
     clearTimeout(this.mcpCmdTimer);
+    this.announce('Copied command');
     this.update({ mcpCmdCopied: true });
     this.mcpCmdTimer = setTimeout(() => this.update({ mcpCmdCopied: false }), 1800);
   }
@@ -870,6 +938,9 @@ class App implements Ctx {
   private editNotice(id: string, text: string, warn: boolean): void {
     const ed = this.docEdit.get(id);
     if (ed === undefined) return;
+    // Guard rejections mirror the status-row notice into the live region
+    // (SRC-008's requirement, generalized by SRC-019 rule 4).
+    if (warn) this.announce(text);
     clearTimeout(ed.noticeTimer);
     ed.notice = { text, warn };
     ed.noticeTimer = setTimeout(() => {
@@ -1072,6 +1143,7 @@ class App implements Ctx {
   private tplNotice(type: DocType, text: string, warn: boolean): void {
     const ed = this.tplEdit.get(type);
     if (ed === undefined) return;
+    if (warn) this.announce(text);
     clearTimeout(ed.noticeTimer);
     ed.notice = { text, warn };
     ed.noticeTimer = setTimeout(() => {
@@ -1233,8 +1305,8 @@ class App implements Ctx {
     const healthChip =
       issueCount > 0
         ? h(
-            'div',
-            { class: 'tb-health', onClick: () => this.setView('homeview') },
+            'button',
+            { class: 'btn-reset tb-health', fkey: 'tb-health', label: `veri check — ${issueCount} issue${issueCount === 1 ? '' : 's'}, open Home`, onClick: () => this.setView('homeview') },
             h('span', { class: 'tb-health-dot' }),
             h('span', {}, `veri check · ${issueCount} issue${issueCount === 1 ? '' : 's'}`),
           )
@@ -1250,9 +1322,12 @@ class App implements Ctx {
         h('span', { class: 'tb-wordmark' }, 'Veri'),
         h('span', { class: 'tb-slash' }, '/'),
         h(
-          'div',
+          'button',
           {
-            class: this.state.projectSwitcherOpen ? 'tb-proj-btn tb-proj-btn-open' : 'tb-proj-btn',
+            class: this.state.projectSwitcherOpen ? 'btn-reset tb-proj-btn tb-proj-btn-open' : 'btn-reset tb-proj-btn',
+            label: `Switch project — ${this.snap.projectName}`,
+            expanded: this.state.projectSwitcherOpen,
+            fkey: 'tb-proj',
             onClick: (e) => {
               e.stopPropagation();
               this.toggleProjectSwitcher();
@@ -1283,9 +1358,11 @@ class App implements Ctx {
         'div',
         { class: 'tb-center' },
         h(
-          'div',
+          'button',
           {
-            class: 'tb-search',
+            class: 'btn-reset tb-search',
+            label: 'Search docs — ⌘K',
+            fkey: 'tb-search',
             onClick: () => {
               if (!this.state.paletteOpen) this.togglePalette();
             },
@@ -1424,6 +1501,8 @@ class App implements Ctx {
           ];
     const nameInput = h('input', {
       class: 'np-name-input',
+      label: 'Project name',
+      fkey: 'np-name',
       value: np.name,
       disabled: np.busy,
       onInput: (e) => {
@@ -1446,16 +1525,18 @@ class App implements Ctx {
       { class: 'np-scrim', onClick: () => this.closeNewProject() },
       h(
         'div',
-        { class: 'np-sheet', onClick: (e) => e.stopPropagation() },
+        { class: 'np-sheet', role: 'dialog', modal: true, label: 'New project', onClick: (e) => e.stopPropagation() },
         h('div', { class: 'micro-label' }, 'NEW PROJECT'),
         h(
           'div',
           { class: 'np-loc' },
           h('span', { class: 'np-path' }, h('bdi', {}, target)),
           h(
-            'span',
+            'button',
             {
-              class: np.busy ? 'np-change np-disabled' : 'np-change',
+              class: np.busy ? 'btn-reset np-change np-disabled' : 'btn-reset np-change',
+              disabled: np.busy,
+              fkey: 'np-change',
               onClick: () => {
                 if (!np.busy) void this.changeNewProjectDir();
               },
@@ -1471,20 +1552,25 @@ class App implements Ctx {
         ),
         h('div', { class: 'np-name-help' }, 'A different name creates a new folder inside the chosen location.'),
         h(
-          'div',
+          'button',
           {
-            class: np.busy ? 'np-toggle np-disabled' : 'np-toggle',
+            class: np.busy ? 'btn-reset btn-block np-toggle np-disabled' : 'btn-reset btn-block np-toggle',
+            role: 'switch',
+            checked: np.demo,
+            disabled: np.busy,
+            label: 'Seed with the skiff demo project',
+            fkey: 'np-demo',
             onClick: () => {
               if (!np.busy) this.update({ newProject: { ...np, demo: !np.demo } });
             },
           },
           h('span', { class: np.demo ? 'np-sw np-sw-on' : 'np-sw' }, h('i', {})),
           h(
-            'div',
-            {},
-            h('div', { class: 'np-toggle-main' }, 'Seed with the skiff demo project'),
+            'span',
+            { class: 'np-toggle-txt' },
+            h('span', { class: 'np-toggle-main' }, 'Seed with the skiff demo project'),
             h(
-              'div',
+              'span',
               { class: 'np-toggle-sub' },
               '16 documents from a sample invoicing app — the same content ',
               h('code', {}, 'veri init --demo'),
@@ -1511,12 +1597,12 @@ class App implements Ctx {
           { class: 'np-acts' },
           h(
             'button',
-            { class: 'np-btn np-btn-ghost', disabled: np.busy, onClick: () => this.closeNewProject() },
+            { class: 'np-btn np-btn-ghost', disabled: np.busy, fkey: 'np-cancel', onClick: () => this.closeNewProject() },
             'Cancel',
           ),
           h(
             'button',
-            { class: 'np-btn np-btn-primary', disabled: np.busy || !validName, onClick: () => void this.createProject() },
+            { class: 'np-btn np-btn-primary', disabled: np.busy || !validName, fkey: 'np-create', onClick: () => void this.createProject() },
             np.busy ? 'Creating…' : 'Create project',
           ),
         ),
@@ -1534,9 +1620,12 @@ class App implements Ctx {
       const current = p.dir === this.snap.root;
       const meta = `${p.dir} · ${p.docCount} doc${p.docCount === 1 ? '' : 's'}${p.issueCount > 0 ? ` · ${p.issueCount} issue${p.issueCount === 1 ? '' : 's'}` : ''}`;
       return h(
-        'div',
+        'button',
         {
-          class: current ? 'proj-row proj-row-current' : 'proj-row',
+          class: current ? 'btn-reset btn-block proj-row proj-row-current' : 'btn-reset btn-block proj-row',
+          role: 'menuitem',
+          label: `${p.name}${p.issueCount > 0 ? ` — ${p.issueCount} issue${p.issueCount === 1 ? '' : 's'}` : ''}${current ? ' — current project' : ''}`,
+          fkey: `proj:${p.dir}`,
           onClick: () => {
             this.update({ projectSwitcherOpen: false });
             if (!current) this.surfaceProjectError(this.api.switchProject(p.dir));
@@ -1544,29 +1633,31 @@ class App implements Ctx {
         },
         h('span', { class: 'proj-swatch', style: `background:${p.accentColor};` }),
         h(
-          'div',
+          'span',
           { class: 'proj-info' },
           h(
-            'div',
+            'span',
             { class: 'proj-name-line' },
             h('span', { class: 'proj-name' }, p.name),
             p.issueCount > 0 ? h('span', { class: 'proj-issue-dot' }) : null,
           ),
-          h('div', { class: 'proj-meta' }, meta),
+          h('span', { class: 'proj-meta' }, meta),
         ),
         current ? h('span', { class: 'proj-check' }, '✓') : null,
       );
     });
     return h(
       'div',
-      { class: 'proj-pop', onClick: (e) => e.stopPropagation() },
+      { class: 'proj-pop', role: 'menu', label: 'Projects', onClick: (e) => e.stopPropagation() },
       h('div', { class: 'proj-pop-label' }, 'PROJECTS'),
       ...rows,
       h('div', { class: 'proj-divider' }),
       h(
-        'div',
+        'button',
         {
-          class: 'proj-open-row',
+          class: 'btn-reset btn-block proj-open-row',
+          role: 'menuitem',
+          fkey: 'proj-open',
           onClick: () => {
             this.update({ projectSwitcherOpen: false });
             this.surfaceProjectError(this.api.openProjectFolder());
@@ -1579,8 +1670,8 @@ class App implements Ctx {
         h('span', { class: 'proj-kbd' }, '⌘O'),
       ),
       h(
-        'div',
-        { class: 'proj-open-row', onClick: () => void this.startNewProject() },
+        'button',
+        { class: 'btn-reset btn-block proj-open-row', role: 'menuitem', fkey: 'proj-new', onClick: () => void this.startNewProject() },
         h('span', { class: 'proj-open-plus' }, '+'),
         h('span', {}, 'New project…'),
         h('span', { class: 'proj-kbd' }, '⇧⌘N'),
@@ -1632,10 +1723,15 @@ class App implements Ctx {
     const chipStyle =
       meta !== undefined ? `color:${meta.color};background:${tint(meta.color)};` : 'color:#8B8893;background:#1B1B20;';
     const snippet = doc?.snippet ?? null;
+    // aria-activedescendant pattern: options are not tab stops — focus stays
+    // on the combobox input and ↑↓ move the selection (SRC-019 layer table).
     return h(
       'div',
       {
         class: sel ? 'pal-row pal-row-sel' : 'pal-row',
+        id: `pal-opt-${i}`,
+        role: 'option',
+        selected: sel,
         onClick: (e) => this.openPaletteRow(row, row.kind === 'doc' && (e.metaKey || e.ctrlKey)),
         onMouseenter: () => {
           if (this.state.paletteSel !== i) this.update({ paletteSel: i });
@@ -1677,6 +1773,12 @@ class App implements Ctx {
       class: 'pal-input',
       placeholder: 'Search docs or jump to a view — try req: is:backlog',
       value: this.state.paletteQuery,
+      role: 'combobox',
+      label: 'Search docs',
+      expanded: rows.length > 0,
+      controls: 'pal-list',
+      activedesc: rows.length > 0 ? `pal-opt-${sel}` : undefined,
+      fkey: 'pal-input',
       onInput: (e) => {
         const q = (e.target as HTMLInputElement).value;
         this.state.paletteQuery = q;
@@ -1690,11 +1792,11 @@ class App implements Ctx {
       { class: 'pal-scrim', onClick: () => this.update({ paletteOpen: false }) },
       h(
         'div',
-        { class: 'pal-panel', onClick: (e) => e.stopPropagation() },
+        { class: 'pal-panel', role: 'dialog', modal: true, label: 'Command palette', onClick: (e) => e.stopPropagation() },
         h('div', { class: 'pal-head' }, h('span', { class: 'pal-glyph' }, '⌕'), input, h('span', { class: 'pal-esc' }, 'esc')),
         h(
           'div',
-          { class: 'pal-list' },
+          { class: 'pal-list', id: 'pal-list', role: 'listbox', label: 'Results' },
           ...rows.map((row, i) => this.paletteRowEl(row, i, i === sel)),
           rows.length === 0
             ? h(
@@ -1776,9 +1878,11 @@ class App implements Ctx {
     const target = activeTarget(this.tabState());
     const viewItem = (key: View, label: string, glyph: string): HTMLElement =>
       h(
-        'div',
+        'button',
         {
-          class: target === key ? 'nav-item nav-item-active' : 'nav-item',
+          class: target === key ? 'btn-reset btn-block nav-item nav-item-active' : 'btn-reset btn-block nav-item',
+          pressed: target === key,
+          fkey: `side:${key}`,
           onClick: () => this.setView(key),
         },
         h('span', { class: 'nav-glyph' }, glyph),
@@ -1788,9 +1892,12 @@ class App implements Ctx {
       const meta = TYPE_META[type];
       const open = this.state.panel === type;
       return h(
-        'div',
+        'button',
         {
-          class: open ? 'nav-item nav-item-active' : 'nav-item',
+          class: open ? 'btn-reset btn-block nav-item nav-item-active' : 'btn-reset btn-block nav-item',
+          label: `${meta.crumb} — ${livingCount(this.snap.documents, type)} living`,
+          expanded: open,
+          fkey: `coll:${type}`,
           onClick: () => this.togglePanel(type),
         },
         h('span', { class: 'nav-swatch' }, h('i', { style: `background:${meta.color};` })),
@@ -1802,9 +1909,11 @@ class App implements Ctx {
     const { healthy, label } = this.mcpSummary();
     const popRow = (glyph: string, text: string, section: SettingsSection, meta: HTMLElement | null = null): HTMLElement =>
       h(
-        'div',
+        'button',
         {
-          class: 'pop-row',
+          class: 'btn-reset btn-block pop-row',
+          role: 'menuitem',
+          fkey: `pop:${section}`,
           onClick: (e) => {
             e.stopPropagation();
             this.openSettings(section);
@@ -1821,7 +1930,7 @@ class App implements Ctx {
     const pop = this.state.settingsPop
       ? h(
           'div',
-          { class: 'settings-pop', onClick: (e) => e.stopPropagation() },
+          { class: 'settings-pop', role: 'menu', label: 'Settings', onClick: (e) => e.stopPropagation() },
           h('div', { class: 'pop-label' }, 'Project'),
           popRow('⌧', 'Templates', 'templates'),
           popRow(
@@ -1851,10 +1960,12 @@ class App implements Ctx {
     const recentRows = recents.map((id) => {
       const doc = this.byId.get(id)!;
       return h(
-        'div',
+        'button',
         {
-          class: target === id ? 'sb-recent sb-recent-active' : 'sb-recent',
+          class: target === id ? 'btn-reset btn-block sb-recent sb-recent-active' : 'btn-reset btn-block sb-recent',
           title: `${id} — ${doc.title}`,
+          label: `${id} — ${doc.title}`,
+          fkey: `recent:${id}`,
           onClick: (e) => this.openDoc(id, { preview: true, background: e.metaKey || e.ctrlKey }),
         },
         h('span', { class: 'sb-recent-id', style: `color:${TYPE_META[doc.type].color};` }, id),
@@ -1862,8 +1973,8 @@ class App implements Ctx {
       );
     });
     return h(
-      'div',
-      { class: 'sidebar' },
+      'nav',
+      { class: 'sidebar', label: 'Project' },
       viewItem('homeview', 'Home', '⌂'),
       h('div', { class: 'side-div' }),
       ...App.COLLECTIONS.map(collItem),
@@ -1878,10 +1989,13 @@ class App implements Ctx {
         'div',
         { class: 'settings-row' },
         h(
-          'div',
+          'button',
           {
-            class: target === 'settings' ? 'nav-item nav-item-active' : 'nav-item',
+            class: target === 'settings' ? 'btn-reset btn-block nav-item nav-item-active' : 'btn-reset btn-block nav-item',
             title: label,
+            label,
+            expanded: this.state.settingsPop,
+            fkey: 'side:settings',
             onClick: (e) => {
               e.stopPropagation();
               this.update({ settingsPop: !this.state.settingsPop });
@@ -1915,9 +2029,11 @@ class App implements Ctx {
     };
     const row = (d: VeriDocument, pin: boolean): HTMLElement =>
       h(
-        'div',
+        'button',
         {
-          class: target === d.id ? 'tp-row tp-row-active' : 'tp-row',
+          class: target === d.id ? 'btn-reset btn-block tp-row tp-row-active' : 'btn-reset btn-block tp-row',
+          label: `${d.id} — ${d.title} — ${d.status}`,
+          fkey: `tp:${d.id}`,
           onClick: (e) => this.openDoc(d.id, { preview: true, background: e.metaKey || e.ctrlKey }),
           onDblclick: () => pinShowing(d.id),
         },
@@ -1939,9 +2055,11 @@ class App implements Ctx {
     if (list.dead.length > 0) {
       rows.push(
         h(
-          'div',
+          'button',
           {
-            class: 'tp-more',
+            class: 'btn-reset btn-block tp-more',
+            expanded: showDead,
+            fkey: 'tp-more',
             onClick: () => this.update({ showDead: { ...this.state.showDead, [type]: !showDead } }),
           },
           showDead ? `▾ hide ${DEAD_LABEL[type]}` : `▸ ${list.dead.length} ${DEAD_LABEL[type]}`,
@@ -1953,9 +2071,10 @@ class App implements Ctx {
       // The teaching empty state (WO-030), re-homed from the old tree.
       rows.push(
         h(
-          'div',
+          'button',
           {
-            class: 'tp-ghost',
+            class: 'btn-reset btn-block tp-ghost',
+            fkey: 'tp-ghost',
             onClick: (e) => {
               e.stopPropagation();
               const rect = (e.currentTarget as Element).getBoundingClientRect();
@@ -1972,6 +2091,8 @@ class App implements Ctx {
     }
     const input = h('input', {
       placeholder: `Filter ${meta.crumb.toLowerCase()}…`,
+      label: `Filter ${meta.crumb.toLowerCase()}`,
+      fkey: 'tp-filter',
       value: this.state.panelFilter,
       onInput: (e) => {
         const el = e.target as HTMLInputElement;
@@ -2005,6 +2126,8 @@ class App implements Ctx {
           {
             class: 'tp-new',
             title: `New ${meta.label}`,
+            label: `New ${meta.label}`,
+            fkey: 'tp-new',
             onClick: (e) => {
               e.stopPropagation();
               const rect = (e.currentTarget as Element).getBoundingClientRect();
@@ -2013,7 +2136,7 @@ class App implements Ctx {
           },
           '+',
         ),
-        h('button', { class: 'tp-close', title: 'Close panel', onClick: () => this.update({ panel: null }) }, '✕'),
+        h('button', { class: 'tp-close', title: 'Close panel', label: 'Close panel', fkey: 'tp-close', onClick: () => this.update({ panel: null }) }, '✕'),
       ),
       h('div', { class: 'tp-filter' }, input),
       h('div', { class: 'tp-list' }, ...rows),
@@ -2031,11 +2154,22 @@ class App implements Ctx {
     const active = t.key === this.state.activeTabId;
     const dirty = this.docEdit.get(target)?.dirty === true || (target === 'settings' && this.tplAnyDirty());
     const close = (el: Element | null): void => this.requestCloseTab(t.key, el?.getBoundingClientRect() ?? null);
+    // The dirty state rides the accessible name — the dot alone is not a
+    // channel a screen reader can see (SRC-019 rule 5).
+    const name =
+      (view !== null ? title : `${target} — ${title}`) +
+      (dirty ? ' — unsaved changes' : '') +
+      (t.preview ? ' — preview' : '');
     return h(
       'div',
       {
         class: `tab${active ? ' tab-active' : ''}${t.preview ? ' tab-preview' : ''}${dirty ? ' tab-dirty' : ''}`,
         title: (view !== null ? title : `${target} — ${title}`) + (t.preview ? ' · preview — double-click to keep open' : ''),
+        role: 'tab',
+        label: name,
+        selected: active,
+        tabindex: active ? 0 : -1,
+        fkey: `tab:${t.key}`,
         draggable: true,
         onClick: () => this.applyTabs(activateTab(this.tabState(), t.key)),
         onDblclick: () => this.applyTabs(pinTab(activateTab(this.tabState(), t.key), t.key)),
@@ -2064,11 +2198,15 @@ class App implements Ctx {
         view?.glyph ?? target,
       ),
       h('span', { class: 'tab-title' }, title),
+      // A real button nested inside the role=tab element — the pragmatic
+      // VS Code-style deviation from the pure tabs pattern (SRC-019).
       h(
-        'span',
+        'button',
         {
-          class: 'tab-close',
+          class: 'btn-reset tab-close',
           title: dirty ? 'Unsaved changes — close tab' : 'Close tab',
+          label: dirty ? `Close ${title} — unsaved changes` : `Close ${title}`,
+          fkey: `tab-close:${t.key}`,
           onClick: (e) => {
             e.stopPropagation();
             close(e.currentTarget as Element);
@@ -2088,18 +2226,39 @@ class App implements Ctx {
     const act = activeTab(this.tabState());
     const canBack = act !== null && act.index > 0;
     const canFwd = act !== null && act.index < act.entries.length - 1;
-    const histBtn = (glyph: string, on: boolean, title: string, go: () => void): HTMLElement =>
+    const histBtn = (glyph: string, on: boolean, title: string, fkey: string, go: () => void): HTMLElement =>
       h(
-        'div',
+        'button',
         {
-          class: on ? 'hist-btn' : 'hist-btn hist-btn-off',
+          class: on ? 'btn-reset hist-btn' : 'btn-reset hist-btn hist-btn-off',
           title,
+          label: title,
+          disabled: !on,
+          fkey,
           onClick: () => {
             if (on) go();
           },
         },
         glyph,
       );
+    // Roving tabindex over the role=tab elements (SRC-019): ←/→ move focus
+    // without activating; ↩/Space activate the focused tab. DOM-only moves —
+    // no state change until activation.
+    const roving = (e: KeyboardEvent): void => {
+      const tabsEls = Array.from((e.currentTarget as Element).querySelectorAll<HTMLElement>('[role="tab"]'));
+      const cur = tabsEls.indexOf(document.activeElement as HTMLElement);
+      if (cur === -1) return;
+      const move = roveKey(e.key);
+      if (move !== null) {
+        e.preventDefault();
+        const next = roveIndex(tabsEls.length, cur, move);
+        tabsEls.forEach((el, i) => (el.tabIndex = i === next ? 0 : -1));
+        tabsEls[next]?.focus();
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        tabsEls[cur].click();
+      }
+    };
     return h(
       'div',
       { class: 'tabstrip' },
@@ -2107,11 +2266,15 @@ class App implements Ctx {
         ? h(
             'div',
             { class: 'nav-hist' },
-            histBtn('‹', canBack, 'Back ⌘[', () => this.applyTabs(back(this.tabState()))),
-            histBtn('›', canFwd, 'Forward ⌘]', () => this.applyTabs(forward(this.tabState()))),
+            histBtn('‹', canBack, 'Back ⌘[', 'hist-back', () => this.applyTabs(back(this.tabState()))),
+            histBtn('›', canFwd, 'Forward ⌘]', 'hist-fwd', () => this.applyTabs(forward(this.tabState()))),
           )
         : null,
-      ...this.state.tabs.map((t, i) => this.tabEl(t, i)),
+      h(
+        'div',
+        { class: 'tablist-wrap', role: 'tablist', label: 'Open tabs', onKeydown: roving },
+        ...this.state.tabs.map((t, i) => this.tabEl(t, i)),
+      ),
       h('div', { class: 'tabstrip-fill' }),
     );
   }
@@ -2169,6 +2332,12 @@ class App implements Ctx {
     for (const ed of this.docEdit.values()) ed.island?.saveScroll();
     for (const ed of this.tplEdit.values()) ed.island?.saveScroll();
 
+    // Focus is destroyed with the tree (SRC-019 rule 2): capture the active
+    // element's stable fkey and the DOM-order fkey list before the rebuild.
+    const beforeKeys = Array.from(this.root.querySelectorAll<HTMLElement>('[data-fkey]'), (el) => el.dataset['fkey']!);
+    const focusedKey = document.activeElement instanceof HTMLElement ? (document.activeElement.dataset['fkey'] ?? null) : null;
+    resetChipKeys();
+
     const view = this.state.view;
     const activeEdit = this.editView();
     let screen: HTMLElement;
@@ -2183,7 +2352,7 @@ class App implements Ctx {
     else screen = readerView(this);
     const palette = this.paletteEl();
     const sheet = this.newProjectSheet();
-    const toast = this.state.toast !== null ? h('div', { class: 'toast' }, this.state.toast) : null;
+    const toast = this.state.toast !== null ? h('div', { class: 'toast', role: 'status' }, this.state.toast) : null;
     const panel = this.typePanel();
     this.root.replaceChildren(
       this.topbar(),
@@ -2214,6 +2383,55 @@ class App implements Ctx {
     if (activeEdit !== null) this.docEdit.get(activeEdit.id)?.island?.restoreScroll();
     if (view === 'settings' && this.state.settingsSection === 'templates')
       this.tplEdit.get(this.state.tplType)?.island?.restoreScroll();
+
+    this.restoreFocus(beforeKeys, focusedKey);
+  }
+
+  /**
+   * The focus half of the rebuild contract (SRC-019 rule 2 + 3): restore the
+   * captured fkey (nearest old-order neighbour when it's gone), return focus
+   * to a closed layer's invoker, and pull focus into a newly opened trapping
+   * layer — its `initial` fkey, else its first focusable.
+   */
+  private restoreFocus(beforeKeys: string[], focusedKey: string | null): void {
+    const layers = this.layerDefs();
+    const kinds = layers.map((l) => l.kind);
+    for (const l of layers) if (!this.renderedLayers.includes(l.kind)) this.layerInvoker.set(l.kind, focusedKey);
+    let invokerKey: string | null = null;
+    for (const kind of this.renderedLayers) {
+      if (!kinds.includes(kind)) {
+        invokerKey = this.layerInvoker.get(kind) ?? invokerKey;
+        this.layerInvoker.delete(kind);
+      }
+    }
+    this.renderedLayers = kinds;
+
+    const byKey = new Map<string, HTMLElement>();
+    for (const el of this.root.querySelectorAll<HTMLElement>('[data-fkey]')) {
+      if (!byKey.has(el.dataset['fkey']!)) byKey.set(el.dataset['fkey']!, el);
+    }
+    const focusKey = (key: string | null): boolean => {
+      const el = key === null ? undefined : byKey.get(key);
+      if (el === undefined) return false;
+      el.focus({ preventScroll: true });
+      return true;
+    };
+
+    let focused = false;
+    if (invokerKey !== null) focused = focusKey(invokerKey);
+    if (!focused && focusedKey !== null) focused = focusKey(focusedKey);
+    if (!focused && focusedKey !== null) focused = focusKey(resolveFocus(beforeKeys, [...byKey.keys()], focusedKey));
+
+    // A trapping layer owns focus while open: pull it inside if it isn't.
+    const top = layers.find((l) => l.trap);
+    if (top !== undefined) {
+      const host = this.root.querySelector(top.sel);
+      if (host !== null && !(document.activeElement !== null && host.contains(document.activeElement))) {
+        if (!(top.initial !== undefined && focusKey(top.initial))) {
+          host.querySelector<HTMLElement>(FOCUSABLE_SEL)?.focus({ preventScroll: true });
+        }
+      }
+    }
   }
 
   /** The creation popover and the dirty-close prompt (WO-022, SRC-008). */
@@ -2224,6 +2442,8 @@ class App implements Ctx {
       const input = h('input', {
         class: 'nd-title',
         placeholder: 'Title',
+        label: 'Title',
+        fkey: 'nd-title',
         value: nd.title,
         onInput: (e) => {
           // No render: the popover stays put while the user types.
@@ -2239,10 +2459,13 @@ class App implements Ctx {
         const meta = TYPE_META[type];
         const on = nd.type === type;
         return h(
-          'span',
+          'button',
           {
-            class: on ? 'nd-seg nd-seg-on' : 'nd-seg',
+            class: on ? 'btn-reset nd-seg nd-seg-on' : 'btn-reset nd-seg',
             style: on ? `color:${meta.color};background:${tint(meta.color)};` : undefined,
+            label: meta.label,
+            pressed: on,
+            fkey: `nd-seg:${type}`,
             onClick: () => this.update({ newDoc: { ...nd, title: input.value, type } }),
           },
           prefixes[type],
@@ -2255,15 +2478,15 @@ class App implements Ctx {
       out.push(
         h(
           'div',
-          { class: 'nd-pop', style, onClick: (e) => e.stopPropagation() },
+          { class: 'nd-pop', style, role: 'dialog', modal: true, label: 'New document', onClick: (e) => e.stopPropagation() },
           h('div', { class: 'micro-label' }, 'NEW DOCUMENT'),
-          h('div', { class: 'nd-segs' }, ...segs),
+          h('div', { class: 'nd-segs', role: 'group', label: 'Type' }, ...segs),
           input,
           h(
             'div',
             { class: 'nd-acts' },
-            h('button', { class: 'nd-btn-ghost', onClick: () => this.update({ newDoc: null }) }, 'Cancel'),
-            h('button', { class: 'nd-btn-primary', onClick: () => this.submitNewDoc() }, 'Create'),
+            h('button', { class: 'nd-btn-ghost', fkey: 'nd-cancel', onClick: () => this.update({ newDoc: null }) }, 'Cancel'),
+            h('button', { class: 'nd-btn-primary', fkey: 'nd-create', onClick: () => this.submitNewDoc() }, 'Create'),
           ),
         ),
       );
@@ -2291,15 +2514,15 @@ class App implements Ctx {
       out.push(
         h(
           'div',
-          { class: 'cc-pop', style, onClick: (e) => e.stopPropagation() },
+          { class: 'cc-pop', style, role: 'alertdialog', modal: true, label: `Unsaved changes — ${text}`, onClick: (e) => e.stopPropagation() },
           h('div', { class: 'cc-title' }, 'Unsaved changes'),
           h('div', { class: 'cc-text' }, text),
           h(
             'div',
             { class: 'cc-acts' },
-            h('button', { class: 'nd-btn-ghost', onClick: () => this.update({ closeConfirm: null }) }, 'Cancel'),
-            h('button', { class: 'nd-btn-ghost', onClick: () => this.forceCloseTab(cc.key) }, 'Discard'),
-            h('button', { class: 'nd-btn-primary', onClick: saveAll }, 'Save'),
+            h('button', { class: 'nd-btn-ghost', fkey: 'cc-cancel', onClick: () => this.update({ closeConfirm: null }) }, 'Cancel'),
+            h('button', { class: 'nd-btn-ghost', fkey: 'cc-discard', onClick: () => this.forceCloseTab(cc.key) }, 'Discard'),
+            h('button', { class: 'nd-btn-primary', fkey: 'cc-save', onClick: saveAll }, 'Save'),
           ),
         ),
       );

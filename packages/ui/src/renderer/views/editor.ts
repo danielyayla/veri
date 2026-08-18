@@ -21,7 +21,7 @@ const PREFIX_TYPE: Record<string, DocType> = {
 
 function conflictBanner(ctx: Ctx, edit: ActiveEdit): HTMLElement | null {
   const btn = (label: string, action: 'reload' | 'keep' | 'restore' | 'closetab'): HTMLElement =>
-    h('button', { class: 'ed-banner-btn', onClick: () => ctx.resolveConflict(action) }, label);
+    h('button', { class: 'ed-banner-btn', fkey: `ed-conflict:${action}`, onClick: () => ctx.resolveConflict(action) }, label);
   if (edit.conflict === 'disk-changed') {
     return h(
       'div',
@@ -74,8 +74,8 @@ export function editorScreen(ctx: Ctx, edit: ActiveEdit): HTMLElement {
           meta !== null
             ? type !== undefined && type !== 'workflow'
               ? h(
-                  'span',
-                  { class: 'crumb-live', title: `Browse ${meta.crumb.toLowerCase()}`, onClick: () => ctx.openPanel(type) },
+                  'button',
+                  { class: 'btn-reset crumb-live', title: `Browse ${meta.crumb.toLowerCase()}`, fkey: 'crumb-live', onClick: () => ctx.openPanel(type) },
                   meta.crumb,
                 )
               : h('span', {}, meta.crumb)

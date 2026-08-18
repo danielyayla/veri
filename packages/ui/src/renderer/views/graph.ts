@@ -31,10 +31,13 @@ export function graphView(ctx: Ctx): HTMLElement {
   const nodes = layout.nodes.map((n) => {
     const active = n.id === sel;
     return h(
-      'div',
+      'button',
       {
-        class: 'gr-node',
+        class: 'btn-reset gr-node',
         style: `left:${n.x}%;top:${n.y}%;opacity:${n.dim ? 0.45 : 1};`,
+        label: `${n.id} — ${n.title}`,
+        expanded: active,
+        fkey: `gr:${n.id}`,
         onClick: () => ctx.update({ graphSel: active ? null : n.id }),
       },
       h('span', {
@@ -49,7 +52,7 @@ export function graphView(ctx: Ctx): HTMLElement {
     selNode !== null
       ? h(
           'div',
-          { class: 'gr-pop', style: `left:${selNode.x}%;top:${selNode.y}%;` },
+          { class: 'gr-pop', role: 'dialog', label: selNode.id, style: `left:${selNode.x}%;top:${selNode.y}%;` },
           h(
             'div',
             { class: 'gr-pop-head' },
@@ -58,7 +61,15 @@ export function graphView(ctx: Ctx): HTMLElement {
           ),
           h('div', { class: 'gr-pop-title' }, selNode.title),
           h('div', { class: 'gr-pop-meta' }, `${selNode.degree} link${selNode.degree === 1 ? '' : 's'} · ${selNode.status}`),
-          h('div', { class: 'gr-pop-open', onClick: (e) => ctx.openDoc(selNode.id, { preview: true, background: e.metaKey || e.ctrlKey }) }, 'Open doc →'),
+          h(
+            'button',
+            {
+              class: 'btn-reset gr-pop-open',
+              fkey: 'gr-open',
+              onClick: (e) => ctx.openDoc(selNode.id, { preview: true, background: e.metaKey || e.ctrlKey }),
+            },
+            'Open doc →',
+          ),
         )
       : null;
 

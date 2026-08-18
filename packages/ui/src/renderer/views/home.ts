@@ -55,8 +55,8 @@ function startHereCard(ctx: Ctx): HTMLElement {
     h(
       'div',
       { class: 'hv-sh-actions' },
-      h('div', { class: 'hv-sh-btn-primary', onClick: () => ctx.openNewDoc('requirement', null) }, 'New document'),
-      h('div', { class: 'hv-sh-btn-ghost', onClick: () => ctx.openSettings('agent') }, 'Connect an agent →'),
+      h('button', { class: 'btn-reset hv-sh-btn-primary', fkey: 'sh-new', onClick: () => ctx.openNewDoc('requirement', null) }, 'New document'),
+      h('button', { class: 'btn-reset hv-sh-btn-ghost', fkey: 'sh-agent', onClick: () => ctx.openSettings('agent') }, 'Connect an agent →'),
     ),
     h(
       'div',
@@ -74,6 +74,13 @@ export function homeView(ctx: Ctx): HTMLElement {
   const open = (id: string | null) => (e: MouseEvent) => {
     if (id !== null) ctx.openDoc(id, { preview: true, background: e.metaKey || e.ctrlKey });
   };
+  // Rows with a target become real buttons (SRC-019 rule 1); targetless
+  // feed rows stay inert divs rather than lying to the keyboard.
+  let rowSeq = 0;
+  const row = (id: string | null, cls: string, ...children: Array<HTMLElement | null>): HTMLElement =>
+    id !== null
+      ? h('button', { class: `btn-reset btn-block ${cls}`, fkey: `hv:${id}:${rowSeq++}`, onClick: open(id) }, ...children)
+      : h('div', { class: cls }, ...children);
   const idColor = (id: string): string => {
     const doc = ctx.byId.get(id);
     return doc !== undefined ? TYPE_META[doc.type].color : '#A09DA6';
@@ -100,9 +107,9 @@ export function homeView(ctx: Ctx): HTMLElement {
             h('span', { class: 'hv-meta' }, `${pending.length} pending`),
           ),
           ...pending.map((d) =>
-            h(
-              'div',
-              { class: 'hv-row', onClick: open(d.id) },
+            row(
+              d.id,
+              'hv-row',
               h('span', { class: 'hv-id', style: `color:${TYPE_META[d.type].color};` }, d.id),
               h('span', { class: 'hv-flight-title' }, d.title),
               h('span', { class: 'gate-chip gate-chip-static' }, d.status),
@@ -133,9 +140,9 @@ export function homeView(ctx: Ctx): HTMLElement {
           ...(issues.length > 0 ? [h('div', { class: 'adv-divider' })] : []),
           h('div', { class: 'adv-label' }, `ADVISORIES · ${advisories.length}`),
           ...advisories.map((a) =>
-            h(
-              'div',
-              { class: 'adv-row', onClick: open(ctx.byId.has(a.id) ? a.id : null) },
+            row(
+              ctx.byId.has(a.id) ? a.id : null,
+              'adv-row',
               h('span', { class: 'adv-ring' }),
               h('span', { class: 'adv-kind' }, a.kind),
               h('span', { class: 'hv-id', style: `color:${idColor(a.id)};` }, a.id),
@@ -148,15 +155,15 @@ export function homeView(ctx: Ctx): HTMLElement {
     [
       ...issues.map((issue) => {
         const docId = issueDocId(ctx.snap, issue);
-        return h(
-          'div',
-          { class: 'hv-row hv-row-top', onClick: open(docId) },
+        return row(
+          docId,
+          'hv-row hv-row-top',
           h('span', { class: 'hv-kind' }, issue.kind),
           h(
-            'div',
+            'span',
             { class: 'hv-issue' },
-            h('div', { class: 'hv-issue-id' }, docId ?? issue.kind),
-            h('div', { class: 'hv-issue-msg' }, issue.message),
+            h('span', { class: 'hv-issue-id' }, docId ?? issue.kind),
+            h('span', { class: 'hv-issue-msg' }, issue.message),
           ),
         );
       }),
@@ -173,9 +180,9 @@ export function homeView(ctx: Ctx): HTMLElement {
       h('span', { class: 'hv-meta' }, `${flight.length} work order${flight.length === 1 ? '' : 's'}`),
     ],
     flight.map((wo) =>
-      h(
-        'div',
-        { class: 'hv-row', onClick: open(wo.id) },
+      row(
+        wo.id,
+        'hv-row',
         h('span', { class: 'hv-id hv-id-wo' }, wo.id),
         h('span', { class: 'hv-flight-title' }, wo.title),
         wo.gates.length > 0
@@ -200,13 +207,13 @@ export function homeView(ctx: Ctx): HTMLElement {
   const filed = projectActivity(ctx.snap, ctx.rel, 8 - Math.min(session.length, 4));
   const activityCard = card(
     [h('span', { class: 'hv-agent-glyph' }, '⌁'), label('AGENT ACTIVITY')],
-    [...session.slice(0, 4), ...filed].slice(0, 8).map((row) =>
-      h(
-        'div',
-        { class: 'hv-row hv-row-feed', onClick: open(ctx.byId.has(row.id) ? row.id : null) },
-        h('span', { class: 'hv-id', style: `color:${idColor(row.id)};` }, row.id),
-        h('span', { class: 'hv-feed-text' }, row.text),
-        h('span', { class: 'hv-time' }, row.time),
+    [...session.slice(0, 4), ...filed].slice(0, 8).map((r) =>
+      row(
+        ctx.byId.has(r.id) ? r.id : null,
+        'hv-row hv-row-feed',
+        h('span', { class: 'hv-id', style: `color:${idColor(r.id)};` }, r.id),
+        h('span', { class: 'hv-feed-text' }, r.text),
+        h('span', { class: 'hv-time' }, r.time),
       ),
     ),
     'No activity yet',
@@ -214,13 +221,13 @@ export function homeView(ctx: Ctx): HTMLElement {
 
   const changedCard = card(
     [label('RECENTLY CHANGED')],
-    recentlyChanged(ctx.snap, ctx.rel).map((row) =>
-      h(
-        'div',
-        { class: 'hv-row hv-row-feed', onClick: open(row.id) },
-        h('span', { class: 'hv-id', style: `color:${idColor(row.id)};` }, row.id),
-        h('span', { class: 'hv-changed-title' }, row.title),
-        h('span', { class: 'hv-time' }, row.time),
+    recentlyChanged(ctx.snap, ctx.rel).map((r) =>
+      row(
+        r.id,
+        'hv-row hv-row-feed',
+        h('span', { class: 'hv-id', style: `color:${idColor(r.id)};` }, r.id),
+        h('span', { class: 'hv-changed-title' }, r.title),
+        h('span', { class: 'hv-time' }, r.time),
       ),
     ),
     'No documents yet',

@@ -104,9 +104,11 @@ export function settingsView(ctx: Ctx): HTMLElement {
   const current = ctx.state.settingsSection;
   const item = (it: NavItem): HTMLElement =>
     h(
-      'div',
+      'button',
       {
-        class: current === it.key ? 'set-item set-item-active' : 'set-item',
+        class: current === it.key ? 'btn-reset btn-block set-item set-item-active' : 'btn-reset btn-block set-item',
+        pressed: current === it.key,
+        fkey: `set:${it.key}`,
         onClick: () => ctx.openSettings(it.key),
       },
       h('span', { class: 'set-glyph' }, it.glyph),

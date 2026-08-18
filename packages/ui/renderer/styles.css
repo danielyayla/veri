@@ -44,6 +44,49 @@ body {
 a { color: var(--ember); text-decoration: none; }
 a:hover { color: #F49463; }
 
+/* ===== Accessibility floor (WO-043, SRC-019) ===== */
+
+/* SRC-008's editor focus ring generalized: keyboard focus always paints it,
+   mouse clicks never do. Inputs keep their :focus border and add the ring
+   only under :focus-visible. */
+:focus-visible { outline: 2px solid rgba(232, 112, 58, 0.4); outline-offset: 1px; }
+:focus:not(:focus-visible) { outline: none; }
+
+/* Visually inert reset so `<div onClick>` → `<button>` changes nothing on
+   screen. Layout classes on the same element still win (specificity ties go
+   to later rules; this sits first in the sheet). */
+.btn-reset {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
+/* For converted block-level cards/rows whose class doesn't set display
+   itself (flex rows override this — their rules come later in the sheet). */
+.btn-block { display: block; width: 100%; }
+
+/* The tablist wrapper contributes semantics, not a box — the strip's flex
+   layout still sees the tabs as direct items. */
+.tablist-wrap { display: contents; }
+
+/* The one polite live region (SRC-019 rule 4): present, never visible. */
+.sr-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--int-border); border-radius: 5px; border: 2px solid var(--bg); }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -98,11 +141,11 @@ a:hover { color: #F49463; }
 .proj-row:hover { background: #1F1F25; }
 .proj-row-current { background: #1F1F25; }
 .proj-swatch { width: 7px; height: 7px; border-radius: 2px; flex: 0 0 auto; }
-.proj-info { min-width: 0; }
+.proj-info { display: block; min-width: 0; text-align: left; }
 .proj-name-line { display: flex; align-items: baseline; gap: 8px; }
 .proj-name { font-family: var(--mono); font-size: 12px; color: var(--text); }
 .proj-issue-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--amber); flex: 0 0 auto; }
-.proj-meta { font-size: 11px; color: var(--faint); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.proj-meta { display: block; font-size: 11px; color: var(--faint); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .proj-check { margin-left: auto; color: var(--green); font-size: 11px; flex: 0 0 auto; }
 .proj-divider { height: 1px; background: var(--int-border); margin: 6px 4px; }
 .proj-open-row {
@@ -513,8 +556,8 @@ a:hover { color: #F49463; }
 .conn-head { display: flex; align-items: center; gap: 7px; }
 .conn-id { font-family: var(--mono); font-size: 10.5px; }
 .conn-type { margin-left: auto; font-family: var(--mono); font-size: 9.5px; color: var(--ghost); }
-.conn-title { font-size: 12.5px; color: var(--text); margin-top: 3px; line-height: 1.35; }
-.conn-why { font-size: 11.5px; color: var(--faint); margin-top: 2px; }
+.conn-title { display: block; font-size: 12.5px; color: var(--text); margin-top: 3px; line-height: 1.35; }
+.conn-why { display: block; font-size: 11.5px; color: var(--faint); margin-top: 2px; }
 
 /* ===== Work order detail ===== */
 .wo-head { display: flex; align-items: flex-start; gap: 16px; margin-top: 10px; }
@@ -607,8 +650,8 @@ a:hover { color: #F49463; }
   background: rgba(232,112,58,0.1); border-radius: 4px; padding: 1px 6px;
 }
 .board-health-dot { margin-left: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--amber); }
-.board-card-title { font-size: 13.5px; font-weight: 500; color: var(--text); margin-top: 5px; line-height: 1.35; }
-.board-card-reqs { margin-top: 7px; font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
+.board-card-title { display: block; font-size: 13.5px; font-weight: 500; color: var(--text); margin-top: 5px; line-height: 1.35; }
+.board-card-reqs { display: block; margin-top: 7px; font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
 
 /* ===== Graph ===== */
 .screen-graph { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 26px 28px; min-height: 0; }
@@ -825,9 +868,9 @@ a:hover { color: #F49463; }
   font-family: var(--mono); font-size: 9.5px; color: var(--amber);
   border: 1px solid #3A3020; border-radius: 4px; padding: 1px 6px; flex: 0 0 auto; margin-top: 1px;
 }
-.hv-issue { min-width: 0; }
-.hv-issue-id { font-family: var(--mono); font-size: 11px; color: var(--text); }
-.hv-issue-msg { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.hv-issue { display: block; min-width: 0; }
+.hv-issue-id { display: block; font-family: var(--mono); font-size: 11px; color: var(--text); }
+.hv-issue-msg { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
 .hv-id { font-family: var(--mono); font-size: 10px; flex: 0 0 auto; width: 52px; }
 .hv-id-wo { font-size: 10.5px; color: var(--ember); width: auto; }
 .hv-flight-title { font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -995,8 +1038,9 @@ a:hover { color: #F49463; }
 .np-sw i { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #D8D5CE; transition: left .12s ease; }
 .np-sw-on { background: var(--green); }
 .np-sw-on i { left: 14px; }
-.np-toggle-main { font-size: 13px; color: var(--body-text); }
-.np-toggle-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+.np-toggle-txt { display: block; text-align: left; }
+.np-toggle-main { display: block; font-size: 13px; color: var(--body-text); }
+.np-toggle-sub { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
 .np-toggle-sub code { font-family: var(--mono); white-space: nowrap; font-variant-ligatures: none; }
 .np-tree {
   margin-top: 14px; background: var(--bg); border: 1px solid var(--hair); border-radius: 6px;
@@ -1255,7 +1299,7 @@ a:hover { color: #F49463; }
 .wl-card-title { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: var(--text); }
 .wl-card-glyph { flex: 0 0 auto; }
 .wl-card-arrow { margin-left: auto; color: var(--ghost-2); }
-.wl-card-body { margin-top: 4px; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+.wl-card-body { display: block; margin-top: 4px; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
 .wl-code { font-family: var(--mono); font-size: 11.5px; }
 .wl-notice {
   margin-top: 12px; display: flex; align-items: flex-start; gap: 8px;

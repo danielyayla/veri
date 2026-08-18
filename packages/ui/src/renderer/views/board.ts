@@ -40,22 +40,27 @@ export function boardView(ctx: Ctx): HTMLElement {
             { class: 'board-cards' },
             ...col.cards.map((card) =>
               h(
-                'div',
-                { class: 'board-card', onClick: (e) => ctx.openDoc(card.id, { preview: true, background: e.metaKey || e.ctrlKey }) },
+                'button',
+                {
+                  class: 'btn-reset btn-block board-card',
+                  label: `${card.id} — ${card.title}`,
+                  fkey: `board:${card.id}`,
+                  onClick: (e) => ctx.openDoc(card.id, { preview: true, background: e.metaKey || e.ctrlKey }),
+                },
                 h(
-                  'div',
+                  'span',
                   { class: 'board-card-head' },
                   h('span', { class: 'board-card-id' }, card.id),
                   card.agent
                     ? h('span', { class: 'board-agent-chip', title: 'Agent execution attached' }, '⌁ agent')
                     : null,
                   !card.agent && card.health
-                    ? h('span', { class: 'board-health-dot', title: 'veri check issue on this work order' })
+                    ? h('span', { class: 'board-health-dot', title: 'veri check issue on this work order', label: 'veri check issue on this work order' })
                     : null,
                 ),
-                h('div', { class: 'board-card-title' }, card.title),
+                h('span', { class: 'board-card-title' }, card.title),
                 h(
-                  'div',
+                  'span',
                   { class: 'board-card-reqs', style: card.reqCount === 0 ? 'color:#D9A03F;' : '' },
                   `${card.reqCount} linked REQ${card.reqCount === 1 ? '' : 's'}`,
                 ),

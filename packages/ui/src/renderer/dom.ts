@@ -12,6 +12,21 @@ export interface Attrs {
   html?: never;
   draggable?: boolean;
   disabled?: boolean;
+  /** Accessibility floor (SRC-019): explicit roles, states, and the stable
+      focus key render() uses to restore focus across rebuilds. */
+  role?: string;
+  label?: string; // → aria-label
+  selected?: boolean; // → aria-selected
+  pressed?: boolean; // → aria-pressed
+  checked?: boolean; // → aria-checked
+  modal?: boolean; // → aria-modal
+  expanded?: boolean; // → aria-expanded
+  activedesc?: string; // → aria-activedescendant
+  controls?: string; // → aria-controls
+  live?: 'polite' | 'assertive'; // → aria-live
+  tabindex?: number;
+  fkey?: string; // → data-fkey
+  onFocus?: (e: FocusEvent) => void;
   onClick?: (e: MouseEvent) => void;
   onDblclick?: (e: MouseEvent) => void;
   onMousedown?: (e: MouseEvent) => void;
@@ -34,6 +49,20 @@ export function h(tag: string, attrs: Attrs = {}, ...children: Child[]): HTMLEle
   if (attrs.value !== undefined) (el as HTMLInputElement).value = attrs.value;
   if (attrs.draggable === true) el.draggable = true;
   if (attrs.disabled === true) (el as HTMLButtonElement).disabled = true;
+  if (tag === 'button') (el as HTMLButtonElement).type = 'button';
+  if (attrs.role !== undefined) el.setAttribute('role', attrs.role);
+  if (attrs.label !== undefined) el.setAttribute('aria-label', attrs.label);
+  if (attrs.selected !== undefined) el.setAttribute('aria-selected', String(attrs.selected));
+  if (attrs.pressed !== undefined) el.setAttribute('aria-pressed', String(attrs.pressed));
+  if (attrs.checked !== undefined) el.setAttribute('aria-checked', String(attrs.checked));
+  if (attrs.modal !== undefined) el.setAttribute('aria-modal', String(attrs.modal));
+  if (attrs.expanded !== undefined) el.setAttribute('aria-expanded', String(attrs.expanded));
+  if (attrs.activedesc !== undefined) el.setAttribute('aria-activedescendant', attrs.activedesc);
+  if (attrs.controls !== undefined) el.setAttribute('aria-controls', attrs.controls);
+  if (attrs.live !== undefined) el.setAttribute('aria-live', attrs.live);
+  if (attrs.tabindex !== undefined) el.tabIndex = attrs.tabindex;
+  if (attrs.fkey !== undefined) el.dataset['fkey'] = attrs.fkey;
+  if (attrs.onFocus !== undefined) el.addEventListener('focus', attrs.onFocus as EventListener);
   if (attrs.onClick !== undefined) el.addEventListener('click', attrs.onClick as EventListener);
   if (attrs.onDblclick !== undefined) el.addEventListener('dblclick', attrs.onDblclick as EventListener);
   if (attrs.onMousedown !== undefined) el.addEventListener('mousedown', attrs.onMousedown as EventListener);

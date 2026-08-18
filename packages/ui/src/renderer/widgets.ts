@@ -10,17 +10,31 @@ export interface Nav {
   openDoc(id: string, opts?: { preview?: boolean; background?: boolean }): void;
 }
 
+let chipSeq = 0;
+
+/** Reset once per render pass so fkeys are stable for a given screen. */
+export function resetChipKeys(): void {
+  chipSeq = 0;
+}
+
 export function idChip(byId: DocsById, id: string, nav: Nav): HTMLElement {
   const target = byId.get(id);
   if (target === undefined) {
-    return h('span', { class: 'chip-broken', title: 'Broken link — target not found' }, `[[${id}]]`);
+    // SRC-019 rule 5: the amber underline gets a glyph channel too.
+    return h(
+      'span',
+      { class: 'chip-broken', title: 'Broken link — target not found', label: `Broken link ${id} — target not found` },
+      `⚠ [[${id}]]`,
+    );
   }
   const meta = TYPE_META[target.type];
   return h(
-    'span',
+    'button',
     {
-      class: 'chip-ref',
+      class: 'btn-reset chip-ref',
       style: `color:${meta.color};background:${tint(meta.color)};`,
+      label: `${id} — ${target.title}`,
+      fkey: `chip:${id}:${chipSeq++}`,
       // SRC-004 rule 1: inline links open pinned tabs; ⌘-click stays in the background.
       onClick: (e) => nav.openDoc(id, { background: e.metaKey || e.ctrlKey }),
     },
@@ -32,10 +46,12 @@ export function idChip(byId: DocsById, id: string, nav: Nav): HTMLElement {
     the doc into its type panel's PINNED group. */
 export function pinChip(pinned: boolean, toggle: () => void): HTMLElement {
   return h(
-    'div',
+    'button',
     {
-      class: pinned ? 'pin-chip pin-chip-on' : 'pin-chip',
+      class: pinned ? 'btn-reset pin-chip pin-chip-on' : 'btn-reset pin-chip',
       title: pinned ? "Remove from the type panel's PINNED group" : "Keep at the top of the type panel",
+      pressed: pinned,
+      fkey: 'pin-chip',
       onClick: toggle,
     },
     h('span', {}, pinned ? '★' : '☆'),
@@ -116,16 +132,18 @@ export function modeToggle(ctx: { editFor(id: string): { mode: 'read' | 'edit' }
   const mode = ctx.editFor(docId)?.mode ?? 'read';
   const seg = (m: 'read' | 'edit'): HTMLElement =>
     h(
-      'span',
+      'button',
       {
-        class: mode === m ? 'mode-seg mode-seg-on' : 'mode-seg',
+        class: mode === m ? 'btn-reset mode-seg mode-seg-on' : 'btn-reset mode-seg',
+        pressed: mode === m,
+        fkey: `mode:${m}`,
         onClick: () => {
           if (mode !== m) ctx.setEditMode(docId, m);
         },
       },
       m,
     );
-  return h('div', { class: 'mode-toggle', title: '⌘E' }, seg('read'), seg('edit'));
+  return h('div', { class: 'mode-toggle', title: '⌘E', role: 'group', label: 'View mode' }, seg('read'), seg('edit'));
 }
 
 /** Read-mode strip when the tab holds unsaved edits (SRC-008): the rendered

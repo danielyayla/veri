@@ -43,8 +43,13 @@ function disclosure(ctx: Ctx, doc: VeriDocument): HTMLElement {
     bound.length > 0
       ? bound.map((c) =>
           h(
-            'div',
-            { class: 'rv-link-row', onClick: (e) => ctx.openDoc(c.id, { background: e.metaKey || e.ctrlKey }) },
+            'button',
+            {
+              class: 'btn-reset btn-block rv-link-row',
+              label: `${c.id} — ${c.title}`,
+              fkey: `rv-link:${c.id}`,
+              onClick: (e) => ctx.openDoc(c.id, { background: e.metaKey || e.ctrlKey }),
+            },
             h('span', { class: 'rv-link-id', style: `color:${TYPE_META[c.type].color};` }, c.id),
             h('span', { class: 'rv-link-title' }, c.title),
           ),
@@ -60,7 +65,11 @@ function disclosure(ctx: Ctx, doc: VeriDocument): HTMLElement {
           'div',
           { class: 'rv-col' },
           h('div', { class: 'rv-col-label' }, 'ALTERNATIVES REJECTED'),
-          h('div', { class: 'rv-link-row', onClick: () => jumpToHeading(altName) }, `↓ Jump to “${altName}” in this document`),
+          h(
+            'button',
+            { class: 'btn-reset btn-block rv-link-row', fkey: 'rv-jump', onClick: () => jumpToHeading(altName) },
+            `↓ Jump to “${altName}” in this document`,
+          ),
         )
       : null,
   );
@@ -85,7 +94,7 @@ function approvePopover(ctx: Ctx, doc: VeriDocument, to: string): HTMLElement {
   };
   return h(
     'div',
-    { class: 'rv-pop', onClick: (e) => e.stopPropagation() },
+    { class: 'rv-pop', role: 'dialog', modal: true, label: `Approve ${doc.id}`, onClick: (e) => e.stopPropagation() },
     h('div', { class: 'rv-pop-title' }, `Approve ${doc.id}?`),
     h(
       'div',
@@ -97,8 +106,8 @@ function approvePopover(ctx: Ctx, doc: VeriDocument, to: string): HTMLElement {
     h(
       'div',
       { class: 'rv-pop-btns' },
-      h('span', { class: 'rv-ghost', onClick: () => ctx.update({ reviewPop: false }) }, 'Cancel'),
-      h('div', { class: 'rv-approve', onClick: confirm }, 'Approve & stamp'),
+      h('button', { class: 'btn-reset rv-ghost', fkey: 'rv-cancel', onClick: () => ctx.update({ reviewPop: false }) }, 'Cancel'),
+      h('button', { class: 'btn-reset rv-approve', fkey: 'rv-stamp', onClick: confirm }, 'Approve & stamp'),
     ),
   );
 }
@@ -116,6 +125,8 @@ function composer(ctx: Ctx, doc: VeriDocument): HTMLElement {
   };
   const input = h('textarea', {
     class: 'rv-composer-input',
+    label: 'Review note',
+    fkey: 'rv-composer',
     placeholder: 'What should change before you’d approve this?',
     value: ctx.state.reviewText ?? '',
     onInput: (e) => ctx.update({ reviewText: (e.target as HTMLTextAreaElement).value }),
@@ -131,8 +142,8 @@ function composer(ctx: Ctx, doc: VeriDocument): HTMLElement {
     h(
       'div',
       { class: 'rv-composer-btns' },
-      h('span', { class: 'rv-ghost', onClick: () => ctx.update({ reviewText: null }) }, 'Cancel'),
-      h('div', { class: 'rv-return', onClick: submit }, 'Return with note'),
+      h('button', { class: 'btn-reset rv-ghost', fkey: 'rv-comp-cancel', onClick: () => ctx.update({ reviewText: null }) }, 'Cancel'),
+      h('button', { class: 'btn-reset rv-return', fkey: 'rv-comp-send', onClick: submit }, 'Return with note'),
     ),
   );
 }
@@ -153,12 +164,12 @@ export function reviewBanner(ctx: Ctx, doc: VeriDocument): HTMLElement | null {
   const approveBtn =
     issueCount > 0
       ? h(
-          'div',
-          { class: 'rv-approve rv-approve-disabled' },
+          'button',
+          { class: 'btn-reset rv-approve rv-approve-disabled', disabled: true, fkey: 'rv-open' },
           'Approve…',
           h('span', { class: 'rv-tip' }, `Fix check issues first — ${issueCount} on this document`),
         )
-      : h('div', { class: 'rv-approve', onClick: () => ctx.update({ reviewPop: true }) }, 'Approve…');
+      : h('button', { class: 'btn-reset rv-approve', fkey: 'rv-open', onClick: () => ctx.update({ reviewPop: true }) }, 'Approve…');
 
   const actions =
     ctx.state.reviewText !== null
@@ -166,7 +177,7 @@ export function reviewBanner(ctx: Ctx, doc: VeriDocument): HTMLElement | null {
       : h(
           'div',
           { class: 'rv-actions' },
-          h('div', { class: 'rv-request', onClick: () => ctx.update({ reviewText: '' }) }, 'Request changes'),
+          h('button', { class: 'btn-reset rv-request', fkey: 'rv-request', onClick: () => ctx.update({ reviewText: '' }) }, 'Request changes'),
           approveBtn,
           ctx.state.reviewPop ? approvePopover(ctx, doc, to) : null,
         );
@@ -177,9 +188,11 @@ export function reviewBanner(ctx: Ctx, doc: VeriDocument): HTMLElement | null {
     h('div', { class: 'rv-title' }, '◌ Awaiting your review'),
     h('div', { class: 'rv-prov' }, provenance),
     h(
-      'div',
+      'button',
       {
-        class: 'rv-disc',
+        class: 'btn-reset rv-disc',
+        expanded: discOpen,
+        fkey: 'rv-disc',
         onClick: () => {
           const expanded = new Set(ctx.state.expanded);
           if (discOpen) expanded.delete(discKey);

@@ -33,11 +33,12 @@ function noteEditor(ctx: Ctx): HTMLElement {
           'div',
           { class: 'ac-pop' },
           h('div', { class: 'ac-label' }, 'LINK TO DOC'),
-          ...items.map((it) =>
+          ...items.map((it, i) =>
             h(
-              'div',
+              'button',
               {
-                class: 'ac-row',
+                class: 'btn-reset btn-block ac-row',
+                fkey: `ac:${i}`,
                 onClick: () => {
                   ctx.update({ editorText: insertAutocomplete(ctx.state.editorText, it.id), editorFocused: true });
                 },
@@ -51,6 +52,8 @@ function noteEditor(ctx: Ctx): HTMLElement {
 
   const input = h('input', {
     class: 'note-input',
+    label: 'Append a note',
+    fkey: 'note-input',
     placeholder: 'Append a note — type [[ to link a doc',
     value: ctx.state.editorText,
     onInput: (e) => ctx.update({ editorText: (e.target as HTMLInputElement).value, editorFocused: true }),
@@ -79,16 +82,21 @@ export function connectionsPanel(ctx: Ctx): HTMLElement {
   const groups = connections(ctx.snap, doc.id);
   const card = (c: { id: string; title: string; type: keyof typeof TYPE_META; why: string }): HTMLElement =>
     h(
-      'div',
-      { class: 'conn-card', onClick: (e) => ctx.openDoc(c.id, { background: e.metaKey || e.ctrlKey }) },
+      'button',
+      {
+        class: 'btn-reset btn-block conn-card',
+        label: `${c.id} — ${c.title}`,
+        fkey: `conn:${c.id}`,
+        onClick: (e) => ctx.openDoc(c.id, { background: e.metaKey || e.ctrlKey }),
+      },
       h(
-        'div',
+        'span',
         { class: 'conn-head' },
         h('span', { class: 'conn-id', style: `color:${TYPE_META[c.type].color};` }, c.id),
         h('span', { class: 'conn-type' }, TYPE_META[c.type].label),
       ),
-      h('div', { class: 'conn-title' }, c.title),
-      h('div', { class: 'conn-why' }, c.why),
+      h('span', { class: 'conn-title' }, c.title),
+      h('span', { class: 'conn-why' }, c.why),
     );
   const group = (label: string, items: typeof groups.outbound): HTMLElement | null =>
     items.length === 0
@@ -139,9 +147,11 @@ export function readerView(ctx: Ctx): HTMLElement {
               h('span', { class: 'adv-ring' }),
               h('span', { class: 'adv-line-msg' }, a.message),
               h(
-                'span',
+                'button',
                 {
-                  class: 'adv-tpl',
+                  class: 'btn-reset adv-tpl',
+                  label: `Open the ${doc.type} template`,
+                  fkey: 'adv-tpl',
                   onClick: () => {
                     ctx.update({ tplType: doc.type, tplResetConfirm: false });
                     ctx.openSettings('templates');
@@ -167,10 +177,11 @@ export function readerView(ctx: Ctx): HTMLElement {
           { class: 'crumb crumb-row' },
           doc.type !== 'workflow'
             ? h(
-                'span',
+                'button',
                 {
-                  class: 'crumb-live',
+                  class: 'btn-reset crumb-live',
                   title: `Browse ${meta.crumb.toLowerCase()}`,
+                  fkey: 'crumb-live',
                   onClick: () => ctx.openPanel(doc.type),
                 },
                 meta.crumb,

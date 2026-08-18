@@ -76,7 +76,7 @@ export function mcpView(ctx: Ctx): HTMLElement {
     'div',
     { class: 'mcp-title-row' },
     h('h1', { class: 'mcp-h1' }, 'Agent connection'),
-    notSetup ? null : h('div', { class: 'mcp-ghost-btn', onClick: recheck }, h('span', {}, '↻'), h('span', {}, 'Re-run checks')),
+    notSetup ? null : h('button', { class: 'btn-reset mcp-ghost-btn', fkey: 'mcp-recheck', onClick: recheck }, h('span', {}, '↻'), h('span', {}, 'Re-run checks')),
   );
 
   const subhead = h(
@@ -155,11 +155,15 @@ function jsonPreview(status: McpStatus): HTMLElement {
 /** One-failure-one-action copy button inside a verify/pre-check block. */
 function copyBtn(ctx: Ctx, cmd: string, label: string, copiedLabel: string): HTMLElement {
   return h(
-    'div',
+    'button',
     {
-      class: 'mcp-fail-btn',
+      class: 'btn-reset mcp-fail-btn',
+      fkey: 'mcp-copy-fix',
       onClick: () => {
-        void ctx.api.copyText(cmd).then(() => ctx.update({ mcpVerifyCopied: true }));
+        void ctx.api.copyText(cmd).then(() => {
+          ctx.announce(copiedLabel);
+          ctx.update({ mcpVerifyCopied: true });
+        });
       },
     },
     ctx.state.mcpVerifyCopied ? copiedLabel : label,
@@ -207,7 +211,7 @@ function notSetupCard(ctx: Ctx, status: McpStatus, write: (a: Promise<void>) => 
       h('span', { class: 'mcp-inline-code' }, 'veri/'),
       ' directory — a plain file you can read, diff, and commit so teammates get the connection too. Nothing to type.',
     ),
-    h('div', { class: 'mcp-btn-primary', onClick: () => write(ctx.api.mcpSetup()) }, 'Set up connection'),
+    h('button', { class: 'btn-reset mcp-btn-primary', fkey: 'mcp-setup', onClick: () => write(ctx.api.mcpSetup()) }, 'Set up connection'),
     h('div', { class: 'mcp-eyebrow', style: 'margin-top:20px;' }, 'WHAT WILL BE WRITTEN'),
     jsonPreview(status),
     precheckNotice(ctx),
@@ -262,9 +266,10 @@ function verifyResultEl(ctx: Ctx, status: McpStatus, result: VerifyResult, write
     // The existing repair: rewrites only the root argument, then the restart
     // banner + re-run static checks. The stale verify result goes with it.
     action = h(
-      'div',
+      'button',
       {
-        class: 'mcp-fail-btn',
+        class: 'btn-reset mcp-fail-btn',
+        fkey: 'mcp-fix-root',
         onClick: () => {
           ctx.update({ mcpVerify: null });
           write(ctx.api.mcpFixRoot());
@@ -309,9 +314,11 @@ function liveCheckSection(ctx: Ctx, status: McpStatus, write: (a: Promise<void>)
       'The checks above read files. This one launches the server the way your agent will — once, with the config exactly as written — and confirms it answers over MCP.',
     ),
     h(
-      'div',
+      'button',
       {
-        class: busy ? 'mcp-ghost-btn mcp-live-btn mcp-live-btn-busy' : 'mcp-ghost-btn mcp-live-btn',
+        class: busy ? 'btn-reset mcp-ghost-btn mcp-live-btn mcp-live-btn-busy' : 'btn-reset mcp-ghost-btn mcp-live-btn',
+        disabled: busy,
+        fkey: 'mcp-verify',
         onClick: () => {
           if (!busy) ctx.runVerify();
         },
@@ -353,7 +360,7 @@ function conflictCard(ctx: Ctx, status: McpStatus, write: (a: Promise<void>) => 
       : h(
           'div',
           { class: 'mcp-conflict-actions' },
-          h('div', { class: 'mcp-btn-primary mcp-btn-replace', onClick: () => write(ctx.api.mcpSetup()) }, 'Replace with Veri’s entry'),
+          h('button', { class: 'btn-reset mcp-btn-primary mcp-btn-replace', fkey: 'mcp-replace', onClick: () => write(ctx.api.mcpSetup()) }, 'Replace with Veri’s entry'),
           h('span', { class: 'mcp-caption', style: 'margin-top:0;' }, 'Rewrites only this entry — other servers stay as they are. Or leave it: Veri never overwrites it silently.'),
         ),
   );
@@ -401,7 +408,7 @@ function healthCard(ctx: Ctx, status: McpStatus, write: (a: Promise<void>) => vo
             'div',
             { class: 'mcp-fail' },
             h('span', { class: 'mcp-fail-msg' }, c.failMsg ?? ''),
-            h('div', { class: 'mcp-fail-btn', onClick: c.onFix }, c.actionLabel ?? ''),
+            h('button', { class: 'btn-reset mcp-fail-btn', fkey: `mcp-fix:${c.name}`, onClick: c.onFix }, c.actionLabel ?? ''),
           ),
     ),
   );
@@ -464,8 +471,8 @@ function userScopedSection(ctx: Ctx, status: McpStatus): HTMLElement {
       { class: 'mcp-cmd' },
       h('span', { class: 'mcp-cmd-text' }, cmd),
       h(
-        'div',
-        { class: 'mcp-ghost-btn mcp-copy-btn', onClick: () => {
+        'button',
+        { class: 'btn-reset mcp-ghost-btn mcp-copy-btn', label: 'Copy command', fkey: 'mcp-cmd-copy', onClick: () => {
           void ctx.api.copyText(cmd).then(() => ctx.flashMcpCmdCopied());
         } },
         ctx.state.mcpCmdCopied ? '✓ Copied' : 'Copy',
