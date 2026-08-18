@@ -48,6 +48,18 @@ test('file_decision creates a valid decision with the next free DEC id', async (
   assert.ok(hits.some((hit) => hit.id === 'DEC-001' && hit.status === 'proposed'));
 });
 
+test('file_decision consumes ids permanently via the shared record', async (t) => {
+  const root = sandbox(t);
+  const first = await fileDecision(root, { title: 'Ephemeral', choice: 'X.' });
+  assert.equal(first.id, 'DEC-001');
+  assert.match(readFileSync(join(root, 'veri', 'ids'), 'utf8'), /^DEC 1$/m);
+
+  rmSync(join(root, first.file));
+  const second = await fileDecision(root, { title: 'Successor', choice: 'Y.' });
+  assert.equal(second.id, 'DEC-002'); // DEC-001 is spent, deleted or not
+  await assertClean(root);
+});
+
 test('file_decision rejects links to nonexistent documents', async (t) => {
   const root = sandbox(t);
   await assert.rejects(

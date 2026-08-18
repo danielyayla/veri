@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { loadProject } from '@veri/core';
+import { loadProject, nextIdNumber, recordIssuedId } from '@veri/core';
 
 export interface FileDecisionInput {
   title: string;
@@ -55,12 +55,11 @@ export async function fileDecision(
     }
   }
 
-  const taken = documents
-    .map((doc) => doc.id)
-    .filter((id) => id.startsWith('DEC-'))
-    .map((id) => Number.parseInt(id.slice(4), 10));
-  const next = taken.length === 0 ? 1 : Math.max(...taken) + 1;
-  if (next > 999) throw new Error('no free DEC- id left (999 is the highest)');
+  const next = nextIdNumber(
+    veriDir,
+    'DEC',
+    documents.map((doc) => doc.id),
+  );
   const id = `DEC-${String(next).padStart(3, '0')}`;
 
   const date = today();
@@ -89,6 +88,7 @@ export async function fileDecision(
   const file = join('decisions', `${id}-${slugify(input.title)}.md`);
   mkdirSync(join(veriDir, 'decisions'), { recursive: true });
   writeFileSync(join(veriDir, file), `${frontmatter}\n\n${sections.join('\n\n')}\n`, { flag: 'wx' });
+  recordIssuedId(veriDir, 'DEC', next);
   return { id, file: `veri/${file}` };
 }
 

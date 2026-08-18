@@ -2,6 +2,7 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { DocType } from './ids.ts';
+import { nextIdNumber, recordIssuedId, type IdPrefix } from './idstore.ts';
 import { loadProject } from './load.ts';
 import { getTemplate } from './templates.ts';
 
@@ -71,13 +72,12 @@ export async function createDocument(
   const root = typeof veriDir === 'string' ? veriDir : fileURLToPath(veriDir);
 
   const { documents } = await loadProject(root);
-  const prefix = TYPE_PREFIX[type];
-  const taken = documents
-    .map((doc) => doc.id)
-    .filter((id) => id.startsWith(`${prefix}-`))
-    .map((id) => Number.parseInt(id.slice(prefix.length + 1), 10));
-  const next = taken.length === 0 ? 1 : Math.max(...taken) + 1;
-  if (next > 999) throw new Error(`no free ${prefix}- id left (999 is the highest)`);
+  const prefix = TYPE_PREFIX[type] as IdPrefix;
+  const next = nextIdNumber(
+    root,
+    prefix,
+    documents.map((doc) => doc.id),
+  );
   const id = `${prefix}-${String(next).padStart(3, '0')}`;
 
   const frontmatter = [
@@ -93,5 +93,6 @@ export async function createDocument(
   const file = join(TYPE_SUBDIR[type], `${id}-${slugifyTitle(trimmed)}.md`);
   const text = `${frontmatter}\n${getTemplate(root, type).body}`;
   writeFileSync(join(root, file), text, { flag: 'wx' });
+  recordIssuedId(root, prefix, next);
   return { id, file, text };
 }
