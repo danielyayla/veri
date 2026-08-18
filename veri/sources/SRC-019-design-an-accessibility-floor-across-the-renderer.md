@@ -18,7 +18,7 @@ links:
     rel: constrained-by
 ---
 
-> **Pending Daniel's approval.** Drafted 2026-08-18 by an agent session
+> **Approved by Daniel 2026-08-18.** Drafted 2026-08-18 by an agent session
 > (Claude Code) for [[WO-043]], per the DEC-012 design gate. The
 > handoff spec lives in `design/accessibility-floor/` (written spec
 > only, no prototype: the change is semantics and focus behavior, not
