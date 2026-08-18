@@ -2,7 +2,7 @@
 id: WO-038
 type: work-order
 title: Document ids are never reused after deletion
-status: in-progress
+status: done
 created: 2026-08-18
 updated: 2026-08-18
 links:
@@ -50,16 +50,16 @@ reused, never renamed — as an enforced property instead of a convention.
 
 ## Acceptance tests
 
-- [ ] Creating a document, deleting its file, and creating another of the
+- [x] Creating a document, deleting its file, and creating another of the
       same type yields a fresh id, not the deleted one.
-- [ ] A project with no `veri/ids` file allocates exactly as before on the
+- [x] A project with no `veri/ids` file allocates exactly as before on the
       first write and writes the record as a side effect.
-- [ ] The MCP `file_decision` path and `veri new` share one allocator and
+- [x] The MCP `file_decision` path and `veri new` share one allocator and
       both bump the record.
-- [ ] A corrupt or partial `veri/ids` never blocks creation — invalid
+- [x] A corrupt or partial `veri/ids` never blocks creation — invalid
       lines are ignored and repaired on the next write.
-- [ ] `veri check` and the full test suite are clean.
+- [x] `veri check` and the full test suite are clean.
 
 ## Receipts
 
-(none yet)
+- 2026-08-18 — e1ce28f — packages/core/src/idstore.ts (+tests), packages/core/src/create.ts, packages/core/src/index.ts, packages/mcp/src/writeback.ts (+tests), veri/ids — shared id allocator with a veri/ids high-water record per [[DEC-037]]; reuse/backfill/corrupt-record covered by tests, live-verified via veri init + new + delete + new; 262 tests pass across the workspace, veri check clean (agent session, Claude Code)
