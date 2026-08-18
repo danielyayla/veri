@@ -580,6 +580,34 @@ a:hover { color: #F49463; }
 .conn-title { display: block; font-size: 12.5px; color: var(--text); margin-top: 3px; line-height: 1.35; }
 .conn-why { display: block; font-size: 11.5px; color: var(--faint); margin-top: 2px; }
 
+/* Hover preview popover (WO-047, SRC-021): a miniature of the doc head.
+   Fixed width matching the Connections card (300px panel − 2×14px padding);
+   presentation only — aria-hidden, no controls. */
+.pv-pop {
+  position: fixed; z-index: 70; width: 272px;
+  background: var(--pop); border: 1px solid #2B2B32; border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4); padding: 11px 12px; cursor: default;
+}
+.pv-head { display: flex; align-items: center; gap: 7px; }
+.pv-id { font-family: var(--mono); font-size: 11px; }
+.pv-head .chip-status:last-child { margin-left: auto; }
+.pv-title { margin-top: 7px; font-size: 13px; font-weight: 600; line-height: 1.35; color: var(--text); }
+/* ~6 text lines at the excerpt's 12.5px/1.55, then hidden. */
+.pv-excerpt { position: relative; margin-top: 7px; max-height: 120px; overflow: hidden; }
+.pv-excerpt .rd-p { font-size: 12.5px; line-height: 1.55; margin: 0 0 8px; }
+.pv-excerpt .rd-li, .pv-excerpt .rd-check { font-size: 12.5px; line-height: 1.55; padding: 2px 0; }
+.pv-excerpt .rd-quote { font-size: 12.5px; line-height: 1.55; margin: 0 0 8px; }
+.pv-excerpt .rd-fence { font-size: 11px; margin: 0 0 8px; }
+.pv-excerpt .rd-table { font-size: 11.5px; }
+.pv-excerpt .inline-code { font-size: 11.5px; }
+/* The fade truncation, applied only when the excerpt actually clipped. */
+.pv-clip {
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 26px), transparent);
+  mask-image: linear-gradient(180deg, #000 calc(100% - 26px), transparent);
+}
+/* Refs inside the excerpt: inert colored text, never chips. */
+.pv-ref { font-family: var(--mono); font-size: 11.5px; }
+
 /* ===== Work order detail ===== */
 .wo-head { display: flex; align-items: flex-start; gap: 16px; margin-top: 10px; }
 .wo-title { margin: 0; flex: 1; }

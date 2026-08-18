@@ -3,7 +3,7 @@ import { h } from '../dom.ts';
 import { TYPE_META } from '../theme.ts';
 import { parseBlocks } from '../markdown.ts';
 import { autocomplete, connections, fileActivity, insertAutocomplete } from '../derive.ts';
-import { activityFeed, dirtyStrip, idChip, imgDirFor, modeToggle, pinChip, renderBlocks, statusChip, typeChip } from '../widgets.ts';
+import { activityFeed, attachPreview, dirtyStrip, idChip, imgDirFor, modeToggle, pinChip, renderBlocks, statusChip, typeChip } from '../widgets.ts';
 import { reviewBanner } from './review.ts';
 import type { Ctx } from '../app.ts';
 
@@ -80,8 +80,9 @@ function noteEditor(ctx: Ctx): HTMLElement {
 export function connectionsPanel(ctx: Ctx): HTMLElement {
   const doc = ctx.doc()!;
   const groups = connections(ctx.snap, doc.id);
-  const card = (c: { id: string; title: string; type: keyof typeof TYPE_META; why: string }): HTMLElement =>
-    h(
+  const card = (c: { id: string; title: string; type: keyof typeof TYPE_META; why: string }): HTMLElement => {
+    const idEl = h('span', { class: 'conn-id', style: `color:${TYPE_META[c.type].color};` }, c.id);
+    const btn = h(
       'button',
       {
         class: 'btn-reset btn-block conn-card',
@@ -89,15 +90,16 @@ export function connectionsPanel(ctx: Ctx): HTMLElement {
         fkey: `conn:${c.id}`,
         onClick: (e) => ctx.openDoc(c.id, { background: e.metaKey || e.ctrlKey }),
       },
-      h(
-        'span',
-        { class: 'conn-head' },
-        h('span', { class: 'conn-id', style: `color:${TYPE_META[c.type].color};` }, c.id),
-        h('span', { class: 'conn-type' }, TYPE_META[c.type].label),
-      ),
+      h('span', { class: 'conn-head' }, idEl, h('span', { class: 'conn-type' }, TYPE_META[c.type].label)),
       h('span', { class: 'conn-title' }, c.title),
       h('span', { class: 'conn-why' }, c.why),
     );
+    // WO-047 / SRC-021: the card gains the preview on its id only, not the
+    // whole card; keyboard parity rides on the card, the focusable unit.
+    attachPreview(idEl, ctx.byId, c.id, ctx, { focus: false });
+    attachPreview(btn, ctx.byId, c.id, ctx, { hover: false });
+    return btn;
+  };
   const group = (label: string, items: typeof groups.outbound): HTMLElement | null =>
     items.length === 0
       ? null

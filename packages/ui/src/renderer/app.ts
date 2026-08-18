@@ -41,7 +41,7 @@ import {
 import type { Entry, Surface, Tab, TabState } from './tabs.ts';
 import { EditorIsland } from './editor.ts';
 import { FOCUSABLE_SEL, resolveFocus, roveIndex, roveKey, trapTarget } from './a11y.ts';
-import { resetChipKeys } from './widgets.ts';
+import { dismissPreview, resetChipKeys, setPreviewRoot } from './widgets.ts';
 import { ipcErrorMessage, reconcileDisk } from './editlogic.ts';
 import { editorScreen } from './views/editor.ts';
 import { paletteRows } from './palette.ts';
@@ -2337,6 +2337,10 @@ class App implements Ctx {
     const beforeKeys = Array.from(this.root.querySelectorAll<HTMLElement>('[data-fkey]'), (el) => el.dataset['fkey']!);
     const focusedKey = document.activeElement instanceof HTMLElement ? (document.activeElement.dataset['fkey'] ?? null) : null;
     resetChipKeys();
+    // Hover previews (WO-047): the rebuild detaches every anchor chip, and a
+    // tab-switch must dismiss immediately — drop the popover on every pass.
+    dismissPreview();
+    setPreviewRoot(this.snap.root);
 
     const view = this.state.view;
     const activeEdit = this.editView();

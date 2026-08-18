@@ -2,7 +2,7 @@
 id: WO-047
 type: work-order
 title: "Hover previews on link chips"
-status: backlog
+status: in-progress
 created: 2026-08-18
 updated: 2026-08-18
 links:
@@ -47,12 +47,12 @@ Resting on a [[ID]] chip answers "do I need to go there?" without navigating —
 
 ## Acceptance tests
 
-- [ ] Hovering a body chip for 350ms shows id, type, status, title, and the first-section excerpt; a quick pass over a trail of chips shows nothing
-- [ ] Moving from chip into the popover keeps it open; leaving both closes it after 150ms
-- [ ] Focusing a chip with the keyboard shows the same popover; Escape dismisses without moving focus
-- [ ] Broken-link chips never show a popover
-- [ ] The popover never clips off-screen: it flips above the chip at the viewport edge
-- [ ] npm test passes; veri check reports zero issues
+- [x] Hovering a body chip for 350ms shows id, type, status, title, and the first-section excerpt; a quick pass over a trail of chips shows nothing
+- [x] Moving from chip into the popover keeps it open; leaving both closes it after 150ms
+- [x] Focusing a chip with the keyboard shows the same popover; Escape dismisses without moving focus
+- [x] Broken-link chips never show a popover
+- [x] The popover never clips off-screen: it flips above the chip at the viewport edge
+- [x] npm test passes; veri check reports zero issues
 
 ## Receipts
 
