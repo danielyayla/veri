@@ -1,8 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assembleContext } from './context.ts';
-import { ASSEMBLY_POLICY, packingFor } from '@veri/core';
+import { ASSEMBLY_POLICY, INLINE_THRESHOLD_TOKENS, packingFor } from '@veri/core';
 
 const FIXTURE = fileURLToPath(new URL('../fixtures/superseded-chain', import.meta.url));
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
@@ -149,6 +152,105 @@ test('templates close every package, reflecting project overrides (REQ-010)', as
   assert.ok(text.includes('### decision · project template'), 'override changes provenance');
   assert.ok(text.includes('CUSTOM-TEMPLATE-MARKER'), 'override body is served');
   assert.ok(text.includes('### requirement · built-in default'), 'other types keep the default');
+});
+
+// ---- Layered assembly (DEC-035 / REQ-018) --------------------------------
+
+/**
+ * A hub corpus: WO-001 → REQ-001 (hop 1), and `decisions` fat decisions all
+ * constraining REQ-001 (hop 2), plus a draft requirement and a neighboring
+ * work order in the same ring. Each decision body is ~600 tokens, so the
+ * inline package crosses the threshold as `decisions` grows.
+ */
+function hubCorpus(t: { after(fn: () => void): void }, decisions: number): string {
+  const root = mkdtempSync(join(tmpdir(), 'veri-layered-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const veri = join(root, 'veri');
+  for (const sub of ['requirements', 'decisions', 'work-orders']) mkdirSync(join(veri, sub), { recursive: true });
+
+  const doc = (id: string, type: string, title: string, status: string, extra: string[], body: string): string =>
+    ['---', `id: ${id}`, `type: ${type}`, `title: ${title}`, `status: ${status}`, 'created: 2026-08-01', 'updated: 2026-08-01', ...extra, '---', '', body, ''].join('\n');
+
+  writeFileSync(join(veri, 'workflow.md'), doc('WF-001', 'workflow', 'Hub workflow', 'accepted', ['approved: 2026-08-01'], 'WF-MARKER'));
+  writeFileSync(
+    join(veri, 'work-orders', 'WO-001-hub-work.md'),
+    doc('WO-001', 'work-order', 'Hub work', 'in-progress', ['links:', '  - id: REQ-001', '    rel: implements'], 'WO-BODY-MARKER'),
+  );
+  writeFileSync(
+    join(veri, 'requirements', 'REQ-001-hub.md'),
+    doc('REQ-001', 'requirement', 'Hub requirement', 'accepted', ['approved: 2026-08-01'], 'REQ1-BODY-MARKER'),
+  );
+  writeFileSync(
+    join(veri, 'requirements', 'REQ-002-pending-ring.md'),
+    doc('REQ-002', 'requirement', 'Pending ring requirement', 'draft', ['links:', '  - id: REQ-001', '    rel: extends'], 'PENDING-RING-MARKER'),
+  );
+  writeFileSync(
+    join(veri, 'work-orders', 'WO-002-neighbor.md'),
+    doc('WO-002', 'work-order', 'Neighbor work', 'backlog', ['links:', '  - id: REQ-001', '    rel: relates-to'], 'WO2-MARKER'),
+  );
+  for (let i = 1; i <= decisions; i++) {
+    const id = `DEC-${String(i).padStart(3, '0')}`;
+    writeFileSync(
+      join(veri, 'decisions', `${id}-dense.md`),
+      doc(id, 'decision', `Dense decision ${i}`, 'active', ['approved: 2026-08-01', 'links:', '  - id: REQ-001', '    rel: constrains'], `DEC-BODY-MARKER-${id} ${'x'.repeat(2400)}`),
+    );
+  }
+  return root;
+}
+
+test('under the threshold everything inlines — the map never appears (DEC-035 escalation)', async (t) => {
+  const pkg = await assembleContext(hubCorpus(t, 4), 'WO-001');
+  assert.equal(pkg.mode, 'inline');
+  assert.equal(pkg.mappedCount, 0);
+  assert.ok(pkg.totalTokens <= INLINE_THRESHOLD_TOKENS);
+  assert.ok(!pkg.text.includes('## Context map'), 'no map section in inline mode');
+  assert.ok(pkg.text.includes('DEC-BODY-MARKER-DEC-001'), 'hop-2 bodies inline under the threshold');
+
+  const fixture = await assembleContext(FIXTURE, 'WO-001');
+  assert.equal(fixture.mode, 'inline'); // the existing fixture stays byte-stable
+});
+
+test('over the threshold the binding core ships whole and the hop-2 ring becomes the map', async (t) => {
+  const pkg = await assembleContext(hubCorpus(t, 30), 'WO-001');
+  assert.equal(pkg.mode, 'layered');
+  assert.equal(pkg.mappedCount, 32); // 30 decisions + draft REQ-002 + neighbor WO-002
+
+  // Binding set in full, at any corpus size (REQ-018).
+  for (const marker of ['WF-MARKER', 'WO-BODY-MARKER', 'REQ1-BODY-MARKER']) {
+    assert.ok(pkg.text.includes(marker), `core must inline ${marker}`);
+  }
+  // Hop-2 bodies are enumerated, never inlined…
+  assert.ok(!pkg.text.includes('DEC-BODY-MARKER-DEC-001'), 'mapped bodies must not inline');
+  assert.match(pkg.text, /## Context map — 32 adjacent documents, not inlined/);
+  // …and every ring document appears with id, title, and how it connects.
+  for (let i = 1; i <= 30; i++) {
+    const id = `DEC-${String(i).padStart(3, '0')}`;
+    assert.match(pkg.text, new RegExp(`^- ${id} — Dense decision ${i} · decision · active · via REQ-001 \\(constrains\\) · ~\\d+ tokens$`, 'm'));
+  }
+  // A pending ring document maps with its status visible instead of joining
+  // the pending block (REQ-008 labeling applies to inlined bodies).
+  assert.match(pkg.text, /^- REQ-002 — Pending ring requirement · requirement · draft · via REQ-001 \(extends\)/m);
+  assert.ok(!pkg.text.includes('## Pending proposals'), 'no inlined pending bodies in this corpus');
+  // A neighboring work order — invisible before DEC-035 — is now enumerated.
+  assert.match(pkg.text, /^- WO-002 — Neighbor work · work-order · backlog · via REQ-001 \(relates-to\)/m);
+
+  // The header keeps its exact shape: the package panel parses it (WO-013).
+  assert.match(pkg.text, /\(\d+ docs · ~\d+ tokens\)/);
+
+  // Determinism on this side of the threshold too.
+  const again = await assembleContext(hubCorpus(t, 30), 'WO-001');
+  assert.equal(pkg.text, again.text);
+});
+
+test('package tokens grow with the direct neighborhood, not corpus size (REQ-018)', async (t) => {
+  const at30 = await assembleContext(hubCorpus(t, 30), 'WO-001');
+  const at60 = await assembleContext(hubCorpus(t, 60), 'WO-001');
+  assert.equal(at60.mappedCount, 62);
+  // Doubling the hop-2 ring adds only map rows (~25 tokens each), not the
+  // ~18k tokens its bodies would cost inline.
+  const growth = at60.totalTokens - at30.totalTokens;
+  assert.ok(growth < 1500, `growth ${growth} should be map rows only`);
+  assert.ok(at60.totalTokens < INLINE_THRESHOLD_TOKENS, 'layered package stays bounded');
 });
 
 test('core assembly policy carries the values this package used to hardcode (DEC-025)', () => {

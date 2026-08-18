@@ -114,3 +114,11 @@ export function packingFor(type: DocType, status: string): Packing {
   const policy = ASSEMBLY_POLICY[type];
   return policy.byStatus?.[status] ?? policy.packing;
 }
+
+/**
+ * DEC-035's escalation rule: when the fully-inlined 2-hop package fits under
+ * this many estimated tokens, everything inlines (the pre-layering behavior).
+ * Past it, hop-1 stays full text and the hop-2 ring becomes the context map.
+ * Part of the assembly contract — an enforced lever, not a style choice.
+ */
+export const INLINE_THRESHOLD_TOKENS = 15_000;
