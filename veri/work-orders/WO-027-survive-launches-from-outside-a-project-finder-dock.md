@@ -2,9 +2,9 @@
 id: WO-027
 type: work-order
 title: Survive launches from outside a project (Finder/Dock)
-status: in-progress
+status: done
 created: 2026-08-14
-updated: 2026-08-14
+updated: 2026-08-18
 links:
   - id: SRC-011
     rel: designed-by
@@ -62,10 +62,19 @@ not only from a terminal inside a project.
 
 - [x] Launch with cwd `/` and no args, MRU holding a valid project →
       that project opens and renders.
-- [ ] Same launch with an empty (or all-stale) MRU → native picker;
-      choosing a project folder opens it.
-- [ ] Picking a non-project folder → message box loops back to the
+- [x] Same launch with an empty (or all-stale) MRU → native picker;
+      choosing a project folder opens it. (Superseded by [[WO-030]]:
+      the cold-start path now lands on the welcome screen, SRC-013 —
+      verified 2026-08-18: empty and all-stale MRU both render the
+      welcome screen, and its picker opens a chosen project.)
+- [x] Picking a non-project folder → message box loops back to the
       picker; Quit and Cancel exit cleanly; nothing written.
+      (Superseded by [[WO-030]]: a bad pick returns to the welcome
+      screen with an inline notice and Cancel returns there too —
+      the app never quits; the message-box loop survives only on the
+      [[REQ-015]] format-mismatch path. Verified 2026-08-18: refused
+      folder left untouched, MRU written only after a successful
+      open.)
 - [x] Stale MRU entries are skipped, not opened.
 - [x] Explicit path argument still wins in dev (`electron . <path>`)
       and works in the packaged binary.
