@@ -2,7 +2,8 @@
 id: DEC-056
 type: decision
 title: "Narrow-pane states are CSS container queries; the type-panel auto-collapse is an applyPanes transition with an in-memory memo"
-status: proposed
+status: active
+approved: 2026-08-19
 created: 2026-08-19
 updated: 2026-08-19
 links:
