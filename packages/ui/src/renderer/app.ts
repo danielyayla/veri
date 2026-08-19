@@ -4,7 +4,7 @@ import { compareIds } from '@veri/core/ids';
 import type { ContextPackage, PaletteResult } from '@veri/mcp';
 import type { Snapshot } from '../lib/snapshot.ts';
 import { api } from './api.ts';
-import type { AppInfo, ProjectInfo, TemplateInfo, UpdateStatus, VeriApi } from './api.ts';
+import type { AppInfo, ProjectInfo, TemplateInfo, ThemePref, UpdateStatus, VeriApi } from './api.ts';
 import { h } from './dom.ts';
 import { TYPE_META, relTime, statusColor, tint } from './theme.ts';
 import { advisoriesByDoc, docsById, isPending, issuesByDoc, packageSummary } from './derive.ts';
@@ -66,7 +66,7 @@ import { DEAD_LABEL, livingCount, livingGroups, panelList, pushRecent } from './
 export type View = 'home' | 'workorder' | 'homeview' | 'search' | 'settings';
 
 /** Sections of the Settings view (WO-036, SRC-014). */
-export type SettingsSection = 'templates' | 'agent' | 'project' | 'updates';
+export type SettingsSection = 'templates' | 'agent' | 'project' | 'updates' | 'appearance';
 
 export interface OpenDocOpts {
   preview?: boolean;
@@ -208,6 +208,10 @@ export interface Ctx {
   openSettings(section: SettingsSection): void;
   /** Static launch facts for the Settings view; null until the IPC lands. */
   appInfo: AppInfo | null;
+  /** Theme (WO-060, SRC-032): the stored preference and the resolved mode. */
+  themePref: ThemePref;
+  renderDark: boolean;
+  setTheme(pref: ThemePref): void;
   /** What the background updater has done; refreshed on Updates opens. */
   updStatus: UpdateStatus | null;
   /** Pin/unpin a doc in the sidebar working set (WO-014). */
@@ -376,6 +380,9 @@ class App implements Ctx {
     find: null,
   };
   appInfo: AppInfo | null = null;
+  // Seeded from the first-paint query param; corrected by themeGet on boot.
+  themePref: ThemePref = 'system';
+  renderDark = document.documentElement.dataset['theme'] !== 'light';
   updStatus: UpdateStatus | null = null;
   /** Editing state per doc tab (WO-022); islands survive re-renders here. */
   private docEdit = new Map<string, DocEdit>();
@@ -542,7 +549,37 @@ class App implements Ctx {
     });
   }
 
+  /** Theme wiring (WO-060): runs for both the project and welcome paths. */
+  private async initTheme(): Promise<void> {
+    const state = await this.api.themeGet();
+    this.themePref = state.pref;
+    this.applyResolvedTheme(state.dark);
+    this.api.onThemeChanged((dark) => this.applyResolvedTheme(dark));
+  }
+
+  /** Flip the token layer; idempotent, instant, every surface is CSS-driven. */
+  private applyResolvedTheme(dark: boolean): void {
+    if (dark) delete document.documentElement.dataset['theme'];
+    else document.documentElement.dataset['theme'] = 'light';
+    if (dark !== this.renderDark) {
+      this.renderDark = dark;
+      this.render();
+    }
+  }
+
+  setTheme(pref: ThemePref): void {
+    this.themePref = pref;
+    this.announce(`Theme: ${pref}`);
+    this.render();
+    void this.api.themeSet(pref).then((state) => {
+      this.themePref = state.pref;
+      this.applyResolvedTheme(state.dark);
+      this.render();
+    });
+  }
+
   async boot(): Promise<void> {
+    void this.initTheme();
     if (new URLSearchParams(location.search).get('welcome') === '1') {
       this.bootWelcome();
       return;
@@ -1701,7 +1738,7 @@ class App implements Ctx {
       h('div', { class: 'tb-right' }, healthChip, h(
         'div',
         { class: 'tb-git' },
-        h('span', { style: 'color:#7FAF8A;' }, '⎇'),
+        h('span', { style: 'color:var(--green);' }, '⎇'),
         h('span', {}, git === null ? 'no git' : `${git.branch} · ${git.dirty ? 'dirty' : 'clean'}`),
       )),
     );
@@ -2107,7 +2144,7 @@ class App implements Ctx {
     const doc = row.kind === 'doc' ? row.hit : null;
     const meta = doc !== null ? TYPE_META[doc.type as VeriDocument['type']] : undefined;
     const chipStyle =
-      meta !== undefined ? `color:${meta.color};background:${tint(meta.color)};` : 'color:#8B8893;background:#1B1B20;';
+      meta !== undefined ? `color:${meta.color};background:${tint(meta.color)};` : 'color:var(--muted);background:var(--row-hover);';
     const snippet = doc?.snippet ?? null;
     const glyph = doc !== null ? doc.id : row.kind === 'overflow' ? '⌕' : (row as { glyph: string }).glyph;
     const title =
@@ -2141,7 +2178,7 @@ class App implements Ctx {
             ? null
             : h(
                 'span',
-                { class: 'pal-status', style: `color:${doc !== null ? statusColor(doc.status) : '#55525E'};` },
+                { class: 'pal-status', style: `color:${doc !== null ? statusColor(doc.status) : 'var(--ghost)'};` },
                 doc !== null ? doc.status : row.kind === 'command' ? 'command' : 'view',
               ),
         ),
@@ -2332,7 +2369,7 @@ class App implements Ctx {
             h(
               'span',
               { class: 'pop-meta' },
-              h('span', { class: 'settings-dot', style: `background:${healthy ? '#7FAF8A' : '#D9A03F'};` }),
+              h('span', { class: 'settings-dot', style: `background:${healthy ? 'var(--green)' : 'var(--amber)'};` }),
             ),
           ),
           popRow('▣', 'Project settings', 'project'),
@@ -2344,6 +2381,7 @@ class App implements Ctx {
             'updates',
             this.appInfo !== null ? h('span', { class: 'pop-meta pop-meta-ghost' }, this.appInfo.version) : null,
           ),
+          popRow('◐', 'Appearance', 'appearance'),
         )
       : null;
     // The working-context group (WO-039, SRC-018): the persisted recents,
@@ -2394,7 +2432,7 @@ class App implements Ctx {
           h('span', { class: 'nav-lbl' }, 'Settings'),
           // Config state only — a static dot; a pulse would imply live
           // client status, which REQ-005 forbids showing.
-          h('span', { class: 'settings-dot', style: `background:${healthy ? '#7FAF8A' : '#D9A03F'};` }),
+          h('span', { class: 'settings-dot', style: `background:${healthy ? 'var(--green)' : 'var(--amber)'};` }),
         ),
         pop,
       ),
@@ -2598,7 +2636,7 @@ class App implements Ctx {
       },
       h(
         'span',
-        { class: 'tab-id', style: `color:${doc !== undefined ? TYPE_META[doc.type].color : '#8B8893'};` },
+        { class: 'tab-id', style: `color:${doc !== undefined ? TYPE_META[doc.type].color : 'var(--muted)'};` },
         view?.glyph ?? target,
       ),
       h('span', { class: 'tab-title' }, title),
@@ -3082,6 +3120,13 @@ class App implements Ctx {
     }
     return out;
   }
+}
+
+// First paint (WO-060): main resolves the theme before load and passes it as
+// a query param — applied synchronously here so a light launch never renders
+// a dark frame while boot's themeGet round-trip is in flight.
+if (new URLSearchParams(location.search).get('theme') === 'light') {
+  document.documentElement.dataset['theme'] = 'light';
 }
 
 const app = new App(document.getElementById('app')!);

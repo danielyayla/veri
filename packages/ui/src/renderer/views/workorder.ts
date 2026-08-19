@@ -102,7 +102,7 @@ function linkedCard(
   const key = `${woId}:${target.id}`;
   const open = ctx.state.expanded.has(key);
   const meta = TYPE_META[target.type];
-  const border = target.type === 'requirement' ? '#1F2A33' : '#2A2418';
+  const border = target.type === 'requirement' ? 'var(--info-border)' : 'var(--ember-border-2)';
   const body = open ? detail() : null;
   return h(
     'div',
@@ -145,7 +145,7 @@ function requirementDetail(ctx: Ctx, target: VeriDocument): HTMLElement | null {
           h(
             'div',
             { class: 'linked-crit-row' },
-            h('span', { style: `color:${b.done ? '#7FAF8A' : '#55525E'};` }, b.done ? '✓' : '○'),
+            h('span', { style: `color:${b.done ? 'var(--green)' : 'var(--ghost)'};` }, b.done ? '✓' : '○'),
             h('span', {}, plainText(b.segs)),
           ),
         ),
@@ -332,7 +332,7 @@ function contextPanel(ctx: Ctx, doc: VeriDocument): HTMLElement {
           'button',
           {
             class: 'btn-reset btn-block btn-secondary',
-            style: ctx.state.kickoffCopied ? 'color:#7FAF8A;border-color:#243026;' : '',
+            style: ctx.state.kickoffCopied ? 'color:var(--green);border-color:var(--green-border-2);' : '',
             fkey: 'pkg-kickoff',
             onClick: () => ctx.copyKickoff(),
           },
@@ -429,7 +429,7 @@ export function workOrderView(ctx: Ctx): HTMLElement {
             'Work Orders',
           ),
           h('span', { class: 'crumb-sep' }, '/'),
-          h('span', { style: 'color:#E8703A;' }, doc.id),
+          h('span', { style: 'color:var(--ember);' }, doc.id),
           modeToggle(ctx, doc.id),
         ),
         h(
@@ -446,7 +446,7 @@ export function workOrderView(ctx: Ctx): HTMLElement {
           ...gatingDocs(ctx.byId, doc).map((g) => gateChip(ctx, g.id)),
           h('span', {}, `created ${doc.created}`),
           h('span', {}, `updated ${ctx.rel(doc.updated)}`),
-          ctx.snap.git !== null ? h('span', { style: 'color:#E8703A;' }, `branch ${ctx.snap.git.branch}`) : null,
+          ctx.snap.git !== null ? h('span', { style: 'color:var(--ember);' }, `branch ${ctx.snap.git.branch}`) : null,
         ),
         ...receiptCards(ctx, doc),
         ...section('Summary', secs.get('Summary') ?? secs.get('')),

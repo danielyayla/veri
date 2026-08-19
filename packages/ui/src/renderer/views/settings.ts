@@ -8,7 +8,7 @@
  */
 import { h } from '../dom.ts';
 import type { Ctx, SettingsSection } from '../app.ts';
-import type { AppInfo, UpdateStatus } from '../api.ts';
+import type { AppInfo, ThemePref, UpdateStatus } from '../api.ts';
 import { relTime } from '../theme.ts';
 import { mcpView, tildify } from './mcp.ts';
 import { templatesView } from './templates.ts';
@@ -25,7 +25,26 @@ const PROJECT_ITEMS: NavItem[] = [
   { key: 'project', glyph: '▣', label: 'Project settings' },
 ];
 
-const APPLICATION_ITEMS: NavItem[] = [{ key: 'updates', glyph: '↻', label: 'Updates' }];
+const APPLICATION_ITEMS: NavItem[] = [
+  { key: 'updates', glyph: '↻', label: 'Updates' },
+  { key: 'appearance', glyph: '◐', label: 'Appearance' },
+];
+
+/** Appearance picker order (SRC-032): System first — it is the default. */
+export const THEME_PREFS: ThemePref[] = ['system', 'light', 'dark'];
+
+/** Arrow-key rotation through the radiogroup (REQ-020); null = not handled. */
+export function rotatePref(current: ThemePref, key: string): ThemePref | null {
+  const i = THEME_PREFS.indexOf(current);
+  if (key === 'ArrowRight' || key === 'ArrowDown') return THEME_PREFS[(i + 1) % 3]!;
+  if (key === 'ArrowLeft' || key === 'ArrowUp') return THEME_PREFS[(i + 2) % 3]!;
+  return null;
+}
+
+/** The meta card's `rendering` line: what is on screen, and who decided. */
+export function renderingLine(pref: ThemePref, dark: boolean): string {
+  return (dark ? 'dark' : 'light') + (pref === 'system' ? ' · from macOS' : '');
+}
 
 /** The Updates status row (pure, for tests). Failures never surface here —
     REQ-011: an unreachable feed behaves exactly like being up to date. */
@@ -95,8 +114,101 @@ function updatesSection(ctx: Ctx): HTMLElement {
     kvCard([
       ['version', ctx.appInfo?.version ?? '', { mono: true }],
       ['channel', 'latest', { mono: true }],
-      ['status', status.text, { color: status.ok ? '#7FAF8A' : undefined }],
+      ['status', status.text, { color: status.ok ? 'var(--green)' : undefined }],
     ]),
+  );
+}
+
+/** One theme tile: a real radio button; the thumb always paints its own
+    theme (fixed --mini-* tokens), never the active one. */
+function themeTile(ctx: Ctx, pref: ThemePref, name: string, sub: string, thumb: HTMLElement): HTMLElement {
+  return h(
+    'button',
+    {
+      class: 'ttile',
+      role: 'radio',
+      checked: ctx.themePref === pref,
+      fkey: `theme:${pref}`,
+      onClick: () => ctx.setTheme(pref),
+    },
+    thumb,
+    h(
+      'div',
+      { class: 'tlabel' },
+      h('span', { class: 'tname' }, name),
+      // The selected state must read through text, not border color alone (REQ-020).
+      h('span', { class: 'tactive' }, '✓ active'),
+    ),
+    h('div', { class: 'tsub' }, sub),
+  );
+}
+
+/** A miniature shell drawn in fixed colors: tiny topbar, sidebar, text bars. */
+function miniShell(theme: 'dark' | 'lite', mirrored = false): HTMLElement {
+  return h(
+    'div',
+    { class: `mini mini-${theme}` },
+    h('div', { class: 'mini-top' }),
+    h(
+      'div',
+      { class: 'mini-row' },
+      mirrored ? null : h('div', { class: 'mini-side' }),
+      h(
+        'div',
+        { class: 'mini-main' },
+        h('div', { class: 'mini-bar' }),
+        h('div', { class: 'mini-bar mini-bar-2' }),
+        h('div', { class: 'mini-bar mini-bar-accent' }),
+      ),
+      mirrored ? h('div', { class: 'mini-side' }) : null,
+    ),
+  );
+}
+
+function appearanceSection(ctx: Ctx): HTMLElement {
+  // Only when System is active does the renderer know what the OS resolved to.
+  const sysNow =
+    ctx.themePref === 'system' ? `follows macOS · ${ctx.renderDark ? 'dark' : 'light'} now` : 'follows macOS';
+  const picker = h(
+    'div',
+    {
+      class: 'theme-row',
+      role: 'radiogroup',
+      label: 'Theme',
+      onKeydown: (e) => {
+        const next = rotatePref(ctx.themePref, e.key);
+        if (next === null) return;
+        e.preventDefault();
+        ctx.setTheme(next);
+        // Focus follows selection, per radiogroup convention.
+        requestAnimationFrame(() => {
+          document.querySelector<HTMLElement>(`[data-fkey="theme:${next}"]`)?.focus();
+        });
+      },
+    },
+    themeTile(
+      ctx,
+      'system',
+      'System',
+      sysNow,
+      h('div', { class: 'thumb thumb-split' }, miniShell('lite'), miniShell('dark', true)),
+    ),
+    themeTile(ctx, 'light', 'Light', 'always light', h('div', { class: 'thumb' }, miniShell('lite'))),
+    themeTile(ctx, 'dark', 'Dark', 'always dark', h('div', { class: 'thumb' }, miniShell('dark'))),
+  );
+  return section(
+    'Appearance',
+    'How Veri looks on this Mac. The choice is stored per machine, not in the project — teammates and agents never see it.',
+    picker,
+    kvCard([
+      ['theme', ctx.themePref, { mono: true }],
+      ['rendering', renderingLine(ctx.themePref, ctx.renderDark), { mono: true }],
+    ]),
+    h(
+      'p',
+      { class: 'set-foot' },
+      'System tracks the macOS appearance live — including scheduled Auto light/dark switching. Light and Dark override it. Switching is instant; nothing reloads.',
+    ),
   );
 }
 
@@ -118,6 +230,7 @@ export function settingsView(ctx: Ctx): HTMLElement {
   if (current === 'templates') body = templatesView(ctx);
   else if (current === 'agent') body = mcpView(ctx);
   else if (current === 'project') body = projectSection(ctx);
+  else if (current === 'appearance') body = appearanceSection(ctx);
   else body = updatesSection(ctx);
   return h(
     'div',
@@ -130,8 +243,6 @@ export function settingsView(ctx: Ctx): HTMLElement {
       h('div', { class: 'set-gap' }),
       h('div', { class: 'set-label' }, 'Application'),
       ...APPLICATION_ITEMS.map(item),
-      // Placeholder only (WO-036 out of scope): inert row, "soon" tag.
-      h('div', { class: 'set-item set-item-soon' }, h('span', { class: 'set-glyph' }, '◐'), h('span', {}, 'Appearance'), h('span', { class: 'set-soon' }, 'soon')),
     ),
     h('div', { class: 'set-body' }, body),
   );

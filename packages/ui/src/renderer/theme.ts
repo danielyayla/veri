@@ -1,6 +1,8 @@
 import type { DocType } from '@veri/core';
 
-/** Design tokens from design/README.md — type colors, status colors, tints. */
+/** Design tokens from design/README.md — type colors, status colors, tints.
+    All values are CSS variables so the two palettes in styles.css (WO-060,
+    SRC-032) reach inline styles too; literals live only in the token blocks. */
 
 export interface TypeMeta {
   color: string;
@@ -10,36 +12,34 @@ export interface TypeMeta {
 }
 
 export const TYPE_META: Record<DocType, TypeMeta> = {
-  requirement: { color: '#7EA6C4', label: 'requirement', crumb: 'Requirements', group: 'REQUIREMENTS' },
-  decision: { color: '#CFA83D', label: 'decision', crumb: 'Decisions', group: 'DECISIONS' },
-  'work-order': { color: '#E8703A', label: 'work order', crumb: 'Work Orders', group: 'WORK ORDERS' },
-  source: { color: '#908BA8', label: 'source', crumb: 'Sources', group: 'SOURCES' },
-  workflow: { color: '#7FAF8A', label: 'workflow', crumb: 'Workflow', group: 'WORKFLOW' },
+  requirement: { color: 'var(--t-req)', label: 'requirement', crumb: 'Requirements', group: 'REQUIREMENTS' },
+  decision: { color: 'var(--t-dec)', label: 'decision', crumb: 'Decisions', group: 'DECISIONS' },
+  'work-order': { color: 'var(--t-wo)', label: 'work order', crumb: 'Work Orders', group: 'WORK ORDERS' },
+  source: { color: 'var(--t-src)', label: 'source', crumb: 'Sources', group: 'SOURCES' },
+  workflow: { color: 'var(--t-wf)', label: 'workflow', crumb: 'Workflow', group: 'WORKFLOW' },
 };
 
 export const STATUS_COLORS: Record<string, string> = {
-  accepted: '#7FAF8A',
-  active: '#7FAF8A',
-  done: '#7FAF8A',
-  draft: '#D9A03F',
-  proposed: '#D9A03F',
-  backlog: '#A09DA6',
-  retired: '#8B8893',
-  superseded: '#D9A03F',
-  'in-progress': '#E8703A',
-  imported: '#908BA8',
+  accepted: 'var(--green)',
+  active: 'var(--green)',
+  done: 'var(--green)',
+  draft: 'var(--amber)',
+  proposed: 'var(--amber)',
+  backlog: 'var(--secondary)',
+  retired: 'var(--muted)',
+  superseded: 'var(--amber)',
+  'in-progress': 'var(--ember)',
+  imported: 'var(--t-src)',
 };
 
 export function statusColor(status: string): string {
-  return STATUS_COLORS[status] ?? '#A09DA6';
+  return STATUS_COLORS[status] ?? 'var(--secondary)';
 }
 
-/** The chip background formula from the README: the chip's color at 10% alpha. */
-export function tint(hex: string, alpha = 0.1): string {
-  const r = Number.parseInt(hex.slice(1, 3), 16);
-  const g = Number.parseInt(hex.slice(3, 5), 16);
-  const b = Number.parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r},${g},${b},${alpha})`;
+/** The chip background formula from the README: the chip's color at 10% alpha.
+    color-mix instead of rgba so var() colors stay theme-reactive. */
+export function tint(color: string, alpha = 0.1): string {
+  return `color-mix(in srgb, ${color} ${Math.round(alpha * 100)}%, transparent)`;
 }
 
 /** "1.8k" / "842" — the panel's per-doc token format. */

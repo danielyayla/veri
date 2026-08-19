@@ -50,16 +50,16 @@ export interface EditorHooks {
 
 /** Markdown source palette per SRC-008 — marks recede, headings assert. */
 const mdHighlight = HighlightStyle.define([
-  { tag: tags.heading, color: '#E7E4DE', fontWeight: '600' },
-  { tag: tags.strong, color: '#E7E4DE', fontWeight: '600' },
+  { tag: tags.heading, color: 'var(--text)', fontWeight: '600' },
+  { tag: tags.strong, color: 'var(--text)', fontWeight: '600' },
   { tag: tags.emphasis, fontStyle: 'italic' },
-  { tag: tags.monospace, color: '#A09DA6' },
-  { tag: tags.processingInstruction, color: '#55525E' },
-  { tag: tags.punctuation, color: '#55525E' },
-  { tag: tags.meta, color: '#55525E' },
-  { tag: tags.quote, color: '#8B8893' },
-  { tag: tags.link, color: '#E8703A' },
-  { tag: tags.url, color: '#E8703A' },
+  { tag: tags.monospace, color: 'var(--secondary)' },
+  { tag: tags.processingInstruction, color: 'var(--ghost)' },
+  { tag: tags.punctuation, color: 'var(--ghost)' },
+  { tag: tags.meta, color: 'var(--ghost)' },
+  { tag: tags.quote, color: 'var(--muted)' },
+  { tag: tags.link, color: 'var(--ember)' },
+  { tag: tags.url, color: 'var(--ember)' },
 ]);
 
 const WIKI_RE = /\[\[((?:REQ|DEC|WO|SRC|WF)-\d{3,})\]\]/g;

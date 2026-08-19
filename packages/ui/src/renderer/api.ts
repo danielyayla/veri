@@ -83,6 +83,18 @@ export interface VeriApi {
   /** New project, step 2: scaffold `dir` then open it. Error message or null. */
   createProject(dir: string, demo: boolean): Promise<string | null>;
   onChanged(cb: () => void): void;
+  /** Theme (WO-060): app-level preference; `dark` is the resolved mode. */
+  themeGet(): Promise<ThemeState>;
+  themeSet(pref: ThemePref): Promise<ThemeState>;
+  /** Fires whenever the resolved mode may have changed (OS flip, explicit set). */
+  onThemeChanged(cb: (dark: boolean) => void): void;
+}
+
+export type ThemePref = 'system' | 'light' | 'dark';
+
+export interface ThemeState {
+  pref: ThemePref;
+  dark: boolean;
 }
 
 export interface TemplateInfo {

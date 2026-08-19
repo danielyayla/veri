@@ -91,11 +91,11 @@ export function mcpView(ctx: Ctx): HTMLElement {
     ? h(
         'div',
         { class: 'mcp-banner mcp-banner-info' },
-        h('span', { class: 'mcp-banner-glyph', style: 'color:#7EA6C4;' }, '↺'),
+        h('span', { class: 'mcp-banner-glyph', style: 'color:var(--t-req);' }, '↺'),
         h(
           'div',
           { class: 'mcp-banner-body' },
-          h('span', { class: 'mcp-banner-lead', style: 'color:#7EA6C4;' }, '.mcp.json was changed outside Veri.'),
+          h('span', { class: 'mcp-banner-lead', style: 'color:var(--t-req);' }, '.mcp.json was changed outside Veri.'),
           ' The file is the source of truth — checks re-ran just now and reflect what’s on disk.',
         ),
       )
@@ -105,11 +105,11 @@ export function mcpView(ctx: Ctx): HTMLElement {
     ? h(
         'div',
         { class: 'mcp-banner mcp-banner-warn' },
-        h('span', { class: 'mcp-banner-glyph', style: 'color:#D9A03F;' }, '⟳'),
+        h('span', { class: 'mcp-banner-glyph', style: 'color:var(--amber);' }, '⟳'),
         h(
           'div',
           { class: 'mcp-banner-body mcp-banner-body-warn' },
-          h('span', { class: 'mcp-banner-lead', style: 'color:#D9A03F;' }, 'Restart your agent session to apply.'),
+          h('span', { class: 'mcp-banner-lead', style: 'color:var(--amber);' }, 'Restart your agent session to apply.'),
           ' Agent apps read .mcp.json on launch — quit and reopen Claude Code, or start a new session. This is the one step Veri can’t do for you.',
         ),
       )
@@ -421,7 +421,7 @@ function healthCard(ctx: Ctx, status: McpStatus, write: (a: Promise<void>) => vo
       h('span', { class: 'mcp-eyebrow' }, 'HEALTH'),
       h(
         'span',
-        { class: 'mcp-health-count', style: `color:${failing === 0 ? '#7FAF8A' : '#D9A03F'};` },
+        { class: 'mcp-health-count', style: `color:${failing === 0 ? 'var(--green)' : 'var(--amber)'};` },
         failing === 0 ? 'all 4 checks pass' : `${failing} check${failing === 1 ? '' : 's'} failing`,
       ),
     ),

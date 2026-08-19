@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { updateStatusLine } from './settings.ts';
+import { renderingLine, rotatePref, updateStatusLine } from './settings.ts';
 import type { AppInfo } from '../api.ts';
 
 const packaged: AppInfo = { version: '1.2.3', packaged: true, home: '/Users/x', formatLabel: 'veri/format v1' };
@@ -28,4 +28,26 @@ test('before any check completes, the schedule is stated instead', () => {
   const line = updateStatusLine(packaged, { downloadedVersion: null, lastCheckAt: null });
   assert.match(line.text, /on launch and every 4 hours/);
   assert.equal(line.ok, false);
+});
+
+// ---- Appearance (WO-060, SRC-032) ----
+
+test('rotatePref cycles System → Light → Dark → System with right/down', () => {
+  assert.equal(rotatePref('system', 'ArrowRight'), 'light');
+  assert.equal(rotatePref('light', 'ArrowDown'), 'dark');
+  assert.equal(rotatePref('dark', 'ArrowRight'), 'system');
+});
+
+test('rotatePref cycles backwards with left/up and ignores other keys', () => {
+  assert.equal(rotatePref('system', 'ArrowLeft'), 'dark');
+  assert.equal(rotatePref('dark', 'ArrowUp'), 'light');
+  assert.equal(rotatePref('light', 'Enter'), null);
+  assert.equal(rotatePref('light', 'Tab'), null);
+});
+
+test('renderingLine names the resolved mode and credits macOS only for System', () => {
+  assert.equal(renderingLine('system', true), 'dark · from macOS');
+  assert.equal(renderingLine('system', false), 'light · from macOS');
+  assert.equal(renderingLine('light', false), 'light');
+  assert.equal(renderingLine('dark', true), 'dark');
 });

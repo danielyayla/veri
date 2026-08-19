@@ -21,10 +21,10 @@ const dot = (color: string): HTMLElement => h('span', { class: 'hv-dot', style: 
 
 /** The path-of-work row's four mini-cards (WO-030, SRC-013). */
 const PATH_OF_WORK: Array<[string, string, string]> = [
-  ['sources', '#908BA8', 'Evidence in: notes, specs, transcripts'],
-  ['requirements', '#7EA6C4', 'What must be true'],
-  ['decisions', '#CFA83D', 'What was chosen, and why'],
-  ['work orders', '#E8703A', 'Work an agent can pick up'],
+  ['sources', 'var(--t-src)', 'Evidence in: notes, specs, transcripts'],
+  ['requirements', 'var(--t-req)', 'What must be true'],
+  ['decisions', 'var(--t-dec)', 'What was chosen, and why'],
+  ['work orders', 'var(--ember)', 'Work an agent can pick up'],
 ];
 
 /**
@@ -83,7 +83,7 @@ export function homeView(ctx: Ctx): HTMLElement {
       : h('div', { class: cls }, ...children);
   const idColor = (id: string): string => {
     const doc = ctx.byId.get(id);
-    return doc !== undefined ? TYPE_META[doc.type].color : '#A09DA6';
+    return doc !== undefined ? TYPE_META[doc.type].color : 'var(--secondary)';
   };
 
   // "Empty" = zero non-workflow documents (SRC-013) — the state every new
@@ -102,8 +102,8 @@ export function homeView(ctx: Ctx): HTMLElement {
           h(
             'div',
             { class: 'hv-card-head' },
-            dot('#D9A03F'),
-            h('span', { class: 'hv-label', style: 'color:#D9A03F;' }, 'NEEDS REVIEW'),
+            dot('var(--amber)'),
+            h('span', { class: 'hv-label', style: 'color:var(--amber);' }, 'NEEDS REVIEW'),
             h('span', { class: 'hv-meta' }, `${pending.length} pending`),
           ),
           ...pending.map((d) =>
@@ -127,7 +127,7 @@ export function homeView(ctx: Ctx): HTMLElement {
     { class: 'hv-meta' },
     h(
       'span',
-      { style: issues.length > 0 ? 'color:#D9A03F;' : 'color:#7FAF8A;' },
+      { style: issues.length > 0 ? 'color:var(--amber);' : 'color:var(--green);' },
       issues.length > 0 ? `${issues.length} issue${issues.length === 1 ? '' : 's'}` : 'clean',
     ),
     advisories.length > 0 ? h('span', { class: 'hv-adv-count' }, ` · ${advisories.length} advisories`) : null,
@@ -151,7 +151,7 @@ export function homeView(ctx: Ctx): HTMLElement {
           ),
         ];
   const health = card(
-    [dot('#D9A03F'), label('HEALTH'), healthMeta],
+    [dot('var(--amber)'), label('HEALTH'), healthMeta],
     [
       ...issues.map((issue) => {
         const docId = issueDocId(ctx.snap, issue);
@@ -175,7 +175,7 @@ export function homeView(ctx: Ctx): HTMLElement {
   const flight = inFlight(ctx.snap);
   const inFlightCard = card(
     [
-      dot('#E8703A'),
+      dot('var(--ember)'),
       label('IN FLIGHT'),
       h('span', { class: 'hv-meta' }, `${flight.length} work order${flight.length === 1 ? '' : 's'}`),
     ],
@@ -191,7 +191,7 @@ export function homeView(ctx: Ctx): HTMLElement {
         wo.agent ? h('span', { class: 'hv-agent', title: 'Agent execution attached' }, '⌁') : null,
         h(
           'span',
-          { class: 'hv-reqs', style: wo.reqCount === 0 ? 'color:#D9A03F;' : '' },
+          { class: 'hv-reqs', style: wo.reqCount === 0 ? 'color:var(--amber);' : '' },
           `${wo.reqCount} REQ`,
         ),
         h('span', { class: 'hv-status', style: `color:${statusColor(wo.status)};` }, wo.status),

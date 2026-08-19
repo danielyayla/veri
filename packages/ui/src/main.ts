@@ -2,7 +2,7 @@ import { watch } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BrowserWindow, Menu, app, clipboard, dialog, ipcMain, shell } from 'electron';
+import { BrowserWindow, Menu, app, clipboard, dialog, ipcMain, nativeTheme, shell } from 'electron';
 import {
   BODY_TEMPLATES,
   ProjectExistsError,
@@ -27,6 +27,8 @@ import type { VerifyResult } from './lib/verify.ts';
 import { cleanupLaunchScripts, connectAgent, detectAgents, launchAgent } from './lib/agents.ts';
 import type { AgentId } from './lib/agents.ts';
 import { SnapshotBuilder, countProjectDocs } from './lib/snapshot.ts';
+import { isThemePref, loadThemePref, saveThemePref } from './lib/appearance.ts';
+import type { ThemePref } from './lib/appearance.ts';
 import { loadWorkspaceState, saveWorkspaceState } from './lib/workspace.ts';
 import type { WorkspaceState } from './lib/workspace.ts';
 import { appendNote, appendReviewNote, approveDoc, setLinks, setStatus } from './lib/write.ts';
@@ -121,6 +123,27 @@ async function getProjectStats(dir: string): Promise<{ docCount: number; issueCo
 // write a PNG, quit. VERI_UI_SHOT=/path.png [VERI_UI_VIEW=homeview] [VERI_UI_DOC=WO-005]
 const shotPath = process.env['VERI_UI_SHOT'];
 
+// Theme preference (WO-060, SRC-032): app-level, per machine, resolved before
+// the first window so its backgroundColor and the renderer's first paint
+// agree. VERI_UI_THEME overrides without persisting (screenshot harness).
+let themePref: ThemePref = 'system';
+
+async function initTheme(): Promise<void> {
+  const envPref = process.env['VERI_UI_THEME'];
+  themePref = isThemePref(envPref) ? envPref : await loadThemePref(getConfigDir());
+  nativeTheme.themeSource = themePref;
+  // System tracking (and explicit sets — the event is idempotent renderer-side):
+  // push the resolved mode; keep the window's own background in step so
+  // resize overdraw never flashes the wrong palette.
+  nativeTheme.on('updated', () => {
+    const dark = nativeTheme.shouldUseDarkColors;
+    if (mainWin !== null && !mainWin.isDestroyed()) {
+      mainWin.setBackgroundColor(dark ? '#0F0F11' : '#F2F1ED');
+      mainWin.webContents.send('veri:theme-changed', dark);
+    }
+  });
+}
+
 let mainWin: BrowserWindow | null = null;
 
 function registerIpc(): void {
@@ -135,6 +158,16 @@ function registerIpc(): void {
     saveWorkspaceState(getConfigDir(), projectRoot, state),
   );
   ipcMain.handle('veri:copy', (_e, text: string) => clipboard.writeText(text));
+  // Theme (WO-060): the pref lives app-level in userData; nativeTheme resolves
+  // System, and its 'updated' event (wired in initTheme) fans the flip out.
+  ipcMain.handle('veri:theme-get', () => ({ pref: themePref, dark: nativeTheme.shouldUseDarkColors }));
+  ipcMain.handle('veri:theme-set', (_e, pref: ThemePref) => {
+    if (!isThemePref(pref)) throw new Error(`not a theme preference: ${String(pref)}`);
+    themePref = pref;
+    nativeTheme.themeSource = pref;
+    void saveThemePref(getConfigDir(), pref);
+    return { pref: themePref, dark: nativeTheme.shouldUseDarkColors };
+  });
   ipcMain.handle('veri:set-status', (_e, id: string, status: string) => setStatus(projectRoot, id, status));
   // Direct editing (WO-022): raw file in, guarded verbatim write out. The
   // guards and the updated: bump live in core so CLI/MCP/UI can't drift.
@@ -345,9 +378,9 @@ async function pointAppAt(dir: string, notice?: 'existing'): Promise<string | nu
   watchProject(mainWin);
   // Opening reloads the renderer, so a notice about what just happened has to
   // ride through the reload as a query param rather than as renderer state.
-  await mainWin.loadFile(join(here, '..', 'renderer', 'index.html'), {
-    query: notice === undefined ? {} : { notice },
-  });
+  const query: Record<string, string> = nativeTheme.shouldUseDarkColors ? {} : { theme: 'light' };
+  if (notice !== undefined) query['notice'] = notice;
+  await mainWin.loadFile(join(here, '..', 'renderer', 'index.html'), { query });
   return null;
 }
 
@@ -394,7 +427,9 @@ async function createWindow(mode: 'project' | 'welcome' = 'project'): Promise<Br
     height: 980,
     minWidth: 1080,
     minHeight: 640,
-    backgroundColor: '#0F0F11',
+    // The two --bg values; keep in step with styles.css (WO-060). CSS vars
+    // can't reach window chrome, so these two literals live here.
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#0F0F11' : '#F2F1ED',
     title: 'Veri',
     show: shotPath === undefined,
     webPreferences: {
@@ -409,6 +444,9 @@ async function createWindow(mode: 'project' | 'welcome' = 'project'): Promise<Br
   watchProject(win);
 
   const query: Record<string, string> = {};
+  // First-paint theme: the module applies this synchronously before boot's
+  // IPC round-trip can land, so a light launch never flashes dark.
+  if (!nativeTheme.shouldUseDarkColors) query['theme'] = 'light';
   if (mode === 'welcome') query['welcome'] = '1';
   const view = process.env['VERI_UI_VIEW'];
   const doc = process.env['VERI_UI_DOC'];
@@ -507,6 +545,7 @@ app.whenReady().then(async () => {
   }
   installMenu();
   registerIpc();
+  await initTheme();
   void cleanupLaunchScripts();
   // findProjectRoot's result is unvalidated (explicit args pass through) —
   // never let a non-project launch dir into the MRU.

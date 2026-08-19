@@ -188,7 +188,7 @@ export function activityFeed(rows: ActivityRow[]): HTMLElement {
       h(
         'div',
         { class: 'act-row' },
-        h('span', { class: 'act-dot', style: `background:${a.agent ? '#E8703A' : '#3A3A44'};` }),
+        h('span', { class: 'act-dot', style: `background:${a.agent ? 'var(--ember)' : 'var(--hover-border-2)'};` }),
         a.agent ? h('span', { class: 'act-agent' }, 'agent') : null,
         h('span', { class: 'act-text' }, a.text),
         h('span', { class: 'act-time' }, a.time),

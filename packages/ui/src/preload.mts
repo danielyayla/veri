@@ -49,4 +49,9 @@ contextBridge.exposeInMainWorld('veri', {
   onChanged: (cb: () => void) => {
     ipcRenderer.on('veri:changed', () => cb());
   },
+  themeGet: () => ipcRenderer.invoke('veri:theme-get'),
+  themeSet: (pref: string) => ipcRenderer.invoke('veri:theme-set', pref),
+  onThemeChanged: (cb: (dark: boolean) => void) => {
+    ipcRenderer.on('veri:theme-changed', (_e, dark: boolean) => cb(dark));
+  },
 });
