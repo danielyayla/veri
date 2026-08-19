@@ -2,7 +2,8 @@
 id: DEC-055
 type: decision
 title: "Theming via CSS custom properties, color-mix tints, and nativeTheme"
-status: proposed
+status: active
+approved: 2026-08-19
 created: 2026-08-19
 updated: 2026-08-19
 links:
