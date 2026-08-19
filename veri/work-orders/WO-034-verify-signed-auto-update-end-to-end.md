@@ -90,3 +90,11 @@ actually met.
   Settings view (WO-036 `veri:app-info`), matching the published
   release. REQ-011 boxes checked except offline-launch behavior,
   which this run did not exercise.
+- 2026-08-19 · commit 2b26030 · files: REQ-011, this WO.
+  Feed-unreachable launch verified: Veri 0.1.7 launched with
+  `--proxy-server=127.0.0.1:9` (feed unreachable for the app only,
+  no system changes) — app launched and opened the project
+  normally, the failed check appeared only in main.log
+  (`update check failed: net::ERR_PROXY_CONNECTION_FAILED`), and
+  the `UpdateStatus` IPC shape carries no error field, so no UI
+  surface can differ from up-to-date. Last REQ-011 box checked.

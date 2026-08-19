@@ -52,7 +52,7 @@ Veri is later distributed on.
       reinstalling anything manually
 - [x] Updates apply only on explicit consent or on quit; an open
       session is never force-restarted
-- [ ] Launching offline or with the release feed unreachable behaves
+- [x] Launching offline or with the release feed unreachable behaves
       identically to up-to-date, with no error surfaced
 - [x] The running app version is visible in the UI, and matches the
       published release it came from
