@@ -2,7 +2,7 @@
 id: WO-058
 type: work-order
 title: "Guard the new-project picker's existing-folder open"
-status: in-progress
+status: done
 created: 2026-08-19
 updated: 2026-08-19
 links:
@@ -55,12 +55,12 @@ reloaded — the [[DEC-051]] IPC re-shape.
 
 ## Acceptance tests
 
-- [ ] New Project… onto a folder that already holds `veri/` with a
+- [x] New Project… onto a folder that already holds `veri/` with a
       dirty editor open raises Save/Discard/Cancel; Cancel leaves the
       current project, the dirty buffer, and the MRU untouched
-- [ ] Save and Discard both proceed to the switch, and the reloaded
+- [x] Save and Discard both proceed to the switch, and the reloaded
       window still shows the "Opened the existing project" notice
-- [ ] The sheet's "Change…" onto an existing project closes the sheet
+- [x] The sheet's "Change…" onto an existing project closes the sheet
       and takes the same guarded path
 - [x] With no dirty buffers the pick opens the project exactly as
       before; `veri check` stays at zero issues; typecheck and the ui
@@ -68,4 +68,4 @@ reloaded — the [[DEC-051]] IPC re-shape.
 
 ## Receipts
 
-- 2026-08-19 — a3a5c2b — packages/ui/src/main.ts, packages/ui/src/renderer/api.ts, packages/ui/src/renderer/app.ts, packages/ui/src/preload.mts, veri/decisions/DEC-051-the-new-project-picker-reports-an-existing-folder-instead-of-op.md, veri/ids — The new-project pick reports an existing folder back (`kind: 'existing'`) instead of opening it in the main process; both renderer pick sites route the switch through `guardDirtyReload` via `switchProject(dir, 'existing')`, so Cancel aborts and the post-reload notice survives. Typecheck clean, 215 ui tests green, veri check 0 issues / 14 advisories (baseline). The three picker-flow boxes await a manual pass in the running app — the native directory dialog can't be driven headlessly.
+- 2026-08-19 — a3a5c2b — packages/ui/src/main.ts, packages/ui/src/renderer/api.ts, packages/ui/src/renderer/app.ts, packages/ui/src/preload.mts, veri/decisions/DEC-051-the-new-project-picker-reports-an-existing-folder-instead-of-op.md, veri/ids — The new-project pick reports an existing folder back (`kind: 'existing'`) instead of opening it in the main process; both renderer pick sites route the switch through `guardDirtyReload` via `switchProject(dir, 'existing')`, so Cancel aborts and the post-reload notice survives. Typecheck clean, 215 ui tests green, veri check 0 issues / 14 advisories (baseline). The three picker-flow boxes were verified manually by Daniel in the running app on 2026-08-19 (Cancel aborts intact, Save/Discard proceed with the notice, "Change…" closes the sheet and guards); done.
