@@ -44,15 +44,15 @@ Veri is later distributed on.
 
 ## Acceptance criteria
 
-- [ ] A user with no dev tooling installs Veri from a published,
+- [x] A user with no dev tooling installs Veri from a published,
       signed artifact on a clean machine and the OS accepts it
       without warnings or overrides
-- [ ] When a newer version is published, an installed app running the
+- [x] When a newer version is published, an installed app running the
       older version becomes current without the user downloading or
       reinstalling anything manually
-- [ ] Updates apply only on explicit consent or on quit; an open
+- [x] Updates apply only on explicit consent or on quit; an open
       session is never force-restarted
 - [ ] Launching offline or with the release feed unreachable behaves
       identically to up-to-date, with no error surfaced
-- [ ] The running app version is visible in the UI, and matches the
+- [x] The running app version is visible in the UI, and matches the
       published release it came from

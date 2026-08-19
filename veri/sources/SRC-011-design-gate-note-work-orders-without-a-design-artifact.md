@@ -58,6 +58,10 @@ oversight. This note is the explicit exemption record.
   workflow change; the heuristic catches the receipt's mention of
   `packages/ui/package.json` (the version bump for the acceptance
   run). No app code and no designed surface.
+- **[[WO-034]]** — signed auto-update end-to-end verification.
+  Verification-only run: version-bump commits and release/install
+  testing; the heuristic catches the receipt's mention of
+  `packages/ui/package.json`. No app code and no designed surface.
 
 Pre-DEC-012 UI work orders (WO-005, WO-006, WO-007) are not listed
 here: their designs exist — the [[SRC-001]] mockup line and the

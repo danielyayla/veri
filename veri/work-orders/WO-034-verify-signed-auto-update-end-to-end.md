@@ -2,7 +2,7 @@
 id: WO-034
 type: work-order
 title: Verify signed auto-update end to end
-status: in-progress
+status: done
 created: 2026-08-17
 updated: 2026-08-19
 links:
@@ -12,6 +12,8 @@ links:
     rel: extends
   - id: WO-033
     rel: extends
+  - id: SRC-011
+    rel: designed-by
 ---
 
 ## Summary
@@ -56,14 +58,35 @@ actually met.
 
 ## Acceptance tests
 
-- [ ] A clean-machine install of a signed release opens with no
+- [x] A clean-machine install of a signed release opens with no
       Gatekeeper override needed.
-- [ ] An installed older signed version becomes current
+- [x] An installed older signed version becomes current
       automatically, with the update applying only on consent
       (Restart Now) or on quit.
-- [ ] A subsequent update downloads differentially rather than as
+- [x] A subsequent update downloads differentially rather than as
       a full artifact.
 
 ## Receipts
 
-(none yet)
+- 2026-08-19 · commit 74e3d83 · files: packages/ui/package.json,
+  package-lock.json (version bumps v0.1.4–v0.1.7), this WO,
+  REQ-011. Signed auto-update verified end to end on macOS 15.7.3.
+  Daniel created the Developer ID Application certificate and set
+  the five signing secrets (a first attempt stored an empty
+  CSC_LINK — wrong .p12 path — producing one unsigned draft build,
+  clobbered by a signed re-run of the same tag). Four signed,
+  notarized releases published via the tag flow (v0.1.4–v0.1.7);
+  every run passed the WO-033 single-complete-release check. First
+  notarizations queued ~2h at Apple (new team); subsequent ones
+  ~2min. Verified: quarantined v0.1.4 DMG assessed
+  `accepted / source=Notarized Developer ID` by spctl, staple
+  valid, launched with no override; 0.1.4→0.1.5 update applied
+  only on Daniel's Restart Now click (full download after the
+  differential attempt fell back — updater cache held a stale zip
+  from the 2026-08-17 unsigned test); 0.1.5→0.1.6 downloaded
+  differentially (88,384 KB of 202,694 KB, 44%) and validated;
+  0.1.6→0.1.7 downloaded differentially and applied on quit with
+  the consent dialog untouched. Running app reports 0.1.7 in the
+  Settings view (WO-036 `veri:app-info`), matching the published
+  release. REQ-011 boxes checked except offline-launch behavior,
+  which this run did not exercise.
