@@ -5,7 +5,7 @@ title: MCP server assembles and serves context packages
 status: accepted
 approved: 2026-08-18
 created: 2026-08-06
-updated: 2026-08-18
+updated: 2026-08-19
 links:
   - id: REQ-001
     rel: depends-on
@@ -34,5 +34,5 @@ knows what was already rejected.
       [[REQ-008]]), and returns its ID
 - [ ] `file_receipt(work_order_id, ...)` appends a receipt (date, commit,
       files, summary) to the work order's Receipts section per [[DEC-003]]
-- [ ] All four tools work end-to-end from Claude Code against this repo's
+- [ ] All seven tools work end-to-end from Claude Code against this repo's
       own `veri/` directory

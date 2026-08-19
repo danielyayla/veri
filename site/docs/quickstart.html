@@ -49,7 +49,7 @@
   <li>Click the <code>⌁</code> icon at the bottom of the left rail to open the <b>Agent connection</b> screen.</li>
   <li>Click <b>Set up connection</b>. Veri writes one file — a project-scoped <code>.mcp.json</code> next to the <code>veri/</code> directory — telling agent apps how to launch Veri's MCP server for this project. The panel shows the exact JSON before and after; <a href="connect-claude-code.html">the connection page</a> documents every field.</li>
   <li>Restart your agent session: quit and reopen Claude Code (or start a new session) in the project folder. Agent apps read <code>.mcp.json</code> on launch — this is the one step Veri can't do for you.</li>
-  <li>Back in Veri, use <b>LIVE CHECK → Verify connection</b>. Veri launches the server exactly the way your agent will and performs a real MCP handshake. Green means your agent will see four tools: <code>get_context</code>, <code>search</code>, <code>file_decision</code>, <code>file_receipt</code>. Anything else, the panel names the cause and the one fix.</li>
+  <li>Back in Veri, use <b>LIVE CHECK → Verify connection</b>. Veri launches the server exactly the way your agent will and performs a real MCP handshake. Green means your agent will see seven tools: <code>get_context</code>, <code>search</code>, <code>get_document</code>, <code>get_neighbors</code>, <code>file_decision</code>, <code>file_work_order</code>, <code>file_receipt</code>. Anything else, the panel names the cause and the one fix.</li>
 </ol>
 
 <h2>5. File a work order</h2>

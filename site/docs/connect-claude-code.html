@@ -50,11 +50,11 @@
 <p>Copy is the only action; Veri never runs it for you.</p>
 
 <h2>Restart your agent</h2>
-<p>Agent apps read MCP config <b>on launch</b>. After any write, quit and reopen Claude Code — or start a new session — in the project folder. This is the one step Veri can't do for you. In Claude Code, <code>/mcp</code> should then list <b>veri</b> with four tools.</p>
+<p>Agent apps read MCP config <b>on launch</b>. After any write, quit and reopen Claude Code — or start a new session — in the project folder. This is the one step Veri can't do for you. In Claude Code, <code>/mcp</code> should then list <b>veri</b> with seven tools.</p>
 
 <h2>Verify from inside Veri</h2>
 <p>The connection panel's static checks confirm the file exists, the entry is present, the server script exists on disk, and the root argument points at the open project. <b>LIVE CHECK → Verify connection</b> goes further: Veri launches the server with the exact command and arguments in your config — resolving <code>node</code> the way your terminal would — and performs a real MCP handshake, including a search call proving the server serves <i>this</i> project's documents.</p>
-<p>Success looks like: <i>"Server answered over MCP — serving this project (16 documents, 4 tools) with node v22.x."</i> A failure names one of five causes — missing Node, Node too old, server script missing, wrong project root, or the server didn't answer — each with a single fix. See <a href="troubleshooting.html">troubleshooting</a> for all five.</p>
+<p>Success looks like: <i>"Server answered over MCP — serving this project (16 documents, 7 tools) with node v22.x."</i> A failure names one of five causes — missing Node, Node too old, server script missing, wrong project root, or the server didn't answer — each with a single fix. See <a href="troubleshooting.html">troubleshooting</a> for all five.</p>
 
 <h2>What the agent gets</h2>
 <table>

@@ -5,7 +5,7 @@ title: MCP connection panel — no-code agent setup per project
 status: accepted
 approved: 2026-08-10
 created: 2026-08-07
-updated: 2026-08-07
+updated: 2026-08-19
 links:
   - id: SRC-002
     rel: designed-by
@@ -74,8 +74,9 @@ diffable, checked into the repo. The panel holds no state of its own.
    agent session must be restarted for changes to take effect — the
    one step the app cannot do for them.
 7. **What-is-this explainer.** A short inline explanation of what the
-   connection provides (the four tools: get_context, search,
-   file_decision, file_receipt) for users who don't know what MCP is.
+   connection provides (the seven tools: get_context, search,
+   get_document, get_neighbors, file_decision, file_work_order,
+   file_receipt) for users who don't know what MCP is.
 
 ## States the design must cover
 
