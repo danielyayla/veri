@@ -2,7 +2,7 @@
 id: WO-065
 type: work-order
 title: "Website redesign — product-first homepage, the visible loop, responsive/AA baseline"
-status: in-progress
+status: done
 created: 2026-08-19
 updated: 2026-08-19
 links:
@@ -65,10 +65,11 @@ Redesign the public site (site/) into a best-in-class developer-tool website per
 - [x] No page scrolls horizontally at 375px wide, and the nav remains usable
 - [x] All text passes WCAG AA contrast in both dark and light themes; light mode follows prefers-color-scheme; animations honor prefers-reduced-motion
 - [x] Every product screenshot is legible at its rendered size (no full-app capture squeezed under 1000px except at most one establishing shot)
-- [ ] Favicon and og: metadata present; a shared link preview renders title, description, and product image
+- [x] Favicon and og: metadata present; a shared link preview renders title, description, and product image
 - [x] Docs URLs are unchanged, the download button still resolves the latest DMG client-side with the no-JS fallback, and the site remains hand-authored HTML/CSS deployed by the existing Pages workflow
 - [x] veri check reports zero issues
 
 ## Receipts
 
 - 2026-08-19 · 9745d2f · site/index.html, site/site.css, site/docs/*.html, site/assets/* (16 new assets, 2 removed), veri/sources/SRC-035, veri/ids — full homepage redesign per SRC-035: product-first hero, six-stage visual loop, with/without comparison, context package / decision / NEEDS REVIEW / plain-files / receipts / veri check / MCP sections, final CTA; responsive baseline (no horizontal scroll at 375px, verified), AA contrast audited numerically in both themes, light mode via prefers-color-scheme with theme-matched screenshots reshot through VERI_UI_SHOT, skip links, favicon set (SVG + PNG + apple-touch), OpenGraph meta, docs sub-nav strip. Remaining box: the shared-link preview can only be verified after the Pages deploy (push to main).
+- 2026-08-19 · 4938c30 pushed · (no file changes beyond the receipt) — Pages deploy for 9745d2f succeeded; live site verified: /, docs pages, site.css?v=2, favicon.svg, app-dark.png and og.png all 200 at danielyayla.github.io/veri, og:image serves image/png at its absolute URL with title and description meta in place, so a shared link renders a preview. Last acceptance box checked; CI green; WO done.
