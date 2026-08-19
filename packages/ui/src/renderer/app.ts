@@ -1451,9 +1451,9 @@ class App implements Ctx {
   // ---- new project (WO-018, SRC-007) ----
 
   /**
-   * Step 1: the native picker. A folder that already has veri/ is opened by
-   * the main process (the window reloads, so nothing more to do here); a
-   * fresh folder raises the creation sheet.
+   * Step 1: the native picker. A folder that already has veri/ is a switch,
+   * not a scaffold — it takes the guarded reload path below; a fresh folder
+   * raises the creation sheet.
    */
   private async startNewProject(demo = false): Promise<void> {
     // `demo` pre-enables the sample-seed toggle (SRC-013's one behavioral
@@ -1461,12 +1461,20 @@ class App implements Ctx {
     // stays interactive.
     this.update({ projectSwitcherOpen: false, welcomeNotice: null });
     const pick = await this.guardIpc(() => this.api.newProjectPick());
-    if (pick === undefined || pick === null || pick.kind === 'opened') return;
-    if (pick.kind === 'error') {
-      this.update({ projectError: pick.message });
+    if (pick === undefined || pick === null) return;
+    if (pick.kind === 'existing') {
+      this.openExistingPick(pick.dir);
       return;
     }
     this.update({ newProject: { dir: pick.dir, name: pick.name, demo, busy: false, error: null } });
+  }
+
+  /** The picker landed on a folder that already holds veri/ (WO-058): same
+      dirty-buffer guard as every other reload path — Cancel aborts with
+      nothing reloaded — and the `'existing'` notice rides the reload so the
+      reopened window can say nothing was written. */
+  private openExistingPick(dir: string): void {
+    this.guardDirtyReload(() => this.surfaceProjectError(this.api.switchProject(dir, 'existing')));
   }
 
   /**
@@ -1492,9 +1500,12 @@ class App implements Ctx {
   /** Step 1 again, from the sheet's "Change…" — keeps the toggle as set. */
   private async changeNewProjectDir(): Promise<void> {
     const pick = await this.guardIpc(() => this.api.newProjectPick());
-    if (pick === undefined || pick === null || pick.kind === 'opened') return;
-    if (pick.kind === 'error') {
-      this.update({ projectError: pick.message, newProject: null });
+    if (pick === undefined || pick === null) return;
+    if (pick.kind === 'existing') {
+      // The sheet can't scaffold into an existing project — drop it before
+      // the guard so its focus trap doesn't sit over the prompt.
+      this.update({ newProject: null });
+      this.openExistingPick(pick.dir);
       return;
     }
     const np = this.state.newProject;

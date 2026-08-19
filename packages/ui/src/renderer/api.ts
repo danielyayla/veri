@@ -65,13 +65,16 @@ export interface VeriApi {
   /** Fires on any .mcp.json change; external=false for the panel's own writes. */
   onMcpChanged(cb: (external: boolean) => void): void;
   listRecentProjects(): Promise<ProjectInfo[]>;
-  /** Both resolve to an error message to show the user, or null on success/cancel. */
-  switchProject(dir: string): Promise<string | null>;
+  /** Both resolve to an error message to show the user, or null on success/cancel.
+      The `'existing'` notice rides the reload so the reopened window can say the
+      folder was opened, not scaffolded (WO-058). */
+  switchProject(dir: string, notice?: 'existing'): Promise<string | null>;
   openProjectFolder(): Promise<string | null>;
   /**
    * New project, step 1 (WO-018): native directory picker. A folder that
-   * already holds veri/ is opened here and reports `opened`; anything else
-   * comes back as `new` for the creation sheet.
+   * already holds veri/ comes back as `existing` — the renderer switches to
+   * it after the dirty-buffer guard (WO-058) — anything else as `new` for
+   * the creation sheet.
    */
   newProjectPick(): Promise<NewProjectPick>;
   /** New project, step 2: scaffold `dir` then open it. Error message or null. */
@@ -101,8 +104,7 @@ export interface UpdateStatus {
 
 export type NewProjectPick =
   | null
-  | { kind: 'opened' }
-  | { kind: 'error'; message: string }
+  | { kind: 'existing'; dir: string }
   | { kind: 'new'; dir: string; name: string };
 
 export type WelcomeOpen =

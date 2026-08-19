@@ -250,7 +250,7 @@ function registerIpc(): void {
     );
     return updated;
   });
-  ipcMain.handle('veri:switch-project', (_e, dir: string) => pointAppAt(dir));
+  ipcMain.handle('veri:switch-project', (_e, dir: string, notice?: 'existing') => pointAppAt(dir, notice));
   ipcMain.handle('veri:open-project-folder', async () => {
     if (mainWin === null) return null;
     const result = await dialog.showOpenDialog(mainWin, {
@@ -262,8 +262,10 @@ function registerIpc(): void {
     return dir !== undefined ? pointAppAt(dir) : null;
   });
   // New project (WO-018, SRC-007): the picker comes first — the directory is
-  // the only required input — and a folder that already has veri/ opens
-  // straight away instead of reaching the creation sheet at all.
+  // the only required input — and a folder that already has veri/ is opened,
+  // never scaffolded. The open itself moved renderer-side (WO-058, DEC-051):
+  // the renderer must run its dirty-buffer guard before anything reloads, so
+  // an existing project is reported back instead of opened here.
   ipcMain.handle('veri:new-project-pick', async (): Promise<NewProjectPick> => {
     if (mainWin === null) return null;
     const result = await dialog.showOpenDialog(mainWin, {
@@ -273,10 +275,7 @@ function registerIpc(): void {
     });
     const dir = result.canceled ? undefined : result.filePaths[0];
     if (dir === undefined) return null;
-    if (isVeriProject(dir)) {
-      const err = await pointAppAt(dir, 'existing');
-      return err === null ? { kind: 'opened' } : { kind: 'error', message: err };
-    }
+    if (isVeriProject(dir)) return { kind: 'existing', dir };
     return { kind: 'new', dir, name: basename(dir) };
   });
   // Scaffold, then open. Order matters: scaffoldProject throws before
@@ -315,8 +314,7 @@ export type WelcomeOpen =
 
 export type NewProjectPick =
   | null
-  | { kind: 'opened' }
-  | { kind: 'error'; message: string }
+  | { kind: 'existing'; dir: string }
   | { kind: 'new'; dir: string; name: string };
 
 /**
