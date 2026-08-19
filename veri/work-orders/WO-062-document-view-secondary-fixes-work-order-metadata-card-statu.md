@@ -2,7 +2,7 @@
 id: WO-062
 type: work-order
 title: "Document-view secondary fixes — work-order metadata card, status-rendering unification, Pin chip, activity feed, note composer"
-status: in-progress
+status: done
 created: 2026-08-19
 updated: 2026-08-19
 links:
@@ -49,14 +49,14 @@ Ships the secondary findings recorded in SRC-033 (out of WO-061's scope). The la
 
 ## Acceptance tests
 
-- [ ] A work order shows id, type, created, and updated in a frontmatter card, plus the links row; links can be added and removed on a WO in the UI and the written file passes `veri check`.
-- [ ] Status appears exactly once in the WO header (the radiogroup); every status in linked cards renders as a tinted chip identical to the frontmatter-card treatment.
-- [ ] `branch` is no longer the most salient item in the WO metadata line.
-- [ ] Toggling Pin ↔ Pinned causes no layout shift, and the chip aligns with the title's first line on a two-line title.
-- [ ] A document whose only activity is "Last edited" renders it as one quiet line, not a full labeled section; session rows are visually distinct from file-activity rows.
-- [ ] The note composer shows a commit affordance whenever it holds text, and Enter still commits.
-- [ ] `veri check` and `npm test` are clean.
+- [x] A work order shows id, type, created, and updated in a frontmatter card, plus the links row; links can be added and removed on a WO in the UI and the written file passes `veri check`.
+- [x] Status appears exactly once in the WO header (the radiogroup); every status in linked cards renders as a tinted chip identical to the frontmatter-card treatment.
+- [x] `branch` is no longer the most salient item in the WO metadata line.
+- [x] Toggling Pin ↔ Pinned causes no layout shift, and the chip aligns with the title's first line on a two-line title.
+- [x] A document whose only activity is "Last edited" renders it as one quiet line, not a full labeled section; session rows are visually distinct from file-activity rows.
+- [x] The note composer shows a commit affordance whenever it holds text, and Enter still commits.
+- [x] `veri check` and `npm test` are clean.
 
 ## Receipts
 
-(none yet)
+- 2026-08-19 — 7385391 — packages/ui/renderer/styles.css, packages/ui/src/renderer/app.ts, packages/ui/src/renderer/derive.ts, packages/ui/src/renderer/views/reader.ts, packages/ui/src/renderer/views/workorder.ts, packages/ui/src/renderer/widgets.ts — claude-code session: all six secondary fixes per SRC-033. Frontmatter card: `frontmatterCard` gains an opts.status flag and is shared into the WO view (status false — the header radiogroup stays the only status); the WO-056 links editor rides along, so links are now manageable on WOs. created/updated moved into the card rather than duplicating in the meta line, which keeps gate chips and a de-emphasized `branch` (off ember, inheriting the line's faint token — git state, not frontmatter, so it stays out of the card). Verified live via the harness: links row expands on WO-062; a link added through the two-field row (SRC-032/test-rel) landed in frontmatter with `veri check` clean, and removing it restored the file byte-for-byte (empty git diff). Status unification: linked-card status is the shared tinted `statusChip` — verified accepted/active chips on WO-062's linked cards match the frontmatter treatment. Pin chip: fixed 78px width, content centered; measured 78px in both states in-app (overlay probe), first-line alignment corrected per container (2px in .wo-head, 12px in .doc-head — titles carry different top margins). Activity: `ActivityRow.session` stamped in `sessionLog`; session rows get a hollow dot (shape channel, REQ-020) + mono `session` tag + tooltip; a lone file-derived "Last edited" (or empty feed) collapses to one quiet unlabeled line (`.act-solo`, faint text). Note composer: a faint aria-hidden ↩ appears at the row's right edge whenever text is present (input gets right padding so text never runs under it); the Enter commit path is untouched. Verified in dark and light themes; color literals stayed out of the styles (DEC-055 — tokens only). 481 tests pass, typecheck, `veri check` 0 issues.
