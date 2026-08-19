@@ -18,6 +18,9 @@ links:
     rel: constrained-by
 ---
 
+> **Approved by Daniel 2026-08-19.** Findings and design direction
+> accepted as specified; implementation proceeds under [[WO-064]].
+
 > Drafted 2026-08-19 by an agent session (Claude Code) from a
 > structured design critique of the app with both panes open
 > (screenshot: sidebar + sources browser + two split panes, each with

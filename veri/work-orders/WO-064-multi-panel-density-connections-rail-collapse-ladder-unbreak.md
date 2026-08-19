@@ -2,7 +2,7 @@
 id: WO-064
 type: work-order
 title: "Multi-panel density — Connections-rail collapse ladder, unbreakable tokens, narrow-pane title scale"
-status: backlog
+status: in-progress
 created: 2026-08-19
 updated: 2026-08-19
 links:
