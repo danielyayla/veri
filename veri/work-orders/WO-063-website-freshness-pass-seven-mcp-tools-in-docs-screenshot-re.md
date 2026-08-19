@@ -2,7 +2,7 @@
 id: WO-063
 type: work-order
 title: "Website freshness pass — seven MCP tools in docs, screenshot refresh after WO-062"
-status: backlog
+status: in-progress
 created: 2026-08-19
 updated: 2026-08-19
 links:
