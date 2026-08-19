@@ -2,7 +2,7 @@
 id: WO-052
 type: work-order
 title: "A local graph on the document; retire the global view"
-status: in-progress
+status: done
 created: 2026-08-19
 updated: 2026-08-19
 links:
@@ -41,11 +41,11 @@ The global Graph view — "a columnar hairball … decorative at 100 docs and de
 
 ## Acceptance tests
 
-- [ ] A document with inbound and outbound links shows the local graph above its Connections cards in both reader and editor screens; nodes navigate (click preview, ⌘-click background) and preview on hover/focus
-- [ ] A document with more than 8 neighbors on a side shows exactly 8 plus `+K more`; a document with none shows no graph
-- [ ] The Graph view is gone: no ViewKey, sidebar entry, palette row, or render arm; a persisted `graph` tab target restores away cleanly (test)
-- [ ] REQ-004 amended; `veri check` reports the expected drift advisory for it and zero issues; full typecheck and test suite pass
+- [x] A document with inbound and outbound links shows the local graph above its Connections cards in both reader and editor screens; nodes navigate (click preview, ⌘-click background) and preview on hover/focus
+- [x] A document with more than 8 neighbors on a side shows exactly 8 plus `+K more`; a document with none shows no graph
+- [x] The Graph view is gone: no ViewKey, sidebar entry, palette row, or render arm; a persisted `graph` tab target restores away cleanly (test)
+- [x] REQ-004 amended; `veri check` reports the expected drift advisory for it and zero issues; full typecheck and test suite pass
 
 ## Receipts
 
-(none yet)
+- 2026-08-19 — a315cde — packages/ui/src/renderer/derive.ts, packages/ui/src/renderer/views/reader.ts, packages/ui/src/renderer/tabs.ts, packages/ui/src/renderer/app.ts, packages/ui/src/renderer/views/graph.ts, packages/ui/renderer/styles.css, packages/ui/src/renderer/derive.test.ts, packages/ui/src/renderer/tabs.test.ts, veri/requirements/REQ-004-desktop-ui.md, veri/decisions/DEC-048-retire-the-global-graph-view-the-graph-is-local-to-the-docum.md — Agent session (Claude Code): built the local 1-hop graph atop the Connections panel (pure localGraph fan in derive.ts, real-button nodes with SRC-021 previews, 8-per-side cap with +K more, hidden at zero connections) and retired the global Graph view — ViewKey, sidebar item, render arm, graphSel/.gr-pop layer, views/graph.ts, graphLayout, and .gr-* styles removed; persisted graph tabs restore away via retainTabs (tested); REQ-004 amended per SRC-024; retirement filed as proposed DEC-048; typecheck clean, 397 tests green, veri check 0 issues with only the expected REQ-004 drift advisories.
