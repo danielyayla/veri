@@ -37,7 +37,7 @@
   --body-text-2: #A8A5AF;
   --secondary: #A09DA6;
   --muted: #8B8893;
-  --faint: #6E6B76;
+  --faint: #86838F;
   --ghost: #55525E;
   --ghost-2: #4A4852;
   --ghost-3: #3F3D47;
@@ -134,7 +134,7 @@
   --body-text-2: #4A4851;
   --secondary: #5F5C67;
   --muted: #6B6873;
-  --faint: #8A8792;
+  --faint: #6B6873;
   --ghost: #A3A0AB;
   --ghost-2: #AFACB5;
   --ghost-3: #B8B5BD;
@@ -759,7 +759,7 @@ a:hover { color: var(--link-hover); }
 .rd-li { display: flex; gap: 9px; color: var(--body-text); font-size: 14px; line-height: 1.5; padding: 3px 0; }
 .rd-li-muted { color: var(--muted); }
 .rd-li-muted .rd-dash { color: var(--ghost-3); }
-.rd-dash { color: var(--ghost); flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+.rd-dash { color: var(--faint); flex: 0 0 auto; font-variant-numeric: tabular-nums; }
 .rd-fence {
   margin: 2px 0 14px; padding: 10px 12px; border: 1px solid var(--card-border); border-radius: 7px;
   background: var(--card); font-family: var(--mono); font-size: 12.5px; color: var(--secondary);
@@ -788,7 +788,7 @@ a:hover { color: var(--link-hover); }
 .act-dot { width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto; position: relative; top: -1px; }
 .act-agent { font-family: var(--mono); font-size: 11px; color: var(--ember); flex: 0 0 auto; }
 .act-text { color: var(--secondary); }
-.act-time { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--ghost); flex: 0 0 auto; }
+.act-time { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--faint); flex: 0 0 auto; }
 
 .note-wrap { margin-top: 24px; position: relative; }
 .note-input {
@@ -821,7 +821,7 @@ a:hover { color: var(--link-hover); }
 .conn-card:hover { border-color: var(--hover-border); }
 .conn-head { display: flex; align-items: center; gap: 7px; }
 .conn-id { font-family: var(--mono); font-size: 10.5px; }
-.conn-type { margin-left: auto; font-family: var(--mono); font-size: 9.5px; color: var(--ghost); }
+.conn-type { margin-left: auto; font-family: var(--mono); font-size: 9.5px; color: var(--faint); }
 .conn-title { display: block; font-size: 12.5px; color: var(--text); margin-top: 3px; line-height: 1.35; }
 .conn-why { display: block; font-size: 11.5px; color: var(--faint); margin-top: 2px; }
 
@@ -901,9 +901,11 @@ a:hover { color: var(--link-hover); }
 .linked-card { border: 1px solid var(--card-border); border-radius: 8px; background: var(--card); overflow: hidden; }
 .linked-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; }
 .linked-head:hover { background: var(--row-hover-2); }
-.linked-chev { color: var(--ghost); font-size: 11px; width: 10px; }
-.linked-id { font-family: var(--mono); font-size: 11px; }
-.linked-title { font-size: 13.5px; font-weight: 500; }
+.linked-chev { color: var(--ghost); font-size: 11px; width: 10px; flex: 0 0 auto; }
+.linked-chipwrap { display: inline-flex; flex: 0 0 auto; }
+/* The title is the row's accessible toggle (WO-061): a real button that
+   fills the row height, so the keyboard path and the big click target agree. */
+.linked-title { flex: 1; text-align: left; font-size: 13.5px; font-weight: 500; cursor: pointer; padding: 10px 0; margin: -10px 0; min-width: 0; }
 .linked-status { margin-left: auto; font-family: var(--mono); font-size: 10px; }
 .linked-body { padding: 2px 14px 12px 34px; border-top: 1px solid var(--hair-2); }
 .linked-rationale { padding-top: 10px; font-size: 13px; color: var(--secondary); line-height: 1.55; }
@@ -922,8 +924,8 @@ a:hover { color: var(--link-hover); }
 .pkg-map-label { padding: 8px 11px 2px; }
 .pkg-id { font-family: var(--mono); font-size: 10.5px; flex: 0 0 auto; }
 .pkg-title { font-size: 12px; color: var(--secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pkg-tokens { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--ghost); flex: 0 0 auto; }
-.pkg-note { padding: 8px 11px; font-family: var(--mono); font-size: 10px; color: var(--ghost); line-height: 1.5; }
+.pkg-tokens { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--faint); flex: 0 0 auto; }
+.pkg-note { padding: 8px 11px; font-family: var(--mono); font-size: 10px; color: var(--faint); line-height: 1.5; }
 .pkg-loading { padding: 10px 11px; font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
 .pkg-buttons { margin-top: 12px; display: flex; gap: 8px; }
 .btn-primary {
@@ -1225,6 +1227,14 @@ a:hover { color: var(--link-hover); }
   font-size: 12.5px; color: var(--text); box-shadow: var(--shadow-tip);
   pointer-events: none;
 }
+/* Status-change undo toast (WO-061): same shell, but interactive. */
+.toast-undo { pointer-events: auto; display: flex; align-items: center; gap: 12px; padding: 7px 9px 7px 14px; }
+.toast-undo-label { font-family: var(--mono); font-size: 11.5px; }
+.toast-undo-btn {
+  font-family: var(--mono); font-size: 11px; color: var(--ember-light);
+  padding: 4px 9px; border: 1px solid var(--int-border-2); border-radius: 5px; cursor: pointer;
+}
+.toast-undo-btn:hover { border-color: var(--hover-border-2); color: var(--link-hover); }
 
 /* ---- New project flow (WO-018, SRC-007) ------------------------------- */
 
@@ -1307,15 +1317,21 @@ a:hover { color: var(--link-hover); }
 
 /* Crumb rows that carry the read|edit toggle. */
 .crumb-row { width: 100%; }
-.mode-toggle {
-  margin-left: auto; display: flex; border: 1px solid var(--int-border);
-  border-radius: 6px; overflow: hidden;
-}
+/* De-twinned from the status radiogroup (WO-061, SRC-033): a view toggle must
+   not wear the bordered-segment dress of a document mutation. Text segments,
+   active state carried by color plus an underline (shape channel, REQ-020),
+   padding sized for a ≥24px hit target. */
+.mode-toggle { margin-left: auto; display: flex; gap: 2px; }
 .mode-seg {
-  font-family: var(--mono); font-size: 11px; padding: 3px 10px;
-  color: var(--muted); cursor: pointer; user-select: none;
+  font-family: var(--mono); font-size: 11px; padding: 7px 7px;
+  color: var(--muted); cursor: pointer; user-select: none; border-radius: 5px;
 }
-.mode-seg-on { background: var(--ember-tint-2); color: var(--ember-light); }
+.mode-seg:hover { color: var(--text); }
+.mode-seg-on {
+  color: var(--ember-light);
+  text-decoration: underline; text-decoration-thickness: 1.5px;
+  text-underline-offset: 4px; text-decoration-color: var(--ember);
+}
 
 /* Editor column: same geometry as the reader column, plus the status row. */
 .ed-col { display: flex; flex-direction: column; min-height: 0; height: 100%; padding-bottom: 0; }

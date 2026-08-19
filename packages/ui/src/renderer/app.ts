@@ -121,6 +121,8 @@ export interface State {
   reviewText: string | null;
   /** Transient bottom-center toast (SRC-006 approve/return feedback). */
   toast: string | null;
+  /** Status-change undo toast (WO-061): one-click revert of the last change. */
+  undoToast: { docId: string; from: string; to: string } | null;
   /** Command palette (WO-013): overlay flag, raw query, selection, ranked result. */
   paletteOpen: boolean;
   paletteQuery: string;
@@ -233,6 +235,8 @@ export interface Ctx {
   flashCopied(): void;
   /** Show a transient bottom-center toast (auto-dismissed). */
   flashToast(text: string): void;
+  /** Offer one-click undo after a status change (WO-061). */
+  flashUndo(docId: string, from: string, to: string): void;
   /** Write into the one polite live region (SRC-019 rule 4). */
   announce(text: string): void;
   /** Editor state for a doc tab (WO-022): null when never opened for editing. */
@@ -354,6 +358,7 @@ class App implements Ctx {
     reviewPop: false,
     reviewText: null,
     toast: null,
+    undoToast: null,
     paletteOpen: false,
     paletteQuery: '',
     paletteSel: 0,
@@ -413,6 +418,7 @@ class App implements Ctx {
   private paneFocusPending = false;
   private copyTimer: ReturnType<typeof setTimeout> | undefined;
   private toastTimer: ReturnType<typeof setTimeout> | undefined;
+  private undoTimer: ReturnType<typeof setTimeout> | undefined;
   private kickoffTimer: ReturnType<typeof setTimeout> | undefined;
   private mcpCmdTimer: ReturnType<typeof setTimeout> | undefined;
   private root: HTMLElement;
@@ -989,6 +995,26 @@ class App implements Ctx {
     this.announce(text);
     this.update({ toast: text });
     this.toastTimer = setTimeout(() => this.update({ toast: null }), 2400);
+  }
+
+  flashUndo(docId: string, from: string, to: string): void {
+    clearTimeout(this.undoTimer);
+    this.announce(`${docId} status set to ${to.replace(/-/g, ' ')} — undo available`);
+    this.update({ undoToast: { docId, from, to } });
+    this.undoTimer = setTimeout(() => this.update({ undoToast: null }), 6000);
+  }
+
+  /** Revert the last status change through the same setStatus write path —
+      the file on disk goes back exactly as it was (WO-061). */
+  private undoStatus(): void {
+    const u = this.state.undoToast;
+    if (u === null) return;
+    clearTimeout(this.undoTimer);
+    void this.api.setStatus(u.docId, u.from).then(() => {
+      this.sessionLog(u.docId, { agent: false, text: `Status change undone — back to ${u.from.replace(/-/g, ' ')}`, time: 'today' });
+      this.update({ undoToast: null });
+      return this.refresh();
+    });
   }
 
   /** Open = re-detect from disk/PATH right now (DEC-002: nothing cached). */
@@ -2935,6 +2961,16 @@ class App implements Ctx {
     const palette = this.paletteEl();
     const sheet = this.newProjectSheet();
     const toast = this.state.toast !== null ? h('div', { class: 'toast', role: 'status' }, this.state.toast) : null;
+    const u = this.state.undoToast;
+    const undoToast =
+      u !== null
+        ? h(
+            'div',
+            { class: 'toast toast-undo', role: 'status' },
+            h('span', { class: 'toast-undo-label' }, `${u.docId} → ${u.to.replace(/-/g, ' ')}`),
+            h('button', { class: 'btn-reset toast-undo-btn', fkey: 'toast-undo', onClick: () => this.undoStatus() }, 'Undo'),
+          )
+        : null;
     const panel = this.typePanel();
     this.root.replaceChildren(
       this.topbar(),
@@ -2942,6 +2978,7 @@ class App implements Ctx {
       ...(palette !== null ? [palette] : []),
       ...(sheet !== null ? [sheet] : []),
       ...(toast !== null ? [toast] : []),
+      ...(undoToast !== null ? [undoToast] : []),
       ...this.editPopovers(),
     );
     this.state.editorFocused = false;

@@ -5,7 +5,7 @@ import { TYPE_META, fmtTokens, statusColor, tint } from '../theme.ts';
 import { plainText, sections } from '../markdown.ts';
 import type { Block } from '../markdown.ts';
 import { PACKAGE_RULES_TEXT, fileActivity, gatingDocs, receipts } from '../derive.ts';
-import { activityFeed, dirtyStrip, imgDirFor, modeToggle, pinChip, renderBlocks } from '../widgets.ts';
+import { activityFeed, dirtyStrip, idChip, imgDirFor, modeToggle, pinChip, renderBlocks } from '../widgets.ts';
 import { roveIndex, roveKey } from '../a11y.ts';
 import type { Ctx } from '../app.ts';
 
@@ -51,7 +51,13 @@ function statusControl(ctx: Ctx, doc: VeriDocument): HTMLElement {
           style: active ? `background:${tint(color, 0.14)};color:${color};` : '',
           onClick: () => {
             if (active) return;
-            void ctx.api.setStatus(doc.id, status).then(() => ctx.refresh());
+            // WO-061: the write is instant; recovery is too — the undo toast
+            // reverts through the same setStatus path.
+            const prev = doc.status;
+            void ctx.api.setStatus(doc.id, status).then(() => {
+              ctx.flashUndo(doc.id, prev, status);
+              return ctx.refresh();
+            });
           },
         },
         label,
@@ -101,28 +107,39 @@ function linkedCard(
 ): HTMLElement {
   const key = `${woId}:${target.id}`;
   const open = ctx.state.expanded.has(key);
-  const meta = TYPE_META[target.type];
   const border = target.type === 'requirement' ? 'var(--info-border)' : 'var(--ember-border-2)';
   const body = open ? detail() : null;
+  const toggle = (): void => {
+    const expanded = new Set(ctx.state.expanded);
+    if (open) expanded.delete(key);
+    else expanded.add(key);
+    ctx.update({ expanded });
+  };
+  // WO-061 (SRC-033): the id is a real chip that navigates, like every other
+  // id in the app; chevron, title, and the row body keep the disclosure. A
+  // button can't nest a button, so the row is a div and the title carries the
+  // accessible toggle — the mouse-only row onClick is a convenience on top.
   return h(
     'div',
     { class: 'linked-card', style: `border-color:${border};` },
     h(
-      'button',
-      {
-        class: 'btn-reset btn-block linked-head',
-        expanded: open,
-        fkey: `linked:${target.id}`,
-        onClick: () => {
-          const expanded = new Set(ctx.state.expanded);
-          if (open) expanded.delete(key);
-          else expanded.add(key);
-          ctx.update({ expanded });
-        },
-      },
+      'div',
+      { class: 'linked-head', onClick: toggle },
       h('span', { class: 'linked-chev' }, open ? '▾' : '▸'),
-      h('span', { class: 'linked-id', style: `color:${meta.color};` }, target.id),
-      h('span', { class: 'linked-title' }, target.title),
+      h('span', { class: 'linked-chipwrap', onClick: (e) => e.stopPropagation() }, idChip(ctx.byId, target.id, ctx)),
+      h(
+        'button',
+        {
+          class: 'btn-reset linked-title',
+          expanded: open,
+          fkey: `linked:${target.id}`,
+          onClick: (e) => {
+            e.stopPropagation();
+            toggle();
+          },
+        },
+        target.title,
+      ),
       h('span', { class: 'linked-status', style: `color:${statusColor(target.status)};` }, target.status),
     ),
     body,
@@ -145,7 +162,7 @@ function requirementDetail(ctx: Ctx, target: VeriDocument): HTMLElement | null {
           h(
             'div',
             { class: 'linked-crit-row' },
-            h('span', { style: `color:${b.done ? 'var(--green)' : 'var(--ghost)'};` }, b.done ? '✓' : '○'),
+            h('span', { style: `color:${b.done ? 'var(--green)' : 'var(--faint)'};` }, b.done ? '✓' : '○'),
             h('span', {}, plainText(b.segs)),
           ),
         ),
