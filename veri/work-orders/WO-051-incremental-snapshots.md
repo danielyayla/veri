@@ -2,7 +2,7 @@
 id: WO-051
 type: work-order
 title: "Incremental snapshots"
-status: backlog
+status: done
 created: 2026-08-19
 updated: 2026-08-19
 links:
@@ -42,12 +42,12 @@ The desktop app's snapshot pipeline stops paying full price per keystroke: every
 
 ## Acceptance tests
 
-- [ ] Editing one document re-parses only that document (observable via the builder's instrumentation in tests) and produces a snapshot deep-equal to a cold build
-- [ ] Add, delete, and rename under `veri/` all reconcile correctly through the readdir pass
-- [ ] The full-history `git log` runs only when HEAD changes; a worktree-only change (dirty flip) does not re-run it; drift/provenance advisories still update on commit
-- [ ] Opening the project switcher spawns no full snapshot builds and no git log processes for MRU entries
-- [ ] `veri check` stays at zero issues; full typecheck and test suite pass
+- [x] Editing one document re-parses only that document (observable via the builder's instrumentation in tests) and produces a snapshot deep-equal to a cold build
+- [x] Add, delete, and rename under `veri/` all reconcile correctly through the readdir pass
+- [x] The full-history `git log` runs only when HEAD changes; a worktree-only change (dirty flip) does not re-run it; drift/provenance advisories still update on commit
+- [x] Opening the project switcher spawns no full snapshot builds and no git log processes for MRU entries
+- [x] `veri check` stays at zero issues; full typecheck and test suite pass
 
 ## Receipts
 
-(none yet)
+- 2026-08-19 — 28799de — packages/ui/src/lib/snapshot.ts, packages/ui/src/lib/snapshot.test.ts, packages/ui/src/main.ts, veri/decisions/DEC-047-switcher-rows-carry-a-live-issue-count-only-for-the-current.md — Agent session (Claude Code): SnapshotBuilder with path+mtime+size document cache and HEAD-keyed git-facts cache per SRC-031 — changed files re-parse concurrently, the full-history git log re-runs only on HEAD moves, downstream recomputes fully, doubt falls back to cold loadProject; wired into veri:snapshot with reset on project switch, switcher rows moved to a light readdir count (DEC-047 proposed for the issue-dot trade), verify-connection reuses the builder's snapshot; invariant tests deep-equal incremental builds against cold buildSnapshot across edit/add/delete/rename/template/commit events; typecheck clean, 394 tests green, veri check 0 issues.
