@@ -2,7 +2,7 @@
 id: WO-065
 type: work-order
 title: "Website redesign — product-first homepage, the visible loop, responsive/AA baseline"
-status: backlog
+status: in-progress
 created: 2026-08-19
 updated: 2026-08-19
 links:
@@ -16,6 +16,8 @@ links:
     rel: informed-by
   - id: WO-060
     rel: informed-by
+  - id: SRC-035
+    rel: designed-by
 ---
 
 ## Summary
