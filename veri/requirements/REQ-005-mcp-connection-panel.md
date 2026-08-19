@@ -3,7 +3,7 @@ id: REQ-005
 type: requirement
 title: MCP connection panel — no-code agent setup per project
 status: accepted
-approved: 2026-08-10
+approved: 2026-08-19
 created: 2026-08-07
 updated: 2026-08-19
 links:

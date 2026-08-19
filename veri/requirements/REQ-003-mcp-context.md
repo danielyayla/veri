@@ -3,7 +3,7 @@ id: REQ-003
 type: requirement
 title: MCP server assembles and serves context packages
 status: accepted
-approved: 2026-08-18
+approved: 2026-08-19
 created: 2026-08-06
 updated: 2026-08-19
 links:
