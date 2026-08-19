@@ -82,6 +82,30 @@ test('parseReceipts reads JSON-array file lists and joins wrapped lines', () => 
   assert.deepEqual(receipt.paths, ['site/index.html', 'veri/work-orders/WO-029.md']);
 });
 
+test('parseReceipts keeps the leading dot on dotfile and dot-directory tokens', () => {
+  const [receipt] = parseReceipts(
+    '## Receipts\n\n- 2026-08-18 — aaaa111 — ".github/workflows/release.yml", .env.example, site/index.html. — wired the release workflow\n',
+  );
+  assert.deepEqual(receipt.paths, ['.github/workflows/release.yml', '.env.example', 'site/index.html']);
+});
+
+test('a receipt naming only dot-directory files verifies clean', () => {
+  const facts: GitFacts = {
+    commits: [
+      {
+        sha: 'cccc333cccc333cccc333cccc333cccc333cccc3',
+        date: '2026-08-18',
+        subject: 'WO-001: wire the release workflow',
+        files: ['.github/workflows/release.yml'],
+      },
+    ],
+  };
+  const doc = workOrder('WO-001', 'done', [
+    '2026-08-18 — cccc333 — .github/workflows/release.yml — wired the release workflow',
+  ]);
+  assert.deepEqual(checkProvenance([doc], facts), []);
+});
+
 test('parseReceipts takes paths from the files segment only, never the summary', () => {
   const [receipt] = parseReceipts(
     '## Receipts\n\n- 2026-08-10 · abc1234 · no code changes · verified live — .cursor/mcp.json written at runtime\n',
