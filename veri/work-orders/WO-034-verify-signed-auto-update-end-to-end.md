@@ -2,9 +2,9 @@
 id: WO-034
 type: work-order
 title: Verify signed auto-update end to end
-status: backlog
+status: in-progress
 created: 2026-08-17
-updated: 2026-08-17
+updated: 2026-08-19
 links:
   - id: REQ-011
     rel: implements
