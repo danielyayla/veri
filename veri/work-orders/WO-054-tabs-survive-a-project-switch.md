@@ -2,7 +2,7 @@
 id: WO-054
 type: work-order
 title: "Tabs survive a project switch"
-status: in-progress
+status: done
 created: 2026-08-19
 updated: 2026-08-19
 links:
@@ -41,11 +41,11 @@ links:
 
 ## Acceptance tests
 
-- [ ] Open several tabs (mixed docs and views, one preview), switch projects and back: the tab set, order, active tab, and preview-ness are restored; each restored tab has single-entry history
-- [ ] A restored target that no longer resolves is dropped; a workspace file without the new fields (or corrupt) behaves exactly as today
-- [ ] Switching away with a dirty editor raises Save/Discard/Cancel; Cancel leaves the project and all state untouched
-- [ ] Nothing under `veri/` changes; `veri check` stays at zero issues; full typecheck and test suite pass
+- [x] Open several tabs (mixed docs and views, one preview), switch projects and back: the tab set, order, active tab, and preview-ness are restored; each restored tab has single-entry history
+- [x] A restored target that no longer resolves is dropped; a workspace file without the new fields (or corrupt) behaves exactly as today
+- [x] Switching away with a dirty editor raises Save/Discard/Cancel; Cancel leaves the project and all state untouched
+- [x] Nothing under `veri/` changes; `veri check` stays at zero issues; full typecheck and test suite pass
 
 ## Receipts
 
-(none yet)
+- 2026-08-19 — 75c5086 — packages/ui/src/lib/workspace.ts, packages/ui/src/lib/workspace.test.ts, packages/ui/src/renderer/tabs.ts, packages/ui/src/renderer/tabs.test.ts, packages/ui/src/renderer/app.ts, packages/ui/src/preload.mts, veri/decisions/DEC-050-tab-persistence-extends-the-dec-014-workspace-shape-with-add.md — Open tab set persists in the DEC-014 workspace file (additive tabs/active, DEC-050) and restores at boot via restoreTabs with unresolvable targets dropped; project switch and Open Project raise the Save/Discard/Cancel prompt over dirty buffers, Cancel aborting the switch. Typecheck clean, 410 tests green (9 new), veri check 0 issues / 15 advisories (baseline).
