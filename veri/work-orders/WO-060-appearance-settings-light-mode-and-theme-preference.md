@@ -6,6 +6,8 @@ status: backlog
 created: 2026-08-19
 updated: 2026-08-19
 links:
+  - id: SRC-032
+    rel: designed-by
   - id: REQ-004
     rel: extends
   - id: REQ-020
