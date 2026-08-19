@@ -19,6 +19,8 @@ import {
   localGraph,
   packageSummary,
   receipts,
+  relsInUse,
+  DEFAULT_REL,
   LOCAL_GRAPH_CAP,
   PACKAGE_RULES_TEXT,
 } from './derive.ts';
@@ -381,4 +383,29 @@ test('id-ordered lists sort WO-999 before WO-1000 (WO-050)', () => {
   ]);
   assert.deepEqual(inFlight(s).map((r) => r.id), ['WO-999', 'WO-1000']);
   assert.deepEqual(autocomplete(s, '[[wo')!.map((i) => i.id), ['WO-999', 'WO-1000']);
+});
+
+// ---- typed-link editing (WO-056): the rel datalist ----
+
+test('relsInUse derives exactly the rels in use, deduped and sorted', () => {
+  const s = snap([
+    WO, // delivers, delivers, constrained-by
+    doc({
+      id: 'SRC-001',
+      type: 'source',
+      title: 'A source',
+      status: 'imported',
+      links: [
+        { id: 'REQ-001', rel: 'informs' },
+        { id: 'DEC-001', rel: 'constrained-by' },
+      ],
+    }),
+    doc({ id: 'REQ-003', type: 'requirement', title: 'Linkless', status: 'draft' }),
+  ]);
+  assert.deepEqual(relsInUse(s), ['constrained-by', 'delivers', 'informs']);
+  assert.deepEqual(relsInUse(snap([])), []);
+});
+
+test('the default rel for a new link is relates-to (SRC-028)', () => {
+  assert.equal(DEFAULT_REL, 'relates-to');
 });

@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { approveDocument, loadProject } from '@veri/core';
-import type { ApproveResult, VeriDocument } from '@veri/core';
+import { approveDocument, loadProject, setDocumentLinks } from '@veri/core';
+import type { ApproveResult, Link, VeriDocument } from '@veri/core';
 
 /** Statuses the UI may write, per the vocabularies in CLAUDE.md / core's schema. */
 const WRITABLE_STATUSES: Record<string, readonly string[]> = {
@@ -36,6 +36,25 @@ export async function setStatus(projectRoot: string, id: string, status: string)
   const raw = await readFile(path, 'utf8');
   const updated = raw.replace(/^status: .*$/m, `status: ${status}`).replace(/^updated: .*$/m, `updated: ${today()}`);
   await writeFile(path, updated);
+}
+
+/**
+ * Typed-link editing (WO-056, SRC-028): replace a document's outbound links
+ * with the full new array. Every target must resolve against the current
+ * project state — the autocomplete only offers real ids, but a hand-typed
+ * miss (or a stale renderer) is refused here before anything is written.
+ * The rewrite itself is core's byte-preserving links-block replacement.
+ */
+export async function setLinks(projectRoot: string, id: string, links: Link[]): Promise<void> {
+  const veriDir = join(projectRoot, 'veri');
+  const { documents } = await loadProject(veriDir);
+  const doc = documents.find((d) => d.id === id);
+  if (doc === undefined) throw new Error(`no document with id ${id}`);
+  const known = new Set(documents.map((d) => d.id));
+  for (const link of links) {
+    if (!known.has(link.id)) throw new Error(`unknown link target ${link.id}`);
+  }
+  await setDocumentLinks(veriDir, doc.file, links);
 }
 
 const NOTES_HEADING_RE = /^## Notes[ \t]*$/m;

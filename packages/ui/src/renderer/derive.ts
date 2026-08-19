@@ -402,6 +402,22 @@ export function recentlyChanged(snap: Snapshot, rel: (date: string) => string, c
     .map((d) => ({ id: d.id, title: d.title, time: rel(d.updated) }));
 }
 
+/** Default rel for a new typed link (SRC-028). */
+export const DEFAULT_REL = 'relates-to';
+
+/**
+ * Every rel value in use across the project's frontmatter links, deduped and
+ * sorted — the add-link rel datalist (WO-056). The vocabulary is the
+ * author's, derived from the documents, never curated (SRC-016).
+ */
+export function relsInUse(snap: Snapshot): string[] {
+  const rels = new Set<string>();
+  for (const doc of snap.documents) {
+    for (const link of doc.links) rels.add(link.rel);
+  }
+  return [...rels].sort((a, b) => a.localeCompare(b));
+}
+
 export interface AutocompleteItem {
   id: string;
   title: string;

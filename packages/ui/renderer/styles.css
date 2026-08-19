@@ -509,6 +509,40 @@ a:hover { color: #F49463; }
 .fm-key { width: 110px; flex: 0 0 auto; font-family: var(--mono); font-size: 11px; color: var(--faint); }
 .fm-mono { font-family: var(--mono); font-size: 12px; color: var(--secondary); }
 
+/* Links editor in the frontmatter card (WO-056, SRC-028): the count row is
+   the expander; entries carry a hover/focus-revealed remove; the add row
+   reuses the note composer's .ac-pop autocomplete register. */
+.fm-links-btn { display: flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 12px; color: var(--secondary); cursor: pointer; padding: 4px 0; }
+.fm-links-btn:hover { color: var(--text); }
+.lk-caret { font-size: 9px; color: var(--faint); }
+.lk-editor { padding: 4px 0 10px; border-bottom: 1px solid #1B1B20; }
+.lk-editor:last-child { border-bottom: none; }
+.lk-row { display: flex; align-items: center; gap: 9px; min-height: 27px; }
+.lk-rel { font-family: var(--mono); font-size: 11px; color: var(--faint); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lk-x { opacity: 0; font-size: 13px; line-height: 1; color: var(--faint); cursor: pointer; padding: 2px 7px; border-radius: 4px; flex: 0 0 auto; }
+.lk-row:hover .lk-x, .lk-x:focus-visible { opacity: 1; }
+.lk-x:hover { color: var(--amber); background: #25252C; }
+.lk-add { margin-top: 3px; font-size: 12px; color: var(--faint); cursor: pointer; padding: 4px 0; }
+.lk-add:hover { color: var(--text); }
+.lk-addwrap { margin-top: 6px; }
+.lk-addrow { position: relative; display: flex; gap: 8px; }
+.lk-addrow .ac-pop { bottom: 38px; }
+.lk-input {
+  height: 30px; padding: 0 10px; border-radius: 6px;
+  border: 1px solid var(--int-border); background: var(--card); color: var(--text);
+  font-family: var(--mono); font-size: 12px; outline: none;
+}
+.lk-input:focus { border-color: #8A4A2C; }
+.lk-target { flex: 1; min-width: 0; }
+.lk-relinput { width: 150px; flex: 0 0 auto; }
+/* Same amber register as the app's other inline errors (.np-err). */
+.lk-err {
+  display: flex; align-items: flex-start; gap: 8px; margin-top: 8px;
+  background: rgba(217,160,63,.06); border: 1px solid #3A3020; border-radius: 6px;
+  padding: 7px 10px; color: var(--amber); font-size: 12px; line-height: 1.4;
+}
+.lk-err-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); margin-top: 5px; flex: 0 0 auto; }
+
 .chip-status, .chip-ref { font-family: var(--mono); border-radius: 4px; }
 .chip-status { font-size: 11px; padding: 2px 7px; }
 .chip-ref { font-size: 12.5px; padding: 1px 5px; cursor: pointer; white-space: nowrap; }

@@ -40,6 +40,9 @@ export interface VeriApi {
   /** Rewrite the type's file to the built-in default (SRC-009 reset). */
   templateReset(type: DocType): Promise<void>;
   appendNote(id: string, note: string): Promise<void>;
+  /** Typed-link editing (WO-056): replace a doc's outbound links wholesale.
+      Main refuses unknown targets; core rewrites only the links block. */
+  setLinks(id: string, links: { id: string; rel: string }[]): Promise<void>;
   /** The approval act (REQ-008): stamp-and-flip via core's shared write path. */
   approve(id: string): Promise<ApproveResult>;
   /** Return a pending doc with a dated entry under "## Review notes". */

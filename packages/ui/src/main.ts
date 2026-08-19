@@ -29,7 +29,7 @@ import type { AgentId } from './lib/agents.ts';
 import { SnapshotBuilder, countProjectDocs } from './lib/snapshot.ts';
 import { loadWorkspaceState, saveWorkspaceState } from './lib/workspace.ts';
 import type { WorkspaceState } from './lib/workspace.ts';
-import { appendNote, appendReviewNote, approveDoc, setStatus } from './lib/write.ts';
+import { appendNote, appendReviewNote, approveDoc, setLinks, setStatus } from './lib/write.ts';
 import { startUpdater, updateStatus } from './lib/updater.ts';
 import { createLogger } from './lib/log.ts';
 import { buildIssueUrl } from './lib/report.ts';
@@ -171,6 +171,12 @@ function registerIpc(): void {
     await writeFile(join(veriDir, templateFile(type)), BODY_TEMPLATES[type]);
   });
   ipcMain.handle('veri:append-note', (_e, id: string, note: string) => appendNote(projectRoot, id, note));
+  // Typed-link editing (WO-056): the full new outbound array in, core's
+  // byte-preserving links-block rewrite out. Targets are validated against
+  // the project's current documents before anything is written.
+  ipcMain.handle('veri:set-links', (_e, id: string, links: { id: string; rel: string }[]) =>
+    setLinks(projectRoot, id, links),
+  );
   ipcMain.handle('veri:approve', (_e, id: string) => approveDoc(projectRoot, id));
   ipcMain.handle('veri:review-note', (_e, id: string, note: string) => appendReviewNote(projectRoot, id, note));
   ipcMain.handle('veri:mcp-status', () => mcpStatus(projectRoot, mcpServerJs));

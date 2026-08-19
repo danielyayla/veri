@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { appendNote, appendReviewNote, approveDoc, setStatus } from './write.ts';
+import { appendNote, appendReviewNote, approveDoc, setLinks, setStatus } from './write.ts';
 
 const WO_FILE = [
   '---',
@@ -75,6 +75,48 @@ test('appendNote appends to an existing Notes section without clobbering', async
   const today = new Date().toISOString().slice(0, 10);
   assert.ok(after.includes(`- ${today} — first\n- ${today} — second`));
   assert.equal(after.match(/## Notes/g)!.length, 1);
+});
+
+// ---- typed-link editing (WO-056) ----
+
+const REQ_FILE = [
+  '---',
+  'id: REQ-001',
+  'type: requirement',
+  'title: The requirement',
+  'status: draft',
+  'created: 2026-08-01',
+  'updated: 2026-08-01',
+  '---',
+  '',
+  'Body.',
+  '',
+].join('\n');
+
+test('setLinks rewrites only the links block and updated:, via core', async () => {
+  const root = await makeProject();
+  await writeFile(join(root, 'veri', 'requirements', 'REQ-001-the-requirement.md'), REQ_FILE);
+  await writeFile(join(root, 'veri', 'requirements', 'REQ-002-other.md'), REQ_FILE.replace(/REQ-001/g, 'REQ-002'));
+  await setLinks(root, 'WO-001', [
+    { id: 'REQ-001', rel: 'delivers' },
+    { id: 'REQ-002', rel: 'relates-to' },
+  ]);
+  const after = await readFile(join(root, 'veri', 'work-orders', 'WO-001-build-it.md'), 'utf8');
+  const today = new Date().toISOString().slice(0, 10);
+  const changed = WO_FILE.replace(
+    'links:\n  - id: REQ-001\n    rel: delivers',
+    'links:\n  - id: REQ-001\n    rel: delivers\n  - id: REQ-002\n    rel: relates-to',
+  ).replace('updated: 2026-08-01', `updated: ${today}`);
+  assert.equal(after, changed);
+});
+
+test('setLinks refuses unknown targets and unknown documents before writing', async () => {
+  const root = await makeProject();
+  // REQ-001 is linked from the fixture but has no file — a hand-typed miss.
+  await assert.rejects(() => setLinks(root, 'WO-001', [{ id: 'REQ-999', rel: 'relates-to' }]), /unknown link target REQ-999/);
+  await assert.rejects(() => setLinks(root, 'WO-404', []), /no document with id WO-404/);
+  const untouched = await readFile(join(root, 'veri', 'work-orders', 'WO-001-build-it.md'), 'utf8');
+  assert.equal(untouched, WO_FILE);
 });
 
 // ---- approval gate (WO-017 / REQ-008) ----

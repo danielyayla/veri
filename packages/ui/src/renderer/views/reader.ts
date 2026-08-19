@@ -2,15 +2,17 @@
 import { h, svgEl } from '../dom.ts';
 import { TYPE_META } from '../theme.ts';
 import { parseBlocks } from '../markdown.ts';
-import { autocomplete, connections, fileActivity, insertAutocomplete, localGraph } from '../derive.ts';
+import { DEFAULT_REL, autocomplete, connections, fileActivity, insertAutocomplete, localGraph, relsInUse } from '../derive.ts';
 import type { ConnectionGroups } from '../derive.ts';
+import { ipcErrorMessage } from '../editlogic.ts';
 import { activityFeed, attachPreview, dirtyStrip, idChip, imgDirFor, modeToggle, pinChip, renderBlocks, statusChip, typeChip } from '../widgets.ts';
 import { reviewBanner } from './review.ts';
-import type { Ctx } from '../app.ts';
+import type { Ctx, LinkAddState } from '../app.ts';
 
 function frontmatterCard(ctx: Ctx): HTMLElement {
   const doc = ctx.doc()!;
   const meta = TYPE_META[doc.type];
+  const open = ctx.state.linksOpen;
   const row = (k: string, v: HTMLElement): HTMLElement =>
     h('div', { class: 'fm-row' }, h('span', { class: 'fm-key' }, k), v);
   return h(
@@ -22,7 +24,170 @@ function frontmatterCard(ctx: Ctx): HTMLElement {
     ...(doc.approved !== undefined ? [row('approved', h('span', { class: 'fm-mono' }, doc.approved))] : []),
     row('created', h('span', { class: 'fm-mono' }, doc.created)),
     row('updated', h('span', { class: 'fm-mono' }, ctx.rel(doc.updated))),
-    row('links', h('span', { class: 'fm-mono' }, `${doc.links.length} outbound`)),
+    // WO-056 (SRC-028): the links row is the links editor — the count
+    // expands into the outbound list with remove and add controls.
+    row(
+      'links',
+      h(
+        'button',
+        {
+          class: 'btn-reset fm-links-btn',
+          expanded: open,
+          label: `links — ${doc.links.length} outbound`,
+          fkey: 'fm-links',
+          onClick: () => ctx.update({ linksOpen: !open, linkAdd: null }),
+        },
+        h('span', { class: 'lk-caret' }, open ? '▾' : '▸'),
+        `${doc.links.length} outbound`,
+      ),
+    ),
+    ...(open ? [linksEditor(ctx)] : []),
+  );
+}
+
+/** Commit a full new outbound array; the write path is core's byte-preserving
+    links-block rewrite behind the setLinks IPC (WO-056). */
+function commitLinks(ctx: Ctx, links: { id: string; rel: string }[], logText: string, onError: (msg: string) => void): void {
+  const docId = ctx.state.docId!;
+  void ctx.api
+    .setLinks(docId, links)
+    .then(() => {
+      ctx.sessionLog(docId, { agent: false, text: logText, time: 'today' });
+      ctx.update({ linkAdd: null });
+      void ctx.refresh();
+    })
+    .catch((err) => onError(ipcErrorMessage(err)));
+}
+
+/** The expanded links row: outbound entries in frontmatter (author) order —
+    id chip, muted rel, an × on hover/focus — plus the add-link row. Inbound
+    links stay in the Connections panel; they belong to other documents. */
+function linksEditor(ctx: Ctx): HTMLElement {
+  const doc = ctx.doc()!;
+  const links = doc.links;
+  const rows = links.map((l, i) =>
+    h(
+      'div',
+      { class: 'lk-row' },
+      idChip(ctx.byId, l.id, ctx),
+      h('span', { class: 'lk-rel' }, l.rel),
+      h(
+        'button',
+        {
+          class: 'btn-reset lk-x',
+          label: `Remove link ${l.id} (${l.rel})`,
+          title: 'Remove link',
+          fkey: `lk-x:${i}`,
+          onClick: () => {
+            const next = links.filter((_, j) => j !== i).map((k) => ({ id: k.id, rel: k.rel }));
+            commitLinks(ctx, next, `Removed link → ${l.id} (${l.rel})`, (msg) => ctx.flashToast(msg));
+          },
+        },
+        '×',
+      ),
+    ),
+  );
+  const add = ctx.state.linkAdd;
+  const addUi =
+    add === null
+      ? h(
+          'button',
+          {
+            class: 'btn-reset lk-add',
+            fkey: 'lk-add',
+            onClick: () => ctx.update({ linkAdd: { target: '', rel: DEFAULT_REL, error: null, focus: 'target' } }),
+          },
+          '+ add link',
+        )
+      : addLinkRow(ctx, add, links);
+  return h('div', { class: 'lk-editor', role: 'group', label: 'Outbound links editor' }, ...rows, addUi);
+}
+
+/** The two-field inline row (SRC-028): target backed by the pure
+    autocomplete() in the note composer's .ac-pop register, rel as free text
+    over a datalist of the project's rels. Enter commits, Escape cancels;
+    empty rel and unknown target are refused inline. */
+function addLinkRow(ctx: Ctx, add: LinkAddState, links: readonly { id: string; rel: string }[]): HTMLElement {
+  // The pure helper keys on a trailing "[[" (its one grammar); the target
+  // field is all query, so the marker is prefixed. A fully resolved id needs
+  // no more offers — the popover yields to the picked value.
+  const items = ctx.byId.has(add.target.trim()) ? null : autocomplete(ctx.snap, `[[${add.target}`);
+  const popover =
+    items !== null && items.length > 0
+      ? h(
+          'div',
+          { class: 'ac-pop' },
+          h('div', { class: 'ac-label' }, 'LINK TO DOC'),
+          ...items.map((it, i) =>
+            h(
+              'button',
+              {
+                class: 'btn-reset btn-block ac-row',
+                fkey: `lk-ac:${i}`,
+                onClick: () => ctx.update({ linkAdd: { ...add, target: it.id, error: null, focus: 'rel' } }),
+              },
+              h('span', { class: 'ac-id', style: `color:${TYPE_META[it.type].color};` }, it.id),
+              h('span', { class: 'ac-title' }, it.title),
+            ),
+          ),
+        )
+      : null;
+
+  const commit = (): void => {
+    const target = add.target.trim();
+    const rel = add.rel.trim();
+    if (!ctx.byId.has(target)) {
+      // The autocomplete only offers real ids; a hand-typed miss is caught here.
+      ctx.update({
+        linkAdd: { ...add, error: target === '' ? 'a link target is required' : `unknown link target ${target}`, focus: 'target' },
+      });
+      return;
+    }
+    if (rel === '') {
+      ctx.update({ linkAdd: { ...add, error: 'rel must not be empty', focus: 'rel' } });
+      return;
+    }
+    commitLinks(ctx, [...links.map((l) => ({ id: l.id, rel: l.rel })), { id: target, rel }], `Added link → ${target} (${rel})`, (msg) =>
+      ctx.update({ linkAdd: { ...add, error: msg, focus: 'target' } }),
+    );
+  };
+  const onKeys = (e: KeyboardEvent): void => {
+    if (e.key === 'Enter') {
+      commit();
+    } else if (e.key === 'Escape') {
+      e.stopPropagation(); // closes only this row, not the layer stack
+      ctx.update({ linkAdd: null });
+    }
+  };
+  const field = (cls: string, fkey: string, label: string, placeholder: string, value: string, patch: (v: string) => Partial<LinkAddState>): HTMLInputElement =>
+    h('input', {
+      class: `lk-input ${cls}`,
+      fkey,
+      label,
+      placeholder,
+      value,
+      onInput: (e) => ctx.update({ linkAdd: { ...add, ...patch((e.target as HTMLInputElement).value), error: null, focus: null } }),
+      onKeydown: onKeys,
+    }) as HTMLInputElement;
+  const targetInput = field('lk-target', 'lk-target', 'Link target id', 'target id — e.g. REQ-001', add.target, (v) => ({ target: v }));
+  const relInput = field('lk-relinput', 'lk-rel', 'Link rel', 'rel', add.rel, (v) => ({ rel: v }));
+  // The rel vocabulary is the author's: a datalist of the rels in use, not an
+  // enum (SRC-016). `list` rides setAttribute — the DOM property is readonly.
+  relInput.setAttribute('list', 'lk-rels');
+  const datalist = h('datalist', { id: 'lk-rels' }, ...relsInUse(ctx.snap).map((r) => h('option', { value: r })));
+  if (add.focus !== null) {
+    const el = add.focus === 'target' ? targetInput : relInput;
+    queueMicrotask(() => {
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+      add.focus = null; // one-shot, consumed by this render
+    });
+  }
+  return h(
+    'div',
+    { class: 'lk-addwrap' },
+    h('div', { class: 'lk-addrow' }, popover, targetInput, relInput, datalist),
+    add.error !== null ? h('div', { class: 'lk-err', role: 'alert' }, h('span', { class: 'lk-err-dot' }), add.error) : null,
   );
 }
 

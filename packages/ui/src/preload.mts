@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld('veri', {
   templateWrite: (type: string, body: string) => ipcRenderer.invoke('veri:template-write', type, body),
   templateReset: (type: string) => ipcRenderer.invoke('veri:template-reset', type),
   appendNote: (id: string, note: string) => ipcRenderer.invoke('veri:append-note', id, note),
+  setLinks: (id: string, links: { id: string; rel: string }[]) => ipcRenderer.invoke('veri:set-links', id, links),
   approve: (id: string) => ipcRenderer.invoke('veri:approve', id),
   reviewNote: (id: string, note: string) => ipcRenderer.invoke('veri:review-note', id, note),
   mcpStatus: () => ipcRenderer.invoke('veri:mcp-status'),

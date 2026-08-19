@@ -87,6 +87,11 @@ export interface State {
   expanded: Set<string>;
   editorText: string;
   editorFocused: boolean;
+  /** Reader links editor (WO-056, SRC-028): the frontmatter card's links row
+      expanded flag and the add-link draft — per-doc transients, reset when
+      the focused tab's target changes. */
+  linksOpen: boolean;
+  linkAdd: LinkAddState | null;
   copied: boolean;
   kickoffCopied: boolean;
   /** Agent picker (WO-011): open flag, fresh detection results, and feedback. */
@@ -154,6 +159,15 @@ export interface State {
   mcpPrecheck: RuntimeProbe | null;
   /** Welcome screen's inline notice (cold-start mode only). */
   welcomeNotice: { text: string } | null;
+}
+
+/** The add-link inline row (WO-056): target + rel drafts, the inline error,
+    and a one-shot focus request consumed by the render that honors it. */
+export interface LinkAddState {
+  target: string;
+  rel: string;
+  error: string | null;
+  focus: 'target' | 'rel' | null;
 }
 
 /** The New project sheet's own state — one directory, one toggle, one error. */
@@ -311,6 +325,8 @@ class App implements Ctx {
     expanded: new Set(),
     editorText: '',
     editorFocused: false,
+    linksOpen: false,
+    linkAdd: null,
     copied: false,
     kickoffCopied: false,
     agentsOpen: false,
@@ -703,6 +719,8 @@ class App implements Ctx {
       Object.assign(patch, {
         editorText: '',
         editorFocused: false,
+        linksOpen: false,
+        linkAdd: null,
         copied: false,
         kickoffCopied: false,
         agentsOpen: false,
