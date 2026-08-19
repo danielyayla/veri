@@ -107,8 +107,11 @@ function pathTokens(text: string): string[] {
       raw
         .replace(/\(.*?\)/g, '') // parenthetical notes: mcpconfig.ts(+test), "(root)"
         // Edge noise in any stacking order: JSON-array quoting and
-        // brackets ("path", ]), sentence punctuation (path.md",)
-        .replace(/^["'[\](),.;:]+|["'[\](),.;:]+$/g, ''),
+        // brackets ("path", ]), sentence punctuation (path.md",).
+        // Leading dots stay when they start a dotfile segment
+        // (.github/workflows/release.yml, .env.example).
+        .replace(/^(?:["'[\](),;:]|\.(?!\w))+/, '')
+        .replace(/["'[\](),.;:]+$/, ''),
     )
     .flatMap(expandBraces)
     .flatMap((token) => token.split(','))
