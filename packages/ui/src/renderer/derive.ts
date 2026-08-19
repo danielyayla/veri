@@ -168,94 +168,71 @@ export function boardColumns(snap: Snapshot): BoardColumn[] {
   return cols;
 }
 
-export interface GraphNode {
+// ---- Local graph on the document (WO-052, SRC-024) -----------------------
+
+/** At most this many neighbors render per side; the rest become `+K more`. */
+export const LOCAL_GRAPH_CAP = 8;
+
+/** Vertical pitch between neighbor slots, px. */
+const LOCAL_ROW_H = 26;
+const LOCAL_PAD_Y = 14;
+
+export interface LocalGraphNode {
   id: string;
-  type: VeriDocument['type'];
-  title: string;
-  status: string;
   x: number;
   y: number;
-  size: number;
-  degree: number;
-  dim: boolean;
 }
 
-export interface GraphEdgeLine {
-  from: string;
-  to: string;
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
+export interface LocalGraphSide {
+  /** Capped, in the panel's own order (closest first — SRC-024). */
+  nodes: LocalGraphNode[];
+  /** Neighbors beyond the cap; the cards below stay the complete list. */
+  more: number;
+  /** The `+K more` marker's slot; null when nothing overflows. */
+  moreAt: { x: number; y: number } | null;
 }
 
-export interface GraphLayout {
-  nodes: GraphNode[];
-  lines: GraphEdgeLine[];
+export interface LocalGraphLayout {
+  width: number;
+  height: number;
+  /** Center node — the current document. */
+  cx: number;
+  cy: number;
+  inbound: LocalGraphSide;
+  outbound: LocalGraphSide;
 }
 
 /**
- * Deterministic layout in the mockup's shape: requirements left, decisions
- * center, work orders right, sources along the bottom. Node size by degree.
+ * SRC-024: a deterministic two-column fan at panel width — inbound left,
+ * outbound right, straight edges center↔neighbor, no simulation. Neighbors
+ * are the panel's own deduped `connections()` set. Null when the document
+ * has no connections at all: the graph is hidden entirely, no empty-state.
  */
-export function graphLayout(snap: Snapshot): GraphLayout {
-  const degree = new Map<string, number>();
-  const seenPair = new Set<string>();
-  const pairs: Array<[string, string]> = [];
-  const ids = new Set(snap.documents.map((d) => d.id));
-  for (const edge of snap.edges) {
-    if (!ids.has(edge.from) || !ids.has(edge.to) || edge.from === edge.to) continue;
-    const key = edge.from < edge.to ? `${edge.from}|${edge.to}` : `${edge.to}|${edge.from}`;
-    if (seenPair.has(key)) continue;
-    seenPair.add(key);
-    pairs.push([edge.from, edge.to]);
-    degree.set(edge.from, (degree.get(edge.from) ?? 0) + 1);
-    degree.set(edge.to, (degree.get(edge.to) ?? 0) + 1);
-  }
-
-  const bands: Record<VeriDocument['type'], { x: [number, number]; y: [number, number] }> = {
-    requirement: { x: [13, 27], y: [16, 84] },
-    decision: { x: [40, 58], y: [12, 86] },
-    'work-order': { x: [68, 86], y: [14, 80] },
-    source: { x: [30, 64], y: [88, 90] },
-    workflow: { x: [30, 64], y: [5, 8] },
+export function localGraph(groups: ConnectionGroups, width = 272): LocalGraphLayout | null {
+  if (groups.inbound.length === 0 && groups.outbound.length === 0) return null;
+  const slotsOf = (n: number): number => Math.min(n, LOCAL_GRAPH_CAP) + (n > LOCAL_GRAPH_CAP ? 1 : 0);
+  const rows = Math.max(slotsOf(groups.inbound.length), slotsOf(groups.outbound.length));
+  const height = rows * LOCAL_ROW_H + LOCAL_PAD_Y * 2;
+  const cy = height / 2;
+  const side = (conns: Connection[], x: number): LocalGraphSide => {
+    const shown = conns.slice(0, LOCAL_GRAPH_CAP);
+    const more = conns.length - shown.length;
+    const slots = shown.length + (more > 0 ? 1 : 0);
+    const y = (i: number): number => cy + (i - (slots - 1) / 2) * LOCAL_ROW_H;
+    return {
+      nodes: shown.map((c, i) => ({ id: c.id, x, y: y(i) })),
+      more,
+      moreAt: more > 0 ? { x, y: y(slots - 1) } : null,
+    };
   };
-
-  const nodes: GraphNode[] = [];
-  const pos = new Map<string, { x: number; y: number }>();
-  for (const type of ['requirement', 'decision', 'work-order', 'source', 'workflow'] as const) {
-    const docs = snap.documents.filter((d) => d.type === type).sort((a, b) => compareIds(a.id, b.id));
-    const band = bands[type];
-    docs.forEach((d, i) => {
-      const t = docs.length === 1 ? 0.5 : i / (docs.length - 1);
-      const x = type === 'source'
-        ? band.x[0] + t * (band.x[1] - band.x[0])
-        : band.x[0] + (i % 2) * (band.x[1] - band.x[0]);
-      const y = type === 'source'
-        ? band.y[0] + (i % 2) * (band.y[1] - band.y[0])
-        : band.y[0] + t * (band.y[1] - band.y[0]);
-      const deg = degree.get(d.id) ?? 0;
-      pos.set(d.id, { x, y });
-      nodes.push({
-        id: d.id,
-        type,
-        title: d.title,
-        status: d.status,
-        x,
-        y,
-        size: 10 + Math.min(deg, 5) * 2.4,
-        degree: deg,
-        dim: d.status === 'superseded',
-      });
-    });
-  }
-
-  const lines: GraphEdgeLine[] = pairs.map(([from, to]) => {
-    const a = pos.get(from)!;
-    const b = pos.get(to)!;
-    return { from, to, x1: a.x, y1: a.y, x2: b.x, y2: b.y };
-  });
-  return { nodes, lines };
+  return {
+    width,
+    height,
+    cx: width / 2,
+    cy,
+    inbound: side(groups.inbound, Math.round(width * 0.18)),
+    outbound: side(groups.outbound, Math.round(width * 0.82)),
+  };
 }
 
 export interface PackageRow {

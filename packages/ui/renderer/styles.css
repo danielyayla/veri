@@ -580,6 +580,29 @@ a:hover { color: #F49463; }
 .conn-title { display: block; font-size: 12.5px; color: var(--text); margin-top: 3px; line-height: 1.35; }
 .conn-why { display: block; font-size: 11.5px; color: var(--faint); margin-top: 2px; }
 
+/* Local graph (WO-052, SRC-024): the 1-hop neighborhood map above the
+   Connections cards. Existing tokens only — no new colors. */
+.lg-wrap { position: relative; margin-top: 10px; }
+.lg-node {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; align-items: center; gap: 4px; cursor: pointer;
+  padding: 2px 4px; border-radius: 5px; background: var(--panel);
+}
+.lg-node:hover .lg-label { color: var(--text); }
+.lg-dim { opacity: 0.45; }
+.lg-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
+.lg-label { font-family: var(--mono); font-size: 9.5px; color: var(--faint); white-space: nowrap; }
+.lg-more {
+  position: absolute; transform: translate(-50%, -50%);
+  padding: 2px 4px; background: var(--panel);
+  font-family: var(--mono); font-size: 9.5px; color: var(--faint); white-space: nowrap;
+}
+.lg-center {
+  position: absolute; transform: translate(-50%, -50%);
+  padding: 2px 5px; border-radius: 5px; background: var(--panel);
+  font-family: var(--mono); font-size: 10.5px; font-weight: 600; white-space: nowrap;
+}
+
 /* Hover preview popover (WO-047, SRC-021): a miniature of the doc head.
    Fixed width matching the Connections card (300px panel − 2×14px padding);
    presentation only — aria-hidden, no controls. */
@@ -701,39 +724,6 @@ a:hover { color: #F49463; }
 .board-health-dot { margin-left: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--amber); }
 .board-card-title { display: block; font-size: 13.5px; font-weight: 500; color: var(--text); margin-top: 5px; line-height: 1.35; }
 .board-card-reqs { display: block; margin-top: 7px; font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
-
-/* ===== Graph ===== */
-.screen-graph { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 26px 28px; min-height: 0; }
-.graph-head { display: flex; align-items: center; gap: 16px; flex: 0 0 auto; }
-.graph-legend { display: flex; gap: 14px; margin-left: auto; }
-.graph-legend-item { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
-.graph-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
-.graph-canvas {
-  flex: 1; position: relative; margin-top: 18px; border: 1px solid var(--hair);
-  border-radius: 12px; background: #111114; min-height: 0; overflow: hidden;
-}
-.gr-node {
-  position: absolute; transform: translate(-50%, -50%);
-  display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;
-}
-.gr-dot { border-radius: 50%; border: 2px solid #111114; box-shadow: 0 0 0 3px rgba(0,0,0,0.25); }
-.gr-label { font-family: var(--mono); font-size: 9.5px; color: var(--faint); white-space: nowrap; }
-.gr-pop {
-  position: absolute; transform: translate(-50%, 12px); width: 230px; background: var(--pop);
-  border: 1px solid #2B2B32; border-radius: 8px; box-shadow: 0 12px 32px rgba(0,0,0,.55);
-  padding: 11px 13px; z-index: 20;
-}
-.gr-pop-head { display: flex; align-items: center; gap: 7px; }
-.gr-pop-id { font-family: var(--mono); font-size: 10.5px; }
-.gr-pop-type { margin-left: auto; font-family: var(--mono); font-size: 9.5px; color: var(--ghost); }
-.gr-pop-title { font-size: 13px; font-weight: 500; color: var(--text); margin-top: 4px; line-height: 1.35; }
-.gr-pop-meta { font-family: var(--mono); font-size: 10.5px; color: var(--faint); margin-top: 6px; }
-.gr-pop-open {
-  margin-top: 9px; height: 26px; border-radius: 6px; border: 1px solid var(--int-border);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11.5px; color: var(--body-text); cursor: pointer;
-}
-.gr-pop-open:hover { border-color: var(--hover-border-2); }
 
 /* ===== Agent connection (WO-007, tokens per SRC-002) ===== */
 .mcp-snippet-link { color: var(--ember); cursor: pointer; }

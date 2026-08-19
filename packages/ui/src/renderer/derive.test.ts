@@ -10,7 +10,6 @@ import {
   connections,
   docsById,
   gatingDocs,
-  graphLayout,
   inFlight,
   insertAutocomplete,
   issuesByDoc,
@@ -18,10 +17,13 @@ import {
   projectActivity,
   recentlyChanged,
   kickoffPrompt,
+  localGraph,
   packageSummary,
   receipts,
+  LOCAL_GRAPH_CAP,
   PACKAGE_RULES_TEXT,
 } from './derive.ts';
+import type { Connection } from './derive.ts';
 
 // REQ-019: the footer's mirrored copy may never drift from the contract line
 // core owns (the renderer bundle can't import core's node-flavored runtime).
@@ -142,19 +144,41 @@ test('issue-driven health surfaces ignore advisories entirely', () => {
   assert.equal(card.health, false);
 });
 
-test('graphLayout places every doc, sizes by degree, dims superseded', () => {
-  const req = doc({ id: 'REQ-001', type: 'requirement', title: 'A req', status: 'accepted' });
-  const dec = doc({ id: 'DEC-001', type: 'decision', title: 'Old', status: 'superseded', supersededBy: 'DEC-001' });
-  const s = snap([WO, req, dec]);
-  const layout = graphLayout(s);
-  assert.equal(layout.nodes.length, 3);
-  const woNode = layout.nodes.find((n) => n.id === 'WO-001')!;
-  assert.ok(woNode.degree >= 2);
-  assert.ok(woNode.size > 10);
-  assert.equal(layout.nodes.find((n) => n.id === 'DEC-001')!.dim, true);
-  for (const line of layout.lines) {
-    assert.ok(Number.isFinite(line.x1) && Number.isFinite(line.y2));
-  }
+// ---- Local graph layout (WO-052, SRC-024) --------------------------------
+
+const conn = (id: string): Connection => ({ id, title: `Doc ${id}`, type: 'requirement', why: 'mentions' });
+
+test('localGraph is null for a document with no connections — the graph hides', () => {
+  assert.equal(localGraph({ inbound: [], outbound: [] }), null);
+});
+
+test('localGraph fans inbound left of center, outbound right, in panel order', () => {
+  const lg = localGraph({ inbound: [conn('A'), conn('B')], outbound: [conn('C')] }, 272)!;
+  assert.equal(lg.cx, 136);
+  assert.deepEqual(lg.inbound.nodes.map((n) => n.id), ['A', 'B']);
+  assert.deepEqual(lg.outbound.nodes.map((n) => n.id), ['C']);
+  for (const n of lg.inbound.nodes) assert.ok(n.x < lg.cx);
+  for (const n of lg.outbound.nodes) assert.ok(n.x > lg.cx);
+  // Each side's fan is vertically centered on the center node.
+  const ys = lg.inbound.nodes.map((n) => n.y);
+  assert.equal((ys[0] + ys[1]) / 2, lg.cy);
+  assert.equal(lg.outbound.nodes[0].y, lg.cy);
+  // Deterministic: same input, same layout — no simulation.
+  assert.deepEqual(localGraph({ inbound: [conn('A'), conn('B')], outbound: [conn('C')] }, 272), lg);
+});
+
+test('localGraph caps each side at 8 and counts the rest as +K more', () => {
+  const many = Array.from({ length: 11 }, (_, i) => conn(`R${i}`));
+  const lg = localGraph({ inbound: many, outbound: [conn('X')] })!;
+  assert.equal(lg.inbound.nodes.length, LOCAL_GRAPH_CAP);
+  assert.deepEqual(lg.inbound.nodes.map((n) => n.id), many.slice(0, 8).map((c) => c.id));
+  assert.equal(lg.inbound.more, 3);
+  // The +K marker takes the slot after the capped fan, pointing at the cards.
+  assert.ok(lg.inbound.moreAt !== null && lg.inbound.moreAt.y > lg.inbound.nodes[7].y);
+  assert.equal(lg.outbound.more, 0);
+  assert.equal(lg.outbound.moreAt, null);
+  // Height grows with the taller side: 9 slots (8 nodes + marker).
+  assert.ok(lg.height > localGraph({ inbound: [conn('A')], outbound: [] })!.height);
 });
 
 test('packageSummary parses rows and totals out of get_context markdown', () => {

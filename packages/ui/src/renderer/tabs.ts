@@ -8,13 +8,14 @@
  * active tab's current entry.
  */
 
-/** View tabs alongside document tabs; targets are doc ids or these keys. */
-export type ViewKey = 'homeview' | 'board' | 'graph' | 'search' | 'settings';
+/** View tabs alongside document tabs; targets are doc ids or these keys.
+    'graph' is retired (WO-052, SRC-024): the graph lives on the document
+    surface now; persisted graph tabs restore away via retainTabs. */
+export type ViewKey = 'homeview' | 'board' | 'search' | 'settings';
 
 export const VIEW_META: Record<ViewKey, { label: string; glyph: string }> = {
   homeview: { label: 'Home', glyph: '⌂' },
   board: { label: 'Board', glyph: '▤' },
-  graph: { label: 'Graph', glyph: '◉' },
   // The palette's thorough sibling (WO-048, SRC-022): one query, every hit.
   search: { label: 'Search', glyph: '⌕' },
   // One Settings tab hosts Templates and Agent connection too (WO-036).

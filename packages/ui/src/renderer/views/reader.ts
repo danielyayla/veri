@@ -1,8 +1,9 @@
 /** Screen 1 — Project home: reader column + Connections panel. */
-import { h } from '../dom.ts';
+import { h, svgEl } from '../dom.ts';
 import { TYPE_META } from '../theme.ts';
 import { parseBlocks } from '../markdown.ts';
-import { autocomplete, connections, fileActivity, insertAutocomplete } from '../derive.ts';
+import { autocomplete, connections, fileActivity, insertAutocomplete, localGraph } from '../derive.ts';
+import type { ConnectionGroups } from '../derive.ts';
 import { activityFeed, attachPreview, dirtyStrip, idChip, imgDirFor, modeToggle, pinChip, renderBlocks, statusChip, typeChip } from '../widgets.ts';
 import { reviewBanner } from './review.ts';
 import type { Ctx } from '../app.ts';
@@ -77,6 +78,76 @@ function noteEditor(ctx: Ctx): HTMLElement {
   return h('div', { class: 'note-wrap' }, popover, input);
 }
 
+/**
+ * The local graph (WO-052, SRC-024): a 1-hop neighborhood map above the
+ * Connections cards — center node the current doc, inbound fanned left,
+ * outbound right, straight SVG edges, no simulation. Neighbors are the
+ * panel's own deduped set; beyond 8 per side a `+K more` marker points at
+ * the cards below. Hidden entirely when the doc has no connections.
+ */
+function localGraphEl(ctx: Ctx, doc: { id: string; type: keyof typeof TYPE_META }, groups: ConnectionGroups): HTMLElement | null {
+  const layout = localGraph(groups);
+  if (layout === null) return null;
+  const svg = svgEl('svg', {
+    viewBox: `0 0 ${layout.width} ${layout.height}`,
+    style: 'position:absolute;inset:0;width:100%;height:100%;',
+    'aria-hidden': 'true',
+  });
+  for (const n of [...layout.inbound.nodes, ...layout.outbound.nodes]) {
+    svg.append(
+      svgEl('line', {
+        x1: String(layout.cx),
+        y1: String(layout.cy),
+        x2: String(n.x),
+        y2: String(n.y),
+        style: 'stroke:var(--hair);stroke-width:1;',
+      }),
+    );
+  }
+  const node = (n: { id: string; x: number; y: number }): HTMLElement => {
+    const target = ctx.byId.get(n.id);
+    const dim = target?.status === 'superseded';
+    const btn = h(
+      'button',
+      {
+        class: dim ? 'btn-reset lg-node lg-dim' : 'btn-reset lg-node',
+        style: `left:${n.x}px;top:${n.y}px;`,
+        label: `${n.id} — ${target?.title ?? n.id}`,
+        fkey: `lg:${n.id}`,
+        // SRC-024: click opens the doc as a preview tab; ⌘-click backgrounds
+        // — openDoc semantics unchanged.
+        onClick: (e) => ctx.openDoc(n.id, { preview: true, background: e.metaKey || e.ctrlKey }),
+      },
+      h('span', {
+        class: 'lg-dot',
+        style: `background:${target !== undefined ? TYPE_META[target.type].color : 'var(--faint)'};`,
+      }),
+      h('span', { class: 'lg-label' }, n.id),
+    );
+    // SRC-021 hover/focus preview via the one shared popover (WO-047).
+    attachPreview(btn, ctx.byId, n.id, ctx);
+    return btn;
+  };
+  const marker = (side: { more: number; moreAt: { x: number; y: number } | null }): HTMLElement | null =>
+    side.moreAt === null
+      ? null
+      : h('span', { class: 'lg-more', style: `left:${side.moreAt.x}px;top:${side.moreAt.y}px;` }, `+${side.more} more`);
+  return h(
+    'div',
+    { class: 'lg-wrap', style: `height:${layout.height}px;`, label: `Local graph — ${doc.id} and its connections` },
+    svg,
+    ...layout.inbound.nodes.map(node),
+    ...layout.outbound.nodes.map(node),
+    marker(layout.inbound),
+    marker(layout.outbound),
+    h(
+      'span',
+      { class: 'lg-center', style: `left:${layout.cx}px;top:${layout.cy}px;color:${TYPE_META[doc.type].color};` },
+      doc.id,
+    ),
+  );
+}
+
 export function connectionsPanel(ctx: Ctx): HTMLElement {
   const doc = ctx.doc()!;
   const groups = connections(ctx.snap, doc.id);
@@ -113,6 +184,7 @@ export function connectionsPanel(ctx: Ctx): HTMLElement {
     'div',
     { class: 'panel-right panel-connections' },
     h('div', { class: 'micro-label' }, 'CONNECTIONS'),
+    localGraphEl(ctx, doc, groups),
     group('Outbound · links to', groups.outbound),
     group('Inbound · linked from', groups.inbound),
   );

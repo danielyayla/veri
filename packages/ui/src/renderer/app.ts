@@ -20,7 +20,6 @@ import { homeView } from './views/home.ts';
 import { welcomeView } from './views/welcome.ts';
 import { workOrderView } from './views/workorder.ts';
 import { boardView } from './views/board.ts';
-import { graphView } from './views/graph.ts';
 import { searchView } from './views/search.ts';
 import {
   VIEW_META,
@@ -51,7 +50,7 @@ import { TPL_TYPES } from './views/templates.ts';
 import { settingsView } from './views/settings.ts';
 import { DEAD_LABEL, livingCount, panelList, pushRecent } from './sidebar.ts';
 
-export type View = 'home' | 'workorder' | 'homeview' | 'board' | 'graph' | 'search' | 'settings';
+export type View = 'home' | 'workorder' | 'homeview' | 'board' | 'search' | 'settings';
 
 /** Sections of the Settings view (WO-036, SRC-014). */
 export type SettingsSection = 'templates' | 'agent' | 'project' | 'updates';
@@ -74,7 +73,6 @@ export interface State {
   view: View;
   docId: string | null;
   expanded: Set<string>;
-  graphSel: string | null;
   editorText: string;
   editorFocused: boolean;
   copied: boolean;
@@ -298,7 +296,6 @@ class App implements Ctx {
     view: 'home',
     docId: null,
     expanded: new Set(),
-    graphSel: null,
     editorText: '',
     editorFocused: false,
     copied: false,
@@ -417,8 +414,6 @@ class App implements Ctx {
       layers.push({ kind: 'projSwitcher', sel: '.proj-pop', trap: true, close: () => this.update({ projectSwitcherOpen: false }) });
     if (this.state.agentsOpen)
       layers.push({ kind: 'agents', sel: '.ap-pop', trap: true, close: () => this.update({ agentsOpen: false }) });
-    if (this.state.graphSel !== null)
-      layers.push({ kind: 'graphPop', sel: '.gr-pop', trap: false, close: () => this.update({ graphSel: null }) });
     if (this.state.panel !== null)
       layers.push({ kind: 'panel', sel: '.typepanel', trap: false, close: () => this.update({ panel: null }) });
     return layers;
@@ -653,7 +648,6 @@ class App implements Ctx {
     }
     if (target !== activeTarget(this.tabState())) {
       Object.assign(patch, {
-        graphSel: null,
         editorText: '',
         editorFocused: false,
         copied: false,
@@ -1946,8 +1940,8 @@ class App implements Ctx {
   }
 
   /** The labeled sidebar (WO-035, SRC-014): Home, the four collections,
-      Board, Graph, and the Settings gear at the foot. Replaces the icon
-      rail and the working-set tree. */
+      Board, and the Settings gear at the foot. Replaces the icon rail and
+      the working-set tree. Graph left the sidebar with WO-052 (SRC-024). */
   private sidebar(): HTMLElement {
     const target = activeTarget(this.tabState());
     const viewItem = (key: View, label: string, glyph: string): HTMLElement =>
@@ -2054,7 +2048,6 @@ class App implements Ctx {
       ...App.COLLECTIONS.map(collItem),
       h('div', { class: 'side-div' }),
       viewItem('board', 'Board', '▤'),
-      viewItem('graph', 'Graph', '◉'),
       ...(recents.length > 0
         ? [h('div', { class: 'side-div' }), h('div', { class: 'side-label' }, 'RECENT'), ...recentRows]
         : []),
@@ -2424,7 +2417,6 @@ class App implements Ctx {
     else if (view === 'workorder' && this.doc()?.type === 'work-order') screen = workOrderView(this);
     else if (view === 'homeview') screen = homeView(this);
     else if (view === 'board') screen = boardView(this);
-    else if (view === 'graph') screen = graphView(this);
     else if (view === 'search') screen = searchView(this);
     else if (view === 'settings') screen = settingsView(this);
     else screen = readerView(this);

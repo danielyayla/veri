@@ -154,10 +154,10 @@ describe('view singletons', () => {
   });
 
   it('views may sit in history: navigating from a view pushes past it and back returns', () => {
-    let st = navigate(s([{ t: ['graph'] }], 0), 'REQ-001');
-    deepStrictEqual(targets(st.tabs[0]), ['graph', 'REQ-001']);
+    let st = navigate(s([{ t: ['search'] }], 0), 'REQ-001');
+    deepStrictEqual(targets(st.tabs[0]), ['search', 'REQ-001']);
     st = back(st);
-    strictEqual(activeTarget(st), 'graph');
+    strictEqual(activeTarget(st), 'search');
   });
 });
 
@@ -232,6 +232,18 @@ describe('retainTabs', () => {
     // Mixed history: the dead view entry drops, surviving doc entries stay.
     const mixed = retainTabs(s([{ t: ['decisions', 'REQ-001'], i: 0 }], 0), (id) => id === 'REQ-001');
     deepStrictEqual(targets(mixed.tabs[0]), ['REQ-001']);
+  });
+
+  // WO-052 (SRC-024): the global Graph view is retired the same way — 'graph'
+  // is no ViewKey anymore, so persisted graph tabs restore away, no migration.
+  it("a persisted 'graph' view tab from before the retirement restores away cleanly", () => {
+    ok(!isViewKey('graph'));
+    const lone = retainTabs(s([{ t: ['graph'] }, { t: ['board'] }], 0), () => false);
+    deepStrictEqual(lone.tabs.map((t) => targets(t)), [['board']]);
+    strictEqual(lone.activeKey, 't2');
+    // Mixed history: the graph entry drops, the surviving doc entry remains.
+    const mixed = retainTabs(s([{ t: ['graph', 'WO-005'], i: 0 }], 0), (id) => id === 'WO-005');
+    deepStrictEqual(targets(mixed.tabs[0]), ['WO-005']);
   });
 });
 

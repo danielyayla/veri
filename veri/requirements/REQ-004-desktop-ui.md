@@ -22,10 +22,13 @@ MCP server read. The UI is a viewer/editor for the knowledge base — files
 remain the source of truth per [[DEC-002]]; the UI never holds state the
 files don't. Everything works offline with no accounts.
 
-Four screens, per the design reference in [[SRC-001]] as amended by
+Three screens, per the design reference in [[SRC-001]] as amended by
 [[SRC-023]] (the Decision log screen is retired; its chronological feed,
 status signals, and supersession pointers live on in the Decisions type
-panel, the documents themselves, and hover previews):
+panel, the documents themselves, and hover previews) and [[SRC-024]]
+(the Graph screen is retired; the graph lives on the document surface
+instead — a local 1-hop neighborhood map at the top of the Connections
+panel, not a screen):
 
 1. **Project home** — three panes: doc tree grouped by type; markdown
    reader with frontmatter rendered as a properties header; Connections
@@ -37,8 +40,6 @@ panel, the documents themselves, and hover previews):
 3. **Board** — work orders as kanban (backlog / in progress / done); cards
    show ID, title, linked-REQ count, and an agent marker when receipts
    include an agent session.
-4. **Graph** — a minimal link graph, nodes colored by type, detail popover
-   on click. Navigation aid only.
 
 Cross-cutting: typing `[[` in any editor opens ID/title autocomplete;
 `veri check` issues surface as quiet indicators on affected docs and in a
@@ -47,7 +48,7 @@ appear as an activity feed on each doc.
 
 ## Acceptance criteria
 
-- [ ] Opening a Veri project directory renders all four screens against
+- [ ] Opening a Veri project directory renders all three screens against
       live files; external edits to `veri/` are reflected without restart
 - [ ] All UI edits (status changes, appended notes, new links) are written
       as valid documents that pass `veri check`

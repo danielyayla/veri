@@ -2,7 +2,7 @@
 id: WO-052
 type: work-order
 title: "A local graph on the document; retire the global view"
-status: backlog
+status: in-progress
 created: 2026-08-19
 updated: 2026-08-19
 links:
