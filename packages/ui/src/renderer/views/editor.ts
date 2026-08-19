@@ -4,8 +4,9 @@
 import type { DocType } from '@veri/core';
 import { h } from '../dom.ts';
 import { TYPE_META } from '../theme.ts';
+import { connections } from '../derive.ts';
 import { modeToggle } from '../widgets.ts';
-import { connectionsPanel } from './reader.ts';
+import { connToggle, connectionsPanel } from './reader.ts';
 import type { ActiveEdit, Ctx } from '../app.ts';
 
 /** Type from the id prefix — for the crumb of a deleted doc that core no
@@ -59,6 +60,9 @@ export function editorScreen(ctx: Ctx, edit: ActiveEdit): HTMLElement {
   const doc = ctx.byId.get(edit.id) ?? null;
   const type = doc?.type ?? PREFIX_TYPE[edit.id.split('-')[0]];
   const meta = type !== undefined ? TYPE_META[type] : null;
+  // WO-064: the narrow-pane rail collapse applies in edit mode too — same
+  // crumb-row toggle, same per-pane overlay state as the reader.
+  const groups = doc !== null ? connections(ctx.snap, doc.id) : null;
   return h(
     'div',
     { class: 'screen-home' },
@@ -84,12 +88,13 @@ export function editorScreen(ctx: Ctx, edit: ActiveEdit): HTMLElement {
           h('span', { style: meta !== null ? `color:${meta.color};` : undefined }, edit.id),
           // A deleted file has no read mode to show; the banner is the exit.
           doc !== null ? modeToggle(ctx, edit.id) : null,
+          groups !== null ? connToggle(ctx, groups) : null,
         ),
         conflictBanner(ctx, edit),
         h('div', { class: 'ed-host' }, edit.dom),
         statusRow(edit),
       ),
     ),
-    doc !== null ? connectionsPanel(ctx) : null,
+    groups !== null ? connectionsPanel(ctx, groups) : null,
   );
 }

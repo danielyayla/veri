@@ -1701,3 +1701,59 @@ a:hover { color: var(--link-hover); }
 .sv-snippet b { color: var(--secondary); font-weight: 600; }
 .sv-more { padding: 10px; font-size: 12px; color: var(--faint); }
 .sv-empty { padding: 18px 2px; font-size: 12.5px; color: var(--faint); }
+
+/* ===== Multi-panel density (WO-064, SRC-034) — existing tokens only =====
+   Each pane is a container; below the 640px narrow threshold the reading
+   column is protected: the Connections rail collapses to the crumb-row
+   toggle (expanding as an overlay), the metadata card stacks, and the
+   title steps down. Nothing position:fixed lives inside .editor-area, so
+   the containment this creates has no stray containing-block effects. */
+.editor-area { container-type: inline-size; container-name: pane; }
+/* Anchors the rail's overlay presentation (the rail is this element's child). */
+.screen-home { position: relative; }
+
+/* Tokens are unbreakable at any width: an ID, date, or count never wraps
+   mid-token; the metadata value ellipsizes instead (full value in title=). */
+.fm-mono { white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.fm-links-btn { white-space: nowrap; }
+.chip-ref { white-space: nowrap; }
+.conn-id { white-space: nowrap; }
+.crumb { flex-wrap: wrap; row-gap: 4px; }
+.crumb > * { white-space: nowrap; }
+
+/* The rail's replacement in a narrow pane: glyph + link count, hidden while
+   the pane is wide. ≥24px hit target (WCAG 2.5.8, per the SRC-033 rule). */
+.conn-toggle {
+  display: none; align-items: center; gap: 5px; min-height: 24px;
+  padding: 2px 8px; border: 1px solid var(--int-border); border-radius: 5px;
+  font-family: var(--mono); font-size: 11px; color: var(--muted); cursor: pointer;
+}
+.conn-toggle:hover { background: var(--int-border); color: var(--text); }
+.conn-toggle[aria-expanded="true"] { background: var(--int-border); color: var(--text); }
+.conn-toggle-glyph { font-size: 12px; line-height: 1; }
+
+@container pane (max-width: 640px) {
+  .doc-title { font-size: 18px; line-height: 1.3; }
+  .doc-head .pin-chip { margin-top: 6px; }
+  .fm-row { flex-direction: column; align-items: flex-start; gap: 1px; padding: 6px 0; min-height: 0; }
+  .fm-key { width: auto; }
+  .panel-connections:not(.conn-open) { display: none; }
+  .conn-toggle { display: inline-flex; }
+  .panel-connections.conn-open {
+    position: absolute; top: 0; right: 0; bottom: 0; z-index: 30;
+    width: 300px; max-width: 85%;
+    border-left: 1px solid var(--pop-border); box-shadow: var(--shadow-pop);
+  }
+}
+
+/* Under window-level pressure the UNFOCUSED pane gives up its rail first
+   (640–780px band) — the dimming vocabulary extended from paint to space. */
+@container pane (min-width: 641px) and (max-width: 780px) {
+  .pane-unfocused .panel-connections:not(.conn-open) { display: none; }
+  .pane-unfocused .conn-toggle { display: inline-flex; }
+  .pane-unfocused .panel-connections.conn-open {
+    position: absolute; top: 0; right: 0; bottom: 0; z-index: 30;
+    width: 300px; max-width: 85%;
+    border-left: 1px solid var(--pop-border); box-shadow: var(--shadow-pop);
+  }
+}

@@ -5,7 +5,7 @@ import { TYPE_META, fmtTokens, statusColor, tint } from '../theme.ts';
 import { plainText, sections } from '../markdown.ts';
 import type { Block } from '../markdown.ts';
 import { PACKAGE_RULES_TEXT, fileActivity, gatingDocs, receipts } from '../derive.ts';
-import { activityFeed, dirtyStrip, idChip, imgDirFor, modeToggle, pinChip, renderBlocks, statusChip } from '../widgets.ts';
+import { activityFeed, dirtyStrip, displayTitle, idChip, imgDirFor, modeToggle, pinChip, renderBlocks, statusChip } from '../widgets.ts';
 import { frontmatterCard } from './reader.ts';
 import { roveIndex, roveKey } from '../a11y.ts';
 import type { Ctx } from '../app.ts';
@@ -455,7 +455,7 @@ export function workOrderView(ctx: Ctx): HTMLElement {
         h(
           'div',
           { class: 'wo-head' },
-          h('h1', { class: 'doc-title wo-title' }, doc.title),
+          h('h1', { class: 'doc-title wo-title' }, displayTitle(doc.title)),
           pinChip(ctx.state.pinned.includes(doc.id), () => ctx.togglePin(doc.id)),
           statusControl(ctx, doc),
         ),

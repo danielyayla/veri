@@ -168,6 +168,10 @@ export interface State {
   /** Find bar (WO-057, SRC-029): bound to the focused pane's active doc
       tab; query and cursor are transient — never persisted. Null = closed. */
   find: FindBarState | null;
+  /** Connections-rail overlay flag per pane index (WO-064, SRC-034): the
+      user's expand choice in a narrow pane — session state, never persisted.
+      Meaningless while the pane is wide (the rail is inline there). */
+  connOpen: boolean[];
 }
 
 /** The add-link inline row (WO-056): target + rel drafts, the inline error,
@@ -270,6 +274,11 @@ export interface Ctx {
   /** Every session-logged action across docs, newest first (Home feed). */
   sessionAll(): Array<{ id: string; row: ActivityRow }>;
   rel(date: string): string;
+  /** The pane index the current view build renders into (WO-064): set by
+      paneEl around each screen build, 0 outside a split. Lets a view key
+      per-pane transients (the Connections-rail overlay) without the pane
+      layer leaking into view signatures. */
+  renderPane: number;
 }
 
 const TYPE_ORDER = ['requirement', 'decision', 'work-order', 'source'] as const;
@@ -383,7 +392,9 @@ class App implements Ctx {
     mcpPrecheck: null,
     welcomeNotice: null,
     find: null,
+    connOpen: [false, false],
   };
+  renderPane = 0;
   appInfo: AppInfo | null = null;
   // Seeded from the first-paint query param; corrected by themeGet on boot.
   themePref: ThemePref = 'system';
@@ -811,7 +822,22 @@ class App implements Ctx {
   }
 
   private applyPanes(ps: PaneState, extra: Partial<State> = {}): void {
-    this.update({ ...this.activationPatch(ps), ...extra });
+    // Type-panel auto-collapse (WO-064, SRC-034): a split opening when the
+    // window cannot hold both panes at the narrow threshold closes the open
+    // panel (a picker, not a workspace) and remembers it; the split
+    // collapsing restores it — unless the user managed the panel themselves
+    // in between (togglePanel/openPanel clear the memo).
+    const patch: Partial<State> = { ...this.activationPatch(ps), ...extra };
+    const wasSplit = this.state.panes.length === 2;
+    const isSplit = ps.panes.length === 2;
+    if (!wasSplit && isSplit && this.state.panel !== null && window.innerWidth < App.SPLIT_PANEL_MIN) {
+      this.panelAutoClosed = this.state.panel;
+      patch.panel = null;
+    } else if (wasSplit && !isSplit && this.panelAutoClosed !== null) {
+      if (this.state.panel === null && patch.panel === undefined) patch.panel = this.panelAutoClosed;
+      this.panelAutoClosed = null;
+    }
+    this.update(patch);
     // Every tab-set change persists (WO-054, SRC-026) — open, close, reorder,
     // pin, activate, in-place navigation — fire-and-forget, like pins.
     this.saveWorkspace();
@@ -2287,6 +2313,12 @@ class App implements Ctx {
     source: 'Evidence brought in',
   };
 
+  /** The window width below which sidebar + type panel + two panes at the
+      WO-064 narrow threshold (640px each) no longer fit: 216 + 280 + 6 + 1280. */
+  private static readonly SPLIT_PANEL_MIN = 1782;
+  /** The panel applyPanes auto-closed for a split (WO-064); restored when the
+      split collapses, dropped when the user manages the panel themselves. */
+  private panelAutoClosed: DocType | null = null;
   /** Focus request for the panel's filter input (autofocus on open). */
   private tpFocus = false;
   /** Caret position to restore after a filter-edit re-render. */
@@ -2296,6 +2328,7 @@ class App implements Ctx {
 
   /** Collection click (SRC-014): toggle the panel, never the active tab. */
   private togglePanel(type: DocType): void {
+    this.panelAutoClosed = null; // a manual act supersedes the WO-064 memo
     const panel = this.state.panel === type ? null : type;
     if (panel !== null) {
       this.tpFocus = true;
@@ -2308,6 +2341,7 @@ class App implements Ctx {
       browser, not a route; the active tab does not change. */
   openPanel(type: DocType): void {
     if (!App.COLLECTIONS.includes(type)) return;
+    this.panelAutoClosed = null; // a manual act supersedes the WO-064 memo
     this.tpFocus = true;
     this.panelScroll = 0;
     this.update({ panel: type, panelFilter: '', settingsPop: false });
@@ -2801,6 +2835,9 @@ class App implements Ctx {
     const split = ps.panes.length === 2;
     const focused = idx === ps.focused;
     let screen: HTMLElement;
+    // Views key per-pane transients (the Connections-rail overlay, WO-064)
+    // off this index; it rides the same swap-and-restore as view/docId.
+    this.renderPane = idx;
     if (pane.tabs.length === 0) {
       screen = this.emptyState();
     } else {

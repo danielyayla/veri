@@ -63,6 +63,13 @@ export function pinChip(pinned: boolean, toggle: () => void): HTMLElement {
   );
 }
 
+/** Document titles for display (WO-064, SRC-034): bind a spaced em-dash to
+    the word before it, so a narrow pane never wraps a line down to a lone
+    "—". Presentation only — the stored title is untouched. */
+export function displayTitle(title: string): string {
+  return title.replace(/ — /g, '\u00A0— ');
+}
+
 export function statusChip(status: string): HTMLElement {
   const color = statusColor(status);
   return h('span', { class: 'chip-status', style: `color:${color};background:${tint(color)};` }, status);

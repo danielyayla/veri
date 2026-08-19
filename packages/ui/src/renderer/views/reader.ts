@@ -5,7 +5,7 @@ import { parseBlocks } from '../markdown.ts';
 import { DEFAULT_REL, autocomplete, connections, fileActivity, insertAutocomplete, localGraph, relsInUse } from '../derive.ts';
 import type { ConnectionGroups } from '../derive.ts';
 import { ipcErrorMessage } from '../editlogic.ts';
-import { activityFeed, attachPreview, dirtyStrip, idChip, imgDirFor, modeToggle, pinChip, renderBlocks, statusChip, typeChip } from '../widgets.ts';
+import { activityFeed, attachPreview, dirtyStrip, displayTitle, idChip, imgDirFor, modeToggle, pinChip, renderBlocks, statusChip, typeChip } from '../widgets.ts';
 import { reviewBanner } from './review.ts';
 import type { Ctx, LinkAddState } from '../app.ts';
 
@@ -20,12 +20,14 @@ export function frontmatterCard(ctx: Ctx, opts: { status?: boolean } = {}): HTML
   return h(
     'div',
     { class: 'fm-card' },
-    row('id', h('span', { class: 'fm-mono', style: `color:${meta.color};` }, doc.id)),
+    // WO-064 (SRC-034): tokens are unbreakable (CSS nowrap); when even that
+    // cannot fit, the value ellipsizes and `title` carries the full value.
+    row('id', h('span', { class: 'fm-mono', style: `color:${meta.color};`, title: doc.id }, doc.id)),
     row('type', typeChip(doc.type)),
     ...(opts.status === false ? [] : [row('status', statusChip(doc.status))]),
-    ...(doc.approved !== undefined ? [row('approved', h('span', { class: 'fm-mono' }, doc.approved))] : []),
-    row('created', h('span', { class: 'fm-mono' }, doc.created)),
-    row('updated', h('span', { class: 'fm-mono' }, ctx.rel(doc.updated))),
+    ...(doc.approved !== undefined ? [row('approved', h('span', { class: 'fm-mono', title: doc.approved }, doc.approved))] : []),
+    row('created', h('span', { class: 'fm-mono', title: doc.created }, doc.created)),
+    row('updated', h('span', { class: 'fm-mono', title: doc.updated }, ctx.rel(doc.updated))),
     // WO-056 (SRC-028): the links row is the links editor — the count
     // expands into the outbound list with remove and add controls.
     row(
@@ -323,9 +325,8 @@ function localGraphEl(ctx: Ctx, doc: { id: string; type: keyof typeof TYPE_META 
   );
 }
 
-export function connectionsPanel(ctx: Ctx): HTMLElement {
+export function connectionsPanel(ctx: Ctx, groups: ConnectionGroups): HTMLElement {
   const doc = ctx.doc()!;
-  const groups = connections(ctx.snap, doc.id);
   const card = (c: { id: string; title: string; type: keyof typeof TYPE_META; why: string }): HTMLElement => {
     const idEl = h('span', { class: 'conn-id', style: `color:${TYPE_META[c.type].color};` }, c.id);
     const btn = h(
@@ -355,9 +356,13 @@ export function connectionsPanel(ctx: Ctx): HTMLElement {
           h('div', { class: 'conn-group-label' }, `${label} `, h('span', { class: 'conn-count' }, String(items.length))),
           h('div', { class: 'conn-list' }, ...items.map(card)),
         );
+  // WO-064 (SRC-034): in a narrow pane the rail is CSS-collapsed unless the
+  // crumb-row toggle opened it — then `conn-open` presents it as an overlay.
+  // In a wide pane the class is inert; the rail is inline either way.
+  const open = ctx.state.connOpen[ctx.renderPane] === true;
   return h(
     'div',
-    { class: 'panel-right panel-connections' },
+    { class: open ? 'panel-right panel-connections conn-open' : 'panel-right panel-connections' },
     h('div', { class: 'micro-label' }, 'CONNECTIONS'),
     localGraphEl(ctx, doc, groups),
     group('Outbound · links to', groups.outbound),
@@ -365,10 +370,37 @@ export function connectionsPanel(ctx: Ctx): HTMLElement {
   );
 }
 
+/** The narrow-pane Connections toggle (WO-064, SRC-034): glyph + link count
+    in the crumb row, shown by CSS only when the pane's container query
+    collapses the rail. The choice is per-pane session state. */
+export function connToggle(ctx: Ctx, groups: ConnectionGroups): HTMLElement {
+  const count = groups.outbound.length + groups.inbound.length;
+  const open = ctx.state.connOpen[ctx.renderPane] === true;
+  const pane = ctx.renderPane;
+  return h(
+    'button',
+    {
+      class: 'btn-reset conn-toggle',
+      label: `Connections — ${count} ${count === 1 ? 'link' : 'links'}`,
+      title: open ? 'Hide connections' : 'Show connections',
+      expanded: open,
+      fkey: 'conn-toggle',
+      onClick: () => {
+        const next = [...ctx.state.connOpen];
+        next[pane] = !open;
+        ctx.update({ connOpen: next });
+      },
+    },
+    h('span', { class: 'conn-toggle-glyph' }, '⧉'),
+    String(count),
+  );
+}
+
 export function readerView(ctx: Ctx): HTMLElement {
   const doc = ctx.doc();
   if (doc === null) return h('div', { class: 'screen-home' }, h('div', { class: 'reader' }, h('div', { class: 'reader-col' }, 'No documents.')));
   const meta = TYPE_META[doc.type];
+  const groups = connections(ctx.snap, doc.id);
   const docIssues = ctx.issues.get(doc.id) ?? [];
   const banner =
     docIssues.length > 0
@@ -439,11 +471,12 @@ export function readerView(ctx: Ctx): HTMLElement {
           h('span', { class: 'crumb-sep' }, '/'),
           h('span', { style: `color:${meta.color};` }, doc.id),
           modeToggle(ctx, doc.id),
+          connToggle(ctx, groups),
         ),
         h(
           'div',
           { class: 'doc-head' },
-          h('h1', { class: 'doc-title' }, doc.title),
+          h('h1', { class: 'doc-title' }, displayTitle(doc.title)),
           pinChip(ctx.state.pinned.includes(doc.id), () => ctx.togglePin(doc.id)),
         ),
         dirtyStrip(ctx, doc.id),
@@ -456,7 +489,7 @@ export function readerView(ctx: Ctx): HTMLElement {
         noteEditor(ctx),
       ),
     ),
-    connectionsPanel(ctx),
+    connectionsPanel(ctx, groups),
   );
 }
 
