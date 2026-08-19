@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { buildGraph } from './graph.ts';
 import { checkStructure, isPending } from './check.ts';
 import { checkSupersededLinks } from './drift.ts';
-import { DOC_TYPES } from './ids.ts';
+import { DOC_TYPES, compareIds } from './ids.ts';
 import { loadProject } from './load.ts';
 import { ASSEMBLY_POLICY, INLINE_THRESHOLD_TOKENS, packingFor } from './schema.ts';
 import { getTemplate } from './templates.ts';
@@ -80,7 +80,7 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
   const reached = [...hopOf.keys()]
     .filter((id) => id !== workOrderId)
     .map((id) => graph.byId.get(id)!)
-    .sort((a, b) => a.id.localeCompare(b.id));
+    .sort((a, b) => compareIds(a.id, b.id));
 
   // The project workflow (DEC-018) opens every package, reached or not — its
   // policy is include: 'always', never part of the traversal buckets.
@@ -89,19 +89,19 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
     ASSEMBLY_POLICY.workflow.include === 'always'
       ? documents
           .filter((doc) => doc.type === 'workflow' && doc.status !== 'retired')
-          .sort((a, b) => a.id.localeCompare(b.id))[0]
+          .sort((a, b) => compareIds(a.id, b.id))[0]
       : undefined;
 
   const linksLine = (doc: VeriDocument): string =>
     doc.links.length === 0 ? '' : `Links: ${doc.links.map((l) => `${l.id} (${l.rel})`).join(', ')}\n\n`;
 
-  /** How a hop-2 document connects to the core: its lexicographically first
-      edge to a hop-1 document, either direction. Deterministic. */
+  /** How a hop-2 document connects to the core: its first edge to a hop-1
+      document in id order (then rel order), either direction. Deterministic. */
   const connection = (doc: VeriDocument): string => {
     const pairs: Array<[string, string]> = [];
     for (const edge of graph.outgoing(doc.id)) if (hopOf.get(edge.to) === 1) pairs.push([edge.to, edge.rel]);
     for (const edge of graph.backlinks(doc.id)) if (hopOf.get(edge.from) === 1) pairs.push([edge.from, edge.rel]);
-    pairs.sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]));
+    pairs.sort((a, b) => compareIds(a[0], b[0]) || a[1].localeCompare(b[1]));
     const [id, rel] = pairs[0]!;
     return `via ${id} (${rel})`;
   };

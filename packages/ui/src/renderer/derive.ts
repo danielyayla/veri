@@ -3,6 +3,7 @@
  * is computed from what @veri/core already parsed and checked.
  */
 import type { Advisory, Edge, Issue, VeriDocument } from '@veri/core';
+import { compareIds } from '@veri/core/ids';
 import type { Snapshot } from '../lib/snapshot.ts';
 import { sections, parseBlocks, plainText } from './markdown.ts';
 
@@ -153,7 +154,7 @@ export function boardColumns(snap: Snapshot): BoardColumn[] {
   ];
   const workOrders = snap.documents
     .filter((d) => d.type === 'work-order')
-    .sort((a, b) => a.id.localeCompare(b.id));
+    .sort((a, b) => compareIds(a.id, b.id));
   for (const wo of workOrders) {
     const col = cols.find((c) => c.status === wo.status) ?? cols[0];
     col.cards.push({
@@ -223,7 +224,7 @@ export function graphLayout(snap: Snapshot): GraphLayout {
   const nodes: GraphNode[] = [];
   const pos = new Map<string, { x: number; y: number }>();
   for (const type of ['requirement', 'decision', 'work-order', 'source', 'workflow'] as const) {
-    const docs = snap.documents.filter((d) => d.type === type).sort((a, b) => a.id.localeCompare(b.id));
+    const docs = snap.documents.filter((d) => d.type === type).sort((a, b) => compareIds(a.id, b.id));
     const band = bands[type];
     docs.forEach((d, i) => {
       const t = docs.length === 1 ? 0.5 : i / (docs.length - 1);
@@ -275,7 +276,10 @@ export interface PackageSummary {
 }
 
 const CONVENTIONS_ROW_RE = /^## Project conventions \(CLAUDE\.md\) · ~(\d+) tokens$/;
-const DOC_ROW_RE = /^#{2,3} (?:Work order )?((?:REQ|DEC|WO|SRC)-\d{3}) — (.+) · [^·]+ · ~(\d+) tokens$/;
+// Matches every inlined-doc heading get_context renders, including the
+// workflow's `## Workflow · WF-001 — Title · ~N tokens` shape, whose status
+// segment is absent (WO-050: WF rows were silently missing from the panel).
+const DOC_ROW_RE = /^#{2,3} (?:Work order |Workflow · )?((?:REQ|DEC|WO|SRC|WF)-\d{3,}) — (.+?)(?: · [^·]+)? · ~(\d+) tokens$/;
 const HEADER_RE = /^\((\d+) docs · ~(\d+) tokens\)$/;
 const MAP_HEADING_RE = /^## Context map — (\d+) adjacent documents, not inlined$/m;
 
@@ -284,6 +288,7 @@ const TYPE_OF_PREFIX: Record<string, VeriDocument['type']> = {
   DEC: 'decision',
   WO: 'work-order',
   SRC: 'source',
+  WF: 'workflow',
 };
 
 /**
@@ -369,7 +374,7 @@ export function isPending(doc: VeriDocument): boolean {
 export function pendingDocs(snap: Snapshot): VeriDocument[] {
   return snap.documents
     .filter(isPending)
-    .sort((a, b) => (a.created === b.created ? a.id.localeCompare(b.id) : a.created.localeCompare(b.created)));
+    .sort((a, b) => (a.created === b.created ? compareIds(a.id, b.id) : a.created.localeCompare(b.created)));
 }
 
 /** The pending documents gating a work order: direct frontmatter link
@@ -398,7 +403,7 @@ export function inFlight(snap: Snapshot): HomeFlightRow[] {
   const byId = docsById(snap);
   return snap.documents
     .filter((d) => d.type === 'work-order' && (d.status === 'backlog' || d.status === 'in-progress'))
-    .sort((a, b) => a.id.localeCompare(b.id))
+    .sort((a, b) => compareIds(a.id, b.id))
     .map((wo) => ({
       id: wo.id,
       title: wo.title,
@@ -438,7 +443,7 @@ export function projectActivity(snap: Snapshot, rel: (date: string) => string, c
       rows.push({ id: doc.id, text: `Decision filed: ${doc.title}`, time: rel(doc.created), date: doc.created });
     }
   }
-  return rows.sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)).slice(0, cap);
+  return rows.sort((a, b) => b.date.localeCompare(a.date) || compareIds(b.id, a.id)).slice(0, cap);
 }
 
 export interface ChangedRow {
@@ -452,7 +457,7 @@ export interface ChangedRow {
 export function recentlyChanged(snap: Snapshot, rel: (date: string) => string, cap = 8): ChangedRow[] {
   return snap.documents
     .slice()
-    .sort((a, b) => b.updated.localeCompare(a.updated) || b.id.localeCompare(a.id))
+    .sort((a, b) => b.updated.localeCompare(a.updated) || compareIds(b.id, a.id))
     .slice(0, cap)
     .map((d) => ({ id: d.id, title: d.title, time: rel(d.updated) }));
 }
@@ -470,7 +475,7 @@ export function autocomplete(snap: Snapshot, text: string): AutocompleteItem[] |
   const q = m[1].toLowerCase();
   return snap.documents
     .filter((d) => `${d.id} ${d.title}`.toLowerCase().includes(q))
-    .sort((a, b) => a.id.localeCompare(b.id))
+    .sort((a, b) => compareIds(a.id, b.id))
     .slice(0, 6)
     .map((d) => ({ id: d.id, title: d.title, type: d.type }));
 }

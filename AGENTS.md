@@ -46,7 +46,8 @@ document — draft/proposed documents are visible in context packages but
 never binding (REQ-008).
 
 Cross-references inside body text use `[[ID]]` wiki-link syntax.
-IDs are `REQ-`, `DEC-`, `WO-`, `SRC-` + zero-padded 3-digit number.
+IDs are `REQ-`, `DEC-`, `WO-`, `SRC-` + a number of three or more digits
+(zero-padded to three below 1000, unpadded above).
 
 ## Code conventions
 

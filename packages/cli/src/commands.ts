@@ -3,7 +3,7 @@ import { existsSync, realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, checkDrift, checkProject, checkProvenance, classifyFormat, createDocument, formatStatement, isOperableFormat, loadProject, migrateProject, scaffoldProject, workOrdersTouching } from '@veri/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, checkDrift, checkProject, checkProvenance, classifyFormat, compareIds, createDocument, formatStatement, isOperableFormat, loadProject, migrateProject, scaffoldProject, workOrdersTouching } from '@veri/core';
 import type { DocType, FormatClassification, Issue } from '@veri/core';
 import { collectGitFacts } from './git.ts';
 
@@ -234,7 +234,7 @@ export async function list(cwd: string, typeArg: string | undefined): Promise<Cm
   const { documents } = await loadProject(dir);
   const docs = documents
     .filter((doc) => typeArg === undefined || doc.type === typeArg)
-    .sort((a, b) => a.id.localeCompare(b.id));
+    .sort((a, b) => compareIds(a.id, b.id));
   return {
     code: 0,
     lines: docs.map((doc) => `${doc.id.padEnd(8)} ${doc.status.padEnd(12)} ${doc.title}`),

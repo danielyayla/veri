@@ -218,3 +218,14 @@ test('is:active treats proposed decisions as living', () => {
     ['DEC-020'],
   );
 });
+
+test('palette zero-strip is prefix-anchored: req14 never matches REQ-1004 (WO-050)', () => {
+  const docs = [...DOCS, doc({ id: 'REQ-1004', type: 'requirement', title: 'Wide id', status: 'draft' })];
+  const hits14 = rankDocs(docs, parsePaletteQuery('req14'));
+  assert.equal(hits14[0].id, 'REQ-014');
+  assert.equal(hits14[0].score, 100);
+  assert.ok(!hits14.some((h) => h.id === 'REQ-1004'));
+  const hits1004 = rankDocs(docs, parsePaletteQuery('req1004'));
+  assert.equal(hits1004[0].id, 'REQ-1004');
+  assert.equal(hits1004[0].score, 100);
+});

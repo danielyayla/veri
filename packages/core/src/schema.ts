@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { ID_RE, typeOfId } from './ids.ts';
 import type { DocType } from './ids.ts';
 
-const idField = z.string().regex(ID_RE, 'must be REQ-, DEC-, WO-, SRC- or WF- plus a zero-padded 3-digit number (e.g. REQ-001)');
+const idField = z.string().regex(ID_RE, 'must be REQ-, DEC-, WO-, SRC- or WF- plus a number of three or more digits (e.g. REQ-001)');
 const dateField = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a YYYY-MM-DD date');
 
 const linkSchema = z

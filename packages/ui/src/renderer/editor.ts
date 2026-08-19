@@ -16,6 +16,7 @@ import { tags } from '@lezer/highlight';
 import { acceptCompletion, autocompletion, completionKeymap } from '@codemirror/autocomplete';
 import type { CompletionContext, CompletionResult } from '@codemirror/autocomplete';
 import type { DocType } from '@veri/core';
+import { compareIds } from '@veri/core/ids';
 import { GUARD_NOTICE, frontmatterRegion, guardedRanges, touchedGuard } from './editlogic.ts';
 
 export interface EditorDocRef {
@@ -50,7 +51,7 @@ const mdHighlight = HighlightStyle.define([
   { tag: tags.url, color: '#E8703A' },
 ]);
 
-const WIKI_RE = /\[\[((?:REQ|DEC|WO|SRC|WF)-\d{3})\]\]/g;
+const WIKI_RE = /\[\[((?:REQ|DEC|WO|SRC|WF)-\d{3,})\]\]/g;
 
 const TYPE_CLASS: Record<string, string> = {
   requirement: 'cm-wl-req',
@@ -209,7 +210,7 @@ export class EditorIsland {
     const items = this.hooks
       .docs()
       .filter((d) => `${d.id} ${d.title}`.toLowerCase().includes(query))
-      .sort((a, b) => a.id.localeCompare(b.id))
+      .sort((a, b) => compareIds(a.id, b.id))
       .slice(0, 8);
     if (items.length === 0) return null;
     return {

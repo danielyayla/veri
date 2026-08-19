@@ -1,5 +1,6 @@
 /** App shell: state, topbar, sidebar, view switching, IPC wiring. */
 import type { Advisory, DocType, Issue, VeriDocument } from '@veri/core';
+import { compareIds } from '@veri/core/ids';
 import type { ContextPackage, PaletteResult } from '@veri/mcp';
 import type { Snapshot } from '../lib/snapshot.ts';
 import { api } from './api.ts';
@@ -674,7 +675,7 @@ class App implements Ctx {
 
   private firstDocId(): string | null {
     for (const type of TYPE_ORDER) {
-      const docs = this.snap.documents.filter((d) => d.type === type).sort((a, b) => a.id.localeCompare(b.id));
+      const docs = this.snap.documents.filter((d) => d.type === type).sort((a, b) => compareIds(a.id, b.id));
       if (docs.length > 0) return docs[0].id;
     }
     return null;

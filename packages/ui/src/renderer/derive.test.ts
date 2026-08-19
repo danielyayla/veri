@@ -340,3 +340,34 @@ test('inFlight rows carry their gate ids', () => {
   ]);
   assert.deepEqual(inFlight(s)[0].gates, ['REQ-001']);
 });
+
+test('packageSummary parses the workflow row and 4-digit ids (WO-050)', () => {
+  const text = [
+    '# Context package · WO-1000 — Wide',
+    '(3 docs · ~900 tokens)',
+    '',
+    '## Workflow · WF-001 — Veri project workflow · ~513 tokens',
+    '',
+    '## Work order WO-1000 — Wide · backlog · ~200 tokens',
+    '',
+    '### REQ-1004 — A wide req · accepted · ~187 tokens',
+  ].join('\n');
+  const summary = packageSummary(text);
+  assert.deepEqual(
+    summary.rows.map((r) => [r.id, r.type, r.tokens]),
+    [
+      ['WF-001', 'workflow', 513],
+      ['WO-1000', 'work-order', 200],
+      ['REQ-1004', 'requirement', 187],
+    ],
+  );
+});
+
+test('id-ordered lists sort WO-999 before WO-1000 (WO-050)', () => {
+  const s = snap([
+    doc({ id: 'WO-1000', type: 'work-order', title: 'Thousandth', status: 'backlog' }),
+    doc({ id: 'WO-999', type: 'work-order', title: 'Last padded', status: 'backlog' }),
+  ]);
+  assert.deepEqual(inFlight(s).map((r) => r.id), ['WO-999', 'WO-1000']);
+  assert.deepEqual(autocomplete(s, '[[wo')!.map((i) => i.id), ['WO-999', 'WO-1000']);
+});

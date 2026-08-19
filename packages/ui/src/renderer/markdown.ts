@@ -25,7 +25,7 @@ export type Block =
 
 // One id space, one regex (REQ-001): WF included so [[WF-001]] chips render
 // in read mode too. Bold before italic so ** never half-matches as *.
-const INLINE_RE = /(\[\[(?:REQ|DEC|WO|SRC|WF)-\d{3}\]\])|(`[^`]+`)|(\*\*[^*]+\*\*)|(\*[^*]+\*)/g;
+const INLINE_RE = /(\[\[(?:REQ|DEC|WO|SRC|WF)-\d{3,}\]\])|(`[^`]+`)|(\*\*[^*]+\*\*)|(\*[^*]+\*)/g;
 
 export function parseInline(text: string): Seg[] {
   const segs: Seg[] = [];

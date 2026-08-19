@@ -98,3 +98,14 @@ test('a standalone image line becomes an img block with its alt and path', () =>
   const blocks = parseBlocks('![Reader column](./reader.png)');
   assert.deepEqual(blocks, [{ kind: 'img', alt: 'Reader column', src: './reader.png' }]);
 });
+
+test('parseInline renders 4-digit ids as ref chips (WO-050)', () => {
+  const segs = parseInline('See [[REQ-1004]] and [[WO-1000]].');
+  assert.deepEqual(segs, [
+    { kind: 'text', text: 'See ' },
+    { kind: 'ref', id: 'REQ-1004' },
+    { kind: 'text', text: ' and ' },
+    { kind: 'ref', id: 'WO-1000' },
+    { kind: 'text', text: '.' },
+  ]);
+});

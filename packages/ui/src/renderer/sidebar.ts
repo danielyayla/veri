@@ -5,6 +5,7 @@
  * in-place expander, exactly as SRC-005 specified for the old tree.
  */
 import type { DocType, VeriDocument } from '@veri/core';
+import { compareIds } from '@veri/core/ids';
 
 /** Living statuses per type; null means no lifecycle (sources). */
 const LIVING: Record<DocType, string[] | null> = {
@@ -34,9 +35,8 @@ export function livingCount(docs: VeriDocument[], type: DocType): number {
   return docs.filter((d) => d.type === type && isLiving(d)).length;
 }
 
-/** Ids are zero-padded, but numeric-aware descending keeps a 4-digit future safe. */
-const newestFirst = (a: VeriDocument, b: VeriDocument): number =>
-  b.id.localeCompare(a.id, undefined, { numeric: true });
+/** Descending id order via core's numeric-aware comparator (WO-050). */
+const newestFirst = (a: VeriDocument, b: VeriDocument): number => compareIds(b.id, a.id);
 
 /** Decisions read as a chronological feed (SRC-023): the panel inherits the
     retired Decision log's ordering — created date, newest first, ids as the

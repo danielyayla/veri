@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createDocument } from './create.ts';
+import { ID_RE } from './ids.ts';
 import { nextIdNumber, readIdRecord, recordIssuedId } from './idstore.ts';
 
 function sandbox(t: { after(fn: () => void): void }): string {
@@ -59,8 +60,20 @@ test('the record is a floor, not a ceiling — existing files above it still win
   assert.equal(nextIdNumber(dir, 'WO', []), 4);
 });
 
-test('allocation refuses to pass 999', (t) => {
+test('allocation proceeds 999 → 1000, and the padded id stays canonical (WO-050)', (t) => {
   const dir = sandbox(t);
   recordIssuedId(dir, 'SRC', 999);
-  assert.throws(() => nextIdNumber(dir, 'SRC', []), /no free SRC- id left/);
+  assert.equal(nextIdNumber(dir, 'SRC', []), 1000);
+  assert.equal(nextIdNumber(dir, 'WO', ['WO-999']), 1000);
+  assert.match(`SRC-${String(1000).padStart(3, '0')}`, ID_RE);
+});
+
+test('a 4-digit veri/ids line parses, floors allocation, and survives a rewrite (WO-050)', (t) => {
+  const dir = sandbox(t);
+  writeFileSync(join(dir, 'ids'), 'WO 1000\n');
+  assert.deepEqual(readIdRecord(dir), { WO: 1000 });
+  assert.equal(nextIdNumber(dir, 'WO', []), 1001);
+  recordIssuedId(dir, 'REQ', 5);
+  assert.equal(readFileSync(join(dir, 'ids'), 'utf8'), 'REQ 5\nWO 1000\n');
+  assert.deepEqual(readIdRecord(dir), { REQ: 5, WO: 1000 });
 });

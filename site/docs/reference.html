@@ -61,7 +61,7 @@ links:
     rel: constrained-by
 ---</code></pre>
 <ul>
-  <li><b><code>id</code></b> — type prefix plus a zero-padded three-digit number (<code>REQ-001</code>). The prefix must match <code>type</code>. Ids are assigned by the app/CLI as the next free number and never reused.</li>
+  <li><b><code>id</code></b> — type prefix plus a number of three or more digits, zero-padded to three below 1000 (<code>REQ-001</code>, <code>REQ-1000</code>). The prefix must match <code>type</code>. Ids are assigned by the app/CLI as the next free number and never reused.</li>
   <li><b><code>created</code> / <code>updated</code> / <code>approved</code></b> — <code>YYYY-MM-DD</code> dates. <code>approved</code> appears only when the user promotes a document.</li>
   <li><b><code>links</code></b> — outbound edges: a target <code>id</code> and a <code>rel</code>. Inbound links are derived, never stored.</li>
   <li><b>Unknown keys are preserved</b> — Veri round-trips frontmatter it doesn't recognize, so your own fields are safe.</li>

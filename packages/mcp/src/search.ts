@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { loadProject } from '@veri/core';
+import { compareIds, loadProject } from '@veri/core';
 import type { DocType, VeriDocument } from '@veri/core';
 
 export interface SearchHit {
@@ -28,7 +28,7 @@ export async function searchDocs(projectRoot: string, query: string): Promise<Se
       hits.push({ id: doc.id, type: doc.type, status: doc.status, title: doc.title, matched });
     }
   }
-  return hits.sort((a, b) => a.id.localeCompare(b.id));
+  return hits.sort((a, b) => compareIds(a.id, b.id));
 }
 
 // ---- Palette search (WO-013, SRC-005 layer 2) ----------------------------
@@ -154,7 +154,9 @@ export function rankDocs(documents: VeriDocument[], query: PaletteQuery, recents
     )
       continue;
     const idNorm = doc.id.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const idShort = idNorm.replace(/0+(\d)/, '$1');
+    // Strip zeros only immediately after the prefix, so the unpadded form of
+    // REQ-014 is req14 while REQ-1004 stays req1004 — no collision (WO-050).
+    const idShort = idNorm.replace(/^([a-z]+)0+(?=\d)/, '$1');
     const title = doc.title.toLowerCase();
     let score = 0;
     let snippet: string | null = null;
@@ -181,7 +183,7 @@ export function rankDocs(documents: VeriDocument[], query: PaletteQuery, recents
     if (recency >= 0) score += Math.max(0, 12 - recency * 2);
     hits.push({ id: doc.id, type: doc.type, status: doc.status, title: doc.title, score, snippet });
   }
-  return hits.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
+  return hits.sort((a, b) => b.score - a.score || compareIds(a.id, b.id));
 }
 
 export async function paletteSearch(projectRoot: string, raw: string, recents: string[] = []): Promise<PaletteResult> {

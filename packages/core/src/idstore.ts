@@ -14,7 +14,7 @@ import { join } from 'node:path';
 const PREFIX_ORDER = ['REQ', 'DEC', 'WO', 'SRC', 'WF'] as const;
 export type IdPrefix = (typeof PREFIX_ORDER)[number];
 
-const ID_LINE_RE = /^(REQ|DEC|WO|SRC|WF)[ \t]+(\d{1,3})$/;
+const ID_LINE_RE = /^(REQ|DEC|WO|SRC|WF)[ \t]+(\d+)$/;
 
 export function readIdRecord(veriDir: string): Partial<Record<IdPrefix, number>> {
   let text: string;
@@ -41,9 +41,7 @@ export function nextIdNumber(veriDir: string, prefix: IdPrefix, existingIds: str
     .filter((id) => id.startsWith(`${prefix}-`))
     .map((id) => Number.parseInt(id.slice(prefix.length + 1), 10));
   const floor = readIdRecord(veriDir)[prefix] ?? 0;
-  const next = Math.max(floor, ...taken, 0) + 1;
-  if (next > 999) throw new Error(`no free ${prefix}- id left (999 is the highest)`);
-  return next;
+  return Math.max(floor, ...taken, 0) + 1;
 }
 
 /** Record an issued id so it is never reused, keeping valid existing lines. */
