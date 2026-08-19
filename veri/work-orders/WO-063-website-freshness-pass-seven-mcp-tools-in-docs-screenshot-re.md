@@ -46,7 +46,7 @@ Bring the public site back in line with the shipped app. The MCP server now regi
 - [x] quickstart.html and connect-claude-code.html name exactly the seven tools registered in packages/mcp/src/server.ts, and no site page says "four tools"
 - [x] REQ-003 and REQ-005 no longer claim four tools
 - [ ] home.png and work-order.png show the post-WO-062 UI, and their alt text matches what is visible
-- [ ] Site deploy for the change succeeds and the live pages reflect it
+- [x] Site deploy for the change succeeds and the live pages reflect it
 
 ## Receipts
 
