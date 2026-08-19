@@ -24,7 +24,9 @@ the renderer can check for dirty editors. This work order routes that
 open through the same `guardDirtyReload` continuation: the pick handler
 reports the existing folder back to the renderer instead of opening it,
 and the renderer switches (guarded) so Cancel aborts with nothing
-reloaded — the [[DEC-051]] IPC re-shape.
+reloaded — the [[DEC-052]] IPC re-shape (filed as DEC-051 in the
+receipts below; renumbered when [[WO-055]]'s pane-state decision took
+that id on main).
 
 ## In scope
 

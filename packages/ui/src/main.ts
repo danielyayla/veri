@@ -263,7 +263,7 @@ function registerIpc(): void {
   });
   // New project (WO-018, SRC-007): the picker comes first — the directory is
   // the only required input — and a folder that already has veri/ is opened,
-  // never scaffolded. The open itself moved renderer-side (WO-058, DEC-051):
+  // never scaffolded. The open itself moved renderer-side (WO-058, DEC-052):
   // the renderer must run its dirty-buffer guard before anything reloads, so
   // an existing project is reported back instead of opened here.
   ipcMain.handle('veri:new-project-pick', async (): Promise<NewProjectPick> => {

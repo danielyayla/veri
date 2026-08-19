@@ -1,5 +1,5 @@
 ---
-id: DEC-051
+id: DEC-052
 type: decision
 title: "The new-project picker reports an existing folder instead of opening it, and switchProject carries the notice"
 status: active
