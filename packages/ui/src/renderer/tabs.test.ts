@@ -12,8 +12,10 @@ import {
   forward,
   isViewKey,
   navigate,
+  persistTabs,
   pinTab,
   reorderTab,
+  restoreTabs,
   retainTabs,
 } from './tabs.ts';
 import type { Tab, TabState } from './tabs.ts';
@@ -257,6 +259,78 @@ describe('retainTabs', () => {
     // Mixed history: the board entry drops, the surviving doc entry remains.
     const mixed = retainTabs(s([{ t: ['board', 'WO-005'], i: 0 }], 0), (id) => id === 'WO-005');
     deepStrictEqual(targets(mixed.tabs[0]), ['WO-005']);
+  });
+});
+
+// WO-054 (SRC-026): the open set persists across a project switch — one
+// current target per tab, never the history stack (SRC-018).
+describe('persistTabs / restoreTabs', () => {
+  it('round-trips a mixed set: order, preview flag, and active index survive; history collapses to one entry', () => {
+    const live = s([{ t: ['WO-005', 'REQ-001'], i: 1 }, { t: ['homeview'] }, { t: ['DEC-002'], pv: true }], 2);
+    const saved = persistTabs(live);
+    deepStrictEqual(saved, {
+      tabs: [
+        { target: 'REQ-001', preview: false },
+        { target: 'homeview', preview: false },
+        { target: 'DEC-002', preview: true },
+      ],
+      active: 2,
+    });
+    const restored = restoreTabs(saved.tabs, saved.active, () => true);
+    deepStrictEqual(restored.tabs.map((t) => targets(t)), [['REQ-001'], ['homeview'], ['DEC-002']]);
+    deepStrictEqual(restored.tabs.map((t) => t.preview), [false, false, true]);
+    deepStrictEqual(restored.tabs.map((t) => t.index), [0, 0, 0]);
+    strictEqual(activeTarget(restored), 'DEC-002');
+    strictEqual(restored.nextKey, 4);
+  });
+
+  it('persist with no active tab clamps the index to 0', () => {
+    deepStrictEqual(persistTabs(s([{ t: ['REQ-001'] }], null)).active, 0);
+    deepStrictEqual(persistTabs(EMPTY_TABS), { tabs: [], active: 0 });
+  });
+
+  it('drops targets that no longer resolve, retired view keys included', () => {
+    const saved = [
+      { target: 'graph', preview: false }, // retired WO-052
+      { target: 'REQ-001', preview: false },
+      { target: 'board', preview: false }, // retired WO-053
+      { target: 'decisions', preview: false }, // retired WO-049
+      { target: 'GONE-001', preview: false }, // byId miss
+      { target: 'search', preview: false },
+    ];
+    const restored = restoreTabs(saved, 1, (id) => id === 'REQ-001');
+    deepStrictEqual(restored.tabs.map((t) => targets(t)), [['REQ-001'], ['search']]);
+    strictEqual(activeTarget(restored), 'REQ-001');
+  });
+
+  it('maps a dropped active tab to the nearest earlier survivor and clamps an out-of-range index', () => {
+    const saved = [
+      { target: 'A', preview: false },
+      { target: 'GONE', preview: false },
+      { target: 'B', preview: false },
+    ];
+    const exists = (id: string): boolean => id !== 'GONE';
+    strictEqual(activeTarget(restoreTabs(saved, 1, exists)), 'A'); // active was the dropped tab
+    strictEqual(activeTarget(restoreTabs(saved, 99, exists)), 'B'); // clamp high
+    strictEqual(activeTarget(restoreTabs(saved, -3, exists)), 'A'); // junk falls back to first
+    strictEqual(activeTarget(restoreTabs(saved, undefined, exists)), 'A'); // absent field
+  });
+
+  it('normalizes a hand-edited file: at most one preview tab, duplicate views collapse to the first', () => {
+    const saved = [
+      { target: 'homeview', preview: false },
+      { target: 'REQ-001', preview: true },
+      { target: 'homeview', preview: false },
+      { target: 'DEC-002', preview: true },
+    ];
+    const restored = restoreTabs(saved, 0, () => true);
+    deepStrictEqual(restored.tabs.map((t) => targets(t)), [['homeview'], ['REQ-001'], ['DEC-002']]);
+    deepStrictEqual(restored.tabs.map((t) => t.preview), [false, true, false]);
+  });
+
+  it('an empty list or one with nothing resolvable restores to EMPTY_TABS (caller falls back to Home)', () => {
+    deepStrictEqual(restoreTabs([], 0, () => true), EMPTY_TABS);
+    deepStrictEqual(restoreTabs([{ target: 'GONE', preview: false }], 0, () => false), EMPTY_TABS);
   });
 });
 

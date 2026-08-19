@@ -2,7 +2,7 @@
 id: WO-054
 type: work-order
 title: "Tabs survive a project switch"
-status: backlog
+status: in-progress
 created: 2026-08-19
 updated: 2026-08-19
 links:

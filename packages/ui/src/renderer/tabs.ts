@@ -206,6 +206,63 @@ export function cycleTab(state: TabState, dir: 1 | -1): TabState {
   return { tabs: state.tabs.slice(), activeKey: state.tabs[next].key, nextKey: state.nextKey };
 }
 
+/** The persisted shape of one tab (WO-054, SRC-026): its *current* target
+    and its preview flag, nothing else — history stays session-only per
+    SRC-018, so the stack is never written. */
+export interface PersistedTab {
+  target: string;
+  preview: boolean;
+}
+
+/** Serialize the open set for the DEC-014 workspace file (SRC-026): one
+    current target per tab, the active tab as an index into that list. */
+export function persistTabs(state: TabState): { tabs: PersistedTab[]; active: number } {
+  const active = state.tabs.findIndex((t) => t.key === state.activeKey);
+  return {
+    tabs: state.tabs.map((t) => ({ target: currentTarget(t), preview: t.preview })),
+    active: Math.max(0, active),
+  };
+}
+
+/**
+ * The load-time twin of retainTabs (SRC-026): rebuild a TabState from
+ * persisted targets. Unresolvable targets are dropped — byId misses and
+ * retired ViewKeys ('graph', 'board', 'decisions' fail isViewKey now);
+ * duplicate views collapse to their first tab (views are singletons); at
+ * most one tab keeps the preview flag; every survivor starts with a
+ * single-entry history; the active index moves to the nearest earlier
+ * survivor and clamps. Nothing survives → EMPTY_TABS, and the caller
+ * falls back to the single Home tab.
+ */
+export function restoreTabs(
+  persisted: PersistedTab[],
+  active: number | undefined,
+  exists: (id: string) => boolean,
+): TabState {
+  const seenViews = new Set<string>();
+  const kept = persisted.map((p) => {
+    if (isViewKey(p.target)) {
+      if (seenViews.has(p.target)) return false;
+      seenViews.add(p.target);
+      return true;
+    }
+    return exists(p.target);
+  });
+  let hasPreview = false;
+  const tabs: Tab[] = [];
+  persisted.forEach((p, i) => {
+    if (!kept[i]) return;
+    const preview = p.preview && !hasPreview;
+    hasPreview = hasPreview || preview;
+    tabs.push({ key: `t${tabs.length + 1}`, preview, entries: [{ target: p.target, scroll: [] }], index: 0 });
+  });
+  if (tabs.length === 0) return EMPTY_TABS;
+  const a = active !== undefined && Number.isInteger(active) && active >= 0 ? active : 0;
+  const survivorsBefore = kept.slice(0, a + 1).filter(Boolean).length;
+  const idx = Math.min(Math.max(0, survivorsBefore - 1), tabs.length - 1);
+  return { tabs, activeKey: tabs[idx].key, nextKey: tabs.length + 1 };
+}
+
 /**
  * Drop history entries whose backing doc disappeared (views always survive);
  * the index moves to the nearest earlier survivor. A tab left with nothing

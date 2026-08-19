@@ -6,7 +6,12 @@ contextBridge.exposeInMainWorld('veri', {
   context: (id: string) => ipcRenderer.invoke('veri:context', id),
   paletteSearch: (query: string, recents: string[]) => ipcRenderer.invoke('veri:palette-search', query, recents),
   workspaceLoad: () => ipcRenderer.invoke('veri:workspace-load'),
-  workspaceSave: (state: { pinned: string[]; recents: string[] }) => ipcRenderer.invoke('veri:workspace-save', state),
+  workspaceSave: (state: {
+    pinned: string[];
+    recents: string[];
+    tabs?: { target: string; preview: boolean }[];
+    active?: number;
+  }) => ipcRenderer.invoke('veri:workspace-save', state),
   copyText: (text: string) => ipcRenderer.invoke('veri:copy', text),
   setStatus: (id: string, status: string) => ipcRenderer.invoke('veri:set-status', id, status),
   readDoc: (file: string) => ipcRenderer.invoke('veri:read-doc', file),

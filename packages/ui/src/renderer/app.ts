@@ -33,8 +33,10 @@ import {
   forward,
   isViewKey,
   navigate,
+  persistTabs,
   pinTab,
   reorderTab,
+  restoreTabs,
   retainTabs,
 } from './tabs.ts';
 import type { Entry, Surface, Tab, TabState } from './tabs.ts';
@@ -115,10 +117,11 @@ export interface State {
   /** New-document popover (WO-022, SRC-008): type + title, nothing else.
       `anchor` is the sidebar `+` position; null centers it (⌘N). */
   newDoc: { type: DocType; title: string; anchor: { x: number; y: number } | null } | null;
-  /** Save/Discard/Cancel prompt for closing a tab whose history still
-      references dirty buffers (SRC-008, SRC-018): the docs (and template
-      edits) that would be orphaned by closing tab `key`. */
-  closeConfirm: { key: string; docs: string[]; settings: boolean; x: number; y: number } | null;
+  /** Save/Discard/Cancel prompt for dropping dirty buffers (SRC-008,
+      SRC-018): the docs (and template edits) that would be orphaned. What
+      Save/Discard go on to do — close a tab, or reload into another project
+      (WO-054, SRC-026) — is the shell's `confirmThen`; Cancel aborts it. */
+  closeConfirm: { docs: string[]; settings: boolean; x: number; y: number } | null;
   /** Templates settings view (WO-024, SRC-009): active type + reset confirm. */
   tplType: DocType;
   tplResetConfirm: boolean;
@@ -492,6 +495,14 @@ class App implements Ctx {
     const ws = await this.api.workspaceLoad();
     this.state.pinned = ws.pinned.filter((id) => this.byId.has(id));
     this.state.recents = ws.recents.filter((id) => this.byId.has(id));
+    // Restore the persisted open set (WO-054, SRC-026): unresolvable targets
+    // drop, at most one preview tab, single-entry history each. Assigned
+    // directly rather than through applyTabs so the restore itself never
+    // echoes a save back into the file; the query params below still win.
+    if (ws.tabs !== undefined && ws.tabs.length > 0) {
+      const restored = restoreTabs(ws.tabs, ws.active, (id) => this.byId.has(id));
+      if (restored.tabs.length > 0) Object.assign(this.state, this.activationPatch(restored));
+    }
     await this.refreshMcp();
     void this.api.appInfo().then((info) => {
       this.appInfo = info;
@@ -528,7 +539,7 @@ class App implements Ctx {
         this.togglePalette();
       } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'o') {
         e.preventDefault();
-        this.surfaceProjectError(this.api.openProjectFolder());
+        this.guardDirtyReload(() => this.surfaceProjectError(this.api.openProjectFolder()));
       } else if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'n') {
         e.preventDefault();
         if (this.state.newProject === null) void this.startNewProject();
@@ -664,6 +675,9 @@ class App implements Ctx {
 
   private applyTabs(next: TabState, extra: Partial<State> = {}): void {
     this.update({ ...this.activationPatch(next), ...extra });
+    // Every tab-set change persists (WO-054, SRC-026) — open, close, reorder,
+    // pin, activate, in-place navigation — fire-and-forget, like pins.
+    this.saveWorkspace();
   }
 
   private firstDocId(): string | null {
@@ -694,7 +708,6 @@ class App implements Ctx {
       projectSwitcherOpen: false,
       recents: pushRecent(this.state.recents, id),
     });
-    this.saveWorkspace();
   }
 
   togglePin(id: string): void {
@@ -706,7 +719,11 @@ class App implements Ctx {
   }
 
   private saveWorkspace(): void {
-    void this.api.workspaceSave({ pinned: this.state.pinned, recents: this.state.recents });
+    void this.api.workspaceSave({
+      pinned: this.state.pinned,
+      recents: this.state.recents,
+      ...persistTabs(this.tabState()),
+    });
   }
 
   setView(view: View): void {
@@ -1072,12 +1089,30 @@ class App implements Ctx {
     const settings =
       this.tplAnyDirty() && tab.entries.some((e) => e.target === 'settings') && !anyEntry(others, 'settings');
     if (docs.length > 0 || settings) {
+      this.confirmThen = (): void => this.forceCloseTab(key);
       this.update({
-        closeConfirm: { key, docs, settings, x: anchor?.left ?? window.innerWidth / 2 - 130, y: (anchor?.bottom ?? 60) + 8 },
+        closeConfirm: { docs, settings, x: anchor?.left ?? window.innerWidth / 2 - 130, y: (anchor?.bottom ?? 60) + 8 },
       });
       return;
     }
     this.forceCloseTab(key);
+  }
+
+  /** What the closeConfirm prompt's Save/Discard proceed to; Cancel drops it. */
+  private confirmThen: (() => void) | null = null;
+
+  /** A reload path — project switch, Open Project — must not silently
+      destroy dirty buffers (WO-054, SRC-026): same Save/Discard/Cancel
+      prompt as closing their tabs; Cancel aborts the switch entirely. */
+  private guardDirtyReload(action: () => void): void {
+    const docs = [...this.docEdit.entries()].filter(([, ed]) => ed.dirty).map(([id]) => id);
+    const settings = this.tplAnyDirty();
+    if (docs.length === 0 && !settings) {
+      action();
+      return;
+    }
+    this.confirmThen = action;
+    this.update({ closeConfirm: { docs, settings, x: window.innerWidth / 2, y: 80 } });
   }
 
   private forceCloseTab(key: string): void {
@@ -1643,7 +1678,7 @@ class App implements Ctx {
           fkey: `proj:${p.dir}`,
           onClick: () => {
             this.update({ projectSwitcherOpen: false });
-            if (!current) this.surfaceProjectError(this.api.switchProject(p.dir));
+            if (!current) this.guardDirtyReload(() => this.surfaceProjectError(this.api.switchProject(p.dir)));
           },
         },
         h('span', { class: 'proj-swatch', style: `background:${p.accentColor};` }),
@@ -1675,7 +1710,7 @@ class App implements Ctx {
           fkey: 'proj-open',
           onClick: () => {
             this.update({ projectSwitcherOpen: false });
-            this.surfaceProjectError(this.api.openProjectFolder());
+            this.guardDirtyReload(() => this.surfaceProjectError(this.api.openProjectFolder()));
           },
         },
         // Open keeps its position (muscle memory) but yields '+' to New
@@ -2574,9 +2609,16 @@ class App implements Ctx {
         cc.docs.length === 0
           ? "Template edits aren't saved."
           : `${cc.docs.join(', ')} ${cc.docs.length === 1 ? 'has' : 'have'} edits that aren't saved${cc.settings ? ', and neither are template edits' : ''}.`;
+      // Close tab or reload into another project — whichever raised the
+      // prompt parked its continuation in confirmThen (WO-054).
+      const then = this.confirmThen ?? ((): void => {});
+      const proceed = (): void => {
+        this.update({ closeConfirm: null });
+        then();
+      };
       const saveAll = (): void => {
         this.update({ closeConfirm: null });
-        const finish = (): void => (cc.settings ? this.tplSaveAll(() => this.forceCloseTab(cc.key)) : this.forceCloseTab(cc.key));
+        const finish = (): void => (cc.settings ? this.tplSaveAll(then) : then());
         const saveDoc = (i: number): void => {
           if (i >= cc.docs.length) {
             finish();
@@ -2596,7 +2638,7 @@ class App implements Ctx {
             'div',
             { class: 'cc-acts' },
             h('button', { class: 'nd-btn-ghost', fkey: 'cc-cancel', onClick: () => this.update({ closeConfirm: null }) }, 'Cancel'),
-            h('button', { class: 'nd-btn-ghost', fkey: 'cc-discard', onClick: () => this.forceCloseTab(cc.key) }, 'Discard'),
+            h('button', { class: 'nd-btn-ghost', fkey: 'cc-discard', onClick: proceed }, 'Discard'),
             h('button', { class: 'nd-btn-primary', fkey: 'cc-save', onClick: saveAll }, 'Save'),
           ),
         ),
