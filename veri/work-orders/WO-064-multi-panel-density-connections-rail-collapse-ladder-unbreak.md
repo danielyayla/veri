@@ -2,7 +2,7 @@
 id: WO-064
 type: work-order
 title: "Multi-panel density — Connections-rail collapse ladder, unbreakable tokens, narrow-pane title scale"
-status: in-progress
+status: done
 created: 2026-08-19
 updated: 2026-08-19
 links:
@@ -51,15 +51,15 @@ Ships the three priority findings of [[SRC-034]]: with both panes open, the layo
 
 ## Acceptance tests
 
-- [ ] With a pane at its 320px minimum, the Connections rail is collapsed and the reading column receives the space; the header toggle expands the rail as an overlay and collapses it again, and that choice persists for the pane within the session
-- [ ] No ID, date, or count in the document view wraps mid-token at any pane width; where space runs out the value ellipsizes and the full value is available on hover
-- [ ] Below the pane threshold the metadata card stacks label-above-value and the links count row is fully visible
-- [ ] The doc-title renders at the reduced size in a narrow pane and never produces a line consisting only of the em-dash
-- [ ] With both panes open and the window narrowed, the unfocused pane's rail collapses before the focused pane's
-- [ ] Opening a split auto-collapses the type panel when the window cannot hold both panes above threshold; closing the split restores it
-- [ ] Divider min widths, double-click reset, and arrow-key resize (REQ-020) behave exactly as before
-- [ ] `veri check` and `npm test` are clean
+- [x] With a pane at its 320px minimum, the Connections rail is collapsed and the reading column receives the space; the header toggle expands the rail as an overlay and collapses it again, and that choice persists for the pane within the session
+- [x] No ID, date, or count in the document view wraps mid-token at any pane width; where space runs out the value ellipsizes and the full value is available on hover
+- [x] Below the pane threshold the metadata card stacks label-above-value and the links count row is fully visible
+- [x] The doc-title renders at the reduced size in a narrow pane and never produces a line consisting only of the em-dash
+- [x] With both panes open and the window narrowed, the unfocused pane's rail collapses before the focused pane's
+- [x] Opening a split auto-collapses the type panel when the window cannot hold both panes above threshold; closing the split restores it
+- [x] Divider min widths, double-click reset, and arrow-key resize (REQ-020) behave exactly as before
+- [x] `veri check` and `npm test` are clean
 
 ## Receipts
 
-(none yet)
+- 2026-08-19 — fdc093d — packages/ui/renderer/styles.css, packages/ui/src/renderer/{app,widgets}.ts, packages/ui/src/renderer/views/{reader,editor,workorder}.ts, veri/decisions/DEC-056 — claude-code session: full implementation per SRC-034. Narrow state is CSS container queries on `.editor-area` (DEC-056, proposed): ≤640px collapses the Connections rail to a crumb-row toggle (`⧉` + link count, ≥24px target) that expands it as a right-anchored overlay — per-pane session state (`connOpen`), the pane index threaded via `ctx.renderPane`; a 641–780px band scoped to `.pane-unfocused` collapses the unfocused pane's rail first; the same contract rides into edit mode. Tokens: nowrap + ellipsis/title on fm-mono values, chips, conn ids, and crumb children; the metadata card stacks label-above-value below the threshold; `displayTitle()` binds spaced em-dashes (nbsp) and the title steps to 18px when narrow. Type panel: a 1→2 pane transition in applyPanes under 1782px window width closes an open panel into an in-memory memo, the 2→1 transition restores it, and manual panel acts clear the memo. Verified live via the screenshot harness at 1560px: 50/50 split (unfocused rail collapsed, focused inline), 597px pane (18px title, stacked card, links row fully visible), 320px minimum, overlay expand/collapse/re-expand persisting (probe: open0=true after the cycle), divider arrows moving 24px/press, double-click reset measured back to 669/669, panel auto-close on ⌘\ and restore on split collapse — one cascade fix found and corrected live (the WO-064 block moved after the base rules it overrides). No new color tokens (DEC-055); SRC-027's split model untouched. 481 tests pass, typecheck and bundle clean, `veri check` 0 issues.
