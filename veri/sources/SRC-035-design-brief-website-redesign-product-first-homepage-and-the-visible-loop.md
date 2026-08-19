@@ -4,7 +4,7 @@ type: source
 title: "Design brief — Website redesign: product-first homepage and the visible loop"
 status: imported
 created: 2026-08-19
-updated: 2026-08-19
+updated: 2026-08-20
 links:
   - id: WO-065
     rel: designs
@@ -13,6 +13,8 @@ links:
   - id: DEC-033
     rel: constrained-by
 ---
+
+Reviewed by Daniel 2026-08-20.
 
 Daniel's redesign brief (2026-08-19) for the public site, plus the
 findings of the same-day design critique of the shipped site. Filed so
