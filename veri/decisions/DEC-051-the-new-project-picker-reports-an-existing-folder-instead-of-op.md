@@ -2,7 +2,8 @@
 id: DEC-051
 type: decision
 title: "The new-project picker reports an existing folder instead of opening it, and switchProject carries the notice"
-status: proposed
+status: active
+approved: 2026-08-19
 created: 2026-08-19
 updated: 2026-08-19
 links:
