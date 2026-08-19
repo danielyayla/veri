@@ -59,16 +59,16 @@ Redesign the public site (site/) into a best-in-class developer-tool website per
 
 ## Acceptance tests
 
-- [ ] A stranger scrolling the homepage for 60 seconds can answer: what Veri is, why they'd use it, and how it differs from prompting harder — with the six-stage loop and the context package shown as product UI, not prose
-- [ ] The hero shows the product and offers Download, GitHub, and Quickstart without scrolling at 1280×800
-- [ ] Homepage sections cover: problem, loop (all six stages, visually cyclic), context package, decision document with rejected alternatives, NEEDS REVIEW approval queue, plain-files architecture, receipts, MCP connection, final CTA
-- [ ] No page scrolls horizontally at 375px wide, and the nav remains usable
-- [ ] All text passes WCAG AA contrast in both dark and light themes; light mode follows prefers-color-scheme; animations honor prefers-reduced-motion
-- [ ] Every product screenshot is legible at its rendered size (no full-app capture squeezed under 1000px except at most one establishing shot)
+- [x] A stranger scrolling the homepage for 60 seconds can answer: what Veri is, why they'd use it, and how it differs from prompting harder — with the six-stage loop and the context package shown as product UI, not prose
+- [x] The hero shows the product and offers Download, GitHub, and Quickstart without scrolling at 1280×800
+- [x] Homepage sections cover: problem, loop (all six stages, visually cyclic), context package, decision document with rejected alternatives, NEEDS REVIEW approval queue, plain-files architecture, receipts, MCP connection, final CTA
+- [x] No page scrolls horizontally at 375px wide, and the nav remains usable
+- [x] All text passes WCAG AA contrast in both dark and light themes; light mode follows prefers-color-scheme; animations honor prefers-reduced-motion
+- [x] Every product screenshot is legible at its rendered size (no full-app capture squeezed under 1000px except at most one establishing shot)
 - [ ] Favicon and og: metadata present; a shared link preview renders title, description, and product image
-- [ ] Docs URLs are unchanged, the download button still resolves the latest DMG client-side with the no-JS fallback, and the site remains hand-authored HTML/CSS deployed by the existing Pages workflow
-- [ ] veri check reports zero issues
+- [x] Docs URLs are unchanged, the download button still resolves the latest DMG client-side with the no-JS fallback, and the site remains hand-authored HTML/CSS deployed by the existing Pages workflow
+- [x] veri check reports zero issues
 
 ## Receipts
 
-(none yet)
+- 2026-08-19 · 9745d2f · site/index.html, site/site.css, site/docs/*.html, site/assets/* (16 new assets, 2 removed), veri/sources/SRC-035, veri/ids — full homepage redesign per SRC-035: product-first hero, six-stage visual loop, with/without comparison, context package / decision / NEEDS REVIEW / plain-files / receipts / veri check / MCP sections, final CTA; responsive baseline (no horizontal scroll at 375px, verified), AA contrast audited numerically in both themes, light mode via prefers-color-scheme with theme-matched screenshots reshot through VERI_UI_SHOT, skip links, favicon set (SVG + PNG + apple-touch), OpenGraph meta, docs sub-nav strip. Remaining box: the shared-link preview can only be verified after the Pages deploy (push to main).
