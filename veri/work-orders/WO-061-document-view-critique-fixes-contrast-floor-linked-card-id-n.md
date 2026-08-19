@@ -2,7 +2,7 @@
 id: WO-061
 type: work-order
 title: "Document-view critique fixes — contrast floor, linked-card ID navigation, header control de-twinning"
-status: backlog
+status: in-progress
 created: 2026-08-19
 updated: 2026-08-19
 links:

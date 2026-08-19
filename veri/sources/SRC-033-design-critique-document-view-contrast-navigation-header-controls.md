@@ -16,6 +16,10 @@ links:
     rel: builds-on
 ---
 
+> **Approved by Daniel 2026-08-19.** Findings and design direction
+> accepted as specified — inactive status segments treated as control
+> labels (4.5:1); implementation proceeds under [[WO-061]].
+
 A structured design critique of the document view (2026-08-19),
 reviewed live against WO-060 and DEC-041 in the running app and
 grounded in the renderer source (`packages/ui/src/renderer/views/
