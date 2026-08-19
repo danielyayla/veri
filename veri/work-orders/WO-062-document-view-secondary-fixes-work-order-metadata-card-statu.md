@@ -2,7 +2,7 @@
 id: WO-062
 type: work-order
 title: "Document-view secondary fixes — work-order metadata card, status-rendering unification, Pin chip, activity feed, note composer"
-status: backlog
+status: in-progress
 created: 2026-08-19
 updated: 2026-08-19
 links:
