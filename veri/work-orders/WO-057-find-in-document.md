@@ -2,7 +2,7 @@
 id: WO-057
 type: work-order
 title: "Find in document"
-status: backlog
+status: done
 created: 2026-08-19
 updated: 2026-08-19
 links:
@@ -41,12 +41,12 @@ links:
 
 ## Acceptance tests
 
-- [ ] ⌘F over a reader doc finds all case-insensitive matches, shows the right count, cycles with wrap in both directions, and highlights without altering the rendered DOM (chips still navigate and preview)
-- [ ] The same query in edit mode highlights via CM6 and cycles identically; toggling ⌘E carries the query across backends
-- [ ] Escape closes and clears highlights in both modes; navigation and tab switch close the bar; ⌘[/⌘] work while the bar's input is focused
-- [ ] Zero matches shows `0/0` with both nav buttons disabled and no highlights
-- [ ] `veri check` stays at zero issues; full typecheck and test suite pass
+- [x] ⌘F over a reader doc finds all case-insensitive matches, shows the right count, cycles with wrap in both directions, and highlights without altering the rendered DOM (chips still navigate and preview)
+- [x] The same query in edit mode highlights via CM6 and cycles identically; toggling ⌘E carries the query across backends
+- [x] Escape closes and clears highlights in both modes; navigation and tab switch close the bar; ⌘[/⌘] work while the bar's input is focused
+- [x] Zero matches shows `0/0` with both nav buttons disabled and no highlights
+- [x] `veri check` stays at zero issues; full typecheck and test suite pass
 
 ## Receipts
 
-(none yet)
+- 2026-08-19 — a60edf3 — packages/ui/src/renderer/findlogic.ts, packages/ui/src/renderer/findlogic.test.ts, packages/ui/src/renderer/find.ts, packages/ui/src/renderer/app.ts, packages/ui/src/renderer/editor.ts, packages/ui/renderer/styles.css, packages/ui/package.json, package-lock.json — ⌘F find bar shipped per SRC-029 — one bar (labeled input, aria-live 3/17 count, ‹ › buttons, Enter/Shift+Enter wrap, Escape layer, closes on navigation/tab switch/pane focus change), edit mode via @codemirror/search's programmatic API behind a hidden panel, read mode via a text-node walk painted with CSS Custom Highlights (zero DOM mutation), ⌘E carries the query across backends; DEC-054 filed (proposed); verified visually via the screenshot harness in read, edit, and 0/0 states; typecheck clean, 471 tests pass (454 baseline + 17 new), veri check 0 issues · 0 advisories (the pre-existing 9 receipt-prefix advisories were cleared mid-session by commit a998bd0 from a parallel session; this order adds none)
