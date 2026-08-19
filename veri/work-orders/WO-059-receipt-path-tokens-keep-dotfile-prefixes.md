@@ -2,7 +2,7 @@
 id: WO-059
 type: work-order
 title: "Receipt path tokens keep dotfile prefixes"
-status: backlog
+status: done
 created: 2026-08-19
 updated: 2026-08-19
 links:
@@ -50,17 +50,17 @@ sentence punctuation — including trailing dots — is still stripped.
 
 ## Acceptance tests
 
-- [ ] `parseReceipts` on a files segment naming
+- [x] `parseReceipts` on a files segment naming
       `.github/workflows/release.yml` yields that exact token, leading
       dot intact.
-- [ ] A receipt whose only named files live under a dot-directory
+- [x] A receipt whose only named files live under a dot-directory
       verifies clean against a commit touching those files — no
       `receipt-files` advisory.
-- [ ] Existing token cleanup still holds: quoted/bracketed tokens and
+- [x] Existing token cleanup still holds: quoted/bracketed tokens and
       trailing sentence punctuation are stripped as before, and the
       full provenance suite passes.
-- [ ] `npm run typecheck` and `veri check` are clean.
+- [x] `npm run typecheck` and `veri check` are clean.
 
 ## Receipts
 
-(none yet)
+- 2026-08-19 — 6744f72 — packages/core/src/provenance.ts, packages/core/src/provenance.test.ts — pathTokens keeps leading dots that start a dotfile segment; two new tests (.github token parse, dot-directory receipt verifies clean); 129 core + 26 cli tests pass, typecheck and veri check clean (agent session, Claude Code)
