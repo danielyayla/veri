@@ -20,7 +20,7 @@ links:
 
 > Drafted 2026-08-19 by an agent session (Claude Code) for the
 > find-in-document work order, per the DEC-012 design gate, under
-> Daniel's P2 implementation directive. Pending Daniel's review.
+> Daniel's P2 implementation directive. Approved by Daniel 2026-08-19.
 > Written spec only.
 
 [[SRC-016]]: "no find-in-document." Project-wide search exists twice

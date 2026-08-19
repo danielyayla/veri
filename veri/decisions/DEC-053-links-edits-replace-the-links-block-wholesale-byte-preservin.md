@@ -2,7 +2,8 @@
 id: DEC-053
 type: decision
 title: "Links edits replace the links: block wholesale, byte-preserving all else"
-status: proposed
+status: active
+approved: 2026-08-19
 created: 2026-08-19
 updated: 2026-08-19
 links:

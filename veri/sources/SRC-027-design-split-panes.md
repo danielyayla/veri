@@ -22,7 +22,7 @@ links:
 
 > Drafted 2026-08-19 by an agent session (Claude Code) for the split
 > panes work order, per the DEC-012 design gate, under Daniel's P2
-> implementation directive. Pending Daniel's review. Written spec only.
+> implementation directive. Approved by Daniel 2026-08-19. Written spec only.
 
 [[SRC-016]] finding 4 lists "no split view" among the context
 preservation gaps: reading a work order while its requirement is open

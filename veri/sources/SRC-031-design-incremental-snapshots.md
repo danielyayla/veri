@@ -21,7 +21,7 @@ links:
 > Drafted 2026-08-19 by an agent session (Claude Code) for the
 > incremental snapshots work order, per the DEC-012 design gate (the
 > pipeline lives in `packages/ui`), under Daniel's P2 implementation
-> directive. Pending Daniel's review. Written spec only.
+> directive. Approved by Daniel 2026-08-19. Written spec only.
 
 [[SRC-016]], scale: the snapshot pipeline "strains — full reparse +
 git shells per file event". The audit puts numbers on it: every

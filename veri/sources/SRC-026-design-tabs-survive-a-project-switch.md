@@ -20,7 +20,7 @@ links:
 
 > Drafted 2026-08-19 by an agent session (Claude Code) for the tab
 > persistence work order, per the DEC-012 design gate, under Daniel's
-> P2 implementation directive. Pending Daniel's review. Written spec
+> P2 implementation directive. Approved by Daniel 2026-08-19. Written spec
 > only.
 
 [[SRC-016]] finding 4: "tabs lost on project switch — in a product

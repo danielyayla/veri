@@ -2,7 +2,8 @@
 id: DEC-047
 type: decision
 title: "Switcher rows carry a live issue count only for the current project"
-status: proposed
+status: active
+approved: 2026-08-19
 created: 2026-08-19
 updated: 2026-08-19
 links:

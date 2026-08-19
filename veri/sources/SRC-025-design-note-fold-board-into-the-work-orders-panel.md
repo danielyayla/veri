@@ -18,7 +18,7 @@ links:
 
 > Drafted 2026-08-19 by an agent session (Claude Code) for the Board
 > resolution work order, per the DEC-012 design gate, under Daniel's
-> P2 implementation directive. Pending Daniel's review. A removal note
+> P2 implementation directive. Approved by Daniel 2026-08-19. A removal note
 > in the [[SRC-011]] register, the [[SRC-023]] pattern applied to the
 > second redundant lens.
 

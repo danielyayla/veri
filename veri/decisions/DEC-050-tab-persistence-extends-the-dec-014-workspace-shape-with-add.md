@@ -2,7 +2,8 @@
 id: DEC-050
 type: decision
 title: "Tab persistence extends the DEC-014 workspace shape with additive optional fields, version unchanged"
-status: proposed
+status: active
+approved: 2026-08-19
 created: 2026-08-19
 updated: 2026-08-19
 links:

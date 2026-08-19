@@ -21,7 +21,7 @@ links:
 > Drafted 2026-08-19 by an agent session (Claude Code) for the id
 > space work order, per the DEC-012 design gate (the change touches
 > renderer regexes), under Daniel's P2 implementation directive.
-> Pending Daniel's review. Written spec only; the inventory below is
+> Approved by Daniel 2026-08-19. Written spec only; the inventory below is
 > from a full-corpus code audit of the current tree.
 
 [[SRC-016]], scale: "the id space — `\d{3}` caps every type at 999,

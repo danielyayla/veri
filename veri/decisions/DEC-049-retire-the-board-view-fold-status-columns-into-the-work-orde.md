@@ -2,7 +2,8 @@
 id: DEC-049
 type: decision
 title: "Retire the Board view — fold status columns into the Work Orders panel"
-status: proposed
+status: active
+approved: 2026-08-19
 created: 2026-08-19
 updated: 2026-08-19
 links:

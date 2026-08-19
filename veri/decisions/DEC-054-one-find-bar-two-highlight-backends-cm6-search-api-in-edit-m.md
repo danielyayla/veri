@@ -2,7 +2,8 @@
 id: DEC-054
 type: decision
 title: "One find bar, two highlight backends — CM6 search API in edit mode, CSS Custom Highlights in read mode"
-status: proposed
+status: active
+approved: 2026-08-19
 created: 2026-08-19
 updated: 2026-08-19
 links:

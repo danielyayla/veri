@@ -2,7 +2,8 @@
 id: DEC-051
 type: decision
 title: "Pane state is a thin pure layer over per-pane TabStates; the focused pane drives all single-valued state"
-status: proposed
+status: active
+approved: 2026-08-19
 created: 2026-08-19
 updated: 2026-08-19
 links:

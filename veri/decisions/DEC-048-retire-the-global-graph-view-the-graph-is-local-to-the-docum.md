@@ -2,7 +2,8 @@
 id: DEC-048
 type: decision
 title: "Retire the global Graph view; the graph is local to the document"
-status: proposed
+status: active
+approved: 2026-08-19
 created: 2026-08-19
 updated: 2026-08-19
 links:

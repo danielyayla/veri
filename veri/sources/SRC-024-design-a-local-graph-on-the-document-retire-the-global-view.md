@@ -20,7 +20,7 @@ links:
 
 > Drafted 2026-08-19 by an agent session (Claude Code) for the local
 > graph work order, per the DEC-012 design gate, under Daniel's P2
-> implementation directive. Pending Daniel's review. Written spec only.
+> implementation directive. Approved by Daniel 2026-08-19. Written spec only.
 
 [[SRC-016]]: the global Graph is "a columnar hairball with no
 zoom/filter that is decorative at 100 docs and dead at 500", one of

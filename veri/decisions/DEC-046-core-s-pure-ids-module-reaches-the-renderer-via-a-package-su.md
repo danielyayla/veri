@@ -2,7 +2,8 @@
 id: DEC-046
 type: decision
 title: "Core's pure ids module reaches the renderer via a package subpath export"
-status: proposed
+status: active
+approved: 2026-08-19
 created: 2026-08-19
 updated: 2026-08-19
 links:
