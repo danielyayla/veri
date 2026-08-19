@@ -281,6 +281,8 @@ export interface ActivityRow {
   agent: boolean;
   text: string;
   time: string;
+  /** In-memory session log only — lost on restart, never file-derived (WO-062). */
+  session?: boolean;
 }
 
 /** File-derived activity: receipts (sessions) plus the last-updated stamp. */

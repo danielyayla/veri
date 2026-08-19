@@ -1075,10 +1075,12 @@ class App implements Ctx {
   }
 
   sessionLog(id: string, row: ActivityRow): void {
+    // Stamped here so every session row carries the ephemeral marker (WO-062).
+    const stamped: ActivityRow = { ...row, session: true };
     const rows = this.sessionActivity.get(id) ?? [];
-    rows.unshift(row);
+    rows.unshift(stamped);
     this.sessionActivity.set(id, rows);
-    this.sessionFeed.unshift({ id, row });
+    this.sessionFeed.unshift({ id, row: stamped });
   }
 
   sessionRows(id: string): ActivityRow[] {

@@ -5,7 +5,8 @@ import { TYPE_META, fmtTokens, statusColor, tint } from '../theme.ts';
 import { plainText, sections } from '../markdown.ts';
 import type { Block } from '../markdown.ts';
 import { PACKAGE_RULES_TEXT, fileActivity, gatingDocs, receipts } from '../derive.ts';
-import { activityFeed, dirtyStrip, idChip, imgDirFor, modeToggle, pinChip, renderBlocks } from '../widgets.ts';
+import { activityFeed, dirtyStrip, idChip, imgDirFor, modeToggle, pinChip, renderBlocks, statusChip } from '../widgets.ts';
+import { frontmatterCard } from './reader.ts';
 import { roveIndex, roveKey } from '../a11y.ts';
 import type { Ctx } from '../app.ts';
 
@@ -140,7 +141,9 @@ function linkedCard(
         },
         target.title,
       ),
-      h('span', { class: 'linked-status', style: `color:${statusColor(target.status)};` }, target.status),
+      // WO-062 (SRC-033): the one tinted-chip status treatment everywhere —
+      // no more bare 10px colored text.
+      h('span', { class: 'linked-status' }, statusChip(target.status)),
     ),
     body,
   );
@@ -457,14 +460,21 @@ export function workOrderView(ctx: Ctx): HTMLElement {
           statusControl(ctx, doc),
         ),
         dirtyStrip(ctx, doc.id),
-        h(
-          'div',
-          { class: 'wo-meta' },
-          ...gatingDocs(ctx.byId, doc).map((g) => gateChip(ctx, g.id)),
-          h('span', {}, `created ${doc.created}`),
-          h('span', {}, `updated ${ctx.rel(doc.updated)}`),
-          ctx.snap.git !== null ? h('span', { style: 'color:var(--ember);' }, `branch ${ctx.snap.git.branch}`) : null,
-        ),
+        // WO-062 (SRC-033): work orders get the reader's frontmatter card —
+        // id, type, created, updated, and the WO-056 links editor. created/
+        // updated move into the card rather than duplicating in the meta line;
+        // status stays in the header radiogroup alone. `branch` (git state,
+        // not frontmatter) keeps the meta line, off ember — the least
+        // actionable fact no longer wears the most salient color.
+        gatingDocs(ctx.byId, doc).length > 0 || ctx.snap.git !== null
+          ? h(
+              'div',
+              { class: 'wo-meta' },
+              ...gatingDocs(ctx.byId, doc).map((g) => gateChip(ctx, g.id)),
+              ctx.snap.git !== null ? h('span', {}, `branch ${ctx.snap.git.branch}`) : null,
+            )
+          : null,
+        frontmatterCard(ctx, { status: false }),
         ...receiptCards(ctx, doc),
         ...section('Summary', secs.get('Summary') ?? secs.get('')),
         ...section('In scope', secs.get('In scope')),

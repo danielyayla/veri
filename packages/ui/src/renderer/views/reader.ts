@@ -9,7 +9,9 @@ import { activityFeed, attachPreview, dirtyStrip, idChip, imgDirFor, modeToggle,
 import { reviewBanner } from './review.ts';
 import type { Ctx, LinkAddState } from '../app.ts';
 
-function frontmatterCard(ctx: Ctx): HTMLElement {
+/** Shared by the reader and (WO-062) the work-order view; work orders pass
+    `status: false` — their status lives in the header radiogroup alone. */
+export function frontmatterCard(ctx: Ctx, opts: { status?: boolean } = {}): HTMLElement {
   const doc = ctx.doc()!;
   const meta = TYPE_META[doc.type];
   const open = ctx.state.linksOpen;
@@ -20,7 +22,7 @@ function frontmatterCard(ctx: Ctx): HTMLElement {
     { class: 'fm-card' },
     row('id', h('span', { class: 'fm-mono', style: `color:${meta.color};` }, doc.id)),
     row('type', typeChip(doc.type)),
-    row('status', statusChip(doc.status)),
+    ...(opts.status === false ? [] : [row('status', statusChip(doc.status))]),
     ...(doc.approved !== undefined ? [row('approved', h('span', { class: 'fm-mono' }, doc.approved))] : []),
     row('created', h('span', { class: 'fm-mono' }, doc.created)),
     row('updated', h('span', { class: 'fm-mono' }, ctx.rel(doc.updated))),
@@ -240,7 +242,15 @@ function noteEditor(ctx: Ctx): HTMLElement {
       input.setSelectionRange(input.value.length, input.value.length);
     });
   }
-  return h('div', { class: 'note-wrap' }, popover, input);
+  // WO-062 (SRC-033): once text hides the placeholder, a faint ↩ at the row's
+  // right edge keeps Enter-to-commit discoverable. Decorative — the input's
+  // label and placeholder already carry the semantics.
+  let hint: HTMLElement | null = null;
+  if (ctx.state.editorText.trim() !== '') {
+    hint = h('span', { class: 'note-hint' }, '↩');
+    hint.setAttribute('aria-hidden', 'true');
+  }
+  return h('div', { class: 'note-wrap' }, popover, input, hint);
 }
 
 /**

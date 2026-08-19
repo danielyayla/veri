@@ -681,11 +681,16 @@ a:hover { color: var(--link-hover); }
 /* Document-header pin chip (WO-014): ☆ Pin / ★ Pinned right of the title. */
 .doc-head { display: flex; align-items: flex-start; gap: 12px; }
 .doc-head .doc-title { flex: 1; }
+/* WO-062: fixed width so ☆ Pin ↔ ★ Pinned never reflows; margins center the
+   26px chip on the title's 30px first line (.doc-head titles carry a 10px
+   top margin, .wo-head titles none). */
 .pin-chip {
-  margin-top: 14px; height: 26px; padding: 0 10px; border-radius: 6px;
+  margin-top: 2px; height: 26px; width: 78px; border-radius: 6px;
   border: 1px solid var(--int-border); color: var(--muted);
-  display: flex; align-items: center; gap: 6px; font-size: 11.5px; cursor: pointer; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 11.5px; cursor: pointer; flex: 0 0 auto;
 }
+.doc-head .pin-chip { margin-top: 12px; }
 .pin-chip:hover { border-color: var(--hover-border-2); }
 .pin-chip-on { color: var(--ember); }
 .warn-banner {
@@ -786,17 +791,30 @@ a:hover { color: var(--link-hover); }
 .act .micro-label { margin-bottom: 8px; }
 .act-row { display: flex; align-items: baseline; gap: 9px; padding: 4px 0; font-size: 12.5px; }
 .act-dot { width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto; position: relative; top: -1px; }
+/* WO-062: session rows — hollow dot (shape channel) + mono tag; the color
+   rides on border-color inline, mirroring the filled dot's background. */
+.act-dot-session { background: transparent; border: 1px solid; box-sizing: border-box; }
 .act-agent { font-family: var(--mono); font-size: 11px; color: var(--ember); flex: 0 0 auto; }
+.act-session { font-family: var(--mono); font-size: 10px; color: var(--faint); border: 1px solid var(--hair-2); border-radius: 4px; padding: 1px 5px; flex: 0 0 auto; }
 .act-text { color: var(--secondary); }
 .act-time { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--faint); flex: 0 0 auto; }
+/* WO-062: a lone "Last edited" is one quiet line, not a labeled section. */
+.act-solo .act-text { color: var(--faint); }
 
 .note-wrap { margin-top: 24px; position: relative; }
 .note-input {
-  width: 100%; height: 34px; padding: 0 12px; border-radius: 7px;
+  /* right padding clears the WO-062 ↩ hint so long notes never run under it */
+  width: 100%; height: 34px; padding: 0 30px 0 12px; border-radius: 7px;
   border: 1px solid var(--int-border); background: var(--card); color: var(--text);
   font-family: var(--mono); font-size: 12.5px; outline: none;
 }
 .note-input:focus { border-color: var(--focus-border); }
+/* WO-062: the Enter-to-commit affordance once text hides the placeholder. */
+.note-hint {
+  position: absolute; right: 12px; top: 0; height: 34px;
+  display: flex; align-items: center; font-family: var(--mono); font-size: 12px;
+  color: var(--faint); pointer-events: none;
+}
 .ac-pop {
   position: absolute; bottom: 42px; left: 0; width: 380px; background: var(--pop);
   border: 1px solid var(--pop-border); border-radius: 8px; box-shadow: var(--shadow-pop);
@@ -906,7 +924,9 @@ a:hover { color: var(--link-hover); }
 /* The title is the row's accessible toggle (WO-061): a real button that
    fills the row height, so the keyboard path and the big click target agree. */
 .linked-title { flex: 1; text-align: left; font-size: 13.5px; font-weight: 500; cursor: pointer; padding: 10px 0; margin: -10px 0; min-width: 0; }
-.linked-status { margin-left: auto; font-family: var(--mono); font-size: 10px; }
+/* WO-062: holds the shared tinted statusChip — same treatment as the
+   frontmatter card, no bare colored text. */
+.linked-status { margin-left: auto; flex: 0 0 auto; display: inline-flex; }
 .linked-body { padding: 2px 14px 12px 34px; border-top: 1px solid var(--hair-2); }
 .linked-rationale { padding-top: 10px; font-size: 13px; color: var(--secondary); line-height: 1.55; }
 .linked-rationale .rd-p { font-size: 13px; color: var(--secondary); }

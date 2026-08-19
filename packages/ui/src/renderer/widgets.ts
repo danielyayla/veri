@@ -180,21 +180,29 @@ export function renderBlocks(
 
 export function activityFeed(rows: ActivityRow[]): HTMLElement {
   const list = rows.length > 0 ? rows : [{ agent: false, text: 'No activity yet', time: '' }];
-  return h(
-    'div',
-    { class: 'act' },
-    h('div', { class: 'micro-label' }, 'ACTIVITY'),
-    ...list.map((a) =>
-      h(
-        'div',
-        { class: 'act-row' },
-        h('span', { class: 'act-dot', style: `background:${a.agent ? 'var(--ember)' : 'var(--hover-border-2)'};` }),
-        a.agent ? h('span', { class: 'act-agent' }, 'agent') : null,
-        h('span', { class: 'act-text' }, a.text),
-        h('span', { class: 'act-time' }, a.time),
-      ),
-    ),
-  );
+  const rowEl = (a: ActivityRow): HTMLElement => {
+    // Session rows are in-memory only (WO-062): a hollow dot plus a mono tag
+    // mark them apart from file-derived rows — shape and text, not color alone.
+    const dot =
+      a.session === true
+        ? h('span', { class: 'act-dot act-dot-session', style: `border-color:${a.agent ? 'var(--ember)' : 'var(--hover-border-2)'};` })
+        : h('span', { class: 'act-dot', style: `background:${a.agent ? 'var(--ember)' : 'var(--hover-border-2)'};` });
+    return h(
+      'div',
+      { class: 'act-row', title: a.session === true ? 'This session only — not written to the file' : undefined },
+      dot,
+      a.agent ? h('span', { class: 'act-agent' }, 'agent') : null,
+      a.session === true ? h('span', { class: 'act-session' }, 'session') : null,
+      h('span', { class: 'act-text' }, a.text),
+      h('span', { class: 'act-time' }, a.time),
+    );
+  };
+  // A lone "Last edited" (or nothing at all) doesn't earn a labeled section —
+  // one quiet line (WO-062, SRC-033).
+  if (rows.length <= 1 && rows.every((r) => r.session !== true)) {
+    return h('div', { class: 'act act-solo' }, ...list.map(rowEl));
+  }
+  return h('div', { class: 'act' }, h('div', { class: 'micro-label' }, 'ACTIVITY'), ...list.map(rowEl));
 }
 
 /** The read | edit segment toggle in a document's crumb row (WO-022, ⌘E). */
