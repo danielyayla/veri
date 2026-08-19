@@ -62,10 +62,10 @@ reloaded — the [[DEC-051]] IPC re-shape.
       window still shows the "Opened the existing project" notice
 - [ ] The sheet's "Change…" onto an existing project closes the sheet
       and takes the same guarded path
-- [ ] With no dirty buffers the pick opens the project exactly as
+- [x] With no dirty buffers the pick opens the project exactly as
       before; `veri check` stays at zero issues; typecheck and the ui
       test suite pass
 
 ## Receipts
 
-(none yet)
+- 2026-08-19 — a3a5c2b — packages/ui/src/main.ts, packages/ui/src/renderer/api.ts, packages/ui/src/renderer/app.ts, packages/ui/src/preload.mts, veri/decisions/DEC-051-the-new-project-picker-reports-an-existing-folder-instead-of-op.md, veri/ids — The new-project pick reports an existing folder back (`kind: 'existing'`) instead of opening it in the main process; both renderer pick sites route the switch through `guardDirtyReload` via `switchProject(dir, 'existing')`, so Cancel aborts and the post-reload notice survives. Typecheck clean, 215 ui tests green, veri check 0 issues / 14 advisories (baseline). The three picker-flow boxes await a manual pass in the running app — the native directory dialog can't be driven headlessly.
