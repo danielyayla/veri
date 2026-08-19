@@ -2,7 +2,7 @@
 id: WO-055
 type: work-order
 title: "Split panes"
-status: in-progress
+status: done
 created: 2026-08-19
 updated: 2026-08-19
 links:
@@ -43,12 +43,12 @@ One vertical split, per [[SRC-027]]: at most two side-by-side panes, each a full
 
 ## Acceptance tests
 
-- [ ] ⌘\ opens the current entry beside; both panes navigate, keep independent history (⌘[/⌘] act on the focused pane), and show independent scroll positions
-- [ ] Sidebar highlight, crumb, and edit mode follow the focused pane; clicking in the other pane moves all three
-- [ ] A view open in pane A, when opened from pane B, focuses pane A's tab instead of duplicating; the same document open in both panes shows editor in one and reader in the other when editing
-- [ ] Closing a pane's last tab collapses the split with the survivor's state intact; divider drag, double-click reset, and keyboard resize work with minimums enforced
-- [ ] `veri check` stays at zero issues; full typecheck and test suite pass
+- [x] ⌘\ opens the current entry beside; both panes navigate, keep independent history (⌘[/⌘] act on the focused pane), and show independent scroll positions
+- [x] Sidebar highlight, crumb, and edit mode follow the focused pane; clicking in the other pane moves all three
+- [x] A view open in pane A, when opened from pane B, focuses pane A's tab instead of duplicating; the same document open in both panes shows editor in one and reader in the other when editing
+- [x] Closing a pane's last tab collapses the split with the survivor's state intact; divider drag, double-click reset, and keyboard resize work with minimums enforced
+- [x] `veri check` stays at zero issues; full typecheck and test suite pass
 
 ## Receipts
 
-(none yet)
+- 2026-08-19 — 4f68b22 — packages/ui/src/renderer/panes.ts, packages/ui/src/renderer/panes.test.ts, packages/ui/src/renderer/app.ts, packages/ui/src/renderer/palette.ts, packages/ui/src/renderer/palette.test.ts, packages/ui/src/lib/workspace.ts, packages/ui/src/lib/workspace.test.ts, packages/ui/src/preload.mts, packages/ui/renderer/styles.css, veri/decisions/DEC-051-pane-state-is-a-thin-pure-layer-over-per-pane-tabstates-the.md — Split panes shipped: pure pane layer over tabs.ts (per-pane TabState, focused-pane routing, view singletons, ⌘\ open beside, collapse, additive tabs2/active2/ratio persistence), per-pane strips/screens/scroll capture with a keyboard-resizable divider, editor single-homed to the focused pane; 30 new tests (440 total), typecheck clean, veri check 0 issues, split + restore verified in headless screenshots; DEC-051 filed proposed.
