@@ -2,7 +2,7 @@
 id: WO-053
 type: work-order
 title: "Fold Board into the Work Orders panel"
-status: in-progress
+status: done
 created: 2026-08-19
 updated: 2026-08-19
 links:
@@ -41,10 +41,10 @@ Board is retired per [[SRC-025]]: it is a read-only restatement of the Work Orde
 
 ## Acceptance tests
 
-- [ ] The Work Orders panel shows BACKLOG and IN PROGRESS subgroups over the living list, done stays collapsed behind the expander; other type panels are unchanged
-- [ ] The Board view is gone: no ViewKey, sidebar entry, palette row, or render arm; a persisted `board` tab target restores away cleanly (test)
-- [ ] REQ-004 amended; `veri check` reports the expected drift advisory for it and zero issues; full typecheck and test suite pass
+- [x] The Work Orders panel shows BACKLOG and IN PROGRESS subgroups over the living list, done stays collapsed behind the expander; other type panels are unchanged
+- [x] The Board view is gone: no ViewKey, sidebar entry, palette row, or render arm; a persisted `board` tab target restores away cleanly (test)
+- [x] REQ-004 amended; `veri check` reports the expected drift advisory for it and zero issues; full typecheck and test suite pass
 
 ## Receipts
 
-(none yet)
+- 2026-08-19 — ac72593 — packages/ui/src/renderer/tabs.ts, packages/ui/src/renderer/app.ts, packages/ui/src/renderer/derive.ts, packages/ui/src/renderer/sidebar.ts, packages/ui/src/renderer/views/board.ts, packages/ui/renderer/styles.css, packages/ui/src/main.ts, packages/ui/src/renderer/derive.test.ts, packages/ui/src/renderer/tabs.test.ts, packages/ui/src/renderer/palette.test.ts, packages/ui/src/renderer/a11y.test.ts, packages/ui/src/renderer/sidebar.test.ts, veri/requirements/REQ-004-desktop-ui.md, veri/decisions/DEC-049-retire-the-board-view-fold-status-columns-into-the-work-orde.md — claude-code session: Board view retired per SRC-025 — living-list BACKLOG/IN PROGRESS subgroups in the Work Orders panel (pure livingGroups + tests), board ViewKey/view/derivations/styles removed, board tabs restore away (test), REQ-004 amended to two screens, DEC-049 filed proposed; typecheck clean, 401 tests green, veri check 0 issues
