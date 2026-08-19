@@ -2,7 +2,7 @@
 id: WO-063
 type: work-order
 title: "Website freshness pass — seven MCP tools in docs, screenshot refresh after WO-062"
-status: in-progress
+status: done
 created: 2026-08-19
 updated: 2026-08-19
 links:
@@ -45,9 +45,10 @@ Bring the public site back in line with the shipped app. The MCP server now regi
 
 - [x] quickstart.html and connect-claude-code.html name exactly the seven tools registered in packages/mcp/src/server.ts, and no site page says "four tools"
 - [x] REQ-003 and REQ-005 no longer claim four tools
-- [ ] home.png and work-order.png show the post-WO-062 UI, and their alt text matches what is visible
+- [x] home.png and work-order.png show the post-WO-062 UI, and their alt text matches what is visible
 - [x] Site deploy for the change succeeds and the live pages reflect it
 
 ## Receipts
 
 - 2026-08-19 · cbc3883 · site/docs/quickstart.html, site/docs/connect-claude-code.html, veri/requirements/REQ-003-mcp-context.md, veri/requirements/REQ-005-mcp-connection-panel.md — seven-tools wording fixed everywhere; screenshots and deploy verification remain (gated on WO-062 and push).
+- 2026-08-19 · b1459f6 · site/assets/home.png, site/assets/work-order.png — both screenshots reshot from the post-WO-062 UI via the VERI_UI_SHOT harness against the demo project (dark theme, no git, 3120×1904 as before); existing alt text verified still accurate, no HTML change; Pages deploy succeeded and live assets byte-match the commit. All acceptance boxes checked; WO done.
