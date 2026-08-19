@@ -49,6 +49,10 @@ import {
 } from './panes.ts';
 import type { PaneState } from './panes.ts';
 import { EditorIsland } from './editor.ts';
+import { clampFind, currentIndex, findReduce, matchRanges, segmentMatches } from './findlogic.ts';
+import type { FindBarState, MatchRange, SegMatch } from './findlogic.ts';
+import { clearFind, collectParts, findBarEl, paintFind, scrollFindMatch, updateFindBar } from './find.ts';
+import type { FindBarRefs } from './find.ts';
 import { FOCUSABLE_SEL, resolveFocus, roveIndex, roveKey, trapTarget } from './a11y.ts';
 import { dismissPreview, resetChipKeys, setPreviewRoot } from './widgets.ts';
 import { ipcErrorMessage, reconcileDisk } from './editlogic.ts';
@@ -159,6 +163,9 @@ export interface State {
   mcpPrecheck: RuntimeProbe | null;
   /** Welcome screen's inline notice (cold-start mode only). */
   welcomeNotice: { text: string } | null;
+  /** Find bar (WO-057, SRC-029): bound to the focused pane's active doc
+      tab; query and cursor are transient — never persisted. Null = closed. */
+  find: FindBarState | null;
 }
 
 /** The add-link inline row (WO-056): target + rel drafts, the inline error,
@@ -366,6 +373,7 @@ class App implements Ctx {
     mcpVerifyCopied: false,
     mcpPrecheck: null,
     welcomeNotice: null,
+    find: null,
   };
   appInfo: AppInfo | null = null;
   updStatus: UpdateStatus | null = null;
@@ -405,6 +413,18 @@ class App implements Ctx {
   /** The one polite live region (SRC-019 rule 4). Lives on <body>, outside
       the rebuilt tree, so announcements survive replaceChildren. */
   private live: HTMLElement;
+  /** Find bar (WO-057): the read-mode walk of the rendered pane (nodes,
+      parts, matches), rebuilt whenever render() rebuilds the DOM. */
+  private findRead: { nodes: Text[]; parts: { text: string; breakBefore: boolean }[]; matches: SegMatch[] } | null = null;
+  /** Edit-mode match set over the island's buffer — same pure matcher, so
+      both backends count identically. */
+  private findEditRanges: MatchRange[] = [];
+  private findTotal = 0;
+  /** Live bar handles: typing and stepping patch count/buttons in place —
+      no re-render, so the input keeps its caret and CM6 its scroll. */
+  private findRefs: FindBarRefs | null = null;
+  /** One-shot focus request for the bar's input, consumed by the build. */
+  private fbFocus = false;
   /** Layer kinds present in the last render, for open/close detection. */
   private renderedLayers: string[] = [];
   /** Invoker fkey per open layer; focus returns there on close (SRC-019). */
@@ -449,6 +469,10 @@ class App implements Ctx {
       layers.push({ kind: 'projSwitcher', sel: '.proj-pop', trap: true, close: () => this.update({ projectSwitcherOpen: false }) });
     if (this.state.agentsOpen)
       layers.push({ kind: 'agents', sel: '.ap-pop', trap: true, close: () => this.update({ agentsOpen: false }) });
+    if (this.state.find !== null)
+      // Non-trapping, above the type panel: Escape in the bar closes the
+      // bar (and only the bar), per SRC-029; popovers still close first.
+      layers.push({ kind: 'find', sel: '.fb-bar', trap: false, close: () => this.closeFind() });
     if (this.state.panel !== null)
       layers.push({ kind: 'panel', sel: '.typepanel', trap: false, close: () => this.update({ panel: null }) });
     return layers;
@@ -591,6 +615,10 @@ class App implements Ctx {
       } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
         this.saveActive();
+      } else if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'f') {
+        // ⌘F: find in the focused pane's active document (WO-057, SRC-029).
+        e.preventDefault();
+        this.openFindBar();
       } else if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key === '\\') {
         // ⌘\ "Open beside" (WO-055, SRC-027): the focused pane's current
         // entry opens in the other pane, which takes focus.
@@ -714,6 +742,11 @@ class App implements Ctx {
         patch.view = this.byId.get(target)?.type === 'work-order' ? 'workorder' : 'home';
         this.docMru = [target, ...this.docMru.filter((id) => id !== target)];
       }
+    }
+    // The find bar binds to the focused pane's active tab (WO-057): pane
+    // focus change, tab switch, and navigation all close it.
+    if (this.state.find !== null && (ps.focused !== this.state.focusedPane || target !== activeTarget(this.tabState()))) {
+      patch.find = null;
     }
     if (target !== activeTarget(this.tabState())) {
       Object.assign(patch, {
@@ -1221,6 +1254,160 @@ class App implements Ctx {
       }
     }
     this.applyPanes(next, { closeConfirm: null });
+  }
+
+  // ---- find in document (WO-057, SRC-029) ----
+
+  /** ⌘F: open the bar over the focused pane's active document. Already
+      open, it refocuses and selects the query (the "previous query of this
+      bar instance" prefill); views have no find surface. */
+  private openFindBar(): void {
+    const target = activeTarget(this.tabState());
+    if (target === null || isViewKey(target)) return;
+    if (this.state.find !== null) {
+      const input = this.findRefs?.input;
+      if (input !== undefined) {
+        input.focus();
+        input.select();
+      }
+      return;
+    }
+    this.fbFocus = true;
+    this.update({ find: findReduce(null, { type: 'open' }) });
+  }
+
+  /** Escape / ×: close and clear. render()'s sync drops the highlights and
+      the island's search state; edit mode gets its focus back. */
+  private closeFind(): void {
+    if (this.state.find === null) return;
+    const ed = this.activeDocEdit();
+    this.update({ find: null });
+    if (ed?.mode === 'edit') ed.island?.focus();
+  }
+
+  /** The focused pane's active doc-tab edit record, if any. */
+  private activeDocEdit(): DocEdit | undefined {
+    const target = activeTarget(this.tabState());
+    return target !== null && !isViewKey(target) ? this.docEdit.get(target) : undefined;
+  }
+
+  /**
+   * Build the bar for the focused pane (render path). Recomputes the match
+   * set for the active backend — the read-mode walk runs over the freshly
+   * built, still-detached screen; the ranges stay valid because the same
+   * text nodes get attached — clamps the cursor, and parks the live refs
+   * for the in-place typing/stepping updates.
+   */
+  private findBarFor(pane: TabState, screen: HTMLElement): HTMLElement | null {
+    let find = this.state.find;
+    if (find === null) return null;
+    const target = activeTarget(pane);
+    if (target === null || isViewKey(target)) return null;
+    const ed = this.docEdit.get(target);
+    if (ed?.mode === 'edit') {
+      this.findRead = null;
+      this.findEditRanges = ed.island !== null ? matchRanges(ed.island.text, find.query) : [];
+      this.findTotal = this.findEditRanges.length;
+    } else {
+      const root = screen.querySelector('.reader-col');
+      const dom = root !== null ? collectParts(root) : { nodes: [], parts: [] };
+      this.findRead = { ...dom, matches: segmentMatches(dom.parts, find.query) };
+      this.findEditRanges = [];
+      this.findTotal = this.findRead.matches.length;
+    }
+    find = findReduce(find, { type: 'clamp', total: this.findTotal })!;
+    this.state.find = find;
+    const { el, refs } = findBarEl({
+      query: find.query,
+      current: find.current,
+      total: this.findTotal,
+      focus: this.fbFocus,
+      onQuery: (q) => this.setFindBarQuery(q),
+      onStep: (dir) => this.stepFindBar(dir),
+      onClose: () => this.closeFind(),
+    });
+    this.fbFocus = false;
+    this.findRefs = refs;
+    return el;
+  }
+
+  /** Typing: recompute matches and repaint in place — no re-render, so the
+      input keeps its caret. The count span is a polite live region and its
+      in-place text change is the announcement (REQ-020). */
+  private setFindBarQuery(q: string): void {
+    const find = findReduce(this.state.find, { type: 'query', query: q });
+    if (find === null) return;
+    this.state.find = find;
+    const ed = this.activeDocEdit();
+    if (ed?.mode === 'edit') {
+      if (ed.island !== null) {
+        ed.island.setFindQuery(q);
+        this.findEditRanges = matchRanges(ed.island.text, q);
+      }
+      this.findTotal = this.findEditRanges.length;
+    } else if (this.findRead !== null) {
+      this.findRead.matches = segmentMatches(this.findRead.parts, q);
+      this.findTotal = this.findRead.matches.length;
+      paintFind(this.findRead.nodes, this.findRead.matches, find.current);
+    }
+    this.refreshFindBar();
+  }
+
+  /** Enter / Shift+Enter / ‹ ›: wrap in either direction. Edit mode runs
+      CM6's findNext/findPrevious (wrap + scroll built in) and derives the
+      cursor from the landed selection; read mode steps the pure cursor,
+      repaints, and scrolls the pane's own container. */
+  private stepFindBar(dir: 1 | -1): void {
+    const find = this.state.find;
+    if (find === null || this.findTotal === 0) return;
+    const ed = this.activeDocEdit();
+    if (ed?.mode === 'edit' && ed.island !== null) {
+      ed.island.findStep(dir);
+      const sel = ed.island.view.state.selection.main;
+      find.current = currentIndex(this.findEditRanges, sel.from, sel.to);
+    } else if (this.findRead !== null) {
+      this.state.find = findReduce(find, { type: 'step', dir, total: this.findTotal })!;
+      paintFind(this.findRead.nodes, this.findRead.matches, this.state.find.current);
+      scrollFindMatch(this.findRead.nodes, this.findRead.matches[this.state.find.current]);
+    }
+    this.refreshFindBar();
+  }
+
+  private refreshFindBar(): void {
+    const find = this.state.find;
+    if (find !== null && this.findRefs !== null) updateFindBar(this.findRefs, find.current, this.findTotal);
+  }
+
+  /**
+   * render()'s find epilogue, after the new tree is attached: paint the
+   * read-mode highlights (the walk ran in findBarFor on the detached
+   * screen), push the query into the bound island — covering ⌘E handoffs
+   * and the island's async first load — and drop search state everywhere
+   * the bar no longer binds. With the bar closed this clears the registry
+   * and every island, whatever path closed it.
+   */
+  private syncFindPaint(): void {
+    const find = this.state.find;
+    const target = activeTarget(this.tabState());
+    const bound = find !== null && target !== null && !isViewKey(target) ? target : null;
+    const editMode = bound !== null && this.docEdit.get(bound)?.mode === 'edit';
+    for (const [id, ed] of this.docEdit) {
+      if (id !== bound || !editMode) ed.island?.setFindQuery(null);
+    }
+    if (bound === null) {
+      clearFind();
+      this.findRead = null;
+      this.findEditRanges = [];
+      this.findTotal = 0;
+      this.findRefs = null;
+      return;
+    }
+    if (editMode) {
+      clearFind();
+      this.docEdit.get(bound)?.island?.setFindQuery(find!.query);
+    } else if (this.findRead !== null) {
+      paintFind(this.findRead.nodes, this.findRead.matches, find!.current);
+    }
   }
 
   // ---- template settings (WO-024, SRC-009) ----
@@ -2578,6 +2765,9 @@ class App implements Ctx {
       },
       this.tabStrip(pane, idx),
       screen,
+      // The find bar floats over the FOCUSED pane's content area (WO-057);
+      // built after the screen so the read-mode walk sees the final tree.
+      focused ? this.findBarFor(pane, screen) : null,
     );
     if (split) el.addEventListener('mousedown', () => this.focusPaneSilently(idx), true);
     return el;
@@ -2737,6 +2927,8 @@ class App implements Ctx {
     // Settings is a singleton — whichever pane shows it hosts the island.
     if (ps.panes.some((p) => activeTarget(p) === 'settings') && this.state.settingsSection === 'templates')
       this.tplEdit.get(this.state.tplType)?.island?.restoreScroll();
+    // Find highlights ride the new tree (WO-057): paint or clear last.
+    this.syncFindPaint();
 
     this.restoreFocus(beforeKeys, focusedKey);
   }

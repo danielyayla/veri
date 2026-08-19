@@ -403,7 +403,8 @@ a:hover { color: #F49463; }
 .set-kv-v-mono { font-family: var(--mono); font-size: 11px; }
 
 /* ===== Editor area + tab strip (WO-012, tokens per SRC-004) ===== */
-.editor-area { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+/* position: relative anchors the find bar (WO-057) below the tab strip. */
+.editor-area { position: relative; flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .tabstrip {
   height: 37px; flex: 0 0 auto; display: flex; align-items: stretch;
   background: var(--panel); overflow-x: auto; overflow-y: hidden;
@@ -1251,6 +1252,48 @@ a:hover { color: #F49463; }
 .cm-ac-work-order .cm-completionLabel { color: var(--ember); }
 .cm-ac-source .cm-completionLabel { color: #908BA8; }
 .cm-ac-workflow .cm-completionLabel { color: var(--green); }
+
+/* ===== Find in document (WO-057, SRC-029) ===== */
+/* The bar: top-right below the tab strip, floating over the content area —
+   the .pv-pop shadow register (same surface, border, shadow), existing
+   tokens only. */
+.fb-bar {
+  position: absolute; top: 45px; right: 18px; z-index: 60;
+  display: flex; align-items: center; gap: 6px;
+  background: var(--pop); border: 1px solid #2B2B32; border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4); padding: 6px 7px;
+}
+.fb-input {
+  width: 190px; height: 26px; padding: 0 9px;
+  background: var(--bg); border: 1px solid var(--int-border); border-radius: 6px;
+  color: var(--text); font-family: var(--sans); font-size: 12.5px; outline: none;
+}
+.fb-input::placeholder { color: var(--ghost); }
+.fb-input:focus { border-color: #8A4A2C; }
+.fb-count {
+  min-width: 38px; text-align: center; font-family: var(--mono); font-size: 10.5px;
+  color: var(--muted); user-select: none;
+}
+.fb-nav, .fb-close {
+  padding: 2px 7px; border-radius: 5px; font-size: 14px; line-height: 1;
+  color: var(--muted); cursor: pointer;
+}
+.fb-nav:hover:not(:disabled), .fb-close:hover { color: var(--text); background: var(--card-2); }
+.fb-nav:disabled { color: var(--ghost); cursor: default; }
+
+/* Match highlights, both backends on the same tokens: every match wears the
+   selection tint (the editor's ::selection ember), the current match the
+   guard-flash amber, stronger. Read mode paints via the CSS Custom
+   Highlights API — ranges only, no DOM mutation. */
+::highlight(veri-find) { background-color: rgba(232, 112, 58, 0.22); }
+::highlight(veri-find-current) { background-color: rgba(217, 160, 63, 0.55); color: #0F0F11; }
+/* Edit mode: CM6's search-match classes onto the same two tones.
+   !important outranks CM's injected base theme (cyan/magenta defaults). */
+.cm-editor .cm-searchMatch { background: rgba(232, 112, 58, 0.22) !important; }
+.cm-editor .cm-searchMatch-selected { background: rgba(217, 160, 63, 0.55) !important; color: #0F0F11; }
+/* The search "panel" is a hidden div so the highlighter runs (find.ts);
+   no CM6 chrome may ever surface. */
+.cm-editor .cm-panels { display: none; border: none; }
 
 /* ---- Templates settings view (WO-024, SRC-009) ---- */
 .tpl-wrap { max-width: 920px; margin: 0 auto; padding: 28px 36px 60px; }

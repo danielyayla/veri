@@ -15,6 +15,17 @@ import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
 import { acceptCompletion, autocompletion, completionKeymap } from '@codemirror/autocomplete';
 import type { CompletionContext, CompletionResult } from '@codemirror/autocomplete';
+import {
+  SearchQuery,
+  closeSearchPanel,
+  findNext,
+  findPrevious,
+  getSearchQuery,
+  openSearchPanel,
+  search,
+  searchPanelOpen,
+  setSearchQuery,
+} from '@codemirror/search';
 import type { DocType } from '@veri/core';
 import { compareIds } from '@veri/core/ids';
 import { GUARD_NOTICE, frontmatterRegion, guardedRanges, touchedGuard } from './editlogic.ts';
@@ -143,6 +154,32 @@ export class EditorIsland {
     this.view.destroy();
   }
 
+  /**
+   * The app's find bar drives CM6 search programmatically (WO-057, SRC-029):
+   * a query "opens" the search panel — a hidden, empty div, so the match
+   * highlighter paints while CM6's own chrome never appears — and installs
+   * the case-insensitive literal query; null closes and clears. Idempotent:
+   * re-applying an unchanged query dispatches nothing.
+   */
+  setFindQuery(query: string | null): void {
+    const open = searchPanelOpen(this.view.state);
+    if (query === null) {
+      if (open) closeSearchPanel(this.view);
+      return;
+    }
+    if (!open) openSearchPanel(this.view);
+    const q = new SearchQuery({ search: query, caseSensitive: false, literal: true });
+    if (!q.eq(getSearchQuery(this.view.state))) {
+      this.view.dispatch({ effects: setSearchQuery.of(q) });
+    }
+  }
+
+  /** Enter / Shift+Enter / ‹ ›: CM6's own commands — they wrap at the ends
+      and scroll the selected match into view. */
+  findStep(dir: 1 | -1): void {
+    (dir === 1 ? findNext : findPrevious)(this.view);
+  }
+
   private setDirty(dirty: boolean): void {
     if (this.dirty !== dirty) {
       this.dirty = dirty;
@@ -158,6 +195,17 @@ export class EditorIsland {
       syntaxHighlighting(mdHighlight),
       EditorView.lineWrapping,
       autocompletion({ override: [(ctx) => this.wikiCompletions(ctx)], icons: false, optionClass: optionClass }),
+      // Find (WO-057): the search state + highlighter only. The panel this
+      // config creates is a hidden empty div (the highlighter paints only
+      // while a panel is "open"); searchKeymap is deliberately absent — the
+      // app's ⌘F owns the gesture, and the bar is the only chrome.
+      search({
+        createPanel: () => {
+          const dom = document.createElement('div');
+          dom.style.display = 'none';
+          return { dom };
+        },
+      }),
       this.guardFilter(),
       flashField,
       frontmatterDecorations,
