@@ -43,11 +43,11 @@ Bring the public site back in line with the shipped app. The MCP server now regi
 
 ## Acceptance tests
 
-- [ ] quickstart.html and connect-claude-code.html name exactly the seven tools registered in packages/mcp/src/server.ts, and no site page says "four tools"
-- [ ] REQ-003 and REQ-005 no longer claim four tools
+- [x] quickstart.html and connect-claude-code.html name exactly the seven tools registered in packages/mcp/src/server.ts, and no site page says "four tools"
+- [x] REQ-003 and REQ-005 no longer claim four tools
 - [ ] home.png and work-order.png show the post-WO-062 UI, and their alt text matches what is visible
 - [ ] Site deploy for the change succeeds and the live pages reflect it
 
 ## Receipts
 
-(none yet)
+- 2026-08-19 · cbc3883 · site/docs/quickstart.html, site/docs/connect-claude-code.html, veri/requirements/REQ-003-mcp-context.md, veri/requirements/REQ-005-mcp-connection-panel.md — seven-tools wording fixed everywhere; screenshots and deploy verification remain (gated on WO-062 and push).
