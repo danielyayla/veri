@@ -2,7 +2,7 @@
 id: WO-061
 type: work-order
 title: "Document-view critique fixes — contrast floor, linked-card ID navigation, header control de-twinning"
-status: in-progress
+status: done
 created: 2026-08-19
 updated: 2026-08-19
 links:
@@ -46,14 +46,14 @@ Fixes the three priority findings from the 2026-08-19 design critique of the doc
 
 ## Acceptance tests
 
-- [ ] `--faint` and every token used for text at or below 12px measures ≥ 4.5:1 against its background in both dark and light palettes.
-- [ ] Activity timestamps no longer use `--ghost`; no information-bearing text remains below 4.5:1 in the document view.
-- [ ] Inactive status segments (backlog/done when not current) meet 4.5:1.
-- [ ] Clicking an ID in a Linked requirements/decisions card opens that document (⌘-click backgrounds it); clicking the chevron or title still toggles the disclosure.
-- [ ] The read|edit toggle is visually distinct from the status radiogroup and its hit target is ≥ 24px tall.
-- [ ] Changing a work order's status shows an undo toast; activating undo restores the prior status and the file on disk matches.
-- [ ] `veri check` and `npm test` are clean.
+- [x] `--faint` and every token used for text at or below 12px measures ≥ 4.5:1 against its background in both dark and light palettes.
+- [x] Activity timestamps no longer use `--ghost`; no information-bearing text remains below 4.5:1 in the document view.
+- [x] Inactive status segments (backlog/done when not current) meet 4.5:1.
+- [x] Clicking an ID in a Linked requirements/decisions card opens that document (⌘-click backgrounds it); clicking the chevron or title still toggles the disclosure.
+- [x] The read|edit toggle is visually distinct from the status radiogroup and its hit target is ≥ 24px tall.
+- [x] Changing a work order's status shows an undo toast; activating undo restores the prior status and the file on disk matches.
+- [x] `veri check` and `npm test` are clean.
 
 ## Receipts
 
-(none yet)
+- 2026-08-19 — d72b0cc — packages/ui/renderer/styles.css, packages/ui/src/renderer/app.ts, packages/ui/src/renderer/views/workorder.ts — claude-code session: all three critique fixes per SRC-033. Contrast: dark `--faint` #6E6B76→#86838F, light #8A8792→#6B6873 — SRC-033 suggested ≈#7E7B87, but faint text sits on elevated surfaces (frontmatter card, popovers), and #7E7B87 measures only 4.19:1 on `--pop`; the shipped values were validated computationally against every surface faint text occupies (dark worst case 4.67:1 on `--pop`, light worst case 4.58:1 on `--panel`). The light value equals `--muted` — the 4.5 floor leaves no room below muted on the light panel, so the two rungs coincide there by necessity. Document-view text moved off `--ghost` to `--faint`: `.act-time`, `.conn-type`, `.pkg-tokens`, `.pkg-note`, `.rd-dash` (ordinals are content), and the unchecked-criterion `○` glyph; `--ghost` keeps decorative glyphs only (chevrons, separators). Linked cards: the row is now a div, the id a real `idChip` (navigates; ⌘-click backgrounds — verified by harness: chip click opened REQ-020), the title a real button carrying `aria-expanded` and the full-height hit target (a button can't nest a button); title-click expansion verified. Mode toggle de-twinned: borderless text segments, active = ember + 2px underline (shape channel per REQ-020), 7px vertical padding → ≥25px hit target. Status undo: `flashUndo` state + 6s toast with an Undo button (`role=status`, aria-live announce); undo reverts through the same setStatus path — verified live: done→in-progress then Undo restored `status: done` on disk byte-for-byte. Verified by screenshot harness in both themes (header, linked cards, activity, toast). 481 tests pass, typecheck and veri check clean.
