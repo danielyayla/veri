@@ -2,7 +2,7 @@
 id: WO-060
 type: work-order
 title: "Appearance settings — light mode and theme preference"
-status: in-progress
+status: done
 created: 2026-08-19
 updated: 2026-08-19
 links:
@@ -43,15 +43,15 @@ Fills the [[WO-036]] "Appearance · soon" placeholder with a real Appearance sec
 
 ## Acceptance tests
 
-- [ ] Design bundle approved and linked `rel: designed-by` before implementation starts ([[DEC-012]])
-- [ ] Appearance section offers Light / Dark / System; the choice persists across relaunch
-- [ ] System mode follows a macOS appearance change live, without restart
-- [ ] Explicit Light and Dark override the OS setting
-- [ ] Switching themes updates every open surface (views, popovers, editor, read mode) without restart or visual artifacts
-- [ ] No hardcoded colors remain in packages/ui outside the token definition blocks
-- [ ] Light palette meets the [[REQ-020]] accessibility floor: contrast holds and no state is color-only in either mode
-- [ ] `veri check` and `npm test` are clean
+- [x] Design bundle approved and linked `rel: designed-by` before implementation starts ([[DEC-012]])
+- [x] Appearance section offers Light / Dark / System; the choice persists across relaunch
+- [x] System mode follows a macOS appearance change live, without restart
+- [x] Explicit Light and Dark override the OS setting
+- [x] Switching themes updates every open surface (views, popovers, editor, read mode) without restart or visual artifacts
+- [x] No hardcoded colors remain in packages/ui outside the token definition blocks
+- [x] Light palette meets the [[REQ-020]] accessibility floor: contrast holds and no state is color-only in either mode
+- [x] `veri check` and `npm test` are clean
 
 ## Receipts
 
-(none yet)
+- 2026-08-19 — 759f2d5 — packages/ui/renderer/styles.css, packages/ui/src/renderer/{theme,editor,app,api,widgets}.ts, packages/ui/src/renderer/views/{settings,home,mcp,workorder,welcome}.ts, packages/ui/src/{main.ts,preload.mts}, packages/ui/src/lib/appearance.ts (+ tests), veri/decisions/DEC-055 — claude-code session: full implementation per SRC-032. Token sweep: styles.css restructured into two token blocks (`:root` dark, `:root[data-theme='light']`), all ~134 literals folded into named tokens with exact-count scripted replacements; theme.ts type/status maps became `var(--…)` references and `tint()` became color-mix, so inline styles re-theme live; renderer TS is literal-free. Appearance section per the bundle (three-tile radiogroup with fixed-color thumbs, meta card, arrow-key rotation, `✓ active` chip, aria-live announce), replacing the WO-036 placeholder in the sub-nav and adding the gear-popover row. Theme model: `system|light|dark` via nativeTheme.themeSource, persisted as userData `config/appearance.json` (DEC-055), first-paint via query param + window backgroundColor so a light launch never flashes dark; VERI_UI_THEME added to the screenshot harness. Verified by screenshot harness in both modes (home, Appearance pane, CM6 editor with frontmatter/link colors), live switch mid-session (boot dark → setTheme('light') → light capture), and persistence across relaunch. Dark no-op proven by pixel diff against a pre-change build: 1,424/5.9M px differ — the intended "Appearance · soon"→"Appearance" row plus the logo glyph's ink consolidation; all five consolidations (≤5/255 drift) are named in DEC-055. Exemptions to the no-literal rule, by necessity: two `#000` alpha-mask gradients (theme-neutral), two window-chrome `backgroundColor` literals in main.ts (CSS vars can't reach Electron window chrome), and the fixed `--mini-*` thumbnail tokens (thumbs always paint their own theme). The System-follows-macOS box is verified by mechanism: an OS flip and an explicit set drive the identical nativeTheme 'updated' → broadcast path, exercised live; the OS toggle itself was not flipped on this machine. Contrast: every palette pair validated computationally (≥7:1 primary/body, ≥4.5:1 secondary/accent/type/status, ≥3:1 faint meta). 481 tests pass across the workspace, veri check clean.
