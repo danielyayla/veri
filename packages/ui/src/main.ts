@@ -26,7 +26,7 @@ import { verifyConnection } from './lib/verify.ts';
 import type { VerifyResult } from './lib/verify.ts';
 import { cleanupLaunchScripts, connectAgent, detectAgents, launchAgent } from './lib/agents.ts';
 import type { AgentId } from './lib/agents.ts';
-import { buildSnapshot } from './lib/snapshot.ts';
+import { SnapshotBuilder, countProjectDocs } from './lib/snapshot.ts';
 import { loadWorkspaceState, saveWorkspaceState } from './lib/workspace.ts';
 import type { WorkspaceState } from './lib/workspace.ts';
 import { appendNote, appendReviewNote, approveDoc, setStatus } from './lib/write.ts';
@@ -97,13 +97,24 @@ async function addProjectToMru(dir: string): Promise<void> {
   await saveRecentProjects(filtered.slice(0, 20));
 }
 
+// One builder for the app's lifetime (WO-051): the veri:snapshot path is
+// incremental — unchanged documents and an unmoved HEAD cost nothing to
+// rebuild. Caches are in-memory only (DEC-002) and reset on project switch.
+const snapshotBuilder = new SnapshotBuilder();
+
+/**
+ * Switcher-row stats (WO-051): a light readdir count — no parse, no git —
+ * except the current project, whose builder snapshot is already paid for
+ * and still carries a live issue count. Other rows show no issue dot: an
+ * issue count needs a parse, which is exactly the cost the light stat
+ * removes (see the WO-051 decision filed for this trade).
+ */
 async function getProjectStats(dir: string): Promise<{ docCount: number; issueCount: number }> {
-  try {
-    const snap = await buildSnapshot(dir);
-    return { docCount: snap.documents.length, issueCount: snap.issues.length };
-  } catch {
-    return { docCount: 0, issueCount: 0 };
+  const current = snapshotBuilder.current;
+  if (current !== null && current.root === dir) {
+    return { docCount: current.documents.length, issueCount: current.issues.length };
   }
+  return { docCount: await countProjectDocs(dir), issueCount: 0 };
 }
 
 // Screenshot mode for automated visual verification: render one view headlessly,
@@ -113,7 +124,7 @@ const shotPath = process.env['VERI_UI_SHOT'];
 let mainWin: BrowserWindow | null = null;
 
 function registerIpc(): void {
-  ipcMain.handle('veri:snapshot', () => buildSnapshot(projectRoot));
+  ipcMain.handle('veri:snapshot', () => snapshotBuilder.build(projectRoot));
   ipcMain.handle('veri:context', (_e, id: string) => assembleContext(projectRoot, id));
   ipcMain.handle('veri:palette-search', (_e, query: string, recents: string[]) =>
     paletteSearch(projectRoot, query, recents),
@@ -183,7 +194,9 @@ function registerIpc(): void {
       return { kind: 'no-answer', stderr: 'no recognized veri entry to verify — run setup first' };
     }
     const probe = await probeNodeRuntime();
-    const snap = await buildSnapshot(projectRoot).catch(() => null);
+    // WO-051: the builder's current snapshot is enough — verification only
+    // needs one sample id, not a fresh (formerly throwaway) full build.
+    const snap = snapshotBuilder.current ?? (await snapshotBuilder.build(projectRoot).catch(() => null));
     const searchId = snap?.documents.find((d) => d.type !== 'workflow')?.id ?? null;
     return verifyConnection({
       probe,
@@ -320,6 +333,9 @@ async function pointAppAt(dir: string, notice?: 'existing'): Promise<string | nu
   const format = classifyFormat(join(dir, 'veri'));
   if (!isOperableFormat(format)) return `Cannot open this project: ${formatStatement(format)}`;
   projectRoot = dir;
+  // WO-051: caches from one project must never serve another — the new
+  // project starts cold.
+  snapshotBuilder.reset();
   log.info(`project opened: ${dir}`);
   await addProjectToMru(dir);
   watchProject(mainWin);
