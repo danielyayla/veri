@@ -2,7 +2,8 @@
 id: DEC-057
 type: decision
 title: "Site light mode via prefers-color-scheme, not the app's data-theme mechanism"
-status: proposed
+status: active
+approved: 2026-08-19
 created: 2026-08-19
 updated: 2026-08-19
 links:
