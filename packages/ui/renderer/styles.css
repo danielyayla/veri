@@ -701,30 +701,6 @@ a:hover { color: #F49463; }
 .mcp-code { color: var(--text); }
 .pkg-rules { margin-top: 8px; font-size: 12px; color: var(--muted); line-height: 1.7; }
 
-/* ===== Board ===== */
-.screen-board { flex: 1; overflow: auto; min-width: 0; padding: 26px 28px; }
-.board-head { display: flex; align-items: baseline; gap: 12px; }
-.screen-title { margin: 0; font-size: 20px; font-weight: 600; }
-.board-count { font-family: var(--mono); font-size: 11px; color: var(--faint); }
-.board-grid { display: grid; grid-template-columns: repeat(3, minmax(240px, 320px)); gap: 14px; margin-top: 20px; align-items: start; }
-.board-col { border: 1px solid var(--hair); border-radius: 10px; background: var(--panel); padding: 10px; }
-.board-col-head { display: flex; align-items: center; gap: 8px; padding: 2px 4px 10px; }
-.board-col-dot { width: 7px; height: 7px; border-radius: 50%; }
-.board-col-label { font-family: var(--mono); font-size: 10.5px; letter-spacing: .09em; color: var(--secondary); }
-.board-col-count { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--ghost-2); }
-.board-cards { display: flex; flex-direction: column; gap: 8px; }
-.board-card { border: 1px solid var(--card-border-2); border-radius: 8px; background: var(--card-2); padding: 10px 12px; cursor: pointer; }
-.board-card:hover { border-color: var(--hover-border-2); }
-.board-card-head { display: flex; align-items: center; gap: 8px; }
-.board-card-id { font-family: var(--mono); font-size: 10.5px; color: var(--ember); }
-.board-agent-chip {
-  margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--ember);
-  background: rgba(232,112,58,0.1); border-radius: 4px; padding: 1px 6px;
-}
-.board-health-dot { margin-left: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--amber); }
-.board-card-title { display: block; font-size: 13.5px; font-weight: 500; color: var(--text); margin-top: 5px; line-height: 1.35; }
-.board-card-reqs { display: block; margin-top: 7px; font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
-
 /* ===== Agent connection (WO-007, tokens per SRC-002) ===== */
 .mcp-snippet-link { color: var(--ember); cursor: pointer; }
 .mcp-snippet-link:hover { color: #F49463; }

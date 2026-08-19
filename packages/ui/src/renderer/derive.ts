@@ -131,43 +131,6 @@ export function receipts(doc: VeriDocument): Receipt[] {
   return out;
 }
 
-export interface BoardCard {
-  id: string;
-  title: string;
-  reqCount: number;
-  agent: boolean;
-  health: boolean;
-}
-
-export interface BoardColumn {
-  status: 'backlog' | 'in-progress' | 'done';
-  label: string;
-  cards: BoardCard[];
-}
-
-export function boardColumns(snap: Snapshot): BoardColumn[] {
-  const issues = issuesByDoc(snap);
-  const cols: BoardColumn[] = [
-    { status: 'backlog', label: 'BACKLOG', cards: [] },
-    { status: 'in-progress', label: 'IN PROGRESS', cards: [] },
-    { status: 'done', label: 'DONE', cards: [] },
-  ];
-  const workOrders = snap.documents
-    .filter((d) => d.type === 'work-order')
-    .sort((a, b) => compareIds(a.id, b.id));
-  for (const wo of workOrders) {
-    const col = cols.find((c) => c.status === wo.status) ?? cols[0];
-    col.cards.push({
-      id: wo.id,
-      title: wo.title,
-      reqCount: wo.links.filter((l) => l.id.startsWith('REQ-')).length,
-      agent: receipts(wo).some((r) => r.agent),
-      health: (issues.get(wo.id) ?? []).length > 0,
-    });
-  }
-  return cols;
-}
-
 // ---- Local graph on the document (WO-052, SRC-024) -----------------------
 
 /** At most this many neighbors render per side; the rest become `+K more`. */
@@ -375,7 +338,7 @@ export interface HomeFlightRow {
 }
 
 /** IN FLIGHT: work orders in backlog/in-progress, id order, with the
-    Board's receipt-derived agent marker and linked-REQ count. */
+    receipt-derived agent marker and linked-REQ count. */
 export function inFlight(snap: Snapshot): HomeFlightRow[] {
   const byId = docsById(snap);
   return snap.documents

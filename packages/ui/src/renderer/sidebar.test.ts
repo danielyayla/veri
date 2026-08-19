@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { VeriDocument } from '@veri/core';
-import { livingCount, panelList, pushRecent } from './sidebar.ts';
+import { livingCount, livingGroups, panelList, pushRecent } from './sidebar.ts';
 
 function doc(id: string, type: VeriDocument['type'], status: string, title = id): VeriDocument {
   return {
@@ -98,6 +98,43 @@ test('the Decisions panel is the chronological feed: created desc, id as tiebrea
   // Other types keep the id order.
   const wo = panelList([{ ...doc('WO-001', 'work-order', 'backlog'), created: '2026-08-09' }, { ...doc('WO-002', 'work-order', 'backlog'), created: '2026-08-01' }], 'work-order', '', []);
   assert.deepEqual(wo.living.map((d) => d.id), ['WO-002', 'WO-001']);
+});
+
+// ---- The Board fold (WO-053, SRC-025) ------------------------------------
+
+test('work orders living list splits into Backlog / In progress, panel order preserved', () => {
+  const docs = [
+    doc('WO-001', 'work-order', 'in-progress'),
+    doc('WO-002', 'work-order', 'backlog'),
+    doc('WO-003', 'work-order', 'backlog'),
+    doc('WO-004', 'work-order', 'done'),
+  ];
+  const groups = livingGroups(panelList(docs, 'work-order', '', []).living, 'work-order')!;
+  assert.deepEqual(groups.map((g) => g.label), ['Backlog', 'In progress']);
+  // Newest-first within each subgroup — the living list's own order.
+  assert.deepEqual(groups[0].docs.map((d) => d.id), ['WO-003', 'WO-002']);
+  assert.deepEqual(groups[1].docs.map((d) => d.id), ['WO-001']);
+  // Done never leaks into a subgroup; it stays behind the expander.
+  assert.ok(groups.every((g) => g.docs.every((d) => d.status !== 'done')));
+});
+
+test('other types keep the flat living list — livingGroups is null', () => {
+  assert.equal(livingGroups(panelList(DOCS, 'requirement', '', []).living, 'requirement'), null);
+  assert.equal(livingGroups(panelList(DOCS, 'decision', '', []).living, 'decision'), null);
+  assert.equal(livingGroups(panelList(DOCS, 'source', '', []).living, 'source'), null);
+});
+
+test('an empty subgroup drops instead of rendering a bare header', () => {
+  const backlogOnly = livingGroups([doc('WO-001', 'work-order', 'backlog')], 'work-order')!;
+  assert.deepEqual(backlogOnly.map((g) => g.label), ['Backlog']);
+  assert.deepEqual(livingGroups([], 'work-order'), []);
+});
+
+test('subgroups follow the filtered living list (a filtered-out doc leaves its group)', () => {
+  const list = panelList(DOCS, 'work-order', 'graph', []);
+  const groups = livingGroups(list.living, 'work-order')!;
+  assert.deepEqual(groups.map((g) => g.label), ['In progress']);
+  assert.deepEqual(groups[0].docs.map((d) => d.id), ['WO-002']);
 });
 
 test('pushRecent fronts, dedupes, and caps at 10', () => {

@@ -79,6 +79,25 @@ export function panelList(docs: VeriDocument[], type: DocType, filter: string, p
   };
 }
 
+export interface LivingGroup {
+  label: string;
+  docs: VeriDocument[];
+}
+
+/** The Board fold (WO-053, SRC-025): the Work Orders panel's living list
+    splits into BACKLOG / IN PROGRESS subgroups — the kanban columns' one
+    distinctive signal, carried as micro-headers. Panel order is preserved
+    within each group; empty groups drop rather than render a bare header.
+    Every other type keeps the flat living list (null). */
+export function livingGroups(living: VeriDocument[], type: DocType): LivingGroup[] | null {
+  if (type !== 'work-order') return null;
+  const groups: LivingGroup[] = [
+    { label: 'Backlog', docs: living.filter((d) => d.status === 'backlog') },
+    { label: 'In progress', docs: living.filter((d) => d.status === 'in-progress') },
+  ];
+  return groups.filter((g) => g.docs.length > 0);
+}
+
 /** Recents update on every doc open: front of the list, deduped, capped at 10.
     The sidebar's RECENT group renders the first 6 (SRC-018, reversing
     SRC-014's retirement); the palette's recency boost reads the same list. */

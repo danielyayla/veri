@@ -6,7 +6,6 @@ import type { Snapshot } from '../lib/snapshot.ts';
 import {
   advisoriesByDoc,
   autocomplete,
-  boardColumns,
   connections,
   docsById,
   gatingDocs,
@@ -82,17 +81,6 @@ test('receipts parses the DEC-003 line shape and flags agent sessions', () => {
   assert.equal(rs[0].summary, 'claude-code session: built the thing');
 });
 
-test('boardColumns groups by status, counts linked REQs, marks agent receipts', () => {
-  const s = snap([WO, doc({ id: 'WO-002', type: 'work-order', title: 'Later', status: 'backlog' })]);
-  const cols = boardColumns(s);
-  assert.deepEqual(cols.map((c) => c.cards.length), [1, 0, 1]);
-  const done = cols[2].cards[0];
-  assert.equal(done.reqCount, 2);
-  assert.equal(done.agent, true);
-  const backlog = cols[0].cards[0];
-  assert.equal(backlog.reqCount, 0);
-});
-
 test('connections derives outbound and inbound from graph edges', () => {
   const req = doc({ id: 'REQ-001', type: 'requirement', title: 'A req', status: 'accepted' });
   const s = snap([WO, req]);
@@ -138,10 +126,9 @@ test('issue-driven health surfaces ignore advisories entirely', () => {
     [],
     [{ kind: 'missing-section', file: wo.file, id: 'WO-001', section: 'Requirements', message: 'm' }],
   );
-  // The board card's amber dot and every other health flag derive from
-  // issuesByDoc; a doc with only advisories stays healthy (DEC-025).
-  const card = boardColumns(s)[0].cards[0];
-  assert.equal(card.health, false);
+  // Every health flag derives from issuesByDoc; a doc with only advisories
+  // stays healthy (DEC-025).
+  assert.equal(issuesByDoc(s).has('WO-001'), false);
 });
 
 // ---- Local graph layout (WO-052, SRC-024) --------------------------------

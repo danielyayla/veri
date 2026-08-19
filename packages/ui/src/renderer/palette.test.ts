@@ -13,10 +13,10 @@ function result(query: Partial<PaletteQuery>, hits: PaletteHit[]): PaletteResult
 }
 
 test('typing a view name surfaces the view row among doc hits by score', () => {
-  const rows = paletteRows(result({ text: 'board' }, [hit('WO-001', 62), hit('WO-002', 55)]));
+  const rows = paletteRows(result({ text: 'search' }, [hit('WO-001', 62), hit('WO-002', 55)]));
   assert.deepEqual(
     rows.map((r) => (r.kind === 'view' ? r.view : r.kind === 'doc' ? r.hit.id : r.kind === 'command' ? r.label : `+${r.count}`)),
-    ['WO-001', 'board', 'WO-002'],
+    ['WO-001', 'search', 'WO-002'],
   );
 });
 
@@ -26,9 +26,9 @@ test('partial label matches surface views ("agent" → Settings, via its alias)'
 });
 
 test('view rows are suppressed while a type or status filter is active', () => {
-  const withType = paletteRows(result({ text: 'board', type: 'work-order' }, [hit('WO-001', 55)]));
+  const withType = paletteRows(result({ text: 'search', type: 'work-order' }, [hit('WO-001', 55)]));
   assert.ok(withType.every((r) => r.kind === 'doc'));
-  const withStatus = paletteRows(result({ text: 'board', statuses: ['done'] }, []));
+  const withStatus = paletteRows(result({ text: 'search', statuses: ['done'] }, []));
   assert.equal(withStatus.length, 0);
 });
 
@@ -67,7 +67,7 @@ test('the overflow row appears under an active filter too', () => {
 });
 
 test('a related: filter suppresses view and command rows like other filters', () => {
-  const rows = paletteRows(result({ text: 'board', related: 'wo-028' }, [hit('WO-001', 55)]));
+  const rows = paletteRows(result({ text: 'search', related: 'wo-028' }, [hit('WO-001', 55)]));
   assert.ok(rows.every((r) => r.kind === 'doc'));
 });
 

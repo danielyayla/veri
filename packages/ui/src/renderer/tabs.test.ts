@@ -141,15 +141,15 @@ describe('navigate background', () => {
 
 describe('view singletons', () => {
   it('focuses the tab already showing a view instead of duplicating it', () => {
-    const st = s([{ t: ['board'] }, { t: ['REQ-001'] }], 1);
-    const next = navigate(st, 'board', { surface: 'preview' });
+    const st = s([{ t: ['homeview'] }, { t: ['REQ-001'] }], 1);
+    const next = navigate(st, 'homeview', { surface: 'preview' });
     strictEqual(next.tabs.length, 2);
     strictEqual(next.activeKey, 't1');
   });
 
   it('a view in back-history does not count as showing it', () => {
-    const st = s([{ t: ['board', 'REQ-001'] }, { t: ['WO-005'] }], 1);
-    const next = navigate(st, 'board', { surface: 'preview' });
+    const st = s([{ t: ['homeview', 'REQ-001'] }, { t: ['WO-005'] }], 1);
+    const next = navigate(st, 'homeview', { surface: 'preview' });
     strictEqual(next.tabs.length, 3); // t1 currently shows REQ-001
   });
 
@@ -217,8 +217,8 @@ describe('retainTabs', () => {
   });
 
   it('view entries always survive', () => {
-    const next = retainTabs(s([{ t: ['board', 'A'] }], 0), gone(['A']));
-    deepStrictEqual(targets(next.tabs[0]), ['board']);
+    const next = retainTabs(s([{ t: ['search', 'A'] }], 0), gone(['A']));
+    deepStrictEqual(targets(next.tabs[0]), ['search']);
   });
 
   // WO-049: workspaces persisted before the Decision log retirement may still
@@ -226,8 +226,8 @@ describe('retainTabs', () => {
   // drops the entry — no migration; a tab left empty closes like a × click.
   it("a persisted 'decisions' view tab from before the retirement restores away cleanly", () => {
     ok(!isViewKey('decisions'));
-    const lone = retainTabs(s([{ t: ['decisions'] }, { t: ['board'] }], 0), () => false);
-    deepStrictEqual(lone.tabs.map((t) => targets(t)), [['board']]);
+    const lone = retainTabs(s([{ t: ['decisions'] }, { t: ['search'] }], 0), () => false);
+    deepStrictEqual(lone.tabs.map((t) => targets(t)), [['search']]);
     strictEqual(lone.activeKey, 't2');
     // Mixed history: the dead view entry drops, surviving doc entries stay.
     const mixed = retainTabs(s([{ t: ['decisions', 'REQ-001'], i: 0 }], 0), (id) => id === 'REQ-001');
@@ -238,11 +238,24 @@ describe('retainTabs', () => {
   // is no ViewKey anymore, so persisted graph tabs restore away, no migration.
   it("a persisted 'graph' view tab from before the retirement restores away cleanly", () => {
     ok(!isViewKey('graph'));
-    const lone = retainTabs(s([{ t: ['graph'] }, { t: ['board'] }], 0), () => false);
-    deepStrictEqual(lone.tabs.map((t) => targets(t)), [['board']]);
+    const lone = retainTabs(s([{ t: ['graph'] }, { t: ['search'] }], 0), () => false);
+    deepStrictEqual(lone.tabs.map((t) => targets(t)), [['search']]);
     strictEqual(lone.activeKey, 't2');
     // Mixed history: the graph entry drops, the surviving doc entry remains.
     const mixed = retainTabs(s([{ t: ['graph', 'WO-005'], i: 0 }], 0), (id) => id === 'WO-005');
+    deepStrictEqual(targets(mixed.tabs[0]), ['WO-005']);
+  });
+
+  // WO-053 (SRC-025): the Board view folds into the Work Orders panel —
+  // 'board' is no ViewKey anymore, so persisted board tabs restore away,
+  // no migration.
+  it("a persisted 'board' view tab from before the retirement restores away cleanly", () => {
+    ok(!isViewKey('board'));
+    const lone = retainTabs(s([{ t: ['board'] }, { t: ['search'] }], 0), () => false);
+    deepStrictEqual(lone.tabs.map((t) => targets(t)), [['search']]);
+    strictEqual(lone.activeKey, 't2');
+    // Mixed history: the board entry drops, the surviving doc entry remains.
+    const mixed = retainTabs(s([{ t: ['board', 'WO-005'], i: 0 }], 0), (id) => id === 'WO-005');
     deepStrictEqual(targets(mixed.tabs[0]), ['WO-005']);
   });
 });
@@ -255,6 +268,6 @@ describe('helpers', () => {
   });
 
   it('isViewKey knows every view key', () => {
-    ok(isViewKey('board') && isViewKey('settings') && isViewKey('search') && !isViewKey('REQ-001'));
+    ok(isViewKey('homeview') && isViewKey('settings') && isViewKey('search') && !isViewKey('REQ-001'));
   });
 });

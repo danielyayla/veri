@@ -118,7 +118,7 @@ async function getProjectStats(dir: string): Promise<{ docCount: number; issueCo
 }
 
 // Screenshot mode for automated visual verification: render one view headlessly,
-// write a PNG, quit. VERI_UI_SHOT=/path.png [VERI_UI_VIEW=board] [VERI_UI_DOC=WO-005]
+// write a PNG, quit. VERI_UI_SHOT=/path.png [VERI_UI_VIEW=homeview] [VERI_UI_DOC=WO-005]
 const shotPath = process.env['VERI_UI_SHOT'];
 
 let mainWin: BrowserWindow | null = null;

@@ -2,7 +2,7 @@
 id: WO-053
 type: work-order
 title: "Fold Board into the Work Orders panel"
-status: backlog
+status: in-progress
 created: 2026-08-19
 updated: 2026-08-19
 links:

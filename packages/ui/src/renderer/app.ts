@@ -19,7 +19,6 @@ import { readerView } from './views/reader.ts';
 import { homeView } from './views/home.ts';
 import { welcomeView } from './views/welcome.ts';
 import { workOrderView } from './views/workorder.ts';
-import { boardView } from './views/board.ts';
 import { searchView } from './views/search.ts';
 import {
   VIEW_META,
@@ -48,9 +47,9 @@ import { paletteRows } from './palette.ts';
 import type { PaletteRow } from './palette.ts';
 import { TPL_TYPES } from './views/templates.ts';
 import { settingsView } from './views/settings.ts';
-import { DEAD_LABEL, livingCount, panelList, pushRecent } from './sidebar.ts';
+import { DEAD_LABEL, livingCount, livingGroups, panelList, pushRecent } from './sidebar.ts';
 
-export type View = 'home' | 'workorder' | 'homeview' | 'board' | 'search' | 'settings';
+export type View = 'home' | 'workorder' | 'homeview' | 'search' | 'settings';
 
 /** Sections of the Settings view (WO-036, SRC-014). */
 export type SettingsSection = 'templates' | 'agent' | 'project' | 'updates';
@@ -1940,8 +1939,9 @@ class App implements Ctx {
   }
 
   /** The labeled sidebar (WO-035, SRC-014): Home, the four collections,
-      Board, and the Settings gear at the foot. Replaces the icon rail and
-      the working-set tree. Graph left the sidebar with WO-052 (SRC-024). */
+      and the Settings gear at the foot. Replaces the icon rail and the
+      working-set tree. Graph left the sidebar with WO-052 (SRC-024);
+      Board with WO-053 (SRC-025) — it folded into the Work Orders panel. */
   private sidebar(): HTMLElement {
     const target = activeTarget(this.tabState());
     const viewItem = (key: View, label: string, glyph: string): HTMLElement =>
@@ -2046,8 +2046,6 @@ class App implements Ctx {
       viewItem('homeview', 'Home', '⌂'),
       h('div', { class: 'side-div' }),
       ...App.COLLECTIONS.map(collItem),
-      h('div', { class: 'side-div' }),
-      viewItem('board', 'Board', '▤'),
       ...(recents.length > 0
         ? [h('div', { class: 'side-div' }), h('div', { class: 'side-label' }, 'RECENT'), ...recentRows]
         : []),
@@ -2113,12 +2111,20 @@ class App implements Ctx {
           d.status,
         ),
       );
+    // The Board fold (WO-053, SRC-025): work orders' living list renders
+    // under BACKLOG / IN PROGRESS micro-headers; other types stay flat.
+    const groups = livingGroups(list.living, type);
     const rows: HTMLElement[] = [];
     if (list.pinned.length > 0) {
       rows.push(h('div', { class: 'tp-group' }, 'Pinned'), ...list.pinned.map((d) => row(d, true)));
-      rows.push(h('div', { class: 'tp-group' }, 'All'));
+      // Subgroup headers take over the living list's labeling below.
+      if (groups === null) rows.push(h('div', { class: 'tp-group' }, 'All'));
     }
-    rows.push(...list.living.map((d) => row(d, false)));
+    if (groups === null) {
+      rows.push(...list.living.map((d) => row(d, false)));
+    } else {
+      for (const g of groups) rows.push(h('div', { class: 'tp-group' }, g.label), ...g.docs.map((d) => row(d, false)));
+    }
     if (list.dead.length > 0) {
       rows.push(
         h(
@@ -2368,7 +2374,7 @@ class App implements Ctx {
   }
 
   /** The active view's scrollable regions, in document order. */
-  private static readonly SCROLL_SEL = '.reader, .panel-right, .screen-board, .screen-homeview, .screen-search, .mcp-view, .set-scroll';
+  private static readonly SCROLL_SEL = '.reader, .panel-right, .screen-homeview, .screen-search, .mcp-view, .set-scroll';
 
   render(): void {
     if (this.welcomeMode) {
@@ -2416,7 +2422,6 @@ class App implements Ctx {
     else if (activeEdit !== null) screen = editorScreen(this, activeEdit);
     else if (view === 'workorder' && this.doc()?.type === 'work-order') screen = workOrderView(this);
     else if (view === 'homeview') screen = homeView(this);
-    else if (view === 'board') screen = boardView(this);
     else if (view === 'search') screen = searchView(this);
     else if (view === 'settings') screen = settingsView(this);
     else screen = readerView(this);

@@ -18,7 +18,7 @@ test('last element falls back to the preceding sibling', () => {
 });
 
 test('nothing survives → null, focus is left alone', () => {
-  assert.equal(resolveFocus(['pal:1', 'pal:2'], ['side:board'], 'pal:1'), null);
+  assert.equal(resolveFocus(['pal:1', 'pal:2'], ['side:homeview'], 'pal:1'), null);
   assert.equal(resolveFocus([], ['a'], 'x'), null);
 });
 
