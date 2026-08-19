@@ -11,6 +11,9 @@ contextBridge.exposeInMainWorld('veri', {
     recents: string[];
     tabs?: { target: string; preview: boolean }[];
     active?: number;
+    tabs2?: { target: string; preview: boolean }[];
+    active2?: number;
+    ratio?: number;
   }) => ipcRenderer.invoke('veri:workspace-save', state),
   copyText: (text: string) => ipcRenderer.invoke('veri:copy', text),
   setStatus: (id: string, status: string) => ipcRenderer.invoke('veri:set-status', id, status),

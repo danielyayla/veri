@@ -25,21 +25,29 @@ import {
   activateTab,
   activeTab,
   activeTarget,
-  anyEntry,
   back,
   closeTab,
   currentTarget,
   cycleTab,
   forward,
   isViewKey,
-  navigate,
-  persistTabs,
   pinTab,
   reorderTab,
-  restoreTabs,
-  retainTabs,
 } from './tabs.ts';
 import type { Entry, Surface, Tab, TabState } from './tabs.ts';
+import {
+  anyEntryPanes,
+  clampRatio,
+  focusPane,
+  navigateFocused,
+  openBeside,
+  persistPanes,
+  restorePanes,
+  retainPanes,
+  setPane,
+  singlePane,
+} from './panes.ts';
+import type { PaneState } from './panes.ts';
 import { EditorIsland } from './editor.ts';
 import { FOCUSABLE_SEL, resolveFocus, roveIndex, roveKey, trapTarget } from './a11y.ts';
 import { dismissPreview, resetChipKeys, setPreviewRoot } from './widgets.ts';
@@ -62,12 +70,15 @@ export interface OpenDocOpts {
 }
 
 export interface State {
-  /** Ordered tab strip (SRC-004, SRC-018): each tab is a history surface. */
-  tabs: Tab[];
-  /** The active tab's KEY — what it shows is its current history entry. */
-  activeTabId: string | null;
-  /** Tab-key allocator; travels with the pure TabState (SRC-018). */
-  nextTabKey: number;
+  /** Split panes (WO-055, SRC-027): one or two tab surfaces side by side,
+      each a complete TabState (SRC-004, SRC-018 mechanics per pane). */
+  panes: TabState[];
+  /** The focused pane drives everything single-valued — sidebar highlight,
+      crumb, editView, per-view transients. */
+  focusedPane: number;
+  /** Divider position as the first pane's fraction; session state, persisted
+      additively while split (WO-055). */
+  paneRatio: number;
   /** SRC-004 settings flag — false makes every click open a pinned tab. */
   previewTabs: boolean;
   /** Derived from the active tab; views keep reading these. */
@@ -291,9 +302,9 @@ class App implements Ctx {
   pkg = new Map<string, CachedPackage>();
   api = api();
   state: State = {
-    tabs: [],
-    activeTabId: null,
-    nextTabKey: 1,
+    panes: singlePane().panes,
+    focusedPane: 0,
+    paneRatio: 0.5,
     previewTabs: true,
     view: 'home',
     docId: null,
@@ -354,15 +365,21 @@ class App implements Ctx {
   private sessionFeed: Array<{ id: string; row: ActivityRow }> = [];
   /** Doc-tab activation order, most recent first — drives the Documents nav. */
   private docMru: string[] = [];
-  private dragIdx: number | null = null;
+  /** Tab-drag origin: the strip (pane) and index the drag started in. */
+  private dragIdx: { pane: number; idx: number } | null = null;
   /** The rendered palette rows' open actions, for the global Enter handler. */
   private palRowActions: Array<{ open(pinned: boolean): void }> = [];
   /** Caret position to restore after a name-edit re-render of the sheet. */
   private npNameCaret: number | null = null;
-  /** The history entry the current DOM was rendered for — scroll positions
-      are captured into it (by reference) before every re-render, so back/
-      forward restore them (SRC-018 history rule 4). */
-  private renderedEntry: Entry | null = null;
+  /** Per pane, the history entry the current DOM was rendered for — scroll
+      positions are captured into it (by reference) before every re-render,
+      so back/forward restore them (SRC-018 history rule 4). Scoped per pane
+      container (WO-055): a split doubles every SCROLL_SEL match, so capture
+      walks each pane's own subtree, aligned by pane index. */
+  private renderedEntries: Array<Entry | null> = [];
+  /** A pane-focus flip happened on mousedown without a render (WO-055);
+      the deferred render runs after the click lands. */
+  private paneFocusPending = false;
   private copyTimer: ReturnType<typeof setTimeout> | undefined;
   private toastTimer: ReturnType<typeof setTimeout> | undefined;
   private kickoffTimer: ReturnType<typeof setTimeout> | undefined;
@@ -496,12 +513,15 @@ class App implements Ctx {
     this.state.pinned = ws.pinned.filter((id) => this.byId.has(id));
     this.state.recents = ws.recents.filter((id) => this.byId.has(id));
     // Restore the persisted open set (WO-054, SRC-026): unresolvable targets
-    // drop, at most one preview tab, single-entry history each. Assigned
-    // directly rather than through applyTabs so the restore itself never
-    // echoes a save back into the file; the query params below still win.
+    // drop, at most one preview tab, single-entry history each. The split's
+    // second list and ratio restore additively (WO-055) — absent or emptied,
+    // it collapses to one pane. Assigned directly rather than through
+    // applyPanes so the restore itself never echoes a save back into the
+    // file; the query params below still win.
     if (ws.tabs !== undefined && ws.tabs.length > 0) {
-      const restored = restoreTabs(ws.tabs, ws.active, (id) => this.byId.has(id));
-      if (restored.tabs.length > 0) Object.assign(this.state, this.activationPatch(restored));
+      const restored = restorePanes(ws.tabs, ws.active, ws.tabs2, ws.active2, (id) => this.byId.has(id));
+      if (restored.panes.some((p) => p.tabs.length > 0)) Object.assign(this.state, this.activationPatch(restored));
+      if (ws.ratio !== undefined) this.state.paneRatio = ws.ratio;
     }
     await this.refreshMcp();
     void this.api.appInfo().then((info) => {
@@ -521,11 +541,13 @@ class App implements Ctx {
     }
     if (doc !== null && this.byId.has(doc)) this.openDoc(doc);
     if (view !== null && isViewKey(view)) {
-      this.applyTabs(navigate(this.tabState(), view, { surface: 'preview', previewTabs: false }));
+      this.applyPanes(navigateFocused(this.paneState(), view, { surface: 'preview', previewTabs: false }));
     }
-    if (this.state.tabs.length === 0) {
+    if (this.state.panes.every((p) => p.tabs.length === 0)) {
       // Home is the default tab on project open (SRC-005 layer 4).
-      this.applyTabs(navigate(this.tabState(), 'homeview', { surface: 'preview', previewTabs: this.state.previewTabs }));
+      this.applyPanes(
+        navigateFocused(this.paneState(), 'homeview', { surface: 'preview', previewTabs: this.state.previewTabs }),
+      );
     }
     this.api.onChanged(() => void this.refresh());
     this.api.onMcpChanged((external) => {
@@ -553,6 +575,11 @@ class App implements Ctx {
       } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
         this.saveActive();
+      } else if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key === '\\') {
+        // ⌘\ "Open beside" (WO-055, SRC-027): the focused pane's current
+        // entry opens in the other pane, which takes focus.
+        e.preventDefault();
+        this.applyPanes(openBeside(this.paneState()));
       } else if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && (e.key === '[' || e.key === ']') && !inTextTarget(e)) {
         // ⌘[ / ⌘] walk the active tab's history (WO-039); the CM6 editor
         // keeps its own Mod-[ indent bindings, hence the target guard.
@@ -592,6 +619,16 @@ class App implements Ctx {
         }
       }
     });
+    // A mousedown in the unfocused pane flips focus silently (so the click
+    // it precedes lands in an intact DOM); the re-render that shows the new
+    // focus runs after the click has been dispatched (WO-055).
+    document.addEventListener('mouseup', () => {
+      if (this.paneFocusPending) {
+        setTimeout(() => {
+          if (this.paneFocusPending) this.render();
+        }, 0);
+      }
+    });
     document.addEventListener('click', () => {
       if (
         this.state.projectSwitcherOpen ||
@@ -624,29 +661,35 @@ class App implements Ctx {
     this.pkg.clear();
     // Tabs for deleted docs close like a × click — except a dirty editor,
     // whose tab stays for the Restore / Close choice (REQ-009 §5).
+    // retainTabs runs over BOTH panes (WO-055); an emptied pane collapses.
     const survives = (id: string): boolean => this.byId.has(id) || this.docEdit.get(id)?.dirty === true;
-    Object.assign(this.state, this.activationPatch(retainTabs(this.tabState(), survives)));
+    Object.assign(this.state, this.activationPatch(retainPanes(this.paneState(), survives)));
     if (this.state.docId !== null && !survives(this.state.docId)) this.state.docId = null;
-    // Editor state lives while some tab's history still references the doc
-    // (SRC-018: navigating away keeps buffer, mode, and dirty state).
+    // Editor state lives while some tab's history in either pane still
+    // references the doc (SRC-018: navigating away keeps buffer and mode).
     for (const id of this.docEdit.keys()) {
-      if (!anyEntry(this.tabState(), id)) this.dropEditor(id);
+      if (!anyEntryPanes(this.paneState(), id)) this.dropEditor(id);
     }
   }
 
+  /** The focused pane's TabState — everything single-valued reads this. */
   private tabState(): TabState {
-    return { tabs: this.state.tabs, activeKey: this.state.activeTabId, nextKey: this.state.nextTabKey };
+    return this.state.panes[this.state.focusedPane];
+  }
+
+  private paneState(): PaneState {
+    return { panes: this.state.panes, focused: this.state.focusedPane };
   }
 
   /**
-   * The state that follows from a tab-strip change: derived view/doc for the
-   * active tab's current entry, the Documents-nav MRU, and — only when the
-   * displayed target actually changed — the per-view transient resets
+   * The state that follows from a pane-set change: derived view/doc for the
+   * FOCUSED pane's active entry (WO-055), the Documents-nav MRU, and — only
+   * when the focused target actually changed — the per-view transient resets
    * (popovers, editor draft, feedback).
    */
-  private activationPatch(next: TabState): Partial<State> {
-    const patch: Partial<State> = { tabs: next.tabs, activeTabId: next.activeKey, nextTabKey: next.nextKey };
-    const target = activeTarget(next);
+  private activationPatch(ps: PaneState): Partial<State> {
+    const patch: Partial<State> = { panes: ps.panes, focusedPane: ps.focused };
+    const target = activeTarget(ps.panes[ps.focused]);
     if (target !== null) {
       if (isViewKey(target)) {
         patch.view = target;
@@ -673,11 +716,16 @@ class App implements Ctx {
     return patch;
   }
 
-  private applyTabs(next: TabState, extra: Partial<State> = {}): void {
-    this.update({ ...this.activationPatch(next), ...extra });
+  private applyPanes(ps: PaneState, extra: Partial<State> = {}): void {
+    this.update({ ...this.activationPatch(ps), ...extra });
     // Every tab-set change persists (WO-054, SRC-026) — open, close, reorder,
     // pin, activate, in-place navigation — fire-and-forget, like pins.
     this.saveWorkspace();
+  }
+
+  /** A tab op on the focused pane (the common case). */
+  private applyTabs(next: TabState, extra: Partial<State> = {}): void {
+    this.applyPanes(setPane(this.paneState(), this.state.focusedPane, next), extra);
   }
 
   private firstDocId(): string | null {
@@ -704,7 +752,8 @@ class App implements Ctx {
   openDoc(id: string, opts: OpenDocOpts = {}): void {
     if (!this.byId.has(id)) return;
     const surface: Surface = opts.background === true ? 'background' : opts.preview === true ? 'preview' : 'inplace';
-    this.applyTabs(navigate(this.tabState(), id, { surface, previewTabs: this.state.previewTabs }), {
+    // Every browsing surface opens in the FOCUSED pane (WO-055 routing).
+    this.applyPanes(navigateFocused(this.paneState(), id, { surface, previewTabs: this.state.previewTabs }), {
       projectSwitcherOpen: false,
       recents: pushRecent(this.state.recents, id),
     });
@@ -719,10 +768,14 @@ class App implements Ctx {
   }
 
   private saveWorkspace(): void {
+    const ps = this.paneState();
     void this.api.workspaceSave({
       pinned: this.state.pinned,
       recents: this.state.recents,
-      ...persistTabs(this.tabState()),
+      ...persistPanes(ps),
+      // The ratio persists only while split (WO-055): a single-pane save
+      // stays byte-identical to the WO-054 shape.
+      ...(ps.panes.length === 2 ? { ratio: this.state.paneRatio } : {}),
     });
   }
 
@@ -730,20 +783,32 @@ class App implements Ctx {
     // Selecting any view closes the type panel and the settings popover (SRC-014).
     const closed = { projectSwitcherOpen: false, panel: null, settingsPop: false };
     if (view === 'home' || view === 'workorder') {
-      // Documents nav: focus the tab showing the most recent doc, else open
-      // the first doc as preview.
-      const byTarget = new Map(this.state.tabs.map((t) => [currentTarget(t), t.key]));
-      const recent = this.docMru.find((id) => byTarget.has(id));
-      const key = recent !== undefined ? byTarget.get(recent) : this.state.tabs.find((t) => !isViewKey(currentTarget(t)))?.key;
-      if (key !== undefined) {
-        this.applyTabs(activateTab(this.tabState(), key), closed);
+      // Documents nav: focus the tab showing the most recent doc — searching
+      // the focused pane first, then the other (WO-055) — else open the
+      // first doc as preview.
+      const ps = this.paneState();
+      const order = ps.panes.length === 2 ? [ps.focused, 1 - ps.focused] : [0];
+      const lookup = (pred: (target: string) => boolean): { pane: number; key: string } | null => {
+        for (const pi of order) {
+          const tab = ps.panes[pi].tabs.find((t) => pred(currentTarget(t)));
+          if (tab !== undefined) return { pane: pi, key: tab.key };
+        }
+        return null;
+      };
+      const recent = this.docMru.find((id) => lookup((t) => t === id) !== null);
+      const hit = recent !== undefined ? lookup((t) => t === recent) : lookup((t) => !isViewKey(t));
+      if (hit !== null) {
+        this.applyPanes(setPane(ps, hit.pane, activateTab(ps.panes[hit.pane], hit.key), hit.pane), closed);
       } else {
         const first = this.firstDocId();
         if (first !== null) this.openDoc(first, { preview: true });
       }
       return;
     }
-    this.applyTabs(navigate(this.tabState(), view, { surface: 'preview', previewTabs: this.state.previewTabs }), closed);
+    this.applyPanes(
+      navigateFocused(this.paneState(), view, { surface: 'preview', previewTabs: this.state.previewTabs }),
+      closed,
+    );
   }
 
   /** Leaving the agent-connection section dismisses its banners and drops the
@@ -758,7 +823,7 @@ class App implements Ctx {
       semantics like Board), opened at the invoked section (WO-036). */
   openSettings(section: SettingsSection): void {
     if (section === 'updates') this.refreshUpdateStatus();
-    this.applyTabs(navigate(this.tabState(), 'settings', { surface: 'preview', previewTabs: this.state.previewTabs }), {
+    this.applyPanes(navigateFocused(this.paneState(), 'settings', { surface: 'preview', previewTabs: this.state.previewTabs }), {
       settingsSection: section,
       ...(section !== 'agent' ? this.leaveMcpPatch() : {}),
       projectSwitcherOpen: false,
@@ -808,7 +873,7 @@ class App implements Ctx {
     await this.reconcileTemplates();
     // Files changed under the Search view's result set: refetch the same
     // query so the rows never show deleted or stale docs (WO-048).
-    if (this.state.searchResult !== null && anyEntry(this.tabState(), 'search')) this.fetchSearch(this.state.searchQuery);
+    if (this.state.searchResult !== null && anyEntryPanes(this.paneState(), 'search')) this.fetchSearch(this.state.searchQuery);
     this.render();
   }
 
@@ -1034,8 +1099,8 @@ class App implements Ctx {
     } else if (action === 'restore') {
       ed.dirty = true; // the buffer is the only copy; force the write through
       this.saveEditor(id);
-    } else if (this.state.activeTabId !== null) {
-      this.forceCloseTab(this.state.activeTabId);
+    } else if (this.tabState().activeKey !== null) {
+      this.forceCloseTab(this.state.focusedPane, this.tabState().activeKey!);
     }
   }
 
@@ -1078,24 +1143,26 @@ class App implements Ctx {
 
   /** Close ×/middle-click: closing the last tab whose history references
       dirty buffers gets the Save/Discard/Cancel prompt (SRC-008, SRC-018);
-      everything else closes like before. */
-  private requestCloseTab(key: string, anchor: DOMRect | null): void {
-    const tab = this.state.tabs.find((t) => t.key === key);
+      everything else closes like before. "Last reference" counts every tab
+      in BOTH panes (WO-055). */
+  private requestCloseTab(paneIdx: number, key: string, anchor: DOMRect | null): void {
+    const ps = this.paneState();
+    const tab = ps.panes[paneIdx]?.tabs.find((t) => t.key === key);
     if (tab === undefined) return;
-    const others: TabState = { tabs: this.state.tabs.filter((t) => t.key !== key), activeKey: null, nextKey: 0 };
+    const elsewhere = (target: string): boolean =>
+      ps.panes.some((p, pi) => p.tabs.some((t) => (pi !== paneIdx || t.key !== key) && t.entries.some((e) => e.target === target)));
     const docs = [...new Set(tab.entries.map((e) => e.target))].filter(
-      (id) => this.docEdit.get(id)?.dirty === true && !anyEntry(others, id),
+      (id) => this.docEdit.get(id)?.dirty === true && !elsewhere(id),
     );
-    const settings =
-      this.tplAnyDirty() && tab.entries.some((e) => e.target === 'settings') && !anyEntry(others, 'settings');
+    const settings = this.tplAnyDirty() && tab.entries.some((e) => e.target === 'settings') && !elsewhere('settings');
     if (docs.length > 0 || settings) {
-      this.confirmThen = (): void => this.forceCloseTab(key);
+      this.confirmThen = (): void => this.forceCloseTab(paneIdx, key);
       this.update({
         closeConfirm: { docs, settings, x: anchor?.left ?? window.innerWidth / 2 - 130, y: (anchor?.bottom ?? 60) + 8 },
       });
       return;
     }
-    this.forceCloseTab(key);
+    this.forceCloseTab(paneIdx, key);
   }
 
   /** What the closeConfirm prompt's Save/Discard proceed to; Cancel drops it. */
@@ -1115,22 +1182,27 @@ class App implements Ctx {
     this.update({ closeConfirm: { docs, settings, x: window.innerWidth / 2, y: 80 } });
   }
 
-  private forceCloseTab(key: string): void {
-    const tab = this.state.tabs.find((t) => t.key === key);
-    const next = closeTab(this.tabState(), key);
+  private forceCloseTab(paneIdx: number, key: string): void {
+    const ps = this.paneState();
+    const pane = ps.panes[paneIdx];
+    if (pane === undefined) return;
+    const tab = pane.tabs.find((t) => t.key === key);
+    // Closing a pane's last tab collapses the split (WO-055); the survivor
+    // keeps its state — setPane handles both.
+    const next = setPane(ps, paneIdx, closeTab(pane, key));
     // Buffers whose last referencing tab just closed go with it; a closed
     // Settings tab drops the template buffers so the next open reads the
     // files fresh (DEC-002).
     if (tab !== undefined) {
       for (const target of new Set(tab.entries.map((e) => e.target))) {
         if (target === 'settings') {
-          if (!anyEntry(next, 'settings')) this.dropTemplates();
-        } else if (!anyEntry(next, target)) {
+          if (!anyEntryPanes(next, 'settings')) this.dropTemplates();
+        } else if (!anyEntryPanes(next, target)) {
           this.dropEditor(target);
         }
       }
     }
-    this.applyTabs(next, { closeConfirm: null });
+    this.applyPanes(next, { closeConfirm: null });
   }
 
   // ---- template settings (WO-024, SRC-009) ----
@@ -1294,7 +1366,7 @@ class App implements Ctx {
       silent reload when clean, banner when dirty. A deleted file is not a
       conflict — its effective body is the built-in default (DEC-023). */
   private async reconcileTemplates(): Promise<void> {
-    if (!anyEntry(this.tabState(), 'settings')) return;
+    if (!anyEntryPanes(this.paneState(), 'settings')) return;
     for (const type of [...this.tplInfo.keys()]) {
       const info = await this.api.templateRead(type).catch(() => null);
       if (info === null) continue;
@@ -1783,7 +1855,7 @@ class App implements Ctx {
     this.state.searchQuery = query;
     this.state.searchResult = null;
     this.fetchSearch(query);
-    this.applyTabs(navigate(this.tabState(), 'search', { surface: 'preview', previewTabs: this.state.previewTabs }), {
+    this.applyPanes(navigateFocused(this.paneState(), 'search', { surface: 'preview', previewTabs: this.state.previewTabs }), {
       paletteOpen: false,
     });
   }
@@ -1798,12 +1870,13 @@ class App implements Ctx {
     } else if (row.kind === 'command') {
       // ⌘↩ means nothing for an action row — treat it as a plain activation.
       this.update({ paletteOpen: false });
-      void this.startNewProject();
+      if (row.command === 'open-beside') this.applyPanes(openBeside(this.paneState()));
+      else void this.startNewProject();
     } else if (row.kind === 'view' && row.view === 'search') {
       // The Search view row keeps its held query but still focuses the field.
       this.openSearchView(this.state.searchQuery);
     } else if (row.kind === 'view') {
-      this.applyTabs(navigate(this.tabState(), row.view, { surface: 'preview', previewTabs: this.state.previewTabs }), {
+      this.applyPanes(navigateFocused(this.paneState(), row.view, { surface: 'preview', previewTabs: this.state.previewTabs }), {
         paletteOpen: false,
       });
     } else if (pinned) {
@@ -2122,10 +2195,11 @@ class App implements Ctx {
     const showDead = this.state.showDead[type] === true;
     const target = activeTarget(this.tabState());
     // Double-click pins the tab currently showing the doc (the preview tab
-    // the first click just opened).
+    // the first click just opened — in the focused pane, like every open).
     const pinShowing = (id: string): void => {
-      const tab = this.state.tabs.find((t) => currentTarget(t) === id);
-      if (tab !== undefined) this.applyTabs(pinTab(this.tabState(), tab.key));
+      const pane = this.tabState();
+      const tab = pane.tabs.find((t) => currentTarget(t) === id);
+      if (tab !== undefined) this.applyTabs(pinTab(pane, tab.key));
     };
     const row = (d: VeriDocument, pin: boolean): HTMLElement =>
       h(
@@ -2253,15 +2327,19 @@ class App implements Ctx {
 
   /** One tab: type-colored id chip (docs) or glyph (views) for its current
       history entry, ellipsized title — italic for the preview tab — and the
-      close ×. All SRC-004 gestures, keyed by tab identity (SRC-018). */
-  private tabEl(t: Tab, i: number): HTMLElement {
+      close ×. All SRC-004 gestures, keyed by tab identity (SRC-018) plus
+      the owning pane (WO-055): every handler is pane-explicit so keyboard
+      activation works on the unfocused strip too, and fkeys carry the pane
+      index because both panes allocate the same tab keys. */
+  private tabEl(pane: TabState, paneIdx: number, t: Tab, i: number): HTMLElement {
     const target = currentTarget(t);
     const view = isViewKey(target) ? VIEW_META[target] : null;
     const doc = view === null ? this.byId.get(target) : undefined;
     const title = view?.label ?? doc?.title ?? target;
-    const active = t.key === this.state.activeTabId;
+    const active = t.key === pane.activeKey;
     const dirty = this.docEdit.get(target)?.dirty === true || (target === 'settings' && this.tplAnyDirty());
-    const close = (el: Element | null): void => this.requestCloseTab(t.key, el?.getBoundingClientRect() ?? null);
+    const close = (el: Element | null): void => this.requestCloseTab(paneIdx, t.key, el?.getBoundingClientRect() ?? null);
+    const inPane = (next: TabState): void => this.applyPanes(setPane(this.paneState(), paneIdx, next, paneIdx));
     // The dirty state rides the accessible name — the dot alone is not a
     // channel a screen reader can see (SRC-019 rule 5).
     const name =
@@ -2277,10 +2355,10 @@ class App implements Ctx {
         label: name,
         selected: active,
         tabindex: active ? 0 : -1,
-        fkey: `tab:${t.key}`,
+        fkey: `tab:${paneIdx}:${t.key}`,
         draggable: true,
-        onClick: () => this.applyTabs(activateTab(this.tabState(), t.key)),
-        onDblclick: () => this.applyTabs(pinTab(activateTab(this.tabState(), t.key), t.key)),
+        onClick: () => inPane(activateTab(pane, t.key)),
+        onDblclick: () => inPane(pinTab(activateTab(pane, t.key), t.key)),
         onMousedown: (e) => {
           if (e.button === 1) {
             e.preventDefault();
@@ -2288,14 +2366,16 @@ class App implements Ctx {
           }
         },
         onDragstart: (e) => {
-          this.dragIdx = i;
+          this.dragIdx = { pane: paneIdx, idx: i };
           if (e.dataTransfer !== null) e.dataTransfer.effectAllowed = 'move';
         },
         onDragover: (e) => {
           e.preventDefault();
-          if (this.dragIdx !== null && this.dragIdx !== i) {
-            this.applyTabs(reorderTab(this.tabState(), this.dragIdx, i));
-            this.dragIdx = i;
+          // Reorder stays within one strip — cross-pane tab drag is not a
+          // WO-055 gesture (⌘\ is the explicit act).
+          if (this.dragIdx !== null && this.dragIdx.pane === paneIdx && this.dragIdx.idx !== i) {
+            inPane(reorderTab(pane, this.dragIdx.idx, i));
+            this.dragIdx = { pane: paneIdx, idx: i };
           }
         },
         onDrop: (e) => e.preventDefault(),
@@ -2314,7 +2394,7 @@ class App implements Ctx {
           class: 'btn-reset tab-close',
           title: dirty ? 'Unsaved changes — close tab' : 'Close tab',
           label: dirty ? `Close ${title} — unsaved changes` : `Close ${title}`,
-          fkey: `tab-close:${t.key}`,
+          fkey: `tab-close:${paneIdx}:${t.key}`,
           onClick: (e) => {
             e.stopPropagation();
             close(e.currentTarget as Element);
@@ -2329,11 +2409,14 @@ class App implements Ctx {
   }
 
   /** The ‹ › history buttons (WO-039, SRC-018), leftmost in the strip,
-      acting on the active tab; hidden in the no-tabs empty state. */
-  private tabStrip(): HTMLElement {
-    const act = activeTab(this.tabState());
+      acting on this pane's active tab; hidden in the no-tabs empty state.
+      One strip per pane (WO-055) — every handler is pane-explicit and also
+      focuses the pane it acts in. */
+  private tabStrip(pane: TabState, paneIdx: number): HTMLElement {
+    const act = activeTab(pane);
     const canBack = act !== null && act.index > 0;
     const canFwd = act !== null && act.index < act.entries.length - 1;
+    const inPane = (next: TabState): void => this.applyPanes(setPane(this.paneState(), paneIdx, next, paneIdx));
     const histBtn = (glyph: string, on: boolean, title: string, fkey: string, go: () => void): HTMLElement =>
       h(
         'button',
@@ -2370,18 +2453,18 @@ class App implements Ctx {
     return h(
       'div',
       { class: 'tabstrip' },
-      this.state.tabs.length > 0
+      pane.tabs.length > 0
         ? h(
             'div',
             { class: 'nav-hist' },
-            histBtn('‹', canBack, 'Back ⌘[', 'hist-back', () => this.applyTabs(back(this.tabState()))),
-            histBtn('›', canFwd, 'Forward ⌘]', 'hist-fwd', () => this.applyTabs(forward(this.tabState()))),
+            histBtn('‹', canBack, 'Back ⌘[', `hist-back:${paneIdx}`, () => inPane(back(pane))),
+            histBtn('›', canFwd, 'Forward ⌘]', `hist-fwd:${paneIdx}`, () => inPane(forward(pane))),
           )
         : null,
       h(
         'div',
         { class: 'tablist-wrap', role: 'tablist', label: 'Open tabs', onKeydown: roving },
-        ...this.state.tabs.map((t, i) => this.tabEl(t, i)),
+        ...pane.tabs.map((t, i) => this.tabEl(pane, paneIdx, t, i)),
       ),
       h('div', { class: 'tabstrip-fill' }),
     );
@@ -2408,10 +2491,140 @@ class App implements Ctx {
     );
   }
 
-  /** The active view's scrollable regions, in document order. */
+  /** The active view's scrollable regions, in document order — queried per
+      pane container (WO-055), never per root. */
   private static readonly SCROLL_SEL = '.reader, .panel-right, .screen-homeview, .screen-search, .mcp-view, .set-scroll';
 
+  /** A mousedown anywhere in an unfocused pane focuses it (WO-055): the
+      state flips silently — no render, no preventDefault, so the click it
+      precedes lands in an intact DOM and native focus semantics (inputs,
+      the editor) are untouched. The boot-time mouseup listener runs the
+      deferred render once the gesture completes. */
+  private focusPaneSilently(idx: number): void {
+    if (idx === this.state.focusedPane || this.state.panes[idx] === undefined) return;
+    Object.assign(this.state, this.activationPatch(focusPane(this.paneState(), idx)));
+    this.paneFocusPending = true;
+  }
+
+  /**
+   * One pane: its own tab strip over its own screen (the .editor-area seam
+   * duplicated, WO-055). The screen renders from THIS pane's active entry —
+   * the shell's derived view/docId are swapped in for the build and restored
+   * after, so view functions stay single-valued. The editor island is
+   * single-homed: it attaches in the focused pane only; a doc in edit mode
+   * shown in the unfocused pane renders as the reader.
+   */
+  private paneEl(pane: TabState, idx: number, activeEdit: ActiveEdit | null): HTMLElement {
+    const ps = this.paneState();
+    const split = ps.panes.length === 2;
+    const focused = idx === ps.focused;
+    let screen: HTMLElement;
+    if (pane.tabs.length === 0) {
+      screen = this.emptyState();
+    } else {
+      const target = activeTarget(pane)!;
+      const saved = { view: this.state.view, docId: this.state.docId };
+      if (isViewKey(target)) {
+        this.state.view = target;
+      } else {
+        this.state.docId = target;
+        this.state.view = this.byId.get(target)?.type === 'work-order' ? 'workorder' : 'home';
+      }
+      const view = this.state.view;
+      const edit = focused ? activeEdit : null;
+      if (edit !== null) screen = editorScreen(this, edit);
+      else if (view === 'workorder' && this.doc()?.type === 'work-order') screen = workOrderView(this);
+      else if (view === 'homeview') screen = homeView(this);
+      else if (view === 'search') screen = searchView(this);
+      else if (view === 'settings') screen = settingsView(this);
+      else screen = readerView(this);
+      this.state.view = saved.view;
+      this.state.docId = saved.docId;
+    }
+    const el = h(
+      'div',
+      {
+        class: `editor-area${split && !focused ? ' pane-unfocused' : ''}`,
+        style: split && idx === 0 ? `flex:0 0 calc(${(this.paneRatioClamped() * 100).toFixed(2)}% - 3px);` : undefined,
+      },
+      this.tabStrip(pane, idx),
+      screen,
+    );
+    if (split) el.addEventListener('mousedown', () => this.focusPaneSilently(idx), true);
+    return el;
+  }
+
+  private paneRatioClamped(): number {
+    const host = this.root.querySelector<HTMLElement>('.panes');
+    return clampRatio(this.state.paneRatio, host?.clientWidth ?? window.innerWidth - 208);
+  }
+
+  /** The draggable divider (WO-055, SRC-027): min 320px per side, double-
+      click resets 50/50, focusable with arrow-key resize (REQ-020). Existing
+      border/hover tokens only. Drag moves the flex basis directly — state
+      and persistence commit on mouseup, so no re-render tears the DOM out
+      from under the gesture. */
+  private dividerEl(): HTMLElement {
+    const setRatio = (ratio: number): void => {
+      this.state.paneRatio = ratio;
+      this.saveWorkspace();
+      this.render();
+    };
+    const el = h('div', {
+      class: 'pane-divider',
+      role: 'separator',
+      tabindex: 0,
+      fkey: 'pane-divider',
+      label: 'Resize panes — arrow keys resize, double-click resets',
+      title: 'Drag to resize · double-click for 50/50',
+      onDblclick: () => setRatio(0.5),
+      onKeydown: (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          const width = this.root.querySelector<HTMLElement>('.panes')?.clientWidth ?? window.innerWidth;
+          setRatio(clampRatio(this.state.paneRatio + ((e.key === 'ArrowRight' ? 1 : -1) * 24) / width, width));
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          setRatio(0.5);
+        }
+      },
+      onMousedown: (e) => this.startDividerDrag(e),
+    });
+    el.setAttribute('aria-orientation', 'vertical');
+    el.setAttribute('aria-valuemin', '0');
+    el.setAttribute('aria-valuemax', '100');
+    el.setAttribute('aria-valuenow', String(Math.round(this.paneRatioClamped() * 100)));
+    return el;
+  }
+
+  private startDividerDrag(e: MouseEvent): void {
+    e.preventDefault();
+    const host = this.root.querySelector<HTMLElement>('.panes');
+    const first = host?.querySelector<HTMLElement>('.editor-area');
+    if (host == null || first == null) return;
+    const divider = e.currentTarget as HTMLElement;
+    divider.classList.add('pane-divider-drag');
+    const rect = host.getBoundingClientRect();
+    let ratio = this.state.paneRatio;
+    const move = (ev: MouseEvent): void => {
+      ratio = clampRatio((ev.clientX - rect.left) / rect.width, rect.width);
+      first.style.flex = `0 0 calc(${(ratio * 100).toFixed(2)}% - 3px)`;
+      divider.setAttribute('aria-valuenow', String(Math.round(ratio * 100)));
+    };
+    const up = (): void => {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      divider.classList.remove('pane-divider-drag');
+      this.state.paneRatio = ratio;
+      this.saveWorkspace();
+      this.render();
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  }
+
   render(): void {
+    this.paneFocusPending = false;
     if (this.welcomeMode) {
       // Errors from the create/open IPC surface as the inline notice — the
       // welcome screen has no topbar to host projectError.
@@ -2427,15 +2640,21 @@ class App implements Ctx {
       );
       return;
     }
-    // Save the outgoing DOM's scroll positions into the history entry it was
-    // rendered for (plus the type panel), so tab switches AND back/forward
-    // restore them (SRC-018 history rule 4). The entry object is shared with
-    // the tab state by reference, so this survives navigation ops.
+    // Save the outgoing DOM's scroll positions into the history entries they
+    // were rendered for (plus the type panel), so tab switches AND back/
+    // forward restore them (SRC-018 history rule 4). The entry objects are
+    // shared with the tab state by reference, so this survives navigation
+    // ops. Capture is scoped per pane container (WO-055) — a split doubles
+    // every SCROLL_SEL match, so each pane walks only its own subtree.
     const oldList = this.root.querySelector('.tp-list');
     if (oldList !== null) this.panelScroll = oldList.scrollTop;
-    if (this.renderedEntry !== null) {
-      this.renderedEntry.scroll = Array.from(this.root.querySelectorAll(App.SCROLL_SEL), (el) => el.scrollTop);
-    }
+    const oldPanes = this.root.querySelectorAll<HTMLElement>('.editor-area');
+    this.renderedEntries.forEach((entry, i) => {
+      const paneEl = oldPanes[i];
+      if (entry !== null && paneEl !== undefined) {
+        entry.scroll = Array.from(paneEl.querySelectorAll(App.SCROLL_SEL), (el) => el.scrollTop);
+      }
+    });
     // Editor islands lose their scroll when replaceChildren detaches them.
     for (const ed of this.docEdit.values()) ed.island?.saveScroll();
     for (const ed of this.tplEdit.values()) ed.island?.saveScroll();
@@ -2450,29 +2669,19 @@ class App implements Ctx {
     dismissPreview();
     setPreviewRoot(this.snap.root);
 
-    const view = this.state.view;
     const activeEdit = this.editView();
-    let screen: HTMLElement;
-    if (this.state.tabs.length === 0) screen = this.emptyState();
-    else if (activeEdit !== null) screen = editorScreen(this, activeEdit);
-    else if (view === 'workorder' && this.doc()?.type === 'work-order') screen = workOrderView(this);
-    else if (view === 'homeview') screen = homeView(this);
-    else if (view === 'search') screen = searchView(this);
-    else if (view === 'settings') screen = settingsView(this);
-    else screen = readerView(this);
+    const ps = this.paneState();
+    // One .editor-area per pane (WO-055); split adds the divider between.
+    const paneEls = ps.panes.map((pane, i) => this.paneEl(pane, i, activeEdit));
+    const editorArea =
+      ps.panes.length === 2 ? h('div', { class: 'panes' }, paneEls[0], this.dividerEl(), paneEls[1]) : paneEls[0];
     const palette = this.paletteEl();
     const sheet = this.newProjectSheet();
     const toast = this.state.toast !== null ? h('div', { class: 'toast', role: 'status' }, this.state.toast) : null;
     const panel = this.typePanel();
     this.root.replaceChildren(
       this.topbar(),
-      h(
-        'div',
-        { class: 'body' },
-        this.sidebar(),
-        ...(panel !== null ? [panel] : []),
-        h('div', { class: 'editor-area' }, this.tabStrip(), screen),
-      ),
+      h('div', { class: 'body' }, this.sidebar(), ...(panel !== null ? [panel] : []), editorArea),
       ...(palette !== null ? [palette] : []),
       ...(sheet !== null ? [sheet] : []),
       ...(toast !== null ? [toast] : []),
@@ -2482,16 +2691,22 @@ class App implements Ctx {
 
     const newList = this.root.querySelector('.tp-list');
     if (newList !== null) newList.scrollTop = this.panelScroll;
-    const act = activeTab(this.tabState());
-    this.renderedEntry = act === null ? null : act.entries[act.index];
-    if (this.renderedEntry !== null) {
-      const saved = this.renderedEntry.scroll;
-      this.root.querySelectorAll(App.SCROLL_SEL).forEach((el, i) => {
-        if (saved[i] !== undefined) el.scrollTop = saved[i];
+    const newPanes = this.root.querySelectorAll<HTMLElement>('.editor-area');
+    this.renderedEntries = ps.panes.map((pane) => {
+      const act = activeTab(pane);
+      return act === null ? null : act.entries[act.index];
+    });
+    this.renderedEntries.forEach((entry, i) => {
+      const paneEl = newPanes[i];
+      if (entry === null || paneEl === undefined) return;
+      const saved = entry.scroll;
+      paneEl.querySelectorAll(App.SCROLL_SEL).forEach((el, j) => {
+        if (saved[j] !== undefined) el.scrollTop = saved[j];
       });
-    }
+    });
     if (activeEdit !== null) this.docEdit.get(activeEdit.id)?.island?.restoreScroll();
-    if (view === 'settings' && this.state.settingsSection === 'templates')
+    // Settings is a singleton — whichever pane shows it hosts the island.
+    if (ps.panes.some((p) => activeTarget(p) === 'settings') && this.state.settingsSection === 'templates')
       this.tplEdit.get(this.state.tplType)?.island?.restoreScroll();
 
     this.restoreFocus(beforeKeys, focusedKey);

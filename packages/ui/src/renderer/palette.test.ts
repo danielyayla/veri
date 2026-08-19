@@ -78,12 +78,20 @@ function commands(rows: ReturnType<typeof paletteRows>): string[] {
 }
 
 test('the new-project command matches its terms, whole or partial', () => {
-  for (const text of ['new', 'project', 'create', 'proj', 'n']) {
+  for (const text of ['new', 'project', 'create', 'proj']) {
     assert.deepEqual(commands(paletteRows(result({ text }, []))), ['new-project'], `query "${text}"`);
+  }
+  // "n" is a substring of both commands' terms ("new", "open").
+  assert.deepEqual(commands(paletteRows(result({ text: 'n' }, []))), ['new-project', 'open-beside']);
+});
+
+test('the open-beside command matches its terms, whole or partial (WO-055)', () => {
+  for (const text of ['open', 'beside', 'split', 'pane', 'side']) {
+    assert.deepEqual(commands(paletteRows(result({ text }, []))), ['open-beside'], `query "${text}"`);
   }
 });
 
-test('an unrelated query does not surface the new-project command', () => {
+test('an unrelated query does not surface any command', () => {
   assert.deepEqual(commands(paletteRows(result({ text: 'receipt' }, []))), []);
 });
 

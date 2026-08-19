@@ -433,6 +433,25 @@ a:hover { color: #F49463; }
 .tab-close:hover { background: var(--int-border); color: var(--text); }
 .tabstrip-fill { flex: 1; min-width: 24px; border-bottom: 1px solid var(--hair); }
 
+/* ===== Split panes (WO-055, SRC-027) — existing tokens only ===== */
+.panes { flex: 1; display: flex; min-width: 0; min-height: 0; }
+.panes > .editor-area { min-width: 320px; }
+.panes > .editor-area:last-child { flex: 1 1 0; }
+.pane-divider { flex: 0 0 6px; cursor: col-resize; position: relative; }
+.pane-divider::after {
+  content: ''; position: absolute; left: 2px; top: 0; bottom: 0; width: 1px;
+  background: var(--hair);
+}
+.pane-divider:hover::after, .pane-divider:focus-visible::after, .pane-divider-drag::after {
+  width: 2px; background: var(--hover-border-2);
+}
+/* The unfocused pane's strip dims: the active-tab accent drops to the muted
+   vocabulary (same idea as unfocused-window states), full strength only in
+   the focused pane. */
+.pane-unfocused .tab-active { box-shadow: inset 0 2px 0 var(--ghost); }
+.pane-unfocused .tab-active .tab-title { color: var(--muted); }
+.pane-unfocused .tab-id { opacity: .7; }
+
 /* Back/forward history buttons (WO-039, SRC-018) */
 .nav-hist {
   flex: 0 0 auto; display: flex; align-items: center; gap: 2px; padding: 0 4px;

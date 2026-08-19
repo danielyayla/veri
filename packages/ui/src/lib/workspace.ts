@@ -22,6 +22,12 @@ export interface WorkspaceState {
       before they existed. */
   tabs?: WorkspaceTab[];
   active?: number;
+  /** Split panes (WO-055, SRC-027), additive again: the second pane's tab
+      list and active index, plus the divider ratio — present only while
+      split. Absent fields restore to a single pane, exactly as before. */
+  tabs2?: WorkspaceTab[];
+  active2?: number;
+  ratio?: number;
 }
 
 interface WorkspaceFile {
@@ -66,6 +72,11 @@ const cleanTabs = (tabs: unknown): WorkspaceTab[] | undefined =>
 const cleanActive = (active: unknown): number | undefined =>
   typeof active === 'number' && Number.isInteger(active) && active >= 0 ? active : undefined;
 
+/** A divider ratio must be a real interior fraction; anything else drops
+    (the renderer falls back to 50/50). */
+const cleanRatio = (ratio: unknown): number | undefined =>
+  typeof ratio === 'number' && Number.isFinite(ratio) && ratio > 0 && ratio < 1 ? ratio : undefined;
+
 /** Absent optional fields stay absent — a pre-WO-054 entry round-trips
     byte-identical, and version stays 1. */
 function cleanState(state: WorkspaceState): WorkspaceState {
@@ -74,6 +85,12 @@ function cleanState(state: WorkspaceState): WorkspaceState {
   if (tabs !== undefined) out.tabs = tabs;
   const active = cleanActive(state.active);
   if (active !== undefined) out.active = active;
+  const tabs2 = cleanTabs(state.tabs2);
+  if (tabs2 !== undefined) out.tabs2 = tabs2;
+  const active2 = cleanActive(state.active2);
+  if (active2 !== undefined) out.active2 = active2;
+  const ratio = cleanRatio(state.ratio);
+  if (ratio !== undefined) out.ratio = ratio;
   return out;
 }
 

@@ -2,7 +2,7 @@
 id: WO-055
 type: work-order
 title: "Split panes"
-status: backlog
+status: in-progress
 created: 2026-08-19
 updated: 2026-08-19
 links:

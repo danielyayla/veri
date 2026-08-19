@@ -10,7 +10,7 @@ import type { ViewKey } from './tabs.ts';
 
 export const PALETTE_MAX_ROWS = 8;
 
-export type CommandKey = 'new-project';
+export type CommandKey = 'new-project' | 'open-beside';
 
 export type PaletteRow =
   | { kind: 'doc'; hit: PaletteHit }
@@ -25,6 +25,8 @@ export type PaletteRow =
     project-creating row there is a mis-Enter hazard. */
 const COMMAND_META: Record<CommandKey, { label: string; glyph: string; terms: string[] }> = {
   'new-project': { label: 'New project…', glyph: '+', terms: ['new', 'project', 'create'] },
+  // WO-055 (SRC-027): the current entry opens in the other pane — ⌘\.
+  'open-beside': { label: 'Open beside — ⌘\\', glyph: '◫', terms: ['open', 'beside', 'split', 'pane', 'side'] },
 };
 
 /** Extra query terms a view answers to beyond its label (WO-036: the
