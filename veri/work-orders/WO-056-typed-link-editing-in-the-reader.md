@@ -2,7 +2,7 @@
 id: WO-056
 type: work-order
 title: "Typed-link editing in the reader"
-status: backlog
+status: done
 created: 2026-08-19
 updated: 2026-08-19
 links:
@@ -39,12 +39,12 @@ Typed `links:` stop being raw-YAML-only ([[SRC-016]]): per [[SRC-028]], the read
 
 ## Acceptance tests
 
-- [ ] Adding a link from the reader writes a file that differs only in the `links:` block and `updated:`, passes `veri check`, and appears immediately in the Connections panel and graph surfaces
-- [ ] Removing a link removes exactly that entry; order of the others is preserved byte-for-byte
-- [ ] The rel datalist offers exactly the rels in use in the project; empty rel and unknown target are refused inline
-- [ ] Editing links on an accepted document succeeds and surfaces the expected drift advisory; `id:`/`approved:`/`status:` are untouched by the write path
-- [ ] `veri check` stays at zero issues (drift advisories aside); full typecheck and test suite pass
+- [x] Adding a link from the reader writes a file that differs only in the `links:` block and `updated:`, passes `veri check`, and appears immediately in the Connections panel and graph surfaces
+- [x] Removing a link removes exactly that entry; order of the others is preserved byte-for-byte
+- [x] The rel datalist offers exactly the rels in use in the project; empty rel and unknown target are refused inline
+- [x] Editing links on an accepted document succeeds and surfaces the expected drift advisory; `id:`/`approved:`/`status:` are untouched by the write path
+- [x] `veri check` stays at zero issues (drift advisories aside); full typecheck and test suite pass
 
 ## Receipts
 
-(none yet)
+- 2026-08-19 — b5d116e — packages/core/src/links.ts, packages/core/src/links.test.ts, packages/core/src/index.ts, packages/ui/src/lib/write.ts, packages/ui/src/lib/write.test.ts, packages/ui/src/main.ts, packages/ui/src/preload.mts, packages/ui/src/renderer/api.ts, packages/ui/src/renderer/app.ts, packages/ui/src/renderer/derive.ts, packages/ui/src/renderer/derive.test.ts, packages/ui/src/renderer/views/reader.ts, packages/ui/renderer/styles.css — claude-code session: links row expands into the reader's links editor over a new setLinks IPC and core's byte-preserving links-block rewrite (DEC-053); typecheck clean, 454 tests green, veri check 0 issues, advisories unchanged at 14 — note that link edits on accepted documents in live projects will surface WO-045 drift advisories by design; the remedy stays re-approval
