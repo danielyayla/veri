@@ -2,9 +2,10 @@
 id: DEC-042
 type: decision
 title: "Broken images are detected by the img element's error event, not an fs check"
-status: proposed
+status: active
+approved: 2026-08-19
 created: 2026-08-18
-updated: 2026-08-18
+updated: 2026-08-19
 links:
   - id: WO-046
     rel: constrains

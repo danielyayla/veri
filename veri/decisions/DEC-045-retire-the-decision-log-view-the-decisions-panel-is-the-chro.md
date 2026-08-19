@@ -2,9 +2,10 @@
 id: DEC-045
 type: decision
 title: "Retire the Decision log view; the Decisions panel is the chronological feed"
-status: proposed
+status: active
+approved: 2026-08-19
 created: 2026-08-18
-updated: 2026-08-18
+updated: 2026-08-19
 links:
   - id: WO-049
     rel: constrains

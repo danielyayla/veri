@@ -2,9 +2,10 @@
 id: DEC-043
 type: decision
 title: "Preview trigger is a pure reducer; dismissal rides capture listeners and the render pass"
-status: proposed
+status: active
+approved: 2026-08-19
 created: 2026-08-18
-updated: 2026-08-18
+updated: 2026-08-19
 links:
   - id: WO-047
     rel: constrains

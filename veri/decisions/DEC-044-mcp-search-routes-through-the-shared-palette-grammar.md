@@ -2,9 +2,10 @@
 id: DEC-044
 type: decision
 title: "MCP search routes through the shared palette grammar"
-status: proposed
+status: active
+approved: 2026-08-19
 created: 2026-08-18
-updated: 2026-08-18
+updated: 2026-08-19
 links:
   - id: WO-048
     rel: constrains
