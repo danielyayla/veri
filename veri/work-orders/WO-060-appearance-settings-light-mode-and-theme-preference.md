@@ -2,7 +2,7 @@
 id: WO-060
 type: work-order
 title: "Appearance settings — light mode and theme preference"
-status: backlog
+status: in-progress
 created: 2026-08-19
 updated: 2026-08-19
 links:

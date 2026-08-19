@@ -16,6 +16,10 @@ links:
     rel: builds-on
 ---
 
+> **Approved by Daniel 2026-08-19.** Palette, pane anatomy, and theme
+> model accepted as specified; implementation proceeds under
+> [[WO-060]].
+
 The design for [[WO-060]]: light-mode support and the Appearance
 section that controls it, filling the [[WO-036]] "Appearance · soon"
 placeholder. The high-fidelity handoff bundle (README + interactive
