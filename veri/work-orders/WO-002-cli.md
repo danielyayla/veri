@@ -53,5 +53,5 @@ All acceptance criteria of [[REQ-002]] verbatim (see that file).
   .github/workflows/ci.yml, core message refinement, DEC-005 — built the
   veri CLI (init, new, check, list) with bin wiring and CI; 30 tests
   green and `veri check` exits 0 on this repo
-- 2026-08-06 — 9371906 — package.json (root), .github/workflows/ci.yml — fixed CI on fresh checkouts: typecheck now builds first since cross-package types resolve to @veri/core dist; also added workflow_dispatch
-- 2026-08-07 — 2d62235 — package.json (root) — completed the CI fix: explicit core-first workspace build order (npm builds alphabetically); first green CI run on a fresh checkout
+- 2026-08-06 — package.json (root), .github/workflows/ci.yml — fixed CI on fresh checkouts: typecheck now builds first since cross-package types resolve to @veri/core dist; also added workflow_dispatch (commit 9371906, which predates the WO-nnn: subject convention)
+- 2026-08-07 — package.json (root) — completed the CI fix: explicit core-first workspace build order (npm builds alphabetically); first green CI run on a fresh checkout (commit 2d62235, which predates the WO-nnn: subject convention)
