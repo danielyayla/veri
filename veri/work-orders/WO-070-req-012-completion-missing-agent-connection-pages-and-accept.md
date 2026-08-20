@@ -2,7 +2,7 @@
 id: WO-070
 type: work-order
 title: "REQ-012 completion — missing agent connection pages and acceptance verification"
-status: backlog
+status: in-progress
 created: 2026-08-20
 updated: 2026-08-20
 links:
@@ -14,6 +14,8 @@ links:
     rel: extends
   - id: WO-065
     rel: extends
+  - id: SRC-035
+    rel: designed-by
 ---
 
 ## Summary
