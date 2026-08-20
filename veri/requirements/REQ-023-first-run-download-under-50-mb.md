@@ -2,9 +2,10 @@
 id: REQ-023
 type: requirement
 title: First-run download under 50 MB
-status: draft
+status: accepted
+approved: 2026-08-20
 created: 2026-08-21
-updated: 2026-08-21
+updated: 2026-08-20
 links:
   - id: SRC-037
     rel: informed-by

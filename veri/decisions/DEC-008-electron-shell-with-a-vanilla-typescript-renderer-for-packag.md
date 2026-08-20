@@ -2,7 +2,8 @@
 id: DEC-008
 type: decision
 title: "Electron shell with a vanilla TypeScript renderer for packages/ui"
-status: active
+status: superseded
+superseded_by: DEC-063
 approved: 2026-08-10
 created: 2026-08-07
 updated: 2026-08-07

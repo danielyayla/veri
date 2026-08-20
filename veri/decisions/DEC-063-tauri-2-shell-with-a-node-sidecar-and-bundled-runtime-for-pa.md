@@ -2,7 +2,8 @@
 id: DEC-063
 type: decision
 title: "Tauri 2 shell with a Node sidecar and bundled runtime for packages/ui"
-status: proposed
+status: active
+approved: 2026-08-20
 created: 2026-08-20
 updated: 2026-08-20
 links:

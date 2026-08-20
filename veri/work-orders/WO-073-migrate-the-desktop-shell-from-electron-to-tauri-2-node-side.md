@@ -14,6 +14,10 @@ links:
     rel: follows-from
   - id: DEC-008
     rel: supersedes-pending
+  - id: SRC-038
+    rel: designed-by
+  - id: DEC-063
+    rel: constrained-by
 ---
 
 ## Summary
