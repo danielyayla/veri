@@ -45,14 +45,14 @@ Codex CLI's MCP config is user-global (`~/.codex/config.toml`), but the agent pi
 
 ## Acceptance tests
 
-- [ ] From a project whose root differs from the recognized TOML block's root argument, `detectAgents` reports Codex as `not-connected`, not `connected`.
-- [ ] `connectAgent` on that config replaces the veri block in place: exactly one `[mcp_servers.veri]` section afterward, root argument updated, every other line of the file preserved verbatim.
-- [ ] Re-detecting from the newly connected project reports `connected`; from the old project, `not-connected`.
-- [ ] A recognized JSON entry whose root argument resolves elsewhere reports `not-connected`; a relative root that resolves to the project (e.g. `"."`) still reports `connected`.
-- [ ] Foreign TOML/JSON veri entries still report `conflict` and are never written.
-- [ ] The `site/docs/connect-codex-cli.html` callout describes the automatic re-point instead of the manual edit.
-- [ ] `veri check` reports zero issues; the ui test suite passes.
+- [x] From a project whose root differs from the recognized TOML block's root argument, `detectAgents` reports Codex as `not-connected`, not `connected`.
+- [x] `connectAgent` on that config replaces the veri block in place: exactly one `[mcp_servers.veri]` section afterward, root argument updated, every other line of the file preserved verbatim.
+- [x] Re-detecting from the newly connected project reports `connected`; from the old project, `not-connected`.
+- [x] A recognized JSON entry whose root argument resolves elsewhere reports `not-connected`; a relative root that resolves to the project (e.g. `"."`) still reports `connected`.
+- [x] Foreign TOML/JSON veri entries still report `conflict` and are never written.
+- [x] The `site/docs/connect-codex-cli.html` callout describes the automatic re-point instead of the manual edit.
+- [x] `veri check` reports zero issues; the ui test suite passes.
 
 ## Receipts
 
-(none yet)
+- 2026-08-20 — 1ce6d5f — packages/ui/src/lib/agents.ts, packages/ui/src/lib/agents.test.ts, packages/ui/src/renderer/views/workorder.ts, site/docs/connect-codex-cli.html — Root-aware status for recognized entries (TOML and JSON), in-place args re-point of Veri's own stale Codex block, picker copy and docs callout updated; 2 new tests, ui suite 276/276, veri check 0 issues.
