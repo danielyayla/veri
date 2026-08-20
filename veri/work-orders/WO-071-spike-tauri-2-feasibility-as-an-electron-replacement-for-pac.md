@@ -49,4 +49,4 @@ A time-boxed feasibility spike, not a migration: boot the existing packages/ui r
 
 ## Receipts
 
-(none yet)
+- 2026-08-20 — c84613f — veri/sources/SRC-037-spike-report-tauri-2-feasibility-for-the-desktop-shell.md, veri/work-orders/WO-071-…md, veri/ids (spike code outside repo: scratchpad/veri-tauri-spike — sidecar.mjs, shim.js, src-tauri/) — Spike executed end to end: renderer booted in Tauri 2, all four capabilities green in the automated acceptance run (incl. live MCP handshake, 7 tools), measurements taken, SRC-037 report filed; WO left in backlog for Daniel's review.
