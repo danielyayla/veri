@@ -2,7 +2,7 @@
 id: WO-028
 type: work-order
 title: Packaged releases and auto-update for the desktop app
-status: in-progress
+status: backlog
 created: 2026-08-17
 updated: 2026-08-17
 links:
@@ -90,6 +90,15 @@ current, not a dev checkout.
 - [x] Packager and feed-host choices are filed as proposed DECs with
       rejected alternatives.
 - [x] `veri check` and `npm test` are clean.
+
+## Notes
+
+- 2026-08-21 — Returned to backlog: [[DEC-008]] was superseded by
+  [[DEC-063]] (Tauri 2 shell), so this WO's remaining Electron-specific
+  boxes (differential updates, signed CI release on the Electron line)
+  lost their authority. [[WO-073]] carries the release/updater/signing
+  scope forward on the Tauri line, including the bridge for installs
+  this WO shipped. Receipts below record the work that did land.
 
 ## Receipts
 
