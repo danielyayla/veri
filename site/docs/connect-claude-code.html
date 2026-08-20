@@ -36,7 +36,7 @@
 <p class="doc-lead">Veri's connection panel writes one config format: a project-scoped <code>.mcp.json</code>. This page documents exactly what gets written, where, and how to verify it works — for Claude Code and for any client that can launch a stdio MCP server. Using a different agent? See <a href="connect-cursor.html">Cursor</a>, <a href="connect-codex-cli.html">Codex CLI</a>, or <a href="connect-gemini.html">Gemini CLI</a>.</p>
 
 <h2>What Veri writes</h2>
-<p>Open the project in Veri, click the <code>⌁</code> icon at the bottom of the left rail, and click <b>Set up connection</b>. Veri writes a <code>.mcp.json</code> file at the <b>project root</b> — the directory that contains <code>veri/</code>, which is where Claude Code looks for project-scoped MCP config:</p>
+<p>Open the project in Veri, click <b>Settings</b> at the bottom of the left rail, choose <b>Agent connection</b>, and click <b>Set up connection</b>. Veri writes a <code>.mcp.json</code> file at the <b>project root</b> — the directory that contains <code>veri/</code>, which is where Claude Code looks for project-scoped MCP config:</p>
 <pre><code>{
   "mcpServers": {
     "veri": {
