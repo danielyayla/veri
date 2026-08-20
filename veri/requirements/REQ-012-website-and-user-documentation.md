@@ -3,9 +3,9 @@ id: REQ-012
 type: requirement
 title: "Website and user documentation"
 status: accepted
-approved: 2026-08-17
+approved: 2026-08-20
 created: 2026-08-17
-updated: 2026-08-17
+updated: 2026-08-20
 links:
   - id: SRC-012
     rel: informed-by
