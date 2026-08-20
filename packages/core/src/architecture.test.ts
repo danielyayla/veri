@@ -6,7 +6,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadProject } from './load.ts';
 import { checkProject } from './check.ts';
-import { assembleArchitecture, checkArchitecture, moduleRegistry, renderArchitecture } from './architecture.ts';
+import { assembleArchitecture, checkArchitecture, checkObservedArchitecture, moduleRegistry, renderArchitecture } from './architecture.ts';
+import type { ImportEdge } from './architecture.ts';
 
 // --- Fixture builders (DEC-058's canonical shapes) ---
 
@@ -200,6 +201,73 @@ test('two active decisions asserting opposite allowed for one edge conflict in c
   const text = renderArchitecture(load.documents);
   assert.match(text, /Conflicts/);
   assert.match(text, /ui → core: allowed by DEC-001 but forbidden by DEC-002/);
+});
+
+// --- Observed architecture (WO-067): pure comparison over fixture edges ---
+
+const OBSERVED_CORE_UI: ImportEdge[] = [
+  { from: 'core', to: 'ui', file: 'packages/core/src/render.ts', specifier: '@x/ui' },
+];
+
+test('an observed edge a decision forbids is a violation citing file, specifier, and DEC id', async (t) => {
+  const dir = project(t, { 'decisions/DEC-001-arch.md': decision('DEC-001', 'active', WELL_FORMED) });
+  const load = await loadProject(dir);
+  const violations = checkObservedArchitecture(load.documents, OBSERVED_CORE_UI);
+  assert.partialDeepStrictEqual(violations, [
+    {
+      kind: 'arch-violation',
+      file: 'packages/core/src/render.ts',
+      id: 'DEC-001',
+      from: 'core',
+      to: 'ui',
+      specifier: '@x/ui',
+      forbiddenBy: ['DEC-001'],
+    },
+  ]);
+  assert.match(violations[0].message, /imports "@x\/ui"/);
+  assert.match(violations[0].message, /forbidden by DEC-001/);
+});
+
+test('allowed and unconstrained observed edges produce no findings', async (t) => {
+  const allow = 'architecture:\n  constraints:\n    - from: ui\n      to: core\n      allowed: true\n';
+  const dir = project(t, { 'decisions/DEC-001-allow.md': decision('DEC-001', 'active', allow) });
+  const load = await loadProject(dir);
+  const edges: ImportEdge[] = [
+    { from: 'ui', to: 'core', file: 'packages/ui/src/app.ts', specifier: '@x/core' }, // allowed
+    { from: 'cli', to: 'core', file: 'packages/cli/src/run.ts', specifier: '@x/core' }, // unconstrained
+  ];
+  assert.deepEqual(checkObservedArchitecture(load.documents, edges), []);
+});
+
+test('a proposed decision forbidding an edge fires no violation until approved', async (t) => {
+  const dir = project(t, { 'decisions/DEC-001-arch.md': decision('DEC-001', 'proposed', WELL_FORMED) });
+  const load = await loadProject(dir);
+  assert.deepEqual(checkObservedArchitecture(load.documents, OBSERVED_CORE_UI), []);
+});
+
+test('a conflicted edge is an issue, not a violation — silent until one decision is retired', async (t) => {
+  const allow = 'architecture:\n  constraints:\n    - from: core\n      to: ui\n      allowed: true\n';
+  const forbid = 'architecture:\n  constraints:\n    - from: core\n      to: ui\n      allowed: false\n';
+  const dir = project(t, {
+    'decisions/DEC-001-allow.md': decision('DEC-001', 'active', allow),
+    'decisions/DEC-002-forbid.md': decision('DEC-002', 'active', forbid),
+  });
+  const load = await loadProject(dir);
+  assert.equal(checkArchitecture(load.documents).length, 1); // the arch-conflict issue owns this edge
+  assert.deepEqual(checkObservedArchitecture(load.documents, OBSERVED_CORE_UI), []);
+});
+
+test('the printout gains a violations section only when observed facts are supplied', async (t) => {
+  const dir = project(t, { 'decisions/DEC-001-arch.md': decision('DEC-001', 'active', WELL_FORMED) });
+  const load = await loadProject(dir);
+  const base = renderArchitecture(load.documents);
+  assert.ok(!base.includes('Violations'));
+  const withViolation = renderArchitecture(load.documents, OBSERVED_CORE_UI);
+  assert.ok(withViolation.startsWith(base)); // the WO-066 printout is byte-identical up front
+  assert.match(withViolation, /Violations — observed imports vs the intended architecture/);
+  assert.match(withViolation, /core → ui\s+packages\/core\/src\/render\.ts imports "@x\/ui"\s+\(forbidden by DEC-001\)/);
+  const clean = renderArchitecture(load.documents, []);
+  assert.match(clean, /\(none — observed imports respect every active constraint\)/);
 });
 
 test('agreeing decisions on the same edge are not a conflict', async (t) => {

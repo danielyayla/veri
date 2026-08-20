@@ -51,7 +51,22 @@ export type Advisory =
   // own stamps. Advisories whisper — they inform and never block (DEC-025).
   | { kind: 'drift-superseded-link'; file: string; id: string; targetId: string; message: string }
   | { kind: 'drift-edited-after-done'; file: string; id: string; workOrderId: string; sha: string; message: string }
-  | { kind: 'drift-approved-edited'; file: string; id: string; sha: string; message: string };
+  | { kind: 'drift-approved-edited'; file: string; id: string; sha: string; message: string }
+  // Observed architecture (WO-067, REQ-022): the code contains an edge an
+  // active decision forbids. Advisory — intended-vs-observed deviation is
+  // drift, and drift informs, never blocks (DEC-025). `file` is the
+  // importing source file, project-root-relative; `id` anchors the finding
+  // to its governing decision, the document that holds the rationale.
+  | {
+      kind: 'arch-violation';
+      file: string;
+      id: string;
+      from: string;
+      to: string;
+      specifier: string;
+      forbiddenBy: string[];
+      message: string;
+    };
 
 export type Issue =
   | {

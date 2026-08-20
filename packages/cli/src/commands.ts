@@ -3,9 +3,11 @@ import { existsSync, realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, checkDrift, checkProject, checkProvenance, classifyFormat, compareIds, createDocument, formatStatement, isOperableFormat, loadProject, migrateProject, renderArchitecture, scaffoldProject, workOrdersTouching } from '@veri/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, checkDrift, checkObservedArchitecture, checkProject, checkProvenance, classifyFormat, compareIds, createDocument, formatStatement, isOperableFormat, loadProject, migrateProject, moduleRegistry, renderArchitecture, scaffoldProject, workOrdersTouching } from '@veri/core';
 import type { DocType, FormatClassification, Issue } from '@veri/core';
 import { collectGitFacts } from './git.ts';
+import { collectImportFacts } from './imports.ts';
+import type { ImportFactsResult } from './imports.ts';
 
 export interface CmdResult {
   code: number;
@@ -87,6 +89,13 @@ function formatLine(format: FormatClassification): string {
   return formatStatement(format) ?? `format ${String(format.kind)}`;
 }
 
+/** Skip notes for registry modules the collector could not find on disk (WO-067). */
+function importSkipNotes(observed: ImportFactsResult | undefined): string[] {
+  return (observed?.skipped ?? []).map(
+    (entry) => `(architecture: skipped module ${entry.name} — ${entry.path} is not on disk)`,
+  );
+}
+
 export async function check(cwd: string): Promise<CmdResult> {
   const dir = requireVeriDir(cwd);
   if (dir === null) return NO_VERI_DIR;
@@ -100,7 +109,18 @@ export async function check(cwd: string): Promise<CmdResult> {
     advisories.push(...checkProvenance(load.documents, git.facts));
     advisories.push(...checkDrift(load.documents, git.facts, veriPathInRepo(git.root, dir)));
   }
-  const skipNote = git.kind === 'ok' ? [] : [`(provenance: skipped — ${git.reason})`];
+  // Observed architecture (WO-067): the host collects import edges, core
+  // compares them against the intended architecture — same split (DEC-040),
+  // same advisory tier (DEC-025). No registry means nothing to observe.
+  const modules = moduleRegistry(load.documents);
+  const observed = modules.length > 0 ? collectImportFacts(cwd, modules) : undefined;
+  if (observed !== undefined) {
+    advisories.push(...checkObservedArchitecture(load.documents, observed.edges));
+  }
+  const skipNote = [
+    ...(git.kind === 'ok' ? [] : [`(provenance: skipped — ${git.reason})`]),
+    ...importSkipNotes(observed),
+  ];
   // Advisories print after issues and never touch the count or exit code (DEC-025).
   const advisoryLines = advisories.map((advisory) => `(advisory) ${advisory.file}: ${advisory.message}`);
   // The format line leads the report (REQ-015); issues, then advisories, then
@@ -188,8 +208,10 @@ export async function context(cwd: string, idArg: string | undefined): Promise<C
 /**
  * The compiled intended architecture (DEC-058, WO-066): modules from the
  * registry, then every constraint active decisions assert, each citing its
- * governing DEC. Same format guard as context (REQ-015); rendering lives in
- * core so every surface prints the identical projection.
+ * governing DEC. With a registry to scan, the observed side rides along
+ * (WO-067): collected import edges give the printout its violations
+ * section. Same format guard as context (REQ-015); rendering lives in core
+ * so every surface prints the identical projection.
  */
 export async function architecture(cwd: string): Promise<CmdResult> {
   const dir = requireVeriDir(cwd);
@@ -199,7 +221,12 @@ export async function architecture(cwd: string): Promise<CmdResult> {
     return { code: 1, lines: [formatStatement(format) ?? 'format mismatch'] };
   }
   const load = await loadProject(dir);
-  return { code: 0, lines: [renderArchitecture(load.documents)] };
+  const modules = moduleRegistry(load.documents);
+  const observed = modules.length > 0 ? collectImportFacts(cwd, modules) : undefined;
+  return {
+    code: 0,
+    lines: [renderArchitecture(load.documents, observed?.edges), ...importSkipNotes(observed)],
+  };
 }
 
 /** The user's consent act for REQ-015 migrations: invoking this command IS the consent. */

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -330,4 +330,54 @@ test('veri architecture prints the compiled projection, deterministically', asyn
   const failed = await check(cwd);
   assert.equal(failed.code, 1);
   assert.ok(failed.lines.some((line) => line.includes('DEC-002') && line.includes('"electorn"')), failed.lines.join('\n'));
+});
+
+test('a forbidden observed import is a check advisory and an architecture violations row, never the exit code', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  init(cwd, { demo: false });
+
+  // Registry (DEC-059) with one module deliberately absent from disk, and an
+  // active decision forbidding alpha → beta (DEC-058).
+  const wf = join(cwd, 'veri/workflow.md');
+  writeFileSync(
+    wf,
+    readFileSync(wf, 'utf8').replace(
+      '---\n',
+      '---\nmodules:\n  - name: alpha\n    path: packages/alpha\n    purpose: Foundation\n  - name: beta\n    path: packages/beta\n    purpose: Surface\n  - name: ghost\n    path: packages/ghost\n    purpose: Not on disk\n',
+    ),
+  );
+  writeFileSync(
+    join(cwd, 'veri/decisions/DEC-001-boundary.md'),
+    '---\nid: DEC-001\ntype: decision\ntitle: Boundary\nstatus: active\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\narchitecture:\n  constraints:\n    - from: alpha\n      to: beta\n      allowed: false\n---\n## Choice\n\nAlpha stays pure.\n',
+  );
+  // The codebase violates the decision. (The specifier is harmless to this
+  // repo's own dogfood scan — @t/beta resolves to nothing here.)
+  mkdirSync(join(cwd, 'packages/alpha/src'), { recursive: true });
+  mkdirSync(join(cwd, 'packages/beta'), { recursive: true });
+  writeFileSync(join(cwd, 'packages/alpha/package.json'), JSON.stringify({ name: '@t/alpha' }));
+  writeFileSync(join(cwd, 'packages/beta/package.json'), JSON.stringify({ name: '@t/beta' }));
+  writeFileSync(join(cwd, 'packages/alpha/src/main.ts'), "import thing from '@t/beta';\n");
+
+  // The violation rides the advisory tier: exit 0, zero issues (DEC-025).
+  const checked = await check(cwd);
+  assert.equal(checked.code, 0, checked.lines.join('\n'));
+  assert.match(checked.lines.at(-1) ?? '', /0 issues/);
+  assert.ok(
+    checked.lines.includes(
+      '(advisory) packages/alpha/src/main.ts: imports "@t/beta" — the alpha → beta edge is forbidden by DEC-001',
+    ),
+    checked.lines.join('\n'),
+  );
+  assert.ok(
+    checked.lines.includes('(architecture: skipped module ghost — packages/ghost is not on disk)'),
+    checked.lines.join('\n'),
+  );
+
+  const arch = await architecture(cwd);
+  assert.equal(arch.code, 0);
+  const text = arch.lines.join('\n');
+  assert.match(text, /Violations — observed imports vs the intended architecture/);
+  assert.match(text, /alpha → beta\s+packages\/alpha\/src\/main\.ts imports "@t\/beta"\s+\(forbidden by DEC-001\)/);
+  assert.match(text, /\(architecture: skipped module ghost — packages\/ghost is not on disk\)/);
 });

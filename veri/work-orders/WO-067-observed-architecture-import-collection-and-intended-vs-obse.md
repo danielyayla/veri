@@ -2,7 +2,7 @@
 id: WO-067
 type: work-order
 title: "Observed architecture: import collection and intended-vs-observed violations"
-status: backlog
+status: in-progress
 created: 2026-08-20
 updated: 2026-08-20
 links:
