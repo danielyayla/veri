@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assembleContext } from '@veri/core';
-import { approve, check, context, init, list, migrate, newDoc, open } from './commands.ts';
+import { approve, architecture, check, context, init, list, migrate, newDoc, open } from './commands.ts';
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const FIVE_ISSUES = fileURLToPath(new URL('../fixtures/five-issues', import.meta.url));
@@ -292,4 +292,42 @@ test('open refuses a non-project directory and reports a missing desktop app', (
   });
   assert.equal(noApp.code, 1);
   assert.match(noApp.lines[0], /cannot find the Veri desktop app/);
+});
+
+test('veri architecture prints the compiled projection, deterministically', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  init(cwd, { demo: false });
+
+  // Declare the module registry on the workflow document (DEC-059) and an
+  // active decision carrying a constraint (DEC-058).
+  const wf = join(cwd, 'veri/workflow.md');
+  writeFileSync(
+    wf,
+    readFileSync(wf, 'utf8').replace(
+      '---\n',
+      '---\nmodules:\n  - name: core\n    path: packages/core\n    purpose: Pure domain logic\n  - name: ui\n    path: packages/ui\n    purpose: Desktop app\n',
+    ),
+  );
+  writeFileSync(
+    join(cwd, 'veri/decisions/DEC-001-boundary.md'),
+    '---\nid: DEC-001\ntype: decision\ntitle: Boundary\nstatus: active\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\narchitecture:\n  constraints:\n    - from: core\n      to: ui\n      allowed: false\n---\n## Choice\n\nCore stays pure.\n',
+  );
+
+  assert.equal((await check(cwd)).code, 0);
+  const first = await architecture(cwd);
+  assert.equal(first.code, 0, first.lines.join('\n'));
+  const text = first.lines.join('\n');
+  assert.match(text, /core\s+packages\/core\s+Pure domain logic/);
+  assert.match(text, /core → ui\s+forbidden\s+\(DEC-001\)/);
+  assert.equal(text, (await architecture(cwd)).lines.join('\n'));
+
+  // The typo case: an unknown module fails check, citing the decision.
+  writeFileSync(
+    join(cwd, 'veri/decisions/DEC-002-typo.md'),
+    '---\nid: DEC-002\ntype: decision\ntitle: Typo\nstatus: proposed\ncreated: 2026-08-01\nupdated: 2026-08-01\narchitecture:\n  constraints:\n    - from: core\n      to: electorn\n      allowed: false\n---\n## Choice\n\nOops.\n',
+  );
+  const failed = await check(cwd);
+  assert.equal(failed.code, 1);
+  assert.ok(failed.lines.some((line) => line.includes('DEC-002') && line.includes('"electorn"')), failed.lines.join('\n'));
 });

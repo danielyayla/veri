@@ -2,7 +2,7 @@
 id: WO-066
 type: work-order
 title: "Architecture constraints: schema validation, module registry, and the compiled projection"
-status: backlog
+status: in-progress
 created: 2026-08-20
 updated: 2026-08-20
 links:
@@ -30,7 +30,7 @@ Makes DEC-058's convention real, delivering its two hard requirements in one uni
 ## Out of scope
 
 - Observed architecture: import scanning, dependency extraction, or intended-vs-observed drift — a later WO once the intended side exists
-- Any `packages/ui` surface (would trip the design gate) and any new MCP tool
+- Any desktop-app UI surface (that package is design-gated, DEC-012) and any new MCP tool
 - Hierarchical or glob module ids (`plugins/*`, `billing/schema`) — DEC-058's survey found flat names sufficient to start; revisit on demand
 - Authoring actual constraints for Veri's own packages — that is policy, filed as its own decision once this mechanism ships, so mechanism and policy stay separately supersedable
 - Constraint kinds beyond `{from, to, allowed}` (no layering, visibility, or export rules)

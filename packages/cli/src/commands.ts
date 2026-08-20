@@ -3,7 +3,7 @@ import { existsSync, realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, checkDrift, checkProject, checkProvenance, classifyFormat, compareIds, createDocument, formatStatement, isOperableFormat, loadProject, migrateProject, scaffoldProject, workOrdersTouching } from '@veri/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, checkDrift, checkProject, checkProvenance, classifyFormat, compareIds, createDocument, formatStatement, isOperableFormat, loadProject, migrateProject, renderArchitecture, scaffoldProject, workOrdersTouching } from '@veri/core';
 import type { DocType, FormatClassification, Issue } from '@veri/core';
 import { collectGitFacts } from './git.ts';
 
@@ -183,6 +183,23 @@ export async function context(cwd: string, idArg: string | undefined): Promise<C
   } catch (err) {
     return { code: 1, lines: [(err as Error).message] };
   }
+}
+
+/**
+ * The compiled intended architecture (DEC-058, WO-066): modules from the
+ * registry, then every constraint active decisions assert, each citing its
+ * governing DEC. Same format guard as context (REQ-015); rendering lives in
+ * core so every surface prints the identical projection.
+ */
+export async function architecture(cwd: string): Promise<CmdResult> {
+  const dir = requireVeriDir(cwd);
+  if (dir === null) return NO_VERI_DIR;
+  const format = classifyFormat(dir);
+  if (!isOperableFormat(format)) {
+    return { code: 1, lines: [formatStatement(format) ?? 'format mismatch'] };
+  }
+  const load = await loadProject(dir);
+  return { code: 0, lines: [renderArchitecture(load.documents)] };
 }
 
 /** The user's consent act for REQ-015 migrations: invoking this command IS the consent. */

@@ -6,6 +6,7 @@ export * from './format.ts';
 export * from './load.ts';
 export * from './graph.ts';
 export * from './check.ts';
+export * from './architecture.ts';
 export * from './approve.ts';
 export * from './scaffold.ts';
 export * from './save.ts';

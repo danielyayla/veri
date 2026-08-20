@@ -1,0 +1,214 @@
+import { test } from 'node:test';
+import type { TestContext } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { loadProject } from './load.ts';
+import { checkProject } from './check.ts';
+import { assembleArchitecture, checkArchitecture, moduleRegistry, renderArchitecture } from './architecture.ts';
+
+// --- Fixture builders (DEC-058's canonical shapes) ---
+
+const WORKFLOW_WITH_MODULES = `---
+id: WF-001
+type: workflow
+title: W
+status: accepted
+approved: 2026-08-01
+created: 2026-08-01
+updated: 2026-08-01
+modules:
+  - name: core
+    path: packages/core
+    purpose: Pure domain logic
+  - name: ui
+    path: packages/ui
+    purpose: Desktop app
+  - name: cli
+    path: packages/cli
+    purpose: Terminal surface
+---
+Rules.
+`;
+
+function decision(id: string, status: string, architecture: string): string {
+  const superseded = status === 'superseded' ? `superseded_by: DEC-099\n` : '';
+  return `---
+id: ${id}
+type: decision
+title: T ${id}
+status: ${status}
+approved: 2026-08-01
+created: 2026-08-01
+updated: 2026-08-01
+${superseded}${architecture}---
+## Choice
+
+Something.
+`;
+}
+
+function project(t: TestContext, files: Record<string, string>): string {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-arch-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  mkdirSync(join(dir, 'decisions'), { recursive: true });
+  writeFileSync(join(dir, 'workflow.md'), files['workflow.md'] ?? WORKFLOW_WITH_MODULES);
+  for (const [file, content] of Object.entries(files)) {
+    if (file !== 'workflow.md') writeFileSync(join(dir, file), content);
+  }
+  return dir;
+}
+
+const WELL_FORMED = `architecture:
+  constraints:
+    - from: core
+      to: [ui, cli]
+      allowed: false
+`;
+
+// --- Schema: well-formed passes, malformed is an issue naming the file ---
+
+test('a well-formed architecture block referencing known modules passes check', async (t) => {
+  const dir = project(t, { 'decisions/DEC-001-arch.md': decision('DEC-001', 'active', WELL_FORMED) });
+  const load = await loadProject(dir);
+  assert.deepEqual(checkProject(load).issues, []);
+  const { rules } = assembleArchitecture(load.documents);
+  assert.deepEqual(rules, [
+    { from: 'core', to: 'ui', allowed: false, decisionId: 'DEC-001' },
+    { from: 'core', to: 'cli', allowed: false, decisionId: 'DEC-001' },
+  ]);
+});
+
+const MALFORMED: Array<[string, string]> = [
+  ['missing allowed', 'architecture:\n  constraints:\n    - from: core\n      to: ui\n'],
+  ['wrong shape', 'architecture:\n  constraints: not-a-list\n'],
+  ['non-string non-list to', 'architecture:\n  constraints:\n    - from: core\n      to: 5\n      allowed: false\n'],
+  ['empty to list', 'architecture:\n  constraints:\n    - from: core\n      to: []\n      allowed: false\n'],
+];
+
+for (const [label, block] of MALFORMED) {
+  test(`a malformed architecture block (${label}) is a check issue naming the document`, async (t) => {
+    const dir = project(t, { 'decisions/DEC-001-arch.md': decision('DEC-001', 'active', block) });
+    const load = await loadProject(dir);
+    const issues = checkProject(load).issues;
+    assert.ok(issues.length > 0, 'expected at least one issue');
+    assert.ok(
+      issues.every(
+        (issue) => issue.kind === 'invalid-frontmatter' && issue.file === 'decisions/DEC-001-arch.md',
+      ),
+      JSON.stringify(issues, null, 2),
+    );
+  });
+}
+
+// --- Registry resolution: the typo case ---
+
+test('a constraint naming a module absent from the registry is a check issue', async (t) => {
+  const block = 'architecture:\n  constraints:\n    - from: core\n      to: electron\n      allowed: false\n';
+  const dir = project(t, { 'decisions/DEC-001-arch.md': decision('DEC-001', 'active', block) });
+  const load = await loadProject(dir);
+  const issues = checkProject(load).issues;
+  assert.partialDeepStrictEqual(issues, [
+    { kind: 'arch-unknown-module', id: 'DEC-001', module: 'electron', file: 'decisions/DEC-001-arch.md' },
+  ]);
+  assert.match(issues[0].message, /known modules: core, ui, cli/);
+});
+
+test('an empty registry makes every constraint an issue, with the declare-modules hint', async (t) => {
+  const noModules = WORKFLOW_WITH_MODULES.replace(/modules:[\s\S]*?---/, '---');
+  const dir = project(t, {
+    'workflow.md': noModules,
+    'decisions/DEC-001-arch.md': decision('DEC-001', 'proposed', WELL_FORMED),
+  });
+  const load = await loadProject(dir);
+  const issues = checkArchitecture(load.documents);
+  assert.equal(issues.length, 3); // core, ui, cli all unknown
+  assert.match(issues[0].message, /no modules are declared/);
+});
+
+test('a superseded decision with a stale module name is history, not an issue', async (t) => {
+  const block = 'architecture:\n  constraints:\n    - from: gone\n      to: core\n      allowed: false\n';
+  const dir = project(t, { 'decisions/DEC-001-arch.md': decision('DEC-001', 'superseded', block) });
+  const load = await loadProject(dir);
+  // DEC-099 doesn't exist → broken-link fires, but no arch issue.
+  assert.deepEqual(checkArchitecture(load.documents), []);
+});
+
+// --- Projection: active only, DEC ids, statuses, determinism ---
+
+test('proposed decisions contribute nothing; superseding retires rules with no other edit', async (t) => {
+  const files = (status: string): Record<string, string> => ({
+    'decisions/DEC-001-arch.md': decision('DEC-001', status, WELL_FORMED),
+  });
+  const active = await loadProject(project(t, files('active')));
+  assert.equal(assembleArchitecture(active.documents).rules.length, 2);
+
+  const proposed = await loadProject(project(t, files('proposed')));
+  assert.deepEqual(assembleArchitecture(proposed.documents).rules, []);
+  assert.ok(!renderArchitecture(proposed.documents).includes('DEC-001'));
+
+  const superseded = await loadProject(project(t, files('superseded')));
+  assert.deepEqual(assembleArchitecture(superseded.documents).rules, []);
+});
+
+test('the registry lists workflow modules in declaration order', async (t) => {
+  const load = await loadProject(project(t, {}));
+  assert.deepEqual(
+    moduleRegistry(load.documents).map((entry) => entry.name),
+    ['core', 'ui', 'cli'],
+  );
+});
+
+test('the printout lists modules with purposes and every constraint with its DEC id', async (t) => {
+  const dir = project(t, { 'decisions/DEC-001-arch.md': decision('DEC-001', 'active', WELL_FORMED) });
+  const load = await loadProject(dir);
+  const text = renderArchitecture(load.documents);
+  assert.match(text, /core\s+packages\/core\s+Pure domain logic/);
+  assert.match(text, /core → ui\s+forbidden\s+\(DEC-001\)/);
+  assert.match(text, /core → cli\s+forbidden\s+\(DEC-001\)/);
+});
+
+test('projection output is byte-identical across repeated runs on the same files', async (t) => {
+  const dir = project(t, { 'decisions/DEC-001-arch.md': decision('DEC-001', 'active', WELL_FORMED) });
+  const first = renderArchitecture((await loadProject(dir)).documents);
+  const second = renderArchitecture((await loadProject(dir)).documents);
+  assert.equal(first, second);
+});
+
+// --- Conflicts ---
+
+test('two active decisions asserting opposite allowed for one edge conflict in check and printout', async (t) => {
+  const allow = 'architecture:\n  constraints:\n    - from: ui\n      to: core\n      allowed: true\n';
+  const forbid = 'architecture:\n  constraints:\n    - from: ui\n      to: core\n      allowed: false\n';
+  const dir = project(t, {
+    'decisions/DEC-001-allow.md': decision('DEC-001', 'active', allow),
+    'decisions/DEC-002-forbid.md': decision('DEC-002', 'active', forbid),
+  });
+  const load = await loadProject(dir);
+  const issues = checkProject(load).issues;
+  assert.partialDeepStrictEqual(issues, [
+    {
+      kind: 'arch-conflict',
+      from: 'ui',
+      to: 'core',
+      allowedBy: ['DEC-001'],
+      forbiddenBy: ['DEC-002'],
+      file: 'decisions/DEC-002-forbid.md',
+    },
+  ]);
+  const text = renderArchitecture(load.documents);
+  assert.match(text, /Conflicts/);
+  assert.match(text, /ui → core: allowed by DEC-001 but forbidden by DEC-002/);
+});
+
+test('agreeing decisions on the same edge are not a conflict', async (t) => {
+  const forbid = 'architecture:\n  constraints:\n    - from: ui\n      to: core\n      allowed: false\n';
+  const dir = project(t, {
+    'decisions/DEC-001-a.md': decision('DEC-001', 'active', forbid),
+    'decisions/DEC-002-b.md': decision('DEC-002', 'active', forbid),
+  });
+  const load = await loadProject(dir);
+  assert.deepEqual(checkProject(load).issues, []);
+  assert.ok(!renderArchitecture(load.documents).includes('Conflicts'));
+});

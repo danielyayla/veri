@@ -2,6 +2,7 @@ import type { Advisory, Issue, VeriDocument } from './types.ts';
 import type { LoadResult } from './load.ts';
 import type { DocType } from './ids.ts';
 import { checkSupersededLinks } from './drift.ts';
+import { checkArchitecture } from './architecture.ts';
 import { getTemplate } from './templates.ts';
 import { FORMAT_FILE, formatStatement } from './format.ts';
 import type { FormatClassification } from './format.ts';
@@ -298,6 +299,7 @@ export function checkProject(load: LoadResult): CheckResult {
       ...checkGatedWorkOrders(load.documents),
       ...checkDesignGate(load.documents),
       ...checkApprovalStamps(load.documents),
+      ...checkArchitecture(load.documents),
     ],
     // The pure advisory tier. Git-backed advisories (receipt verification,
     // WO-044; git drift, WO-045) are pushed by hosts that collect facts

@@ -30,6 +30,39 @@ const requirementSchema = z
   })
   .passthrough();
 
+// DEC-058: a decision may carry machine-readable architecture constraints.
+// The block gets a real schema — a malformed constraint is a check failure,
+// never a silently preserved no-op — while other unknown keys stay
+// passthrough per REQ-001. `from`/`to` accept one module name or a list.
+const moduleRef = z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]);
+
+const architectureConstraintSchema = z
+  .object({
+    from: moduleRef,
+    to: moduleRef,
+    allowed: z.boolean(),
+  })
+  .passthrough();
+
+const architectureSchema = z
+  .object({ constraints: z.array(architectureConstraintSchema).default([]) })
+  .passthrough();
+
+export type ArchitectureConstraint = z.infer<typeof architectureConstraintSchema>;
+export type ArchitectureBlock = z.infer<typeof architectureSchema>;
+
+// DEC-059: one registry entry — a module name constraints may reference,
+// where it lives, and why it exists.
+const moduleEntrySchema = z
+  .object({
+    name: z.string().min(1),
+    path: z.string().min(1),
+    purpose: z.string().min(1),
+  })
+  .passthrough();
+
+export type ModuleEntry = z.infer<typeof moduleEntrySchema>;
+
 const decisionSchema = z
   .object({
     ...baseFields,
@@ -37,6 +70,7 @@ const decisionSchema = z
     status: z.enum(['proposed', 'active', 'superseded']),
     approved: dateField.optional(),
     superseded_by: idField.optional(),
+    architecture: architectureSchema.optional(),
   })
   .passthrough();
 
@@ -59,6 +93,9 @@ const workflowSchema = z
     // hardcoded in core. A started work order whose body mentions any of
     // these must link a designed-by design document. Absent → gate inert.
     design_gate_paths: z.array(z.string().min(1)).optional(),
+    // DEC-059: the module registry architecture constraints resolve against
+    // (DEC-058). Absent → no modules defined, and any constraint fails check.
+    modules: z.array(moduleEntrySchema).optional(),
   })
   .passthrough();
 

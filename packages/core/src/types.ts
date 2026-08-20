@@ -88,4 +88,17 @@ export type Issue =
       id: string;
       problem: 'unchecked-criteria' | 'no-receipt';
       message: string;
+    }
+  // Architecture constraints (DEC-058, WO-066): a rule that cannot fire is
+  // an issue, never a silent no-op — and two active decisions contradicting
+  // each other about the same edge is a conflict the corpus must resolve.
+  | { kind: 'arch-unknown-module'; file: string; id: string; module: string; message: string }
+  | {
+      kind: 'arch-conflict';
+      file: string;
+      from: string;
+      to: string;
+      allowedBy: string[];
+      forbiddenBy: string[];
+      message: string;
     };
