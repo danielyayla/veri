@@ -45,14 +45,14 @@ README must be stable across site reorganizations.
 
 ## Acceptance criteria
 
-- [ ] A person who has never seen the repo can, from the site
+- [x] A person who has never seen the repo can, from the site
       alone: say what Veri does, download the current release, and
       complete the quickstart to a working agent connection
-- [ ] The download action resolves to the latest published release
+- [x] The download action resolves to the latest published release
       without the site needing an edit per release
-- [ ] Each supported agent has a connection page: what Veri writes,
+- [x] Each supported agent has a connection page: what Veri writes,
       where, and how to verify the connection works
-- [ ] The workflow guide teaches the method (all five document
+- [x] The workflow guide teaches the method (all five document
       types and the path of work) to a reader with no prior context
-- [ ] The README leads with the download path and demotes
+- [x] The README leads with the download path and demotes
       build-from-source to a development section
