@@ -8,6 +8,19 @@ created: 2026-08-12
 updated: 2026-08-18
 design_gate_paths:
   - packages/ui
+modules:
+  - name: core
+    path: packages/core
+    purpose: Pure domain logic — parse, validate, check, and assemble over veri/
+  - name: cli
+    path: packages/cli
+    purpose: Terminal surface — commands over core, plus the git and process adapters hosts own
+  - name: mcp
+    path: packages/mcp
+    purpose: The agent door — MCP server serving context packages and writeback, subprocess-free
+  - name: ui
+    path: packages/ui
+    purpose: The desktop app — Electron review surface composing the other three packages
 ---
 
 How work moves through this repo. Veri is self-hosted: it is built by
