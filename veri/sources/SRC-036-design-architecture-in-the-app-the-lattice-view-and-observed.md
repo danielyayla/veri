@@ -1,7 +1,7 @@
 ---
 id: SRC-036
 type: source
-title: "Design — Architecture in the app: the lattice view and observed violations"
+title: "Design — Architecture in the app: the map, the rules view, and observed violations"
 status: imported
 created: 2026-08-20
 updated: 2026-08-20
@@ -15,46 +15,56 @@ links:
 ---
 
 > Drafted 2026-08-20 by an agent session (Claude Code) at Daniel's
-> request, per the DEC-012 design gate (every surface here lives in
-> `packages/ui`). Written spec plus interactive prototype; nothing
-> implemented. Awaiting Daniel's approval before any code.
+> request, per the DEC-012 design gate; revised the same day to
+> Daniel's review: the map is the primary experience, governance is
+> an overlay, provenance always visible, navigation provisional, and
+> severity declared per rule ([[DEC-062]], proposed). Written spec
+> plus interactive prototype; nothing implemented. Awaiting Daniel's
+> approval before any code.
 
-High-fidelity design handoff for surfacing the intended architecture
-([[REQ-022]], [[DEC-058]]) and its observed side ([[WO-067]]) in the
-desktop app. Files live in `design/architecture-view/`:
+High-fidelity design handoff for surfacing architecture
+([[REQ-022]], [[DEC-058]]) in the desktop app. Files live in
+`design/architecture-view/`:
 
-- `README.md` — self-sufficient written spec built on the two-tier
-  rule the advisory canon established: **conflicts are issues — amber
-  and filled; violations are drift — grey and hollow** ([[DEC-025]]).
-  It defines the Architecture view (opened as a tab from a new Home
-  ARCHITECTURE card, a ⌘K palette entry, and `architecture ↗`
-  affordances — the sidebar stays untouched): a MODULE LATTICE matrix
-  (⨯ forbidden / ✓ allowed / · unconstrained, hollow-ring violation
-  badges, amber conflict cells, every rule cell clicking through to
-  its governing decision), a CONFLICTS card in warn-row grammar, an
-  always-present VIOLATIONS card whose empty state says "checked and
-  clean", a CONSTRAINTS card translating the `veri architecture`
-  printout, and a MODULES card footed with the DEC-059 registry
-  provenance. Decisions carrying an `architecture:` block gain a
-  reader constraints card with per-rule observed status, and
-  `arch-violation` advisories reuse the SRC-010 strip with an
-  `architecture ↗` affordance — rule, status, and rationale on one
-  screen. Data: the Electron main process collects import facts with
-  the CLI's `collectImportFacts` (an allowed ui → cli edge, DEC-060;
-  hosts collect, core computes, [[DEC-040]]); the snapshot carries the
-  `ArchProjection` and merges violations into the existing advisories
-  array; scheduling follows the incremental-snapshots bundle.
+- `README.md` — self-sufficient written spec built on three rules:
+  **the map is primary and governance is an overlay on it**;
+  **provenance is always visible** — declared relationships render in
+  decision gold, discovered ones in neutral grey, never blurred; and
+  **severity is declared, not assumed** — conflicts and
+  error-severity violations are amber issues, advisory violations
+  stay grey and hollow ([[DEC-025]], [[DEC-062]]). The Architecture
+  view opens as a tab (Home ARCHITECTURE card, ⌘K, `architecture ↗`
+  affordances — explicitly a *provisional* placement; primary
+  navigation stays open) with two internal tabs. Map: depth-layered
+  module cards with purposes; solid-grey observed edges and
+  dashed-gold declared rules with violation/conflict markers by tier;
+  a module detail panel — responsibilities (declared · registry),
+  public interface (discovered · exports), governing decisions and
+  related requirements, dependencies/dependents with provenance
+  chips, and a contents drill-down system → module → directory →
+  file → imports. Rules: the N×N lattice for allowed / forbidden /
+  conflicting / violated questions, with ISSUES, VIOLATIONS,
+  CONSTRAINTS (severity badges), and MODULES cards. Reader additions:
+  a constraints card (edge, verdict, severity, observed status) on
+  decisions carrying an `architecture:` block, and SRC-010 strip
+  lines with `architecture ↗`. Data: the Electron main process
+  collects import facts and entry-point exports with the CLI's
+  collectors (allowed ui → cli edge, DEC-060; hosts collect, core
+  computes, [[DEC-040]]); the snapshot carries the projection,
+  per-file observed edges, and severity-routed findings; scheduling
+  follows the incremental-snapshots bundle.
 - `architecture-view.html` — self-contained interactive prototype
-  (open in a browser; illustrative "skiff" fixture content) with two
-  toggles demonstrating the tiers: observed violations move only the
-  grey tier, while a conflicting decision summons the amber chip,
-  tints the lattice cell, and — per [[DEC-061]]'s unanimity rule —
-  silences the violation on the conflicted edge.
+  (open in a browser; illustrative "skiff" fixture content) with
+  three toggles demonstrating the tiers: advisory violations move
+  only the grey tier; an error-severity rule promotes its violation
+  to an amber issue that summons the chip; a conflicting decision
+  tints the lattice amber and — per [[DEC-061]] — silences the
+  conflicted edge's violation entirely.
 
 The spec introduces no new design tokens — every color, font, and
 radius reuses the canon in `design/README.md`; shell and card grammar
 extend the sidebar-navigation ([[SRC-014]]) and advisory-surfacing
-([[SRC-010]]) bundles unchanged. Editing constraints from the view, a
-graph rendering of the lattice, an allowed-edge inventory, violation
-muting, and blocking severity are explicitly deferred to their own
-designs and decisions.
+([[SRC-010]]) bundles unchanged. Editing constraints from the view,
+physics layouts, an allowed-edge inventory, violation muting,
+hierarchical module ids, and the primary-navigation question are
+explicitly deferred.

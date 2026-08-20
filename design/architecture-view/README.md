@@ -1,190 +1,198 @@
 # Handoff: Architecture in the App
 
 ## Overview
-The intended architecture (REQ-022, DEC-058) and its observed side
-(WO-067) made visible in the desktop app. The CLI already has both
-surfaces — `veri architecture` and the advisory tier of `veri check`;
-this design gives the app the same two, plus one it alone can offer:
-the rule and its rationale on the same screen. The whole design obeys
-the two-tier rule the advisory-surfacing bundle established:
+Architecture in the desktop app, redesigned around one principle from
+Daniel's review: **the map is the primary experience; governance is an
+overlay on the model, not the model itself.** The main job of the
+Architecture surface is to help a human understand the system's
+structure and intent — what the modules are, what each is for, how
+they relate — with progressive drill-down from system → module →
+directory → file. Dependency rules, violations, conflicts, and drift
+are overlays and a specialized secondary view, not the entry point.
 
-> **Conflicts are issues — amber and filled. Violations are drift —
-> grey and hollow (DEC-025).**
+Two further principles govern every pixel:
 
-A project whose observed imports cross a forbidden edge must still
-read as *healthy* at every glance distance: no topbar chip, green
-"clean" on Home. Violations appear only where the user is already
-looking at architecture or health detail, or at the governing decision
-itself.
+> **Provenance is always visible.** A relationship is *declared*
+> (asserted by humans in approved decisions — rendered in decision
+> gold), *discovered* (observed in the repository — rendered in
+> neutral grey), or both. The UI never blurs the two.
+
+> **Severity is declared, not assumed.** A conflict is an issue
+> (amber, filled). A violation's tier follows its rule's declared
+> severity: `advisory` renders grey and hollow (DEC-025's whisper),
+> `error` renders amber, reaches the HEALTH pipeline, and fails
+> `veri check` — see DEC-062 (proposed).
 
 ## About the Design Files
 `architecture-view.html` is a **self-contained interactive prototype**
 (open in a browser) on illustrative "skiff" fixture content — an
-invoicing app with four modules (core, api, web, jobs) and three
-constraint-carrying decisions. Two prototype controls demonstrate the
-tiers: toggling **observed violations** moves only the grey tier;
-toggling a **conflicting decision** summons the amber chip, tints the
-lattice cell, and — per DEC-061's unanimity rule — silences the
-violation on the conflicted edge until one decision is retired. It is
-a design reference, not production code. All tokens reuse the canon
-(`design/README.md`); shell, sidebar, and card grammar extend the
+invoicing app with four modules. The view's segmented control switches
+**Map | Rules**. Three prototype controls demonstrate the tier
+semantics: *observed violations* moves only the grey tier; *DEC-006
+severity: error* promotes that rule's violation to an amber issue that
+summons the topbar chip; *conflicting decision* tints the lattice cell
+amber and — per DEC-061's unanimity rule — silences the violation on
+the conflicted edge until one decision is retired. It is a design
+reference, not production code. All tokens reuse the canon
+(`design/README.md`); shell and card grammar extend the
 sidebar-navigation (SRC-014) and advisory-surfacing (SRC-010) bundles
 unchanged.
 
 ## Fidelity
-**High-fidelity for tokens, placement, tier semantics, and the lattice
-matrix.** Where this spec is silent on shell behavior, the
-navigation-model and sidebar bundles apply.
+**High-fidelity for tokens, tier semantics, provenance encoding, and
+the anatomy of both tabs.** The map's node layout algorithm is
+illustrative (the prototype hand-places four modules); the
+implementing work order chooses a deterministic auto-layout (layered
+by dependency depth) and files it as a decision if non-trivial.
 
-## Placement
-The sidebar stays untouched (Home + the four collections, WO-035).
-The Architecture view opens as a **tab**, reached from:
+## Placement — deliberately provisional
+The current proposal: the view opens as a **tab**, reached from a Home
+ARCHITECTURE card, a ⌘K palette entry, and `architecture ↗`
+affordances. The sidebar stays untouched. **This is a starting point,
+not a settled ruling** — per Daniel's direction, Architecture may
+eventually deserve primary navigation; nothing in this design may
+depend on the entry point, and promoting it later must cost only a
+sidebar item. The Home card renders only when the module registry is
+non-empty.
 
-1. the **ARCHITECTURE card on Home** (below HEALTH, above IN FLIGHT) —
-   the whole card is a click target;
-2. a **⌘K palette entry** — "Architecture";
-3. `architecture ↗` affordances on decision constraint cards and
-   violation advisory lines.
+## The Map tab — primary
+### System map card
+Modules as cards on a canvas, positioned by dependency depth (things
+that depend sit above the things they depend on). Each card: name
+(12.5px mono semibold), one-line purpose, `N files · M outbound`
+meta, and a hollow ring marker when the module has advisory-severity
+violations. Selected card gets the ember border.
 
-The card renders only when the module registry is non-empty: a project
-that declares no `modules:` never sees the feature advertised (the
-same restraint as the zero-issue topbar chip).
+Edges, by provenance:
+- **Observed import** — solid grey line with arrowhead, discovered
+  from the repository. The only solid lines on the map.
+- **Declared rule** — dashed **gold** line (decision color), the
+  intended architecture. Forbidden rules with no observed traffic
+  render as faint dashed guardrails with a small gold `⨯`; an
+  observed edge that is declared-allowed gains a green `✓`.
+- **Violation** — an observed (solid) edge crossing a declared-
+  forbidden boundary: at `advisory` severity the edge stays grey with
+  a hollow ring and grey `⨯ forbidden` label; at `error` severity the
+  edge, arrowhead, dot, and label render amber.
+- **Conflict** — dashed amber with `⚠`.
 
-## The Architecture view
-One scrolling page, `max-width 760px`, standard card grammar. Title
-"Architecture", subtitle `compiled from active decisions ·` followed
-by one gold DEC chip per contributing decision (click → reader).
+A persistent legend row spells all of this out, naming the source of
+each encoding (`observed import (repository)` / `declared rule
+(decisions)`).
 
-### MODULE LATTICE card — the centerpiece
-An N×N matrix, rows **from**, columns **to**, cells 64×40, hairline
-borders, mono glyphs. Cell states:
+### Module detail panel
+Selecting a module fills the panel below the map. Every section is
+labeled with its provenance tag on the right of its heading:
 
-- `⨯` (`#A09DA6`) — forbidden rule; tooltip `from → to — forbidden
-  (DEC-nnn)`; click opens the governing decision.
-- `✓` (`#7FAF8A`) — explicitly allowed rule; same tooltip/click.
-- `·` (`#2E2E36`) — unconstrained; absence means unconstrained by
-  design (DEC-058), so the glyph is nearly invisible.
-- diagonal — self, blank on `--bg`.
-- **violated** — the rule cell additionally shows, top-right, the
-  advisory idiom: 5px hollow ring + count in 9px mono `#6E6B76`. The
-  glyph stays; the ring whispers over it.
-- **conflicted** — cell background `rgba(217,160,63,0.07)`, border
-  `#3A3020`, glyph `⚠` amber. Issue tier, exactly the warn-surface
-  tokens.
-
-A legend row (10.5px mono, `#6E6B76`) sits under the matrix. Header
-meta: `N modules · M constraints`. The matrix is the *compiled
-projection* — active decisions only; proposed and superseded
-contribute nothing, identical to `veri architecture`.
-
-### CONFLICTS card — only when conflicts exist
-Amber warn-rows (`arch-conflict` tag) with both DEC chips inline and
-the CLI's own sentence ("supersede one so the intended architecture
-speaks with one voice"). Conflicts are issues, so they also appear in
-the Home HEALTH card and summon the topbar chip through the existing
-pipeline — this card just shows them in place.
-
-### VIOLATIONS card — always present
-Micro-label `VIOLATIONS · N` with the right-aligned note *"observed
-imports vs the intended architecture — advisory, never blocking"*.
-Rows are the advisory idiom: hollow ring; edge chip (`from → to`,
-bordered mono like the advisory kind chip); message
-`<file> imports "<specifier>"` in 11.5px mono with the file at
-`#A09DA6`; trailing gold DEC chip → the governing decision's reader.
-Zero violations render the quiet line `✓ observed imports respect
-every active constraint` (green ✓, grey text) — never an empty card,
-because "checked and clean" is information.
-
-### CONSTRAINTS card
-One row per compiled rule, the `veri architecture` printout translated
-to card grammar: edge (11.5px mono), verdict (`forbidden` `#8B8893` /
-`allowed` `#7FAF8A`), governing DEC chip. Rules whose edge has
-observed violations gain a trailing `◦ N observed` in the advisory
-scale. A conflicted edge leaves this list (a one-line grey note points
-up to the CONFLICTS card).
-
-### MODULES card
-The registry: name (12px mono semibold), path (11px mono `#6E6B76`),
-purpose (12.5px sans `#A09DA6`). Card footer, ghost mono: `declared on
-workflow.md (WF-001) — editing the list moves it out from under its
-approval stamp (DEC-059)`, with a `workflow ↗` affordance opening the
-workflow document in the reader.
+- **Responsibilities** — `declared · registry`: the registry entry's
+  `purpose`, plus its optional `responsibilities:` list when the
+  project declares one (a small additive registry-schema extension
+  the implementing WO files as a decision).
+- **Public interface** — `discovered · exports`: exported symbols of
+  the module's entry points, collected by the same line-heuristic
+  tier as import scanning.
+- **Governed by** — `declared · decisions`: gold chips for every
+  decision whose constraints name this module (click → reader), with
+  **Related requirements** derived from those decisions' links.
+- **Dependencies / Dependents** — `discovered · imports`: one row per
+  observed edge with import count, a provenance chip (`observed`,
+  `declared`, or `declared + observed`), and a `⨯ forbidden` marker
+  (grey or amber by severity) when the edge violates a rule.
+- **Contents** — `discovered · file tree`: the drill-down. Breadcrumb
+  `module / dir / file`; directories open to files, a file opens to
+  the import specifiers it contains. This is the system → module →
+  submodule → file path, and it is read-only navigation over the
+  scan the snapshot already holds.
 
 ### Empty states
-- **No registry** → the Home card is absent and the view (reachable
-  via palette) shows one hv-empty card mirroring the CLI hint: *"No
-  modules declared — add a `modules:` list (name, path, purpose) to
-  the workflow frontmatter (DEC-059)."*
-- **Registry, no constraints** → lattice renders all-unconstrained,
-  constraints card shows *"(no active decision carries architecture
-  constraints)"*.
-- **Module path not on disk** → the MODULES row's path renders ghost
-  with a `not on disk — skipped` suffix, mirroring the CLI skip note.
+No registry → the view shows one card mirroring the CLI hint ("add a
+`modules:` list to the workflow frontmatter, DEC-059"). A registry
+module whose path is not on disk renders its card ghosted with a
+`not on disk — skipped` note.
+
+## The Rules tab — secondary
+The specialized view where the N×N lattice shines: which dependencies
+are allowed, forbidden, conflicting, or currently violated.
+
+- **DEPENDENCY RULES card** — the matrix. Rows *from*, columns *to*.
+  `⨯` forbidden / `✓` allowed (gold-tier declarations in neutral and
+  green), `·` near-invisible unconstrained, diagonal blank. A violated
+  cell badges a hollow ring + count (advisory) or a filled amber dot +
+  count (error). A conflicted cell is amber `⚠` on the warn tint.
+  Rule cells click through to their governing decision. Legend below.
+- **ISSUES card** — only when present: conflicts and error-severity
+  violations as amber warn-rows, meta `N — check exits 1`.
+- **VIOLATIONS card** — always present: advisory-severity violations
+  in the SRC-010 idiom (ring, edge chip, `file imports "spec"`, gold
+  DEC chip). Empty state: `✓ observed imports respect every
+  advisory-severity constraint`.
+- **CONSTRAINTS card** — every compiled rule: edge, verdict,
+  **severity badge** (`advisory` grey-bordered / `error` warn-tinted),
+  governing DEC chip, trailing observed count. Conflicted edges leave
+  the list with a pointer to the ISSUES card.
+- **MODULES card** — the registry with the DEC-059 provenance footer
+  and `workflow ↗`.
+
+## Severity semantics (DEC-062, proposed)
+Each constraint may declare `severity: advisory | error` (default
+`advisory` — current WO-067 behavior, backward compatible). An
+`error`-severity violation is a **check issue**: counted, amber,
+exit 1 — build-blocking in CI. Because severity rides the constraint
+on a governed decision, blocking power arrives only through the
+user's approval stamp (REQ-008). DEC-061's unanimity rule is
+severity-independent: a conflicted edge produces no violation at any
+severity — the conflict issue owns it.
 
 ## Home · ARCHITECTURE card
-Between HEALTH and IN FLIGHT. Meta: `N modules · M constraints`, plus
-a separate `· V violations` span in `#6E6B76` when violations exist
-(the advisory-count grammar from SRC-010). Body is a single line:
-
-- conflict present → an issue row (`arch-conflict` amber kind chip);
-- violations, no conflict → one advisory row (ring + grey message);
-- clean → `✓ observed imports respect every active constraint`.
-
-Click anywhere → the Architecture view. The HEALTH card needs **no
-new design**: `arch-conflict` issues and `arch-violation` advisories
-flow through its existing rows (SRC-010) — the advisory's `id` is the
-governing DEC, so the row's id chip is gold and navigates to the
-decision.
+Between HEALTH and IN FLIGHT, only when a registry exists. Meta:
+`N modules · M constraints` plus a grey `· V violations` span for
+advisory violations. Body: the highest-tier single line — an issue
+row (conflict or error violation), else an advisory row, else
+`✓ observed imports respect every active constraint`. Click → the
+Map. HEALTH needs no new design: `arch-conflict` and error-severity
+`arch-violation` issues plus advisory `arch-violation` rows flow
+through the existing SRC-010 pipelines, each row's id chip being the
+governing decision.
 
 ## Reader — decisions that carry constraints
-Two additions to the reader, both only on decisions with an
-`architecture:` block:
-
-1. **ARCHITECTURE CONSTRAINTS card** — between the frontmatter card
-   and the body (above the advisory strip). One row per rule this
-   decision asserts: edge, verdict, and per-rule observed status —
-   `◦ N observed` when violated, a quiet green `✓` when the scan ran
-   clean. Header carries an `architecture ↗` affordance. This is the
-   view's promise in miniature: the rule, its status, and the prose
-   rationale on one screen.
-2. **Advisory strip** (SRC-010, unchanged grammar) — `arch-violation`
-   advisories anchor to the governing DEC, so its reader lists each
-   violating import as a strip line. The trailing affordance is
-   `architecture ↗` (not `template ↗` — the fix is an import, not a
-   section).
-
-A decision party to a conflict shows the standard amber issue banner.
+Unchanged from the first draft, plus severity: the ARCHITECTURE
+CONSTRAINTS card (frontmatter → card → body) shows each rule's edge,
+verdict, **severity badge**, and observed status (`◦ n observed` /
+amber dot / quiet `✓`); error-severity violations of this decision's
+rules render the amber issue banner; advisory ones render SRC-010
+strip lines with `architecture ↗`.
 
 ## Live behavior & state
-- The **Electron main process** collects import facts on snapshot
-  rebuild with the same `collectImportFacts` adapter the CLI uses —
-  ui → cli is an allowed edge (DEC-060; the DEC-016 precedent), and
-  hosts collect facts while core computes meaning (DEC-040).
-- Snapshot carries `architecture: ArchProjection` (modules, rules,
-  conflicts — from `assembleArchitecture`) and merges `arch-violation`
-  advisories into the existing `advisories` array. Everything above
-  derives from those two; nothing is cached, dismissed, or persisted.
-- Scan scheduling follows the incremental-snapshots bundle (SRC-031):
-  import facts refresh on the debounced rebuild, like git facts. The
-  scan reads only registry-module source trees (~hundreds of files).
+- The **Electron main process** collects import facts (and entry-point
+  exports) with the CLI's collectors — ui → cli is an allowed edge
+  (DEC-060; DEC-016 precedent); hosts collect, core computes
+  (DEC-040).
+- Snapshot carries `architecture: ArchProjection`, the observed edge
+  list with per-file detail (feeding the map, detail panel, and
+  drill-down), and violations split by severity into the existing
+  `issues`/`advisories` arrays once DEC-062's mechanism (WO-069)
+  lands.
+- Scheduling follows the incremental-snapshots bundle (SRC-031).
+  Nothing is cached, dismissed, or persisted.
 
 ## Design tokens
-No new tokens. Matrix glyphs `#A09DA6`/`#7FAF8A`/`#2E2E36`, ring and
-micro-labels `#6E6B76`, messages `#8B8893`, ghost `#55525E`, warn
-surfaces `rgba(217,160,63,0.07)`/`#3A3020`, DEC chips gold at 10%
-alpha — all from `design/README.md`.
+No new tokens. Declared/gold `#CFA83D`, discovered/grey `#6E6B76` –
+`#8B8893`, allowed green `#7FAF8A`, warn surfaces
+`rgba(217,160,63,0.07)`/`#3A3020`, unconstrained `#2E2E36`, ember
+selection — all from `design/README.md`.
 
 ## Explicitly deferred (do not build)
 Editing constraints or the registry from the view (files are the
-write path, DEC-002); a force-directed graph rendering of the lattice;
-an inventory of allowed/unconstrained observed edges (out of scope per
-WO-067); violation dismissal or muting; blocking severity (needs its
-own DEC per WO-067); per-file drill-in beyond the violation line.
+write path, DEC-002); force-directed/physics layout; an inventory
+surface for allowed and unconstrained observed edges; violation
+muting; submodule-level constraints (module ids stay flat per
+DEC-058's survey); cross-file symbol-level analysis; promoting
+Architecture to primary navigation (open, revisit after use).
 
 ## Assets
-None — glyphs are unicode (⨯ ✓ · ◦ ⚠ ↗).
+None — glyphs are unicode (⨯ ✓ · ◦ ⚠ ▸ ▾ ↗).
 
 ## Files
 - `architecture-view.html` — the interactive prototype: Home, the
-  Architecture view, and a decision reader on skiff fixture content,
-  with the two tier-demonstration toggles described above.
+  Map and Rules tabs, and a decision reader on skiff fixture content,
+  with the three tier-demonstration toggles described above.
