@@ -3,9 +3,9 @@ id: WF-001
 type: workflow
 title: Veri project workflow
 status: accepted
-approved: 2026-08-18
+approved: 2026-08-20
 created: 2026-08-12
-updated: 2026-08-18
+updated: 2026-08-20
 design_gate_paths:
   - packages/ui
 modules:
