@@ -2,7 +2,8 @@
 id: DEC-060
 type: decision
 title: "Veri's own intended architecture — core depends on nothing, surfaces never couple sideways"
-status: proposed
+status: active
+approved: 2026-08-20
 created: 2026-08-20
 updated: 2026-08-20
 links:
