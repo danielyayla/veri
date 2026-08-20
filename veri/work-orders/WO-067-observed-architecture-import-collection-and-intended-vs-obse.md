@@ -2,7 +2,7 @@
 id: WO-067
 type: work-order
 title: "Observed architecture: import collection and intended-vs-observed violations"
-status: in-progress
+status: done
 created: 2026-08-20
 updated: 2026-08-20
 links:
@@ -52,16 +52,16 @@ Delivers REQ-022's last open criterion: deviation between the intended architect
 
 ## Acceptance tests
 
-- [ ] A source file in one module importing a module its governing decision forbids surfaces an advisory naming the source file, the import specifier, and the DEC id that forbids the edge
-- [ ] Allowed and unconstrained observed edges produce no findings
-- [ ] Violations never change `veri check`'s exit code: a corpus with zero issues and one violation still exits 0, the violation printed in the advisory tier
-- [ ] Core's comparison is pure and fixture-tested: observed edges constructed as literals, no filesystem or subprocess in core tests
-- [ ] The CLI collector maps files to modules by registry path prefix and resolves both package-name specifiers and relative imports crossing module boundaries; external and unresolvable specifiers produce nothing
-- [ ] A registry module whose path does not exist on disk yields a skip note, never a failure
-- [ ] `veri architecture` renders a violations section when observed facts are supplied and byte-identical unchanged output when they are not
-- [ ] Dogfood: Veri's own repository reports zero violations against DEC-060's seven forbidden edges
-- [ ] `veri check` reports zero issues across the corpus and all tests pass
+- [x] A source file in one module importing a module its governing decision forbids surfaces an advisory naming the source file, the import specifier, and the DEC id that forbids the edge
+- [x] Allowed and unconstrained observed edges produce no findings
+- [x] Violations never change `veri check`'s exit code: a corpus with zero issues and one violation still exits 0, the violation printed in the advisory tier
+- [x] Core's comparison is pure and fixture-tested: observed edges constructed as literals, no filesystem or subprocess in core tests
+- [x] The CLI collector maps files to modules by registry path prefix and resolves both package-name specifiers and relative imports crossing module boundaries; external and unresolvable specifiers produce nothing
+- [x] A registry module whose path does not exist on disk yields a skip note, never a failure
+- [x] `veri architecture` renders a violations section when observed facts are supplied and byte-identical unchanged output when they are not
+- [x] Dogfood: Veri's own repository reports zero violations against DEC-060's seven forbidden edges
+- [x] `veri check` reports zero issues across the corpus and all tests pass
 
 ## Receipts
 
-(none yet)
+- 2026-08-20 — 666f93f — packages/core/src/types.ts, packages/core/src/architecture.ts, packages/core/src/architecture.test.ts, packages/cli/src/imports.ts, packages/cli/src/imports.test.ts, packages/cli/src/commands.ts, packages/cli/src/commands.test.ts, veri/decisions/DEC-061-observed-import-collection-scans-everything-but-vendored-tre.md — Observed side of REQ-022 shipped whole: pure core comparison (checkObservedArchitecture, ImportEdge) producing arch-violation advisories citing governing DEC ids, CLI collector on the collectGitFacts shape (line-based extraction, manifest-name + relative-crossing resolution, skip notes), veri check and veri architecture wired; 505 tests pass (9 new), dogfood clean against DEC-060's seven forbidden edges; collector-scope choices filed as DEC-061 (proposed)
