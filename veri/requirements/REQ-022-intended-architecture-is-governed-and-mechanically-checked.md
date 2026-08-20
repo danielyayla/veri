@@ -2,7 +2,8 @@
 id: REQ-022
 type: requirement
 title: "Intended architecture is governed and mechanically checked"
-status: draft
+status: accepted
+approved: 2026-08-20
 created: 2026-08-20
 updated: 2026-08-20
 links:
