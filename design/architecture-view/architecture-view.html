@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veri — architecture view prototype</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --bg: #0F0F11; --panel: #131316; --card: #151519; --card2: #18181D;
+  --hair: #1E1E24; --border: #1F1F24; --border2: #26262C; --hover: #1B1B20;
+  --t1: #E7E4DE; --t2: #C9C6CF; --t3: #A09DA6; --t4: #8B8893; --t5: #6E6B76; --t6: #55525E;
+  --ember: #E8703A; --ember2: #F0A87E; --ok: #7FAF8A; --warn: #D9A03F;
+  --req: #7EA6C4; --dec: #CFA83D; --wo: #E8703A; --src: #908BA8;
+  --sans: "Source Sans 3", -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--t2); font-family: var(--sans); font-size: 14px; height: 100vh; overflow: hidden; }
+
+/* ---- shell (navigation-model bundle, unchanged) ---- */
+.topbar { height: 44px; background: var(--panel); border-bottom: 1px solid var(--hair); display: flex; align-items: center; padding: 0 14px; gap: 10px; }
+.logo { width: 18px; height: 18px; background: var(--ember); border-radius: 4px; color: #14100D; font: 600 12px/18px var(--mono); text-align: center; }
+.wordmark { font: 600 13px var(--sans); color: var(--t1); }
+.slash { color: var(--t6); }
+.proj { font: 400 12px var(--mono); color: var(--t3); }
+.search { margin-left: auto; margin-right: auto; width: 340px; height: 26px; border: 1px solid var(--border2); border-radius: 6px; background: var(--bg); display: flex; align-items: center; padding: 0 8px; gap: 8px; color: var(--t6); font-size: 12px; }
+.kbd { margin-left: auto; font: 500 10px var(--mono); border: 1px solid var(--border2); border-radius: 4px; padding: 1px 5px; color: var(--t5); }
+.chips { display: flex; gap: 8px; align-items: center; }
+.tb-health { display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 10px; border-radius: 6px; background: rgba(217,160,63,0.08); border: 1px solid #3A3020; font: 500 11px var(--mono); color: var(--warn); cursor: pointer; }
+.tb-health-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--warn); }
+.tb-git { display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--border2); font: 400 11px var(--mono); color: var(--t4); }
+
+.shell { display: flex; height: calc(100vh - 44px); }
+.sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--hair); padding: 12px 8px; overflow-y: auto; flex-shrink: 0; }
+.nav-row { display: flex; align-items: center; gap: 9px; height: 28px; padding: 0 10px; border-radius: 6px; font-size: 13px; color: var(--t3); cursor: pointer; }
+.nav-row:hover { background: var(--hover); }
+.nav-row.active { background: rgba(232,112,58,0.09); color: var(--ember2); }
+.nav-glyph { width: 14px; text-align: center; font-size: 12px; }
+.divider { height: 1px; background: var(--hair); margin: 10px 4px; }
+.coll-row { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px; border-radius: 6px; font-size: 13px; color: var(--t3); cursor: default; }
+.coll-swatch { width: 7px; height: 7px; border-radius: 2px; flex-shrink: 0; }
+.coll-cnt { margin-left: auto; font: 400 10.5px var(--mono); color: var(--t6); }
+.side-label { padding: 8px 10px 4px; font: 500 10px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--t5); }
+.sb-row { display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 10px; border-radius: 6px; cursor: pointer; }
+.sb-row:hover { background: var(--hover); }
+.sb-id { font: 500 10.5px var(--mono); flex-shrink: 0; }
+.sb-title { font-size: 12.5px; color: var(--t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+
+.main { flex: 1; overflow-y: auto; }
+
+/* ---- shared card grammar (home bundle, unchanged) ---- */
+.page { max-width: 760px; margin: 0 auto; padding: 30px 40px 80px; }
+.page h1 { font: 600 20px var(--sans); color: var(--t1); margin-bottom: 4px; }
+.page-sub { font-size: 13px; color: var(--t4); margin-bottom: 24px; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.hv-card { border: 1px solid var(--border); border-radius: 9px; background: var(--card); margin-bottom: 16px; }
+.hv-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--hair); }
+.hv-dot { width: 6px; height: 6px; border-radius: 50%; }
+.hv-label { font: 500 10px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--t4); }
+.hv-meta { margin-left: auto; font: 500 11px var(--mono); }
+.hv-meta .adv-count { color: var(--t5); font-weight: 400; }
+.hv-empty { padding: 14px 16px; font-size: 13px; color: var(--t5); }
+.hv-row { display: flex; align-items: center; gap: 10px; padding: 9px 16px; cursor: pointer; border-bottom: 1px solid var(--hair); }
+.hv-row:last-child { border-bottom: none; }
+.hv-row:hover { background: var(--hover); }
+.hv-kind { font: 500 10px var(--mono); color: var(--warn); background: rgba(217,160,63,0.08); border: 1px solid #3A3020; border-radius: 4px; padding: 2px 7px; flex-shrink: 0; }
+.hv-id { font: 500 11px var(--mono); flex-shrink: 0; cursor: pointer; }
+.hv-msg { font-size: 12.5px; color: var(--t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* advisory idiom (advisory-surfacing bundle, unchanged): grey and hollow */
+.ring { width: 5px; height: 5px; border-radius: 50%; border: 1px solid var(--t5); flex-shrink: 0; display: inline-block; }
+.adv-divider { height: 1px; background: var(--hair); }
+.adv-label { display: flex; align-items: center; gap: 8px; padding: 10px 16px 4px; font: 500 9.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--t5); }
+.adv-row { display: flex; align-items: center; gap: 10px; padding: 7px 16px; cursor: pointer; }
+.adv-row:hover { background: var(--hover); }
+.adv-kind { font: 400 10px var(--mono); color: var(--t5); border: 1px solid var(--border2); border-radius: 4px; padding: 2px 7px; flex-shrink: 0; }
+.adv-msg { font-size: 12px; color: var(--t4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adv-pad { padding-bottom: 8px; }
+.chip { font: 500 10.5px var(--mono); border-radius: 4px; padding: 2px 8px; cursor: pointer; }
+
+/* ---- the lattice matrix ---- */
+.mx-wrap { padding: 14px 16px 16px; overflow-x: auto; }
+.mx { border-collapse: collapse; font: 500 11px var(--mono); }
+.mx th { font: 500 9.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--t5); font-weight: 500; padding: 6px 0; }
+.mx th.mx-from { text-align: right; padding-right: 12px; }
+.mx td { width: 64px; height: 40px; text-align: center; border: 1px solid var(--hair); position: relative; }
+.mx td.mx-self { background: var(--bg); border-color: var(--hair); }
+.mx td .mx-glyph { font-size: 12px; }
+.mx-forbid { color: var(--t3); }
+.mx-allow { color: var(--ok); }
+.mx-none { color: #2E2E36; }
+.mx td.mx-rule { cursor: pointer; }
+.mx td.mx-rule:hover { background: var(--hover); }
+.mx td.mx-conflict { background: rgba(217,160,63,0.07); border-color: #3A3020; }
+.mx td.mx-conflict .mx-glyph { color: var(--warn); }
+.mx-viol { position: absolute; top: 4px; right: 5px; display: flex; align-items: center; gap: 3px; font: 500 9px var(--mono); color: var(--t5); }
+.mx-legend { display: flex; gap: 16px; padding: 12px 16px 0 16px; font: 400 10.5px var(--mono); color: var(--t5); flex-wrap: wrap; }
+.mx-legend span { display: flex; align-items: center; gap: 5px; }
+
+/* ---- constraint / violation / module rows ---- */
+.cn-row { display: flex; align-items: center; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--hair); }
+.cn-row:last-child { border-bottom: none; }
+.cn-edge { font: 500 11.5px var(--mono); color: var(--t2); width: 120px; flex-shrink: 0; }
+.cn-verdict { font: 400 11px var(--mono); width: 70px; flex-shrink: 0; color: var(--t4); }
+.cn-verdict.ok { color: var(--ok); }
+.cn-obs { margin-left: auto; display: flex; align-items: center; gap: 6px; font: 400 10.5px var(--mono); color: var(--t5); }
+.vl-row { display: flex; align-items: center; gap: 10px; padding: 7px 16px; }
+.vl-row:hover { background: var(--hover); }
+.vl-edge { font: 500 10px var(--mono); color: var(--t5); border: 1px solid var(--border2); border-radius: 4px; padding: 2px 7px; flex-shrink: 0; }
+.vl-msg { font: 400 11.5px var(--mono); color: var(--t4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vl-msg b { color: var(--t3); font-weight: 500; }
+.vl-dec { margin-left: auto; flex-shrink: 0; }
+.md-row { display: flex; align-items: baseline; gap: 14px; padding: 9px 16px; border-bottom: 1px solid var(--hair); }
+.md-row:last-child { border-bottom: none; }
+.md-name { font: 600 12px var(--mono); color: var(--t1); width: 52px; flex-shrink: 0; }
+.md-path { font: 400 11px var(--mono); color: var(--t5); width: 120px; flex-shrink: 0; }
+.md-purpose { font-size: 12.5px; color: var(--t3); }
+.card-foot { padding: 10px 16px; border-top: 1px solid var(--hair); font: 400 11px var(--mono); color: var(--t6); display: flex; align-items: center; gap: 6px; }
+.warn-row { display: flex; align-items: center; gap: 10px; background: rgba(217,160,63,0.07); border-bottom: 1px solid #3A3020; padding: 9px 16px; font-size: 12.5px; color: var(--t2); }
+.warn-row:last-child { border-bottom: none; }
+.warn-tag { font: 500 10.5px var(--mono); color: var(--warn); flex-shrink: 0; }
+
+/* ---- reader (unchanged grammar) + the decision constraints card ---- */
+.crumb { font: 400 11px var(--mono); color: var(--t5); margin-bottom: 10px; display: flex; gap: 7px; }
+.doc-title { font: 600 24px var(--sans); color: var(--t1); margin-bottom: 16px; }
+.fm-card { border: 1px solid var(--border); border-radius: 8px; background: var(--card); padding: 6px 0; margin-bottom: 6px; }
+.fm-row { display: flex; align-items: center; height: 28px; padding: 0 16px; }
+.fm-key { width: 110px; font: 400 11px var(--mono); color: var(--t6); flex-shrink: 0; }
+.fm-val { font-size: 13px; color: var(--t2); }
+.cs-card { border: 1px solid var(--border); border-radius: 8px; background: var(--card); margin-bottom: 6px; }
+.cs-head { display: flex; align-items: center; gap: 8px; padding: 9px 16px 7px; font: 500 9.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--t5); }
+.cs-head .go { margin-left: auto; font: 400 10.5px var(--mono); color: var(--t6); text-transform: none; letter-spacing: 0; cursor: pointer; }
+.cs-head .go:hover { color: var(--t4); }
+.adv-strip { margin: 6px 0 10px; }
+.adv-line { display: flex; align-items: center; gap: 9px; padding: 4px 2px; font: 400 11px var(--mono); color: var(--t4); }
+.adv-go { margin-left: auto; color: var(--t6); cursor: pointer; flex-shrink: 0; }
+.adv-go:hover { color: var(--t4); }
+.body { padding-top: 14px; }
+.body h2 { font: 600 15px var(--sans); color: var(--t1); margin: 22px 0 10px; }
+.body p, .body li { font-size: 14.5px; line-height: 1.65; color: var(--t2); }
+.body ul { padding-left: 22px; margin: 8px 0; }
+
+/* ---- prototype chrome ---- */
+.demo { position: fixed; right: 18px; bottom: 18px; background: #1A1A1F; border: 1px solid var(--border2); border-radius: 8px; padding: 12px 14px; box-shadow: 0 12px 32px rgba(0,0,0,.5); z-index: 10; width: 264px; }
+.demo-h { font: 500 9.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--t5); margin-bottom: 8px; }
+.demo label { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--t3); cursor: pointer; margin-bottom: 6px; }
+.demo-note { font-size: 11px; color: var(--t5); margin-top: 6px; line-height: 1.5; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #1A1A1F; border: 1px solid var(--border2); border-radius: 7px; padding: 8px 14px; font: 400 11.5px var(--mono); color: var(--t3); box-shadow: 0 12px 32px rgba(0,0,0,.5); opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; }
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">v</div><span class="wordmark">Veri</span><span class="slash">/</span><span class="proj">skiff</span>
+  <div class="search">Search docs…<span class="kbd">⌘K</span></div>
+  <div class="chips">
+    <div class="tb-health" id="healthChip" onclick="go('home')" style="display:none">
+      <span class="tb-health-dot"></span><span id="chipText"></span>
+    </div>
+    <div class="tb-git">⎇ main · clean</div>
+  </div>
+</div>
+
+<div class="shell">
+  <div class="sidebar">
+    <div class="nav-row" id="navHome" onclick="go('home')"><span class="nav-glyph">⌂</span>Home</div>
+    <div class="divider"></div>
+    <div class="coll-row"><span class="coll-swatch" style="background:var(--req)"></span>Requirements<span class="coll-cnt">3</span></div>
+    <div class="coll-row"><span class="coll-swatch" style="background:var(--dec)"></span>Decisions<span class="coll-cnt" id="decCount">4</span></div>
+    <div class="coll-row"><span class="coll-swatch" style="background:var(--wo)"></span>Work orders<span class="coll-cnt">2</span></div>
+    <div class="coll-row"><span class="coll-swatch" style="background:var(--src)"></span>Sources<span class="coll-cnt">1</span></div>
+    <div class="divider"></div>
+    <div class="side-label">Recent</div>
+    <div id="recent"></div>
+  </div>
+  <div class="main" id="main"></div>
+</div>
+
+<div class="demo">
+  <div class="demo-h">prototype controls</div>
+  <label><input type="checkbox" id="violToggle" onchange="setViol(this.checked)"> observed violations (2 imports)</label>
+  <label><input type="checkbox" id="confToggle" onchange="setConf(this.checked)"> conflicting decision (DEC-007)</label>
+  <div class="demo-note">Violations move only the <b>grey tier</b> — no chip, no amber. The conflict is an <b>issue</b>: it summons the chip, tints the matrix cell amber, and (per DEC-061) silences the api → web violation until one decision is retired.</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const C = { requirement: '#7EA6C4', decision: '#CFA83D', 'work-order': '#E8703A', source: '#908BA8' };
+
+const MODULES = [
+  { name: 'core', path: 'packages/core', purpose: 'Invoice domain — numbering, totals, ledger rules' },
+  { name: 'api',  path: 'packages/api',  purpose: 'Local HTTP surface the app and exporters call' },
+  { name: 'web',  path: 'packages/web',  purpose: 'The desktop shell rendering invoices and settings' },
+  { name: 'jobs', path: 'packages/jobs', purpose: 'Recurring-invoice scheduler and PDF batch runs' },
+];
+
+// Rules compiled from active decisions (DEC-058 projection).
+const BASE_RULES = [
+  { from: 'core', to: 'api',  allowed: false, dec: 'DEC-005' },
+  { from: 'core', to: 'web',  allowed: false, dec: 'DEC-005' },
+  { from: 'core', to: 'jobs', allowed: false, dec: 'DEC-005' },
+  { from: 'api',  to: 'web',  allowed: false, dec: 'DEC-006' },
+  { from: 'jobs', to: 'core', allowed: true,  dec: 'DEC-004' },
+];
+const CONFLICT_RULE = { from: 'api', to: 'web', allowed: true, dec: 'DEC-007' };
+
+const RAW_VIOLATIONS = [
+  { from: 'core', to: 'api', file: 'packages/core/src/totals.ts', spec: '@skiff/api' },
+  { from: 'api',  to: 'web', file: 'packages/api/src/routes.ts',  spec: '../../web/src/render.ts' },
+];
+
+const DECS = {
+  'DEC-004': { title: 'Jobs compose the domain directly', body: '<h2>Choice</h2><p>The scheduler imports core and builds drafts itself — no HTTP hop through the api for an in-process tool.</p>' },
+  'DEC-005': { title: 'Core stays pure', body: '<h2>Choice</h2><p>The invoice domain imports no surface. Totals, numbering, and ledger rules are pure functions any host can call — the api serves them, the shell renders them, jobs schedule them.</p><h2>Rejected alternatives</h2><ul><li><b>Core calls the api for exports</b> — inverts the stack for one convenience.</li></ul>' },
+  'DEC-006': { title: 'The API serves, never renders', body: '<h2>Choice</h2><p>The HTTP surface returns data; rendering lives in the shell. An api import of web templates would drag the display layer into every headless caller.</p>' },
+  'DEC-007': { title: 'Exporters may reuse web templates', body: '<h2>Choice</h2><p>(Deliberately contradicts DEC-006 for this prototype — two active decisions asserting opposite things about api → web.)</p>' },
+};
+
+let violOn = false, confOn = false;
+let view = 'arch', openDoc = 'DEC-005';
+
+const rules = () => (confOn ? [...BASE_RULES, CONFLICT_RULE] : BASE_RULES);
+const conflicts = () => (confOn ? [{ from: 'api', to: 'web', allowedBy: 'DEC-007', forbiddenBy: 'DEC-006' }] : []);
+// DEC-061: a conflicted edge never fires as a violation.
+const violations = () => (violOn ? RAW_VIOLATIONS.filter(v => !conflicts().some(c => c.from === v.from && c.to === v.to)) : []);
+const issues = () => conflicts().map(c => ({ kind: 'arch-conflict', id: c.forbiddenBy, msg: `architecture conflict on ${c.from} → ${c.to}: allowed by ${c.allowedBy} but forbidden by ${c.forbiddenBy} — supersede one so the intended architecture speaks with one voice` }));
+const ruleFor = (from, to) => rules().filter(r => r.from === from && r.to === to);
+const violFor = (from, to) => violations().filter(v => v.from === from && v.to === to);
+const decFor = (from, to) => (ruleFor(from, to).find(r => !r.allowed) ?? ruleFor(from, to)[0])?.dec;
+
+function setViol(on) { violOn = on; render(); }
+function setConf(on) { confOn = on; render(); }
+function go(v, id) { view = v; if (id) openDoc = id; render(); }
+function toast(text) {
+  const el = document.getElementById('toast');
+  el.textContent = text; el.classList.add('show');
+  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 1800);
+}
+const decChip = (id) => `<span class="chip" style="color:${C.decision};background:rgba(207,168,61,.1)" onclick="event.stopPropagation();go('reader','${id}')">${id}</span>`;
+
+/* ---- the matrix ---- */
+function matrix() {
+  const head = MODULES.map(m => `<th>${m.name}</th>`).join('');
+  const rows = MODULES.map(from => {
+    const cells = MODULES.map(to => {
+      if (from.name === to.name) return '<td class="mx-self"></td>';
+      const rs = ruleFor(from.name, to.name);
+      const vs = violFor(from.name, to.name);
+      const conflict = conflicts().some(c => c.from === from.name && c.to === to.name);
+      const violBadge = vs.length > 0 ? `<span class="mx-viol"><span class="ring"></span>${vs.length}</span>` : '';
+      if (conflict) {
+        return `<td class="mx-rule mx-conflict" title="conflict: allowed by DEC-007, forbidden by DEC-006" onclick="toast('conflict — see the issue tier')"><span class="mx-glyph">⚠</span></td>`;
+      }
+      if (rs.length === 0) return `<td title="${from.name} → ${to.name} — unconstrained"><span class="mx-glyph mx-none">·</span></td>`;
+      const rule = rs[0];
+      const cls = rule.allowed ? 'mx-allow' : 'mx-forbid';
+      const glyph = rule.allowed ? '✓' : '⨯';
+      const label = `${from.name} → ${to.name} — ${rule.allowed ? 'allowed' : 'forbidden'} (${rule.dec})`;
+      return `<td class="mx-rule" title="${label}" onclick="go('reader','${rule.dec}')">${violBadge}<span class="mx-glyph ${cls}">${glyph}</span></td>`;
+    }).join('');
+    return `<tr><th class="mx-from">${from.name}</th>${cells}</tr>`;
+  }).join('');
+  return `<div class="mx-wrap"><table class="mx">
+    <tr><th class="mx-from" style="color:#4A4852;font-size:9px">from ↓ to →</th>${head}</tr>${rows}
+  </table></div>
+  <div class="mx-legend" style="padding-bottom:14px">
+    <span><span class="mx-forbid">⨯</span> forbidden</span>
+    <span><span class="mx-allow">✓</span> allowed</span>
+    <span><span class="mx-none">·</span> unconstrained</span>
+    <span><span class="ring"></span> observed violation</span>
+    <span><span style="color:var(--warn)">⚠</span> conflict</span>
+  </div>`;
+}
+
+/* ---- the architecture view ---- */
+function archView() {
+  const conf = conflicts();
+  const viol = violations();
+
+  const conflictCard = conf.length > 0 ? `
+    <div class="hv-card">
+      <div class="hv-head"><span class="hv-dot" style="background:var(--warn)"></span><span class="hv-label">Conflicts</span>
+        <span class="hv-meta" style="color:var(--warn)">${conf.length} issue</span></div>
+      ${conf.map(c => `<div class="warn-row"><span class="warn-tag">⚠ arch-conflict</span>
+        <span>${c.from} → ${c.to}: allowed by ${decChip(c.allowedBy)} but forbidden by ${decChip(c.forbiddenBy)} — supersede one so the intended architecture speaks with one voice</span></div>`).join('')}
+    </div>` : '';
+
+  const violRows = viol.map(v => `
+    <div class="vl-row">
+      <span class="ring"></span>
+      <span class="vl-edge">${v.from} → ${v.to}</span>
+      <span class="vl-msg"><b>${v.file}</b> imports "${v.spec}"</span>
+      <span class="vl-dec">${decChip(decFor(v.from, v.to))}</span>
+    </div>`).join('');
+  const violCard = `
+    <div class="hv-card">
+      <div class="adv-label" style="padding-top:12px">Violations · ${viol.length}<span style="margin-left:auto;letter-spacing:0;text-transform:none">observed imports vs the intended architecture — advisory, never blocking</span></div>
+      ${viol.length > 0 ? `<div class="adv-pad">${violRows}</div>`
+        : `<div class="hv-empty" style="padding-top:8px"><span style="color:var(--ok)">✓</span> observed imports respect every active constraint</div>`}
+    </div>`;
+
+  const cnRows = rules().filter(r => !confOn || !(r.from === 'api' && r.to === 'web')).map(r => {
+    const vs = violFor(r.from, r.to);
+    const obs = vs.length > 0 ? `<span class="cn-obs"><span class="ring"></span>${vs.length} observed</span>` : '';
+    return `<div class="cn-row">
+      <span class="cn-edge">${r.from} → ${r.to}</span>
+      <span class="cn-verdict${r.allowed ? ' ok' : ''}">${r.allowed ? 'allowed' : 'forbidden'}</span>
+      ${decChip(r.dec)}${obs}
+    </div>`;
+  }).join('');
+  const conflictNote = confOn ? `<div class="cn-row" style="color:var(--t5);font-size:12px">api → web — in conflict, see above</div>` : '';
+
+  const mdRows = MODULES.map(m => `
+    <div class="md-row">
+      <span class="md-name">${m.name}</span>
+      <span class="md-path">${m.path}</span>
+      <span class="md-purpose">${m.purpose}</span>
+    </div>`).join('');
+
+  return `<div class="page">
+    <h1>Architecture</h1>
+    <div class="page-sub">compiled from active decisions · ${decChip('DEC-005')} ${decChip('DEC-006')} ${decChip('DEC-004')}${confOn ? ' ' + decChip('DEC-007') : ''}</div>
+
+    <div class="hv-card">
+      <div class="hv-head"><span class="hv-dot" style="background:var(--t5)"></span><span class="hv-label">Module lattice</span>
+        <span class="hv-meta" style="color:var(--t4)">${MODULES.length} modules · ${rules().length} constraints</span></div>
+      ${matrix()}
+    </div>
+
+    ${conflictCard}
+    ${violCard}
+
+    <div class="hv-card">
+      <div class="hv-head"><span class="hv-dot" style="background:${C.decision}"></span><span class="hv-label">Constraints</span></div>
+      ${cnRows}${conflictNote}
+    </div>
+
+    <div class="hv-card">
+      <div class="hv-head"><span class="hv-dot" style="background:var(--t3)"></span><span class="hv-label">Modules</span></div>
+      ${mdRows}
+      <div class="card-foot">declared on workflow.md (WF-001) — editing the list moves it out from under its approval stamp (DEC-059)<span style="margin-left:auto;cursor:pointer" onclick="toast('opens workflow.md in the reader')">workflow ↗</span></div>
+    </div>
+  </div>`;
+}
+
+/* ---- home: the ARCHITECTURE card between HEALTH and IN FLIGHT ---- */
+function homeView() {
+  const iss = issues();
+  const viol = violations();
+  const meta = iss.length > 0
+    ? `<span style="color:var(--warn)">${iss.length} issue${iss.length === 1 ? '' : 's'}</span>`
+    : `<span style="color:var(--ok)">clean</span>`;
+  const advMeta = viol.length > 0 ? ` <span class="adv-count">· ${viol.length} advisories</span>` : '';
+
+  const issueRows = iss.map(i => `
+    <div class="hv-row" onclick="go('reader','${i.id}')">
+      <span class="hv-kind">${i.kind}</span>
+      <span class="hv-id" style="color:${C.decision}">${i.id}</span>
+      <span class="hv-msg">${i.msg}</span>
+    </div>`).join('');
+  const advRows = viol.map(v => `
+    <div class="adv-row" onclick="go('reader','${decFor(v.from, v.to)}')">
+      <span class="ring"></span>
+      <span class="adv-kind">arch-violation</span>
+      <span class="hv-id" style="color:${C.decision}">${decFor(v.from, v.to)}</span>
+      <span class="adv-msg">${v.file} imports "${v.spec}" — the ${v.from} → ${v.to} edge is forbidden</span>
+    </div>`).join('');
+  const advTier = viol.length > 0 ? `
+    ${iss.length > 0 ? '<div class="adv-divider"></div>' : ''}
+    <div class="adv-label">Advisories · ${viol.length}</div>
+    <div class="adv-pad">${advRows}</div>` : '';
+  const emptyBoth = iss.length === 0 && viol.length === 0
+    ? '<div class="hv-empty">No issues — veri check is clean</div>' : '';
+
+  const archMeta = viol.length > 0
+    ? `<span style="color:var(--t4)">${MODULES.length} modules · ${rules().length} constraints</span> <span class="adv-count">· ${viol.length} violations</span>`
+    : `<span style="color:var(--t4)">${MODULES.length} modules · ${rules().length} constraints</span>`;
+  const archLine = confOn
+    ? `<div class="hv-row" onclick="go('arch')"><span class="hv-kind">arch-conflict</span><span class="hv-msg">api → web asserted both ways — see the lattice</span></div>`
+    : viol.length > 0
+      ? `<div class="adv-row" onclick="go('arch')"><span class="ring"></span><span class="adv-msg">${viol.length} observed import${viol.length === 1 ? '' : 's'} cross a forbidden edge</span></div>`
+      : `<div class="hv-empty"><span style="color:var(--ok)">✓</span> observed imports respect every active constraint</div>`;
+
+  return `<div class="page">
+    <h1>skiff</h1>
+    <div class="page-sub">10 documents · invoicing for small crews</div>
+    <div class="hv-card">
+      <div class="hv-head"><span class="hv-dot" style="background:${iss.length > 0 ? 'var(--warn)' : 'var(--ok)'}"></span><span class="hv-label">Health</span>
+        <span class="hv-meta">${meta}${advMeta}</span></div>
+      ${issueRows}${advTier}${emptyBoth}
+    </div>
+    <div class="hv-card" style="cursor:pointer" onclick="go('arch')">
+      <div class="hv-head"><span class="hv-dot" style="background:var(--t5)"></span><span class="hv-label">Architecture</span>
+        <span class="hv-meta">${archMeta}</span></div>
+      ${archLine}
+    </div>
+    <div class="hv-card">
+      <div class="hv-head"><span class="hv-dot" style="background:var(--wo)"></span><span class="hv-label">In flight</span>
+        <span class="hv-meta" style="color:var(--t4)">1 work order</span></div>
+      <div class="hv-row"><span class="hv-id" style="color:var(--wo)">WO-002</span><span class="hv-msg">PDF export pipeline</span></div>
+    </div>
+  </div>`;
+}
+
+/* ---- reader: decisions carrying constraints get the constraints card ---- */
+function readerView() {
+  const d = DECS[openDoc];
+  const myRules = rules().filter(r => r.dec === openDoc);
+  const myViol = violations().filter(v => decFor(v.from, v.to) === openDoc);
+  const myConf = conflicts().filter(c => c.allowedBy === openDoc || c.forbiddenBy === openDoc);
+
+  const banner = myConf.length > 0
+    ? `<div class="warn-row" style="border:1px solid #3A3020;border-radius:8px;margin-bottom:16px"><span class="warn-tag">⚠ veri check</span><span>architecture conflict on ${myConf[0].from} → ${myConf[0].to}: allowed by ${myConf[0].allowedBy} but forbidden by ${myConf[0].forbiddenBy}</span></div>` : '';
+
+  const csRows = myRules.map(r => {
+    const vs = violFor(r.from, r.to);
+    const obs = vs.length > 0 ? `<span class="cn-obs"><span class="ring"></span>${vs.length} observed</span>`
+      : `<span class="cn-obs" style="color:var(--ok)">✓</span>`;
+    return `<div class="cn-row">
+      <span class="cn-edge">${r.from} → ${r.to}</span>
+      <span class="cn-verdict${r.allowed ? ' ok' : ''}">${r.allowed ? 'allowed' : 'forbidden'}</span>
+      ${obs}
+    </div>`;
+  }).join('');
+  const csCard = myRules.length > 0 ? `
+    <div class="cs-card">
+      <div class="cs-head">Architecture constraints<span class="go" onclick="go('arch')">architecture ↗</span></div>
+      ${csRows}
+    </div>` : '';
+
+  const strip = myViol.length > 0 ? `<div class="adv-strip">${myViol.map(v => `
+      <div class="adv-line"><span class="ring"></span><span>${v.file} imports "${v.spec}" — the ${v.from} → ${v.to} edge is forbidden by ${openDoc}</span>
+      <span class="adv-go" onclick="go('arch')">architecture ↗</span></div>`).join('')}
+    </div>` : '';
+
+  return `<div class="page" style="max-width:720px">
+    <div class="crumb"><span>decisions</span><span>/</span><span style="color:${C.decision}">${openDoc}</span></div>
+    <div class="doc-title">${d.title}</div>
+    ${banner}
+    <div class="fm-card">
+      <div class="fm-row"><span class="fm-key">type</span><span class="chip" style="color:${C.decision};background:rgba(207,168,61,.1);cursor:default">decision</span></div>
+      <div class="fm-row"><span class="fm-key">status</span><span class="chip" style="color:var(--ok);background:rgba(127,175,138,.1);cursor:default">active</span></div>
+      <div class="fm-row"><span class="fm-key">approved</span><span class="fm-val" style="font-family:var(--mono);font-size:12px;color:var(--t3)">2026-08-14</span></div>
+    </div>
+    ${csCard}
+    ${strip}
+    <div class="body">${d.body}</div>
+  </div>`;
+}
+
+function render() {
+  const iss = issues();
+  const chip = document.getElementById('healthChip');
+  chip.style.display = iss.length > 0 ? 'flex' : 'none';
+  document.getElementById('chipText').textContent = `veri check · ${iss.length} issue${iss.length === 1 ? '' : 's'}`;
+  document.getElementById('decCount').textContent = confOn ? '5' : '4';
+  document.getElementById('navHome').className = view === 'home' ? 'nav-row active' : 'nav-row';
+  document.getElementById('recent').innerHTML = ['DEC-005', 'DEC-006', 'DEC-004'].map(id => `
+    <div class="sb-row${view === 'reader' && openDoc === id ? ' active' : ''}" onclick="go('reader','${id}')">
+      <span class="sb-id" style="color:${C.decision}">${id}</span>
+      <span class="sb-title">${DECS[id].title}</span>
+    </div>`).join('');
+  document.getElementById('main').innerHTML =
+    view === 'home' ? homeView() : view === 'arch' ? archView() : readerView();
+}
+render();
+</script>
+</body>
+</html>
