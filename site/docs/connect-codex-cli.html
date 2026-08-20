@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect Codex CLI — Veri</title>
+<meta name="description" content="What Veri writes to connect Codex CLI, where the config lives, and how to verify the connection actually works.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../assets/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<link rel="stylesheet" href="../site.css?v=2">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <a class="top-wordmark" href="../"><span class="v">V</span>eri</a>
+  <a class="nav" href="../#product">Product</a>
+  <a class="nav" href="workflow.html">Workflow</a>
+  <a class="nav here" href="quickstart.html">Docs</a>
+  <a class="nav" href="https://github.com/danielyayla/veri">GitHub</a>
+  <a class="top-dl" href="https://github.com/danielyayla/veri/releases/latest">Download</a>
+</header>
+
+<nav class="docs-strip" aria-label="Documentation pages">
+  <a href="quickstart.html">Quickstart</a>
+  <a href="workflow.html">Workflow</a>
+  <a href="connect-claude-code.html" class="here">Connect your agent</a>
+  <a href="reference.html">Reference</a>
+  <a href="troubleshooting.html">Troubleshooting</a>
+</nav>
+
+<article class="doc" id="main">
+<h1>Connecting Codex CLI</h1>
+<p class="doc-lead">Veri connects Codex CLI (<code>codex</code>) through its user-global <code>~/.codex/config.toml</code> — the one supported agent whose MCP config is not a file in your project. This page documents exactly what gets written, where, and how to verify it works. Using a different agent? See <a href="connect-claude-code.html">Claude Code</a>, <a href="connect-cursor.html">Cursor</a>, or <a href="connect-gemini.html">Gemini CLI</a>.</p>
+
+<h2>What Veri writes</h2>
+<p>Open a work order in Veri and click <b>Start agent session</b>. The roster lists every agent detected on your machine; if Codex CLI's row says <i>mcp config: veri entry missing</i>, click <b>Set up &amp; launch</b>. Veri appends one TOML block to <code>~/.codex/config.toml</code> (creating the file if needed):</p>
+<pre><code>[mcp_servers.veri]
+command = "node"
+args = ["/Applications/Veri.app/Contents/Resources/app/node_modules/@veri/mcp/dist/server.js", "/Users/you/code/your-project"]</code></pre>
+<ul>
+  <li><b><code>command = "node"</code></b> — Codex launches the server with your own Node (version 20 or newer).</li>
+  <li><b>First argument</b> — the MCP server script that ships inside the Veri app. The path contains no version segment, so it stays valid across app self-updates.</li>
+  <li><b>Second argument</b> — the project root the server serves: the folder containing <code>veri/</code>.</li>
+</ul>
+
+<div class="callout"><b>This file is user-global, not per-project.</b> Unlike the other agents' project-scoped configs, <code>~/.codex/config.toml</code> is shared by every Codex session on your machine, and its <code>veri</code> block points at the one project it was set up from. Working on a different Veri project with Codex? Edit the second <code>args</code> string to that project's root — or delete the block and run <b>Set up &amp; launch</b> from the other project.</div>
+
+<p>Veri only recognizes the exact block it writes — <code>command = "node"</code> and a two-string <code>args</code> array. Any other <code>[mcp_servers.veri]</code> body is surfaced as a conflict and never modified, and every other section of your <code>config.toml</code> is preserved untouched.</p>
+
+<h2>Restart your agent</h2>
+<p>Agents read MCP config <b>on launch</b>. <b>Set up &amp; launch</b> starts a fresh <code>codex</code> session in Terminal after writing the file, so the config is picked up. For sessions you start yourself, launch <code>codex</code> after the block exists — an already-running session won't see a config written mid-flight.</p>
+
+<h2>Verify it works</h2>
+<p>Two sides to prove. The server side: Veri's connection panel (the <code>⌁</code> icon) has <b>LIVE CHECK → Verify connection</b>, which launches the server with a real MCP handshake and a search call proving it serves <i>this</i> project — the same script and project root your Codex config points at. The agent side: in a Codex session, ask it to <i>search the veri knowledge base</i> — a working connection answers with your project's documents through the <code>veri</code> tools rather than by grepping files.</p>
+
+<h2>What the agent gets</h2>
+<p>The same seven tools every connected agent gets — <code>get_context</code>, <code>search</code>, <code>get_document</code>, <code>get_neighbors</code>, <code>file_decision</code>, <code>file_work_order</code>, <code>file_receipt</code> — detailed in the tool table on the <a href="connect-claude-code.html">Claude Code page</a>.</p>
+
+<div class="next">
+  <b>Where next:</b> the <a href="quickstart.html">quickstart</a> to watch the agent pull its first context package, or <a href="troubleshooting.html">troubleshooting</a> if verification didn't come back green. Other agents: <a href="connect-claude-code.html">Claude Code</a> · <a href="connect-cursor.html">Cursor</a> · <a href="connect-gemini.html">Gemini CLI</a>.
+</div>
+</article>
+
+<footer class="foot">
+  <span>Veri — plain files, no telemetry.</span>
+  <span><a href="../">Home</a> · <a href="https://github.com/danielyayla/veri">Source</a> · <a href="https://github.com/danielyayla/veri/issues">Issues</a></span>
+</footer>
+
+</body>
+</html>
