@@ -222,7 +222,7 @@ function agentPicker(ctx: Ctx): HTMLElement {
           h(
             'div',
             { class: 'ap-row ap-row-act' },
-            h('div', { class: 'ap-main' }, h('div', { class: 'ap-name' }, a.name), h('div', { class: 'ap-detail ap-warn' }, 'mcp config: veri entry missing')),
+            h('div', { class: 'ap-main' }, h('div', { class: 'ap-name' }, a.name), h('div', { class: 'ap-detail ap-warn' }, 'mcp config: no veri entry for this project')),
             chip('Set up & launch', 'ap-chip-setup'),
           ),
         );

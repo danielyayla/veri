@@ -123,6 +123,45 @@ test('codex TOML: append when absent, recognize own block, refuse foreign block'
   await assert.rejects(() => connectAgent(root, SERVER, 'codex', env), /left untouched/);
 });
 
+test('codex TOML: a block set up from another project is stale — not-connected, and connect re-points it in place (WO-071)', async () => {
+  const { root, env, bin } = await fixture();
+  await installBin(bin, 'codex');
+  const otherRoot = `${root}-other`;
+  const file = join(env.home, '.codex', 'config.toml');
+  await mkdir(join(env.home, '.codex'), { recursive: true });
+  const before =
+    `model = "o4"\n\n[mcp_servers.veri]\ncommand = "node"\nargs = ["/old/server.js", "${resolve(otherRoot)}"]\n\n` +
+    '[mcp_servers.linear]\ncommand = "npx"\nargs = ["-y", "linear"]\n';
+  await writeFile(file, before);
+
+  // recognized shape, wrong root: Veri's own stale entry, not connected here
+  assert.equal((await detectAgents(root, env)).find((a) => a.id === 'codex')!.status, 'not-connected');
+
+  await connectAgent(root, SERVER, 'codex', env);
+  const text = await readFile(file, 'utf8');
+  assert.equal(text.match(/\[mcp_servers\.veri\]/g)!.length, 1);
+  assert.equal(
+    text,
+    `model = "o4"\n\n[mcp_servers.veri]\ncommand = "node"\nargs = ["${SERVER}", "${resolve(root)}"]\n\n` +
+      '[mcp_servers.linear]\ncommand = "npx"\nargs = ["-y", "linear"]\n',
+  );
+  assert.equal((await detectAgents(root, env)).find((a) => a.id === 'codex')!.status, 'connected');
+  // and viewed from the project it used to point at, it now reads stale
+  assert.equal((await detectAgents(otherRoot, env)).find((a) => a.id === 'codex')!.status, 'not-connected');
+});
+
+test('json config: recognized entry with a foreign root is not-connected; a relative root resolving here stays connected (WO-071)', async () => {
+  const { root, env, bin } = await fixture();
+  await installBin(bin, 'claude');
+  const stale = { mcpServers: { veri: { command: 'node', args: [SERVER, `${resolve(root)}-elsewhere`] } } };
+  await writeFile(join(root, '.mcp.json'), JSON.stringify(stale));
+  assert.equal((await detectAgents(root, env)).find((a) => a.id === 'claude')!.status, 'not-connected');
+
+  const relative = { mcpServers: { veri: { command: 'node', args: ['packages/mcp/dist/server.js', '.'] } } };
+  await writeFile(join(root, '.mcp.json'), JSON.stringify(relative));
+  assert.equal((await detectAgents(root, env)).find((a) => a.id === 'claude')!.status, 'connected');
+});
+
 test('unparseable JSON config is a conflict and never written', async () => {
   const { root, env, bin } = await fixture();
   await installBin(bin, 'claude');

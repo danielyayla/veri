@@ -19,9 +19,9 @@ export type AgentId = 'claude' | 'cursor' | 'codex' | 'gemini';
 export type AgentStatus =
   /** binary not found on PATH */
   | 'not-installed'
-  /** binary found, recognized veri entry present in its MCP config */
+  /** binary found, recognized veri entry pointing at this project */
   | 'connected'
-  /** binary found, no veri entry (Set up & launch can write one) */
+  /** binary found, no veri entry for this project (Set up & launch writes or re-points one) */
   | 'not-connected'
   /** binary found, veri entry exists but Veri didn't write it — never touched */
   | 'conflict';
@@ -100,7 +100,7 @@ function findOnPath(bin: string, path: string): string | null {
 
 // ---- per-format config state ----
 
-async function jsonEntryStatus(file: string): Promise<AgentStatus> {
+async function jsonEntryStatus(file: string, projectRoot: string): Promise<AgentStatus> {
   if (!existsSync(file)) return 'not-connected';
   let parsed: unknown;
   try {
@@ -111,7 +111,12 @@ async function jsonEntryStatus(file: string): Promise<AgentStatus> {
   const servers = (parsed as { mcpServers?: Record<string, unknown> }).mcpServers;
   const veri = servers?.['veri'];
   if (veri === undefined) return 'not-connected';
-  return recognizedEntry(veri) === null ? 'conflict' : 'connected';
+  const entry = recognizedEntry(veri);
+  if (entry === null) return 'conflict';
+  // Recognized = Veri's own (DEC-011), but only a root that resolves to this
+  // project counts as connected; relative roots resolve against the project
+  // root, so this repo's own `"."`-style entry stays connected.
+  return resolve(projectRoot, entry.args[1]) === resolve(projectRoot) ? 'connected' : 'not-connected';
 }
 
 /**
@@ -119,7 +124,9 @@ async function jsonEntryStatus(file: string): Promise<AgentStatus> {
  * parser; it only recognizes the exact block it writes itself (DEC-011
  * applied to a second format): a `[mcp_servers.veri]` section whose body is
  * `command = "node"` and a two-string `args` array. Any other body — or a
- * file we can't scan — is a conflict and is never modified.
+ * file we can't scan — is a conflict and is never modified. Because the file
+ * is user-global, recognition alone isn't connection: the block's root arg
+ * must also match the open project (WO-071).
  */
 const TOML_HEADER = /^\s*\[mcp_servers\.veri\]\s*$/m;
 
@@ -132,24 +139,30 @@ function tomlVeriSection(text: string): string | null {
   return next === -1 ? rest : rest.slice(0, next);
 }
 
-function tomlSectionRecognized(section: string): boolean {
+const TOML_ARGS_LINE = /^args = \["([^"]*)", "([^"]*)"\]$/;
+
+/** The recognized section's two args, or null when the body isn't Veri's shape. */
+function tomlSectionArgs(section: string): [string, string] | null {
   const lines = section
     .split('\n')
     .map((l) => l.trim())
     .filter((l) => l !== '' && !l.startsWith('#'));
-  if (lines.length !== 2) return false;
-  return (
-    lines[0] === 'command = "node"' &&
-    /^args = \["[^"]*", "[^"]*"\]$/.test(lines[1] ?? '')
-  );
+  if (lines.length !== 2 || lines[0] !== 'command = "node"') return null;
+  const match = TOML_ARGS_LINE.exec(lines[1] ?? '');
+  return match === null ? null : [match[1] ?? '', match[2] ?? ''];
 }
 
-async function tomlEntryStatus(file: string): Promise<AgentStatus> {
+async function tomlEntryStatus(file: string, projectRoot: string): Promise<AgentStatus> {
   if (!existsSync(file)) return 'not-connected';
   const text = await readFile(file, 'utf8');
   const section = tomlVeriSection(text);
   if (section === null) return 'not-connected';
-  return tomlSectionRecognized(section) ? 'connected' : 'conflict';
+  const args = tomlSectionArgs(section);
+  if (args === null) return 'conflict';
+  // The file is user-global, so a recognized block carries whichever project
+  // it was last set up from. A root pointing elsewhere is Veri's own stale
+  // entry (WO-071): not-connected here, and Set up & launch re-points it.
+  return resolve(args[1]) === resolve(projectRoot) ? 'connected' : 'not-connected';
 }
 
 // ---- public API ----
@@ -162,7 +175,9 @@ export async function detectAgents(projectRoot: string, env: AgentEnv = defaultE
       let status: AgentStatus = 'not-installed';
       if (binPath !== null) {
         status =
-          a.format === 'json' ? await jsonEntryStatus(configPath) : await tomlEntryStatus(configPath);
+          a.format === 'json'
+            ? await jsonEntryStatus(configPath, projectRoot)
+            : await tomlEntryStatus(configPath, projectRoot);
       }
       return { id: a.id, name: a.name, binPath, configPath, status };
     }),
@@ -191,14 +206,26 @@ export async function connectAgent(
   const root = resolve(projectRoot);
 
   if (a.format === 'toml') {
-    const status = await tomlEntryStatus(file);
+    const status = await tomlEntryStatus(file, root);
     if (status === 'conflict') {
       throw new Error(`${file} has a veri entry Veri didn't write — left untouched`);
     }
     if (status === 'connected') return;
     const existing = existsSync(file) ? await readFile(file, 'utf8') : '';
+    const argsLine = `args = ["${serverJs}", "${root}"]`;
+    const header = TOML_HEADER.exec(existing);
+    if (header !== null) {
+      // A recognized block for another project (the file is user-global) is
+      // Veri's own stale entry: re-point only its args line, leaving every
+      // other line of the file — including the section's comments — verbatim.
+      const start = header.index + header[0].length;
+      const section = tomlVeriSection(existing) as string;
+      const updated = section.replace(/^([ \t]*)args = \["[^"]*", "[^"]*"\][ \t]*$/m, `$1${argsLine}`);
+      await writeFile(file, existing.slice(0, start) + updated + existing.slice(start + section.length));
+      return;
+    }
     const sep = existing === '' || existing.endsWith('\n') ? '' : '\n';
-    const block = `${sep}\n[mcp_servers.veri]\ncommand = "node"\nargs = ["${serverJs}", "${root}"]\n`;
+    const block = `${sep}\n[mcp_servers.veri]\ncommand = "node"\n${argsLine}\n`;
     await mkdir(dirname(file), { recursive: true });
     await writeFile(file, existing + block);
     return;

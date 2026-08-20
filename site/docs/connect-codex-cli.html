@@ -46,7 +46,7 @@ args = ["/Applications/Veri.app/Contents/Resources/app/node_modules/@veri/mcp/di
   <li><b>Second argument</b> — the project root the server serves: the folder containing <code>veri/</code>.</li>
 </ul>
 
-<div class="callout"><b>This file is user-global, not per-project.</b> Unlike the other agents' project-scoped configs, <code>~/.codex/config.toml</code> is shared by every Codex session on your machine, and its <code>veri</code> block points at the one project it was set up from. Working on a different Veri project with Codex? Edit the second <code>args</code> string to that project's root — or delete the block and run <b>Set up &amp; launch</b> from the other project.</div>
+<div class="callout"><b>This file is user-global, not per-project.</b> Unlike the other agents' project-scoped configs, <code>~/.codex/config.toml</code> is shared by every Codex session on your machine, and its <code>veri</code> block points at one project at a time — the one it was last set up from. Working on a different Veri project with Codex? The agent picker there shows Codex as not connected; click <b>Set up &amp; launch</b> and Veri re-points its own block at that project, leaving the rest of the file untouched.</div>
 
 <p>Veri only recognizes the exact block it writes — <code>command = "node"</code> and a two-string <code>args</code> array. Any other <code>[mcp_servers.veri]</code> body is surfaced as a conflict and never modified, and every other section of your <code>config.toml</code> is preserved untouched.</p>
 
