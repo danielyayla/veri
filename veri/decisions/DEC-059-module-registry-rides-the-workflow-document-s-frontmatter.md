@@ -2,7 +2,8 @@
 id: DEC-059
 type: decision
 title: "Module registry rides the workflow document's frontmatter"
-status: proposed
+status: active
+approved: 2026-08-20
 created: 2026-08-20
 updated: 2026-08-20
 links:
