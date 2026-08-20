@@ -2,7 +2,7 @@
 id: WO-066
 type: work-order
 title: "Architecture constraints: schema validation, module registry, and the compiled projection"
-status: in-progress
+status: done
 created: 2026-08-20
 updated: 2026-08-20
 links:
@@ -42,16 +42,16 @@ Makes DEC-058's convention real, delivering its two hard requirements in one uni
 
 ## Acceptance tests
 
-- [ ] A decision with a well-formed `architecture.constraints` block referencing known modules passes `veri check` with zero issues
-- [ ] A malformed block (wrong shape, missing `allowed`, non-list `to` that isn't a string) is a check issue naming the offending document
-- [ ] A constraint naming a module absent from the registry is a check issue (the typo case)
-- [ ] `veri architecture` lists registry modules with purposes and every constraint from active decisions, each citing its DEC id
-- [ ] A `proposed` decision's constraints appear nowhere in the projection; superseding a decision removes its constraints from the projection with no other edit
-- [ ] Two active decisions asserting opposite `allowed` for the same from→to edge are reported as a conflict by both `veri check` and `veri architecture`
-- [ ] Projection output is byte-identical across repeated runs on the same files
-- [ ] The registry-home decision is filed as a proposed DEC with rejected alternatives
-- [ ] `veri check` reports zero issues across the corpus and all core tests pass
+- [x] A decision with a well-formed `architecture.constraints` block referencing known modules passes `veri check` with zero issues
+- [x] A malformed block (wrong shape, missing `allowed`, non-list `to` that isn't a string) is a check issue naming the offending document
+- [x] A constraint naming a module absent from the registry is a check issue (the typo case)
+- [x] `veri architecture` lists registry modules with purposes and every constraint from active decisions, each citing its DEC id
+- [x] A `proposed` decision's constraints appear nowhere in the projection; superseding a decision removes its constraints from the projection with no other edit
+- [x] Two active decisions asserting opposite `allowed` for the same from→to edge are reported as a conflict by both `veri check` and `veri architecture`
+- [x] Projection output is byte-identical across repeated runs on the same files
+- [x] The registry-home decision is filed as a proposed DEC with rejected alternatives
+- [x] `veri check` reports zero issues across the corpus and all core tests pass
 
 ## Receipts
 
-(none yet)
+- 2026-08-20 — 12c6e7f — packages/core/src/schema.ts, packages/core/src/types.ts, packages/core/src/architecture.ts, packages/core/src/architecture.test.ts, packages/core/src/check.ts, packages/core/src/index.ts, packages/cli/src/cli.ts, packages/cli/src/commands.ts, packages/cli/src/commands.test.ts, veri/decisions/DEC-059-module-registry-rides-the-workflow-document-s-frontmatter.md — DEC-058's convention shipped whole: architecture.constraints schema on decision frontmatter (malformed = invalid-frontmatter issue), module registry as modules: on workflow frontmatter (DEC-059 filed, proposed), unknown-module and conflicting-edge check issues, pure-core deterministic projection with DEC-id citations, and the veri architecture CLI printout; 496 tests pass (13 new in core, 1 new CLI), typecheck clean, veri check 0 issues · 1 pre-existing WO-034 advisory; Veri's own registry/constraints deliberately not authored — that is the policy DEC this WO leaves out of scope
