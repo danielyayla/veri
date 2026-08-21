@@ -34,6 +34,13 @@ Interim mitigation for REQ-023, not its implementation: stop shipping the univer
 - [[REQ-023]] — mitigates
 - [[SRC-037]] — informed-by
 
+## Notes
+
+- 2026-08-21 — Likely obsolete: [[WO-073]] landed the same day, with
+  per-arch Tauri DMGs measured 41.9/43.8 MB. This WO retains value
+  only if the v0.2.0 release is delayed long enough that an interim
+  Electron cut is worth its CI cost — Daniel's call; left in backlog.
+
 ## Acceptance tests
 
 - [ ] Per-arch DMG and zip artifacts build, sign, and notarize

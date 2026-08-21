@@ -2,7 +2,8 @@
 id: DEC-066
 type: decision
 title: "Screenshot harness captures via WKWebView takeSnapshot, not window imaging"
-status: proposed
+status: active
+approved: 2026-08-21
 created: 2026-08-21
 updated: 2026-08-21
 links:

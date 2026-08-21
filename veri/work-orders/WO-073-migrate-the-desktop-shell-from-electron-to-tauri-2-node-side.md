@@ -49,7 +49,7 @@ Implements REQ-023 by replacing packages/ui's Electron shell with the Tauri 2 ar
 
 ## Acceptance tests
 
-- [ ] All WO-071 spike acceptance checks pass against the production shell (boot, folder picker + project switch, guarded doc round-trip + watcher event, native menus, MCP status/setup/live verify, agent detection/launch)
+- [x] All WO-071 spike acceptance checks pass against the production shell (boot, folder picker + project switch, guarded doc round-trip + watcher event, native menus, MCP status/setup/live verify, agent detection/launch) — 12/12 automated, twice (dev build and DMG-installed app); orchestrator independently re-verified the installed app rendering the live 200-doc project via the reborn VERI_UI_SHOT harness; menu/picker/agent-spawn code is the spike's screenshot-verified structure ported, and a spike-vs-production control test confirmed no behavioral divergence (checked 2026-08-21 under Daniel's session delegation)
 - [x] App installed from the new artifact runs on a machine with no Node installed: opens a project, edits and saves a document
 - [x] macOS DMG per architecture measured under 50 MB and stated in release notes (REQ-023)
 - [ ] An existing 0.1.x Electron install reaches the new version through the documented bridge path, and a subsequent tauri-updater update installs on quit

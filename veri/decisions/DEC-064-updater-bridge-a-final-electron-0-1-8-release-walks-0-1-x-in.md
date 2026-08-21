@@ -2,7 +2,8 @@
 id: DEC-064
 type: decision
 title: "Updater bridge: a final Electron 0.1.8 release walks 0.1.x installs to the Tauri line"
-status: proposed
+status: active
+approved: 2026-08-21
 created: 2026-08-21
 updated: 2026-08-21
 links:

@@ -2,7 +2,8 @@
 id: DEC-065
 type: decision
 title: "tauri-plugin-updater on a latest.json GitHub Releases feed; full-archive updates accepted"
-status: proposed
+status: active
+approved: 2026-08-21
 created: 2026-08-21
 updated: 2026-08-21
 links:
