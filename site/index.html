@@ -41,7 +41,7 @@
     <a class="btn btn-secondary" href="https://github.com/danielyayla/veri">View on GitHub</a>
     <a class="cta-quickstart" href="docs/quickstart.html">10-minute quickstart</a>
   </div>
-  <div class="dl-sub"><span id="dl-version"></span>macOS 13+ · Apple silicon &amp; Intel · free &amp; open source</div>
+  <div class="dl-sub"><span id="dl-version"></span>macOS 13+ · <a id="dl-arm" href="https://github.com/danielyayla/veri/releases/latest">Apple silicon</a> &amp; <a id="dl-intel" href="https://github.com/danielyayla/veri/releases/latest">Intel</a> · free &amp; open source</div>
 </section>
 
 <div class="hero-shot">
@@ -297,6 +297,7 @@ embedded in the Rust core.
     <a class="btn btn-primary" id="dl2" href="https://github.com/danielyayla/veri/releases/latest">Download for macOS</a>
     <a class="cta-quickstart" href="docs/quickstart.html">or start with the quickstart</a>
   </div>
+  <div class="dl-sub"><a id="dl2-arm" href="https://github.com/danielyayla/veri/releases/latest">Apple silicon</a> &amp; <a id="dl2-intel" href="https://github.com/danielyayla/veri/releases/latest">Intel</a></div>
 </section>
 
 </main>
@@ -307,18 +308,46 @@ embedded in the Rust core.
 </footer>
 
 <script>
-// DEC-033: resolve the current DMG from the releases API so the buttons never
+// DEC-033: resolve the current DMGs from the releases API so the buttons never
 // need a per-release edit. The hrefs above are the no-JS / API-failure fallback.
+// Tauri releases ship separate Apple-silicon (aarch64) and Intel (x64) DMGs;
+// browsers deliberately hide the CPU, so the primary button carries a WebGL-based
+// guess (labelled, so a wrong guess is visible) and both chips stay one click
+// away in the sub-line.
+function guessAppleSilicon() {
+  try {
+    var gl = document.createElement('canvas').getContext('webgl');
+    var ext = gl && gl.getExtension('WEBGL_debug_renderer_info');
+    var renderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : '';
+    if (/intel|amd|nvidia/i.test(renderer)) return false;
+  } catch (e) { /* fall through to the default */ }
+  return true; // Safari masks the renderer on both chips; Apple silicon is the likelier Mac
+}
 fetch('https://api.github.com/repos/danielyayla/veri/releases/latest')
   .then(function (r) { return r.ok ? r.json() : null; })
   .then(function (rel) {
     if (!rel || !rel.assets) return;
-    var dmg = rel.assets.find(function (a) {
-      return a.name.endsWith('.dmg');
+    function dmgEndingIn(suffix) {
+      return rel.assets.find(function (a) { return a.name.endsWith(suffix); });
+    }
+    var arm = dmgEndingIn('aarch64.dmg');
+    var intel = dmgEndingIn('x64.dmg');
+    if (!arm || !intel) {
+      arm = intel = dmgEndingIn('.dmg');
+      if (!arm) return;
+    }
+    var isArm = guessAppleSilicon();
+    var primary = isArm ? arm : intel;
+    ['dl', 'dl2'].forEach(function (id) {
+      var btn = document.getElementById(id);
+      btn.href = primary.browser_download_url;
+      if (arm !== intel) {
+        btn.textContent = 'Download for macOS (' + (isArm ? 'Apple silicon' : 'Intel') + ')';
+      }
     });
-    if (!dmg) return;
-    document.getElementById('dl').href = dmg.browser_download_url;
-    document.getElementById('dl2').href = dmg.browser_download_url;
+    [['dl-arm', arm], ['dl-intel', intel], ['dl2-arm', arm], ['dl2-intel', intel]].forEach(function (pair) {
+      document.getElementById(pair[0]).href = pair[1].browser_download_url;
+    });
     document.getElementById('dl-version').textContent = rel.tag_name + ' · ';
   })
   .catch(function () { /* fallback hrefs stand */ });

@@ -357,6 +357,8 @@ section.band { margin: 88px auto 0; }
   color: var(--muted);
   font-family: var(--mono);
 }
+.dl-sub a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.dl-sub a:hover { color: var(--text); }
 
 .hero-shot {
   margin: 44px auto 0;
