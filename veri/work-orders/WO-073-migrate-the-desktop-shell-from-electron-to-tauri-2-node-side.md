@@ -2,9 +2,9 @@
 id: WO-073
 type: work-order
 title: "Migrate the desktop shell from Electron to Tauri 2 (Node sidecar, bundled runtime)"
-status: backlog
+status: in-progress
 created: 2026-08-20
-updated: 2026-08-20
+updated: 2026-08-21
 links:
   - id: REQ-023
     rel: implements

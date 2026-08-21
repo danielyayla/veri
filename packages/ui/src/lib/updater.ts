@@ -1,6 +1,7 @@
-import { app, dialog } from 'electron';
+import { app, dialog, shell } from 'electron';
 // electron-updater is CJS; named imports are not reliable under NodeNext ESM.
 import updater from 'electron-updater';
+import { TAURI_DOWNLOAD_URL, TAURI_FEED_URL, bridgeTarget } from './bridge.ts';
 import { updaterLogger } from './log.ts';
 import type { Logger } from './log.ts';
 
@@ -64,6 +65,30 @@ export function startUpdater(log: Logger): void {
       });
   });
 
+  // WO-073 bridge: the Tauri line publishes latest.json instead of
+  // latest-mac.yml, so electron-updater will never see it. Watch the new feed
+  // on the same cadence; once it exists, offer the one-time manual install.
+  // A missing feed is this release's normal state — silent, not even logged.
+  const promptedBridge = new Set<string>();
+  const checkBridge = async (): Promise<void> => {
+    const res = await fetch(TAURI_FEED_URL);
+    if (!res.ok) return;
+    const version = bridgeTarget(app.getVersion(), await res.json());
+    if (version === null || promptedBridge.has(version)) return;
+    promptedBridge.add(version);
+    log.info(`bridge: tauri feed advertises ${version}; offering the new installer`);
+    const { response } = await dialog.showMessageBox({
+      type: 'info',
+      message: `Veri ${version} is available as a new, much smaller app`,
+      detail:
+        'Veri has moved to a new engine and this version cannot update itself to it. Download the new installer once — after that, automatic updates resume.',
+      buttons: ['Download', 'Later'],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (response === 0) await shell.openExternal(TAURI_DOWNLOAD_URL);
+  };
+
   const check = (): void => {
     autoUpdater
       .checkForUpdates()
@@ -71,6 +96,7 @@ export function startUpdater(log: Logger): void {
         status.lastCheckAt = Date.now();
       })
       .catch(() => {});
+    checkBridge().catch(() => {});
   };
   // Off the launch path: the window is up before the first check runs.
   setTimeout(check, 10_000);
