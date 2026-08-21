@@ -214,6 +214,14 @@
       if (flipped.dark !== !before.dark) throw new Error('explicit pref did not flip resolved mode');
       return 'pref ' + before.pref + ' -> ' + flipped.pref + ' -> ' + restored.pref + ', dark ' + before.dark + ' -> ' + flipped.dark;
     });
+    await step('mcpSetup', async () => {
+      // The scratch project's config (if any) names another root; the real
+      // one-click setup flow writes the correct entry for this project.
+      await window.veri.mcpSetup();
+      const s = await window.veri.mcpStatus();
+      if (s.state !== 'ok') throw new Error('post-setup state ' + s.state);
+      return 'wrote veri entry, status ok';
+    });
     await step('mcpStatus', async () => {
       const s = await window.veri.mcpStatus();
       return s.state;

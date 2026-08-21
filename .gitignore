@@ -3,3 +3,9 @@ dist/
 *.tsbuildinfo
 .DS_Store
 release/
+# Tauri build outputs (WO-073): fetched Node runtime, staged sidecar tree,
+# cargo target, and generated schemas — all rebuilt by scripts/CI.
+packages/ui/src-tauri/target/
+packages/ui/src-tauri/binaries/
+packages/ui/src-tauri/sidecar-stage/
+packages/ui/src-tauri/gen/

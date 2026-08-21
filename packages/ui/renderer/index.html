@@ -2,17 +2,20 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <!-- No network, ever: everything must come from the app bundle. -->
-  <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; script-src 'self'" />
+  <!-- No network, ever: everything must come from the app bundle. The CSP
+       enforcing it lives in src-tauri/tauri.conf.json (app.security.csp) —
+       Tauri injects it with the nonces its own bootstrap scripts need. -->
   <title>Veri</title>
   <link rel="stylesheet" href="./fonts.css" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <div id="app"></div>
+  <!-- The shell bridge: window.veri over Tauri invoke (WO-073). A plain
+       script so it runs before the deferred module below. -->
+  <script src="./shim.js"></script>
   <!-- Bundled by esbuild (DEC-021) so the CodeMirror packages resolve under
-       script-src 'self'; dist/renderer/app.js is the unbundled tsc input. -->
-  <script type="module" src="../dist/renderer/app.bundle.js"></script>
+       script-src 'self'; assemble-frontend.mjs flattens it next to this file. -->
+  <script type="module" src="./app.bundle.js"></script>
 </body>
 </html>

@@ -1,0 +1,34 @@
+# The Veri desktop shell (WO-073, DEC-063): a thin Rust host owning window,
+# menus, dialogs, clipboard, updater, and the sidecar process. All product
+# logic stays in TypeScript (DEC-001) — everything here is glue.
+[package]
+name = "veri-shell"
+version = "0.2.0"
+description = "Veri desktop shell: Tauri 2 host for the Node sidecar"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-updater = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["sync", "time", "macros"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+# Screenshot harness only (shot.rs): WKWebView takeSnapshot, the capturePage
+# analog. All already in tauri's own dependency tree.
+block2 = "0.6"
+objc2-app-kit = { version = "0.3", features = ["NSImage", "NSImageRep", "NSBitmapImageRep", "NSGraphics"] }
+objc2-foundation = { version = "0.3", features = ["NSDictionary", "NSError", "NSData"] }
+objc2-web-kit = { version = "0.3", features = ["WKWebView", "WKSnapshotConfiguration", "block2"] }
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The main window: core IPC + events. Every native capability (dialogs, clipboard, opener, updater) is reached through the shell's own commands, never granted to page script directly.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}
