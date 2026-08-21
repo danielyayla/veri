@@ -285,43 +285,50 @@ export async function list(cwd: string, typeArg: string | undefined): Promise<Cm
   };
 }
 
-// Launching the desktop app needs module resolution and a process spawn;
-// both are injectable so tests can exercise the paths without Electron.
+// Launching the desktop app needs module resolution, a process spawn, and a
+// binary-existence probe; all are injectable so tests can exercise the paths
+// without a built shell.
 export interface OpenDeps {
   resolvePath: (specifier: string) => string;
-  launch: (electronBin: string, args: string[]) => void;
+  launch: (shellBin: string, args: string[]) => void;
+  exists?: (path: string) => boolean;
 }
 
 const defaultOpenDeps: OpenDeps = {
   resolvePath: (specifier) => createRequire(import.meta.url).resolve(specifier),
-  launch: (electronBin, args) => {
-    const child = spawn(electronBin, args, { detached: true, stdio: 'ignore' });
+  launch: (shellBin, args) => {
+    const child = spawn(shellBin, args, { detached: true, stdio: 'ignore' });
     child.unref();
   },
 };
 
+/** Where the Tauri shell binary lives inside a bundle (WO-073, DEC-063). */
+const SHELL_IN_APP = 'Contents/MacOS/veri-shell';
+
 export function open(cwd: string, dirArg: string | undefined, deps: OpenDeps = defaultOpenDeps): CmdResult {
+  const exists = deps.exists ?? existsSync;
   const target = resolve(cwd, dirArg ?? '.');
   if (!existsSync(join(target, 'veri'))) {
     return { code: 1, lines: [`no veri/ directory in ${target} — run "veri init" there first.`] };
   }
-  let uiDir: string;
-  let electronBin: string;
+  // The desktop app is the Tauri shell (WO-073): in a dev checkout the
+  // bundled release build next to @veri/ui, otherwise an installed
+  // Veri.app. The shell takes the project directory as its one argument.
+  const candidates: string[] = [];
   try {
-    const uiPkg = deps.resolvePath('@veri/ui/package.json');
-    uiDir = dirname(uiPkg);
-    // require('electron') from Node (not inside Electron) returns the
-    // binary path; anchor resolution at the UI package, whose dep it is.
-    electronBin = createRequire(uiPkg)('electron') as string;
+    const uiDir = dirname(deps.resolvePath('@veri/ui/package.json'));
+    candidates.push(join(uiDir, 'src-tauri', 'target', 'release', 'bundle', 'macos', 'Veri.app', SHELL_IN_APP));
   } catch {
+    // Standalone CLI install — only the installed app can serve.
+  }
+  candidates.push(join('/Applications', 'Veri.app', SHELL_IN_APP));
+  const shellBin = candidates.find((bin) => exists(bin));
+  if (shellBin === undefined) {
     return {
       code: 1,
-      lines: ['cannot find the Veri desktop app (@veri/ui with electron installed) — is this a standalone CLI install?'],
+      lines: ['cannot find the Veri desktop app — build it ("npm run dist" in packages/ui) or install Veri.app.'],
     };
   }
-  if (!existsSync(join(uiDir, 'dist', 'main.js'))) {
-    return { code: 1, lines: ['@veri/ui is not built — run "npm run build" in packages/ui first.'] };
-  }
-  deps.launch(electronBin, [uiDir, target]);
+  deps.launch(shellBin, [target]);
   return { code: 0, lines: [`Opening Veri on ${target}…`] };
 }

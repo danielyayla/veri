@@ -5,7 +5,7 @@ title: Veri project workflow
 status: accepted
 approved: 2026-08-20
 created: 2026-08-12
-updated: 2026-08-20
+updated: 2026-08-21
 design_gate_paths:
   - packages/ui
 modules:
@@ -20,7 +20,7 @@ modules:
     purpose: The agent door — MCP server serving context packages and writeback, subprocess-free
   - name: ui
     path: packages/ui
-    purpose: The desktop app — Electron review surface composing the other three packages
+    purpose: The desktop app — Tauri 2 shell (Rust glue + Node sidecar) review surface composing the other three packages
 ---
 
 How work moves through this repo. Veri is self-hosted: it is built by

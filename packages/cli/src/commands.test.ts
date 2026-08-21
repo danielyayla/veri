@@ -257,18 +257,22 @@ test('the built veri bin runs check against this repo', { skip: !existsSync(CLI_
   assert.match(run.stdout, /0 issues/);
 });
 
-test('open launches electron on the resolved project directory', (t) => {
+test('open launches the desktop shell on the resolved project directory', (t) => {
   const dir = tempProject();
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   init(dir, { demo: false });
   const launches: string[][] = [];
   const result = open(dir, undefined, {
     resolvePath: (spec) => join(REPO_ROOT, 'packages/ui', spec.replace('@veri/ui/', '')),
+    exists: (bin) => bin.startsWith(join(REPO_ROOT, 'packages/ui')),
     launch: (bin, args) => launches.push([bin, ...args]),
   });
   assert.equal(result.code, 0);
   assert.equal(launches.length, 1);
-  assert.deepEqual(launches[0].slice(1), [join(REPO_ROOT, 'packages/ui'), dir]);
+  assert.deepEqual(launches[0], [
+    join(REPO_ROOT, 'packages/ui', 'src-tauri', 'target', 'release', 'bundle', 'macos', 'Veri.app', 'Contents', 'MacOS', 'veri-shell'),
+    dir,
+  ]);
 });
 
 test('open refuses a non-project directory and reports a missing desktop app', (t) => {
@@ -288,6 +292,7 @@ test('open refuses a non-project directory and reports a missing desktop app', (
     resolvePath: () => {
       throw new Error("Cannot find module '@veri/ui/package.json'");
     },
+    exists: () => false, // no installed Veri.app either
     launch: () => assert.fail('must not launch'),
   });
   assert.equal(noApp.code, 1);

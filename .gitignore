@@ -9,3 +9,4 @@ packages/ui/src-tauri/target/
 packages/ui/src-tauri/binaries/
 packages/ui/src-tauri/sidecar-stage/
 packages/ui/src-tauri/gen/
+packages/ui/src-tauri/release-assets/

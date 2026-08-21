@@ -1,19 +1,27 @@
-# WO-028: pushing a version tag (v0.2.0) builds, signs, notarizes, and
-# publishes the macOS app plus the electron-updater feed metadata
-# (latest-mac.yml, blockmaps) to a GitHub Release. The tag is the only
-# manual step.
+# WO-073: pushing a version tag (v0.2.0) builds, signs, notarizes, and
+# publishes the Tauri app — per-architecture DMGs plus the tauri-updater
+# feed (latest.json, .app.tar.gz archives with minisign signatures) — to a
+# GitHub Release. The tag is the only manual step.
 #
-# When the signing secrets are not configured, the build falls back to
-# an unsigned, un-notarized app so the rest of the pipeline can be
-# exercised; installs will hit Gatekeeper warnings.
+# When the Apple signing secrets are not configured, the build falls back
+# to an ad-hoc-signed, un-notarized app so the rest of the pipeline can be
+# exercised; installs will hit Gatekeeper warnings. The updater signing key
+# is NOT optional: without signed archives, installed apps refuse the feed.
 #
 # Required repository secrets for signed builds:
 #   CSC_LINK                     base64 .p12 of the Developer ID
-#                                Application certificate
+#                                Application certificate (same secret the
+#                                Electron pipeline used; tauri reads it as
+#                                APPLE_CERTIFICATE)
 #   CSC_KEY_PASSWORD             its passphrase
 #   APPLE_ID                     Apple ID for notarization
 #   APPLE_APP_SPECIFIC_PASSWORD  app-specific password for that ID
 #   APPLE_TEAM_ID                developer team id
+#   TAURI_SIGNING_PRIVATE_KEY    minisign private key for updater archives
+#                                (generated with `tauri signer generate`;
+#                                the matching pubkey lives in
+#                                packages/ui/src-tauri/tauri.conf.json)
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  its password ("" if none)
 name: release
 
 on:
@@ -48,56 +56,79 @@ jobs:
 
       - run: npm test
 
-      # WO-033: electron-builder must not touch the release API. Its
-      # per-target publishers race to create the release, and GitHub's
-      # REST list-releases endpoint (their find-existing path) serves
-      # stale results, so even a pre-created draft gets duplicated
-      # (observed on the v0.1.1 and v0.1.2 runs). CI creates the one
-      # draft, electron-builder only builds, and CI uploads serially.
+      - name: Rust targets (arm64 runner cross-builds x64)
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - name: Fetch the bundled Node runtime (both architectures)
+        working-directory: packages/ui
+        run: node scripts/fetch-node.mjs --target=all
+
+      - name: Stage the sidecar tree
+        working-directory: packages/ui
+        run: node scripts/stage-sidecar.mjs
+
+      # Tauri's bundler imports APPLE_CERTIFICATE into a temporary keychain,
+      # signs with the hardened runtime + entitlements.plist, and notarizes
+      # via notarytool — no separate keychain step needed.
+      - name: Build, sign, notarize (per architecture)
+        working-directory: packages/ui
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.CSC_LINK }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "TAURI_SIGNING_PRIVATE_KEY is not set — updater archives cannot be signed" >&2
+            exit 1
+          fi
+          if [ -z "$APPLE_CERTIFICATE" ]; then
+            echo "::warning::Apple signing secrets not set; building ad-hoc-signed, un-notarized app"
+            unset APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID
+          fi
+          npx tauri build --target aarch64-apple-darwin
+          npx tauri build --target x86_64-apple-darwin
+
+      # Renames the per-arch updater archives apart, writes latest.json, and
+      # fails the release if a DMG crosses REQ-023's 50 MB ceiling. SIZES.md
+      # becomes the release notes, so every release states its sizes.
+      - name: Assemble release assets and updater manifest
+        working-directory: packages/ui
+        run: node scripts/make-updater-manifest.mjs
+
+      # WO-033's lesson carried over: CI creates the one draft and uploads
+      # serially; the build tool never touches the release API.
       - name: Create the release draft up front
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if ! gh release view "${GITHUB_REF_NAME}" > /dev/null 2>&1; then
             gh release create "${GITHUB_REF_NAME}" --draft --verify-tag \
-              --title "${GITHUB_REF_NAME}"
-          fi
-
-      - name: Package, sign, notarize
-        working-directory: packages/ui
-        env:
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          if [ -n "$CSC_LINK" ]; then
-            npx electron-builder --mac --publish never
-          else
-            echo "::warning::Signing secrets not set; building unsigned, un-notarized app"
-            unset CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID
-            export CSC_IDENTITY_AUTO_DISCOVERY=false
-            npx electron-builder --mac --publish never -c.mac.notarize=false
+              --title "${GITHUB_REF_NAME}" \
+              --notes-file packages/ui/src-tauri/release-assets/SIZES.md
           fi
 
       - name: Upload artifacts and update feed to the draft
-        working-directory: packages/ui
+        working-directory: packages/ui/src-tauri/release-assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           version="${GITHUB_REF_NAME#v}"
           gh release upload "${GITHUB_REF_NAME}" --clobber \
-            "release/Veri-${version}-universal.dmg" \
-            "release/Veri-${version}-universal.dmg.blockmap" \
-            "release/Veri-${version}-universal-mac.zip" \
-            "release/Veri-${version}-universal-mac.zip.blockmap" \
-            "release/latest-mac.yml"
+            "Veri_${version}_aarch64.dmg" \
+            "Veri_${version}_x64.dmg" \
+            "Veri_${version}_aarch64.app.tar.gz" \
+            "Veri_${version}_aarch64.app.tar.gz.sig" \
+            "Veri_${version}_x64.app.tar.gz" \
+            "Veri_${version}_x64.app.tar.gz.sig" \
+            "latest.json"
 
-      # WO-033: fail loudly if the feed is split or incomplete — a
-      # partial latest-mac.yml release would break auto-update. Counts
-      # via GraphQL: the REST list endpoint is the one that serves
-      # stale results.
+      # WO-033: fail loudly if the feed is split or incomplete — a partial
+      # latest.json release would break auto-update. Counts via GraphQL: the
+      # REST list endpoint serves stale results.
       - name: Verify one complete release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -120,11 +151,13 @@ jobs:
           assets=$(jq -r '.[0].releaseAssets.nodes[].name' <<< "$releases")
           version="${GITHUB_REF_NAME#v}"
           missing=0
-          for f in "Veri-${version}-universal.dmg" \
-                   "Veri-${version}-universal.dmg.blockmap" \
-                   "Veri-${version}-universal-mac.zip" \
-                   "Veri-${version}-universal-mac.zip.blockmap" \
-                   "latest-mac.yml"; do
+          for f in "Veri_${version}_aarch64.dmg" \
+                   "Veri_${version}_x64.dmg" \
+                   "Veri_${version}_aarch64.app.tar.gz" \
+                   "Veri_${version}_aarch64.app.tar.gz.sig" \
+                   "Veri_${version}_x64.app.tar.gz" \
+                   "Veri_${version}_x64.app.tar.gz.sig" \
+                   "latest.json"; do
             if ! grep -qxF "$f" <<< "$assets"; then
               echo "Missing release asset: $f" >&2
               missing=1

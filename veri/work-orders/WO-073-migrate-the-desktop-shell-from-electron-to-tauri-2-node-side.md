@@ -12,8 +12,6 @@ links:
     rel: informed-by
   - id: WO-071
     rel: follows-from
-  - id: DEC-008
-    rel: supersedes-pending
   - id: SRC-038
     rel: designed-by
   - id: DEC-063
@@ -47,7 +45,7 @@ Implements REQ-023 by replacing packages/ui's Electron shell with the Tauri 2 ar
 - [[REQ-023]] — implements
 - [[SRC-037]] — informed-by
 - [[WO-071]] — follows-from
-- [[DEC-008]] — supersedes-pending
+- [[DEC-008]] — superseded by [[DEC-063]] on approval (2026-08-21); the pending link is resolved and removed so the in-progress work order no longer stands on revoked authority
 
 ## Acceptance tests
 
