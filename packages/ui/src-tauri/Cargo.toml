@@ -3,7 +3,7 @@
 # logic stays in TypeScript (DEC-001) — everything here is glue.
 [package]
 name = "veri-shell"
-version = "0.2.0"
+version = "0.2.1"
 description = "Veri desktop shell: Tauri 2 host for the Node sidecar"
 edition = "2021"
 
