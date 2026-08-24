@@ -16,7 +16,7 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="assets/favicon-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="stylesheet" href="site.css?v=4">
+<link rel="stylesheet" href="site.css?v=5">
 </head>
 <body>
 
@@ -44,15 +44,152 @@
   <div class="dl-sub"><span id="dl-version"></span>macOS 13+ · <a id="dl-arm" href="https://github.com/danielyayla/veri/releases/latest">Apple silicon</a> &amp; <a id="dl-intel" href="https://github.com/danielyayla/veri/releases/latest">Intel</a> · free &amp; open source</div>
 </section>
 
-<div class="hero-shot" id="product">
-  <div class="shot-card">
-    <picture>
-      <source media="(prefers-reduced-motion: reduce)" srcset="assets/loop-demo-still.png">
-      <img src="assets/loop-demo.gif" width="1344" height="838" fetchpriority="high"
-        alt="Five app captures from one pass around the loop, dark theme, each captioned. One: the work order PDF export pipeline beside its nine-document context package, about 1.8k tokens. Two: the Start agent session menu listing Claude Code, Cursor, Codex CLI, Gemini CLI, and web chat. Three: decision DEC-006, veraPDF for PDF/A validation, filed as a proposal awaiting review. Four: the work order again, now done, with the receipt the agent filed — commit 4c9f2e1, three files. Five: the home view with DEC-006 pending in the review queue and the receipt at the top of agent activity.">
-    </picture>
-    <div class="shot-note">prompts are temporary — knowledge accumulates: one pass around the loop, five captures, ~50s (a still under reduced motion)</div>
+<div class="hero-shot demo demo-hero" id="product">
+  <div class="aw">
+    <div class="aw-top">
+      <div class="aw-ident">
+        <div class="aw-logo" aria-hidden="true">V</div>
+        <div class="aw-wordmark">Veri</div>
+        <div class="aw-slash" aria-hidden="true">/</div>
+        <div class="aw-proj">acme-invoices</div>
+      </div>
+      <div class="aw-search" aria-hidden="true"><span>Search or jump to…</span><span class="aw-kbd">⌘K</span></div>
+      <div class="aw-status">
+        <div class="aw-health"><span class="aw-dot" aria-hidden="true"></span><span>2</span></div>
+        <div class="aw-git">main · clean</div>
+      </div>
+    </div>
+    <div class="aw-body">
+      <div class="aw-side" aria-hidden="true">
+        <div class="nav-item"><span class="nav-glyph">⌂</span>Home</div>
+        <div class="nav-item nav-item-on"><span class="sw sw-wo"></span>Work orders<span class="nav-count">4</span></div>
+        <div class="nav-item"><span class="sw sw-req"></span>Requirements<span class="nav-count">4</span></div>
+        <div class="nav-item"><span class="sw sw-dec"></span>Decisions<span class="nav-count" id="dec-count">5</span></div>
+        <div class="nav-item"><span class="sw sw-src"></span>Sources<span class="nav-count">2</span></div>
+        <div class="nav-item"><span class="sw sw-wf"></span>Workflow<span class="nav-count">1</span></div>
+      </div>
+      <div class="aw-main">
+        <div class="tabs" role="tablist" aria-label="Open documents in the demo">
+          <button class="tab tab-on" id="tab-wo" role="tab" aria-selected="true" aria-controls="pane-wo"><span class="tab-id c-wo">WO-002</span><span class="tab-title">PDF export pipeline</span></button>
+          <button class="tab" id="tab-req" role="tab" aria-selected="false" aria-controls="pane-req" tabindex="-1"><span class="tab-id c-req">REQ-001</span><span class="tab-title">Branded PDF invoices</span></button>
+          <button class="tab" id="tab-dec" role="tab" aria-selected="false" aria-controls="pane-dec" tabindex="-1"><span class="tab-id c-dec">DEC-005</span><span class="tab-title">Typst for PDF rendering</span></button>
+          <div class="tabs-fill"></div>
+        </div>
+        <div class="aw-content">
+
+          <div class="aw-pane" id="pane-wo" role="tabpanel" aria-labelledby="tab-wo">
+            <div class="reader">
+              <div class="crumb"><span>work-orders</span><span class="crumb-sep" aria-hidden="true">/</span><span class="c-wo">WO-002</span></div>
+              <div class="doc-head">
+                <h3 class="doc-title">PDF export pipeline</h3>
+                <span class="chip chip-wo">in-progress</span>
+              </div>
+              <div class="rd-h2">Summary</div>
+              <p class="rd-p">Render branded invoice PDFs from the invoice data model. Output must be deterministic and print-identical across machines, per <span class="chip-ref">[[REQ-001]]</span>.</p>
+              <div class="rd-h2">In scope</div>
+              <div class="rd-li"><span class="rd-dash" aria-hidden="true">–</span><span>Template compilation with Typst, per <span class="chip-ref">[[DEC-005]]</span></span></div>
+              <div class="rd-li"><span class="rd-dash" aria-hidden="true">–</span><span>Invoice numbering follows <span class="chip-ref">[[REQ-003]]</span></span></div>
+              <div class="rd-li"><span class="rd-dash" aria-hidden="true">–</span><span class="rd-dim">Out of scope: email delivery, batch export</span></div>
+              <div class="rd-h2">Acceptance tests</div>
+              <div class="rd-check"><span class="rd-box rd-box-done" aria-hidden="true">✓</span><span class="rd-dim">Sample invoice renders byte-identical on two machines</span></div>
+              <div class="rd-check"><span class="rd-box" aria-hidden="true"></span><span>Custom fonts embed correctly in exported PDF</span></div>
+              <div class="rd-check"><span class="rd-box" aria-hidden="true"></span><span>Rendering fails loudly on missing template variables</span></div>
+            </div>
+            <div class="panel-r">
+              <div class="pkg-head"><span class="micro-label">CONTEXT PACKAGE</span><span class="pkg-total">9 docs · ~1.8k tokens</span></div>
+              <div class="pkg-card">
+                <div class="pkg-row"><span class="sw sw-wf"></span><span class="pkg-id c-wf">WF-001</span><span class="pkg-title">Workflow</span><span class="pkg-tok">~210</span></div>
+                <div class="pkg-row"><span class="sw sw-wo"></span><span class="pkg-id c-wo">WO-002</span><span class="pkg-title">PDF export pipeline</span><span class="pkg-tok">~340</span></div>
+                <div class="pkg-row"><span class="sw sw-req"></span><span class="pkg-id c-req">REQ-001</span><span class="pkg-title">Branded PDF invoices</span><span class="pkg-tok">~180</span></div>
+                <div class="pkg-row"><span class="sw sw-req"></span><span class="pkg-id c-req">REQ-003</span><span class="pkg-title">Invoice numbering scheme</span><span class="pkg-tok">~140</span></div>
+                <div class="pkg-row"><span class="sw sw-dec"></span><span class="pkg-id c-dec">DEC-005</span><span class="pkg-title">Typst for PDF rendering</span><span class="pkg-tok">~260</span></div>
+                <div class="pkg-row"><span class="sw sw-dec"></span><span class="pkg-id c-dec">DEC-004</span><span class="pkg-title">Invoice data schema</span><span class="pkg-tok">~190</span></div>
+                <div class="pkg-row"><span class="sw sw-dec"></span><span class="pkg-id c-dec">DEC-002</span><span class="pkg-title">Rust core owns rendering</span><span class="pkg-tok">~150</span></div>
+                <div class="pkg-row"><span class="sw sw-dec"></span><span class="pkg-id c-dec">DEC-001</span><span class="pkg-title">Local-first data storage</span><span class="pkg-tok">~140</span></div>
+                <div class="pkg-row"><span class="sw sw-src"></span><span class="pkg-id c-src">SRC-002</span><span class="pkg-title">Invoice requirements interview</span><span class="pkg-tok">~160</span></div>
+                <div class="pkg-note">+ DEC-003 rides along by name only — flagged already rejected</div>
+              </div>
+              <div class="panel-actions js-only">
+                <button class="btn-mini-p" id="sess-start">Start agent session</button>
+                <button class="btn-mini-s" id="sess-copy">Copy kickoff prompt</button>
+              </div>
+              <div class="sess" id="sess" hidden aria-live="polite">
+                <span class="micro-label sess-label">AGENT SESSION</span>
+                <div class="act-row" id="act-1" hidden><span class="act-dot act-dot-run" id="run-dot" aria-hidden="true"></span><span class="act-agent">claude-code</span><span class="act-text">fetched the context package — 9 docs, ~1.8k tokens</span></div>
+                <div class="act-row" id="act-2" hidden><span class="act-dot act-dot-dec" aria-hidden="true"></span><span class="act-text">filed <span class="mono-id c-dec">DEC-011</span> Embed fonts in PDF output — <span class="act-amber">proposed</span></span></div>
+                <div class="act-row" id="act-3" hidden><span class="act-dot act-dot-green" aria-hidden="true"></span><span class="act-text">receipt landed — commit <span class="mono-id act-sha">b21e88f</span> · 3 files</span></div>
+                <div class="rev-card" id="rev-card" hidden>
+                  <span class="micro-label rev-label">NEEDS REVIEW</span>
+                  <div class="rev-row">
+                    <span class="conn-id c-dec">DEC-011</span>
+                    <span class="rev-title">Embed fonts in PDF output</span>
+                    <span class="chip chip-warn" id="rev-chip">proposed</span>
+                  </div>
+                  <button class="btn-mini-p rev-approve" id="rev-approve">Promote to active</button>
+                  <div class="rev-approved" id="rev-approved" hidden>Approved. DEC-011 now travels in every context package it constrains.</div>
+                </div>
+                <button class="sess-replay" id="sess-replay" hidden>↻ replay session</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="aw-pane" id="pane-req" role="tabpanel" aria-labelledby="tab-req" hidden>
+            <div class="reader">
+              <div class="crumb"><span>requirements</span><span class="crumb-sep" aria-hidden="true">/</span><span class="c-req">REQ-001</span></div>
+              <div class="doc-head">
+                <h3 class="doc-title">Branded PDF invoices</h3>
+                <span class="chip chip-ok">approved</span>
+              </div>
+              <div class="rd-h2">Statement</div>
+              <p class="rd-p">Users export invoices as branded PDFs: the customer's logo, the agreed layout, and print-identical output on every machine. This is the product's core deliverable — an invoice a client can be billed with.</p>
+              <div class="rd-h2">Acceptance criteria</div>
+              <div class="rd-check"><span class="rd-box rd-box-done" aria-hidden="true">✓</span><span class="rd-dim">Logo and brand color render from project settings</span></div>
+              <div class="rd-check"><span class="rd-box rd-box-done" aria-hidden="true">✓</span><span class="rd-dim">A4 and US Letter both supported</span></div>
+              <div class="rd-check"><span class="rd-box" aria-hidden="true"></span><span>Output identical across macOS and Linux CI</span></div>
+              <div class="fm-card">
+                <div class="fm-row"><span class="fm-key">status</span><span class="fm-val fm-ok">approved</span></div>
+                <div class="fm-row"><span class="fm-key">approved</span><span class="fm-val">2026-07-18</span></div>
+                <div class="fm-row"><span class="fm-key">links</span><span class="fm-val">3 links — <span class="c-wo">WO-002</span> implemented-by · <span class="c-src">SRC-002</span> informed-by · <span class="c-dec">DEC-004</span> constrained-by</span></div>
+              </div>
+            </div>
+            <div class="panel-r">
+              <span class="micro-label">CONNECTIONS</span>
+              <div class="conn-card"><div class="conn-head"><span class="sw sw-wo"></span><span class="conn-id c-wo">WO-002</span><span class="conn-type">implements</span></div><span class="conn-title">PDF export pipeline</span></div>
+              <div class="conn-card"><div class="conn-head"><span class="sw sw-src"></span><span class="conn-id c-src">SRC-002</span><span class="conn-type">informed-by</span></div><span class="conn-title">Invoice requirements interview</span></div>
+              <div class="conn-card"><div class="conn-head"><span class="sw sw-dec"></span><span class="conn-id c-dec">DEC-004</span><span class="conn-type">constrained-by</span></div><span class="conn-title">Invoice data schema</span></div>
+              <div class="panel-note">Every connection is a typed link in the file's frontmatter — <span class="mono-code">veri check</span> validates all of them.</div>
+            </div>
+          </div>
+
+          <div class="aw-pane" id="pane-dec" role="tabpanel" aria-labelledby="tab-dec" hidden>
+            <div class="reader">
+              <div class="crumb"><span>decisions</span><span class="crumb-sep" aria-hidden="true">/</span><span class="c-dec">DEC-005</span></div>
+              <div class="doc-head">
+                <h3 class="doc-title">Typst for PDF rendering</h3>
+                <span class="chip chip-ok">active</span>
+              </div>
+              <div class="rd-h2">Choice</div>
+              <p class="rd-p">Compile invoice templates with Typst, embedded in the Rust core.</p>
+              <div class="rd-h2">Rejected alternatives</div>
+              <div class="rd-li"><span class="rd-dash" aria-hidden="true">–</span><span><strong>Handlebars + headless browser</strong> — the <span class="chip-ref">[[DEC-003]]</span> approach; slow and nondeterministic print output.</span></div>
+              <div class="rd-li"><span class="rd-dash" aria-hidden="true">–</span><span><strong>LaTeX</strong> — deterministic but a 4&nbsp;GB toolchain dependency.</span></div>
+              <div class="rd-li"><span class="rd-dash" aria-hidden="true">–</span><span><strong>wkhtmltopdf</strong> — unmaintained upstream.</span></div>
+              <div class="rd-h2">Rationale</div>
+              <p class="rd-p">Supersedes <span class="chip-ref">[[DEC-003]]</span>. Typst gives sub-second compiles and byte-stable output; implemented by <span class="chip-ref">[[WO-002]]</span>.</p>
+            </div>
+            <div class="panel-r">
+              <span class="micro-label">CONNECTIONS</span>
+              <div class="conn-card"><div class="conn-head"><span class="sw sw-dec"></span><span class="conn-id c-dec">DEC-003</span><span class="conn-type">supersedes</span></div><span class="conn-title conn-gone">Handlebars template rendering</span></div>
+              <div class="conn-card"><div class="conn-head"><span class="sw sw-wo"></span><span class="conn-id c-wo">WO-002</span><span class="conn-type">implemented-by</span></div><span class="conn-title">PDF export pipeline</span></div>
+              <div class="panel-note">Active decisions travel into every future context package they constrain. Agents stop re-opening what you settled in March.</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
   </div>
+  <div class="shot-note demo-note">the real interface, miniaturized<span class="js-only"> — switch documents, start the agent session, approve what it files</span></div>
 </div>
 
 <section class="band">
@@ -60,9 +197,26 @@
     <div class="eyebrow">Local-first</div>
     <h2>Plain files are the architecture</h2>
     <div class="split rev">
-      <div class="file-card">
-        <div class="file-name">veri/decisions/DEC-005-typst-for-pdf-rendering.md</div>
-        <pre><code><span class="fm">---
+      <div class="demo">
+        <div class="seg js-only" role="group" aria-label="View DEC-005 as">
+          <button class="seg-item seg-on" id="seg-app" aria-pressed="true">In the app</button>
+          <button class="seg-item" id="seg-raw" aria-pressed="false">The file on disk</button>
+        </div>
+        <div class="file-card demo-file">
+          <div class="file-name">veri/decisions/DEC-005-typst-for-pdf-rendering.md</div>
+          <div class="file-app" id="view-app">
+            <div class="crumb"><span>decisions</span><span class="crumb-sep" aria-hidden="true">/</span><span class="c-dec">DEC-005</span></div>
+            <div class="doc-head">
+              <h3 class="doc-title">Typst for PDF rendering</h3>
+              <span class="chip chip-ok">active</span>
+            </div>
+            <div class="rd-h2">Choice</div>
+            <p class="rd-p">Compile invoice templates with Typst, embedded in the Rust core.</p>
+            <div class="rd-h2">Rejected alternatives</div>
+            <div class="rd-li"><span class="rd-dash" aria-hidden="true">–</span><span><strong>Handlebars + headless browser</strong> — the <span class="chip-ref">[[DEC-003]]</span> approach; slow and nondeterministic print output.</span></div>
+            <div class="rd-li"><span class="rd-dash" aria-hidden="true">–</span><span><strong>LaTeX</strong> — deterministic but a 4&nbsp;GB toolchain dependency.</span></div>
+          </div>
+          <pre id="view-raw" hidden><code><span class="fm">---
 id: DEC-005
 type: decision
 status: active
@@ -70,17 +224,22 @@ approved: 2026-08-05
 links:
   - id: DEC-003
     rel: supersedes
+  - id: WO-002
+    rel: implemented-by
 ---</span>
 
 <span class="h">## Choice</span>
 
-Compile invoice templates with Typst.
+Compile invoice templates with Typst,
+embedded in the Rust core.
 
 <span class="h">## Rejected alternatives</span>
 
 - **Handlebars + headless browser** — the
   <span class="ref">[[DEC-003]]</span> approach; slow and
   nondeterministic print output.</code></pre>
+        </div>
+        <div class="shot-note js-only">flip the toggle — same document, same bytes</div>
       </div>
       <div class="copy">
         <p>A Veri project is a <code>veri/</code> directory of readable Markdown. <strong>The files are the source of truth</strong> — the app is a view over them.</p>
@@ -134,10 +293,55 @@ Compile invoice templates with Typst.
   <div class="wrap">
     <div class="eyebrow">Scoped context</div>
     <h2>The agent gets a package, not a repo dump</h2>
-    <div class="copy" style="max-width:620px">
-      <p>The context package for a task is <strong>the documents linked to it</strong> — the project workflow, its requirements, every active decision within two hops, source excerpts. Typically a few thousand tokens, with a per-document estimate, assembled fresh from current file versions every time. It's the panel on the right in the demo above.</p>
-      <p>Superseded decisions ride along by name only, flagged as already rejected — so the agent doesn't relitigate them.</p>
-      <p>You see the exact package before the agent does, and start the session from it with one click.</p>
+    <div class="split">
+      <div class="copy">
+        <p>The context package for a task is <strong>the documents linked to it</strong> — the project workflow, its requirements, every active decision within two hops, source excerpts. Typically a few thousand tokens, with a per-document estimate, assembled fresh from current file versions every time. It's the panel on the right in the demo above.</p>
+        <p>Superseded decisions ride along by name only, flagged as already rejected — so the agent doesn't relitigate them.</p>
+        <p>You see the exact package before the agent does, and start the session from it with one click.</p>
+      </div>
+      <div class="demo">
+        <div class="xp-card">
+          <div class="xp-bar"><span class="micro-label">CONTEXT PACKAGE — <span class="c-wo">WO-002</span></span><span class="xp-total">~1.8k tokens</span></div>
+          <div class="xp-row">
+            <button class="xp-head" aria-expanded="true" aria-controls="xp-b-1"><span class="xp-chev" aria-hidden="true"></span><span class="sw sw-wf"></span><span class="xp-id c-wf">WF-001</span><span class="xp-title">Workflow</span><span class="xp-tok">~210</span></button>
+            <div class="xp-body" id="xp-b-1">The project's working rules ride in every package: how decisions are filed, what needs approval.</div>
+          </div>
+          <div class="xp-row">
+            <button class="xp-head" aria-expanded="true" aria-controls="xp-b-2"><span class="xp-chev" aria-hidden="true"></span><span class="sw sw-wo"></span><span class="xp-id c-wo">WO-002</span><span class="xp-title">PDF export pipeline</span><span class="xp-tok">~340</span></button>
+            <div class="xp-body" id="xp-b-2">The task itself — deliverable, scope, and acceptance tests.</div>
+          </div>
+          <div class="xp-row">
+            <button class="xp-head" aria-expanded="true" aria-controls="xp-b-3"><span class="xp-chev" aria-hidden="true"></span><span class="sw sw-req"></span><span class="xp-id c-req">REQ-001</span><span class="xp-title">Branded PDF invoices</span><span class="xp-tok">~180</span></button>
+            <div class="xp-body" id="xp-b-3">Linked as "implements" — the requirement this work order exists to satisfy.</div>
+          </div>
+          <div class="xp-row">
+            <button class="xp-head" aria-expanded="true" aria-controls="xp-b-4"><span class="xp-chev" aria-hidden="true"></span><span class="sw sw-req"></span><span class="xp-id c-req">REQ-003</span><span class="xp-title">Invoice numbering scheme</span><span class="xp-tok">~140</span></button>
+            <div class="xp-body" id="xp-b-4">Referenced from the work order's in-scope list.</div>
+          </div>
+          <div class="xp-row">
+            <button class="xp-head" aria-expanded="true" aria-controls="xp-b-5"><span class="xp-chev" aria-hidden="true"></span><span class="sw sw-dec"></span><span class="xp-id c-dec">DEC-005</span><span class="xp-title">Typst for PDF rendering</span><span class="xp-tok">~260</span></button>
+            <div class="xp-body" id="xp-b-5">Active decision directly linked — constrains the implementation approach.</div>
+          </div>
+          <div class="xp-row">
+            <button class="xp-head" aria-expanded="true" aria-controls="xp-b-6"><span class="xp-chev" aria-hidden="true"></span><span class="sw sw-dec"></span><span class="xp-id c-dec">DEC-004</span><span class="xp-title">Invoice data schema</span><span class="xp-tok">~190</span></button>
+            <div class="xp-body" id="xp-b-6">Active decision one hop away via REQ-001 — the data the pipeline renders.</div>
+          </div>
+          <div class="xp-row">
+            <button class="xp-head" aria-expanded="true" aria-controls="xp-b-7"><span class="xp-chev" aria-hidden="true"></span><span class="sw sw-dec"></span><span class="xp-id c-dec">DEC-002</span><span class="xp-title">Rust core owns rendering</span><span class="xp-tok">~150</span></button>
+            <div class="xp-body" id="xp-b-7">Active decision within two hops — where this code must live.</div>
+          </div>
+          <div class="xp-row">
+            <button class="xp-head" aria-expanded="true" aria-controls="xp-b-8"><span class="xp-chev" aria-hidden="true"></span><span class="sw sw-dec"></span><span class="xp-id c-dec">DEC-001</span><span class="xp-title">Local-first data storage</span><span class="xp-tok">~140</span></button>
+            <div class="xp-body" id="xp-b-8">Active decision within two hops — no server round-trips in the export path.</div>
+          </div>
+          <div class="xp-row">
+            <button class="xp-head" aria-expanded="true" aria-controls="xp-b-9"><span class="xp-chev" aria-hidden="true"></span><span class="sw sw-src"></span><span class="xp-id c-src">SRC-002</span><span class="xp-title">Invoice requirements interview</span><span class="xp-tok">~160</span></button>
+            <div class="xp-body" id="xp-b-9">Source excerpt — the customer evidence behind REQ-001.</div>
+          </div>
+          <div class="xp-foot">+ DEC-003 by name only, flagged already rejected · rebuilt from current files on every request</div>
+        </div>
+        <div class="shot-note js-only">click a document to see why it's in the package</div>
+      </div>
     </div>
   </div>
 </section>
@@ -155,13 +359,21 @@ Compile invoice templates with Typst.
     <div class="eyebrow">Human approval</div>
     <h2>Agents propose. You decide what becomes canon.</h2>
     <p class="lead">Agent-written requirements start as drafts, agent-filed decisions as proposals — labeled non-binding until you promote them. Nothing an agent writes silently becomes project truth.</p>
-    <div class="shot-card">
-      <picture>
-        <source media="(prefers-color-scheme: light)" srcset="assets/review-light.png">
-        <img src="assets/review-dark.png" width="1700" height="170" loading="lazy"
-          alt="The NEEDS REVIEW queue on Veri's home view: one pending item, requirement REQ-004 'Import time entries from CSV' marked draft, filed 21 days ago.">
-      </picture>
-      <div class="shot-note">the review queue on the home view</div>
+    <div class="demo demo-queue">
+      <div class="rq-card">
+        <div class="rq-head"><span class="micro-label rev-label">NEEDS REVIEW</span><span class="rq-count" id="queue-count">1 pending</span></div>
+        <div class="rq-row">
+          <span class="sw sw-req" aria-hidden="true"></span>
+          <span class="rq-id c-req">REQ-004</span>
+          <span class="rq-title">Import time entries from CSV</span>
+          <span class="chip chip-warn" id="prom-chip">draft</span>
+          <button class="btn-mini-p rq-btn js-only" id="promote-btn">Promote</button>
+        </div>
+        <div aria-live="polite">
+          <div class="rq-msg" id="prom-msg" hidden>Approved just now — the promotion is an ordinary file change, ready to commit.</div>
+        </div>
+      </div>
+      <div class="shot-note">the review queue on the home view<span class="js-only"> — try Promote</span></div>
     </div>
     <div class="copy" style="max-width:620px; margin-top:26px">
       <p>And when a session finishes, <strong>work comes back as receipts</strong>: when, which commit, which files, what was done — appended to the work order itself.</p>
@@ -267,6 +479,136 @@ fetch('https://api.github.com/repos/danielyayla/veri/releases/latest')
     document.getElementById('dl-version').textContent = rel.tag_name + ' · ';
   })
   .catch(function () { /* fallback hrefs stand */ });
+</script>
+
+<script>
+// WO-085 micro-demos (design SRC-042): hand-authored vanilla JS, no
+// dependencies, per DEC-033. Tagging <html> with .js reveals the .js-only
+// controls; with scripts disabled every demo stays a static composition
+// of its initial state (and the package explorer shows all nine
+// explanations expanded).
+(function () {
+  'use strict';
+  document.documentElement.className += ' js';
+  function $(id) { return document.getElementById(id); }
+  function reduced() {
+    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  /* Demo 1a — hero mini-app: document tabs */
+  var tabs = [$('tab-wo'), $('tab-req'), $('tab-dec')];
+  function selectTab(idx, focus) {
+    tabs.forEach(function (tab, i) {
+      var on = i === idx;
+      tab.className = on ? 'tab tab-on' : 'tab';
+      tab.setAttribute('aria-selected', on ? 'true' : 'false');
+      tab.tabIndex = on ? 0 : -1;
+      $(tab.getAttribute('aria-controls')).hidden = !on;
+    });
+    if (focus) tabs[idx].focus();
+  }
+  tabs.forEach(function (tab, i) {
+    tab.addEventListener('click', function () { selectTab(i, false); });
+    tab.addEventListener('keydown', function (e) {
+      var n = tabs.length;
+      var to = e.key === 'ArrowRight' ? (i + 1) % n
+             : e.key === 'ArrowLeft' ? (i + n - 1) % n
+             : e.key === 'Home' ? 0
+             : e.key === 'End' ? n - 1 : -1;
+      if (to !== -1) { e.preventDefault(); selectTab(to, true); }
+    });
+  });
+
+  /* Demo 1b — the scripted agent session: package fetched → DEC-011
+     filed proposed → receipt lands → you promote it to active.
+     Under prefers-reduced-motion there is no timed sequence: the whole
+     session appears at once on click. */
+  var phase = 0, timers = [];
+  var startBtn = $('sess-start');
+  var steps = [$('act-1'), $('act-2'), $('act-3'), $('rev-card')];
+  function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+  function setApproved(on) {
+    $('rev-chip').textContent = on ? 'active' : 'proposed';
+    $('rev-chip').className = 'chip ' + (on ? 'chip-ok' : 'chip-warn');
+    $('rev-approve').hidden = on;
+    $('rev-approved').hidden = !on;
+    $('sess-replay').hidden = !on;
+  }
+  function setPhase(p) {
+    phase = p;
+    $('sess').hidden = p < 1;
+    steps.forEach(function (el, i) { el.hidden = p < i + 1; });
+    $('run-dot').className = 'act-dot act-dot-run' + (p > 0 && p < 4 && !reduced() ? ' pulse' : '');
+    $('dec-count').textContent = p >= 2 ? '6' : '5';
+    startBtn.textContent = p === 0 ? 'Start agent session' : (p < 4 ? 'Session running…' : 'Replay session');
+    startBtn.setAttribute('aria-disabled', p > 0 && p < 4 ? 'true' : 'false');
+  }
+  function startRun() {
+    if (phase > 0 && phase < 4) return;
+    clearTimers();
+    setApproved(false);
+    if (reduced()) { setPhase(4); return; }
+    setPhase(1);
+    [[2, 1200], [3, 2400], [4, 3400]].forEach(function (s) {
+      timers.push(setTimeout(function () { setPhase(s[0]); }, s[1]));
+    });
+  }
+  startBtn.addEventListener('click', startRun);
+  $('rev-approve').addEventListener('click', function () { setApproved(true); });
+  $('sess-replay').addEventListener('click', function () {
+    clearTimers();
+    setApproved(false);
+    setPhase(0);
+    startBtn.focus();
+  });
+  var copyBtn = $('sess-copy'), copyTimer = null;
+  copyBtn.addEventListener('click', function () {
+    try {
+      navigator.clipboard.writeText('Work on WO-002. Fetch its context package over MCP with get_context and stay inside the stated scope.').catch(function () {});
+    } catch (e) { return; /* clipboard unavailable — don't claim Copied */ }
+    copyBtn.textContent = 'Copied';
+    clearTimeout(copyTimer);
+    copyTimer = setTimeout(function () { copyBtn.textContent = 'Copy kickoff prompt'; }, 1500);
+  });
+
+  /* Demo 2 — In the app ⇄ The file on disk */
+  function setView(raw) {
+    $('view-app').hidden = raw;
+    $('view-raw').hidden = !raw;
+    [[$('seg-app'), !raw], [$('seg-raw'), raw]].forEach(function (p) {
+      p[0].className = 'seg-item' + (p[1] ? ' seg-on' : '');
+      p[0].setAttribute('aria-pressed', p[1] ? 'true' : 'false');
+    });
+  }
+  $('seg-app').addEventListener('click', function () { setView(false); });
+  $('seg-raw').addEventListener('click', function () { setView(true); });
+
+  /* Demo 3 — package explorer: one document open at a time */
+  var openHead = null;
+  var heads = Array.prototype.slice.call(document.querySelectorAll('.xp-head'));
+  function setOpen(head) {
+    openHead = (openHead === head) ? null : head;
+    heads.forEach(function (h) {
+      var on = h === openHead;
+      h.setAttribute('aria-expanded', on ? 'true' : 'false');
+      $(h.getAttribute('aria-controls')).hidden = !on;
+    });
+  }
+  heads.forEach(function (h) {
+    h.setAttribute('aria-expanded', 'false');
+    $(h.getAttribute('aria-controls')).hidden = true;
+    h.addEventListener('click', function () { setOpen(h); });
+  });
+
+  /* Demo 4 — review-queue Promote */
+  $('promote-btn').addEventListener('click', function () {
+    $('promote-btn').hidden = true;
+    $('prom-chip').textContent = 'approved';
+    $('prom-chip').className = 'chip chip-ok';
+    $('queue-count').textContent = '0 pending';
+    $('prom-msg').hidden = false;
+  });
+})();
 </script>
 
 </body>

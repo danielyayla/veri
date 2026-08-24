@@ -2,7 +2,7 @@
 id: WO-085
 type: work-order
 title: "Homepage micro-demos: interactive product demonstrations, hand-authored"
-status: backlog
+status: in-progress
 created: 2026-08-24
 updated: 2026-08-24
 links:
