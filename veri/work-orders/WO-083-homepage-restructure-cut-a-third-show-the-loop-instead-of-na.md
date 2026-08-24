@@ -2,7 +2,7 @@
 id: WO-083
 type: work-order
 title: "Homepage restructure: cut a third, show the loop instead of narrating it"
-status: in-progress
+status: done
 created: 2026-08-24
 updated: 2026-08-24
 links:
@@ -53,4 +53,4 @@ SRC-041's structural finding: the homepage runs ten bands (~7,600px) and makes t
 
 ## Receipts
 
-(none yet)
+- 2026-08-24 — bce28f9 — site/index.html, site/site.css, site/assets/loop-demo.gif, site/assets/loop-demo-still.png, site/assets/* (10 removed), veri/decisions/DEC-078, veri/ids — Claude Code session: restructured the homepage from ten bands to six per SRC-041; produced the loop demo as a five-capture GIF of the real app against the `veri init --demo` sample project (headless VERI_UI_SHOT captures with on-disk mutations between frames: DEC-006 filed proposed, receipt landed on WO-002; frames cropped to the reader + context-package composition, step captions burned in, ~50 s cycle, 599 KB, reduced-motion `<picture>` still, descriptive alt); demo replaces the hero screenshot and the problem/cycle/health concept bands; plain files moved to band one; problem folded into the WO-082 comparison band (its copy untouched); approval + receipts merged; agent-native band upgraded with the `.mcp.json` file-card, ten MCP tool names, and working connect links for all four agents. Height 5,062px at 1060px (HEAD baseline measured 7,865px). All acceptance boxes verified against a local server in both themes; veri check zero issues (known WO-034 advisory only). DEC-078 filed proposed — awaiting review.
