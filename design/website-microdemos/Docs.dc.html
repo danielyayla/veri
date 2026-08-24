@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap">
+  <style>
+    .th-dark {
+      --bg: #0F0F11; --panel: #131316; --card: #151519; --card-2: #18181D;
+      --hair: #1E1E24; --hair-2: #1B1B20; --card-border: #1F1F24; --card-border-2: #24242B;
+      --int-border: #26262C; --text: #E7E4DE; --body-text: #C9C6CF; --secondary: #A09DA6;
+      --muted: #8B8893; --faint: #86838F; --on-accent: #141414;
+      --ember: #E8703A; --link-hover: #F49463; --green: #7FAF8A; --amber: #D9A03F;
+      --t-req: #7EA6C4; --t-dec: #CFA83D; --t-wo: #E8703A; --t-src: #908BA8;
+      --amber-tint: rgba(217,160,63,0.06); --amber-border: #3A3020;
+    }
+    .th-light {
+      --bg: #F2F1ED; --panel: #EDEBE6; --card: #F8F7F4; --card-2: #FBFAF8;
+      --hair: #E5E3DD; --hair-2: #ECEAE4; --card-border: #E0DED7; --card-border-2: #D8D5CD;
+      --int-border: #D0CDC4; --text: #232128; --body-text: #3B3941; --secondary: #5F5C67;
+      --muted: #6B6873; --faint: #6B6873; --on-accent: #FFFFFF;
+      --ember: #B54A18; --link-hover: #9E3F12; --green: #3E7350; --amber: #82630C;
+      --t-req: #3E6E93; --t-dec: #82630C; --t-wo: #B54A18; --t-src: #655F80;
+      --amber-tint: rgba(130,99,12,0.07); --amber-border: #D0C6A9;
+    }
+    .site { --mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+            --sans: 'Source Sans 3', -apple-system, 'Segoe UI', system-ui, sans-serif; }
+    body { margin: 0; }
+    .site { background: var(--bg); color: var(--body-text); font-family: var(--sans); font-size: 16px; line-height: 1.65; }
+    .site a { color: var(--ember); text-decoration: none; }
+    .site a:hover { color: var(--link-hover); }
+    .mono { font-family: var(--mono); }
+    .strip { max-width: 1064px; margin: 0 auto; padding: 0 32px; border-bottom: 1px solid var(--hair); display: flex; gap: 4px; }
+    .strip a { color: var(--muted); font-size: 14px; padding: 8px 10px 10px; white-space: nowrap; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .strip a.here { color: var(--text); border-bottom-color: var(--ember); }
+    .doc { max-width: 760px; margin: 0 auto; padding: 30px 32px 0; }
+    .doc h1 { font-size: 32px; color: var(--text); font-weight: 700; margin: 18px 0 6px; letter-spacing: -.01em; }
+    .doc-lead { font-size: 18px; color: var(--secondary); margin: 0 0 26px; }
+    .doc h2 { font-size: 23px; color: var(--text); font-weight: 700; margin: 40px 0 10px; padding-top: 18px; border-top: 1px solid var(--hair); }
+    .doc p { margin: 0 0 14px; font-size: 15.5px; color: var(--body-text); }
+    .doc code { font-family: var(--mono); font-size: .86em; background: var(--card-2); border: 1px solid var(--card-border); border-radius: 4px; padding: 1px 5px; color: var(--text); }
+    .callout { border: 1px solid var(--amber-border); background: var(--amber-tint); border-radius: 8px; padding: 12px 16px; font-size: 14px; margin: 16px 0; color: var(--body-text); }
+    .callout b { color: var(--amber); font-weight: 600; }
+    .pre { background: var(--card); border: 1px solid var(--card-border-2); border-radius: 8px; padding: 14px 16px; font-family: var(--mono); font-size: 13px; line-height: 1.6; color: var(--body-text); white-space: pre; overflow: hidden; position: relative; }
+    .copy-btn { position: absolute; top: 9px; right: 9px; height: 24px; padding: 0 10px; border-radius: 5px; border: 1px solid var(--int-border); color: var(--muted); font-size: 11px; font-weight: 600; display: flex; align-items: center; font-family: var(--sans); cursor: pointer; background: var(--card); }
+    .type-req { color: var(--t-req); } .type-dec { color: var(--t-dec); }
+    .type-wo { color: var(--t-wo); } .type-src { color: var(--t-src); }
+  </style>
+</helmet>
+
+<div class="site {{themeClass}}" style="width: 1160px; min-height: 1150px; padding-bottom: 48px">
+
+  <header style="display: flex; align-items: center; gap: 6px; max-width: 1064px; margin: 0 auto; padding: 16px 32px">
+    <a href="#" class="mono" style="font-weight: 700; font-size: 17px; letter-spacing: .02em; color: var(--text); margin-right: auto"><span style="color: var(--ember)">V</span>eri</a>
+    <a href="#" style="color: var(--text); font-size: 14px; padding: 10px 12px">Docs</a>
+    <a href="#" style="color: var(--secondary); font-size: 14px; padding: 10px 12px">GitHub</a>
+    <a href="#" style="font-size: 14px; font-weight: 600; color: var(--text); border: 1px solid var(--int-border); border-radius: 8px; padding: 7px 14px; margin-left: 8px">Download</a>
+  </header>
+
+  <nav class="strip">
+    <a href="#" class="here">Quickstart</a>
+    <a href="#">Workflow</a>
+    <a href="#">Connect your agent</a>
+    <a href="#">Import a repo</a>
+    <a href="#">CI gate</a>
+    <a href="#">Teams</a>
+    <a href="#">Reference</a>
+    <a href="#">Troubleshooting</a>
+  </nav>
+
+  <article class="doc">
+    <h1>Quickstart</h1>
+    <p class="doc-lead">From install to an agent that reads your project's knowledge base — about ten minutes, using the bundled sample project as the worked example.</p>
+
+    <p>You'll need: a coding agent that speaks MCP (the steps below use Claude Code) and <b>Node 20+</b> on your machine. The Veri app needs macOS 13 or later; the CLI, MCP server, and GitHub Action run anywhere Node 20+ does.</p>
+
+    <h2>1. Install Veri</h2>
+    <div class="pre"><span style="color: var(--faint)">$</span> npm install -g @veri/cli<div class="copy-btn" onClick="{{ copyCmd }}">{{ copyLabel }}</div></div>
+    <p style="margin-top: 12px">Prefer the app? <a href="#">Download the DMG</a> for your Mac's chip — it's signed and notarized, so macOS opens it without warnings.</p>
+
+    <h2>2. Open the sample project</h2>
+    <p>On first launch, the app shows a welcome screen with three choices. Pick <b>Explore the sample project</b> — a working invoicing-app knowledge base with sixteen documents you can read, edit, and connect an agent to. Installed the CLI instead? <code>veri init --demo</code> scaffolds a starter knowledge base in the current directory.</p>
+    <div class="callout"><b>Nothing is written until you confirm.</b> Veri shows you exactly what it will create before it creates anything. The other two cards — a new empty project, or a folder that already has a <code>veri/</code> directory — work the same way.</div>
+
+    <h2>3. Look around</h2>
+    <p>You land on the home view. The sidebar groups documents by type — <span class="type-req">requirements</span>, <span class="type-dec">decisions</span>, <span class="type-wo">work orders</span>, <span class="type-src">sources</span> — and every one of them is a plain Markdown file. <b>NEEDS REVIEW</b> shows one draft requirement waiting for approval, and <b>HEALTH</b> shows two <code>veri check</code> findings left in on purpose.</p>
+  </article>
+
+</div>
+
+<script data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark","section":"Site"},"$preview":{"width":1160,"height":1150}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { copied: false };
+    this._copyTimer = null;
+  }
+
+  componentWillUnmount() { clearTimeout(this._copyTimer); }
+
+  renderVals() {
+    var theme = this.props.theme ?? 'dark';
+    var self = this;
+    return {
+      themeClass: theme === 'light' ? 'th-light' : 'th-dark',
+      copyLabel: this.state.copied ? 'Copied' : 'Copy',
+      copyCmd: function () {
+        try { navigator.clipboard.writeText('npm install -g @veri/cli'); } catch (e) {}
+        self.setState({ copied: true });
+        clearTimeout(self._copyTimer);
+        self._copyTimer = setTimeout(function () { self.setState({ copied: false }); }, 1500);
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

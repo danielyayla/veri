@@ -1,0 +1,15 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1160, "h": 5520, "title": "Homepage" },
+    { "file": "Docs.dc.html", "x": 1280, "y": 0, "w": 1160, "h": 1150, "title": "Docs — Quickstart" }
+  ],
+  "annotations": [
+    { "id": "note-structure", "x": -320, "y": 0, "w": 280, "text": "Restructure per SRC-041 / WO-083: ten bands down to seven, ~5.4k px instead of ~7.6k. The three concept bands (\"The problem\", \"The loop\", \"Why not prompt harder?\") are replaced by the hero demo — the loop is experienced, not narrated three times." },
+    { "id": "note-demo", "x": -320, "y": 620, "w": 280, "text": "Hero micro-demo is a working miniature of the real app (tokens + anatomy from packages/ui/renderer/styles.css):\n· switch WO / REQ / DEC tabs\n· Start agent session → package fetch, DEC-011 filed as proposed, receipt lands\n· Promote to active = the approval gate, felt not explained" },
+    { "id": "note-install", "x": -320, "y": 1300, "w": 280, "text": "WO-084: install command form is pending WO-081's distribution DEC — ship whatever lands (npm / brew / npx) and only once it works verbatim on a clean machine. DMG stays the secondary path. Non-Mac sentence sits in the hero sub-line AND the quickstart band." },
+    { "id": "note-comparison", "x": -320, "y": 2400, "w": 280, "text": "WO-082: the comparison band names the real incumbent — CLAUDE.md / AGENTS.md + ADRs — and states the four differentiators. The 2023 \"paste the requirements\" strawman is gone; \"The problem\" band is absorbed here." },
+    { "id": "note-type", "x": -320, "y": 3300, "w": 280, "text": "Opinion: the site adopts the app's own type — Source Sans 3 + JetBrains Mono — instead of system fonts, so product, site, and docs read as one artifact (and it stops looking like a template). Palette is unchanged site.css canon; both themes ride the existing token blocks. Try the dark/light tweak above each artboard." },
+    { "id": "note-docs", "x": 1280, "y": -170, "w": 280, "text": "Docs keep the same chrome; nav IA is simplified to Docs · GitHub · Download (\"Product\" anchor and top-level \"Workflow\" dropped — SRC-041). Docs get copy buttons on code blocks. Fin band adds the missing open-source texture: Apache-2.0, star, sample KB, changelog." }
+  ],
+  "launch": { "view": "canvas" }
+}

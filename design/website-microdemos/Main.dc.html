@@ -1,0 +1,797 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap">
+  <style>
+    /* Tokens ported 1:1 from site/site.css + packages/ui/renderer/styles.css.
+       Color literals live only in the two theme blocks. */
+    .th-dark {
+      --bg: #0F0F11; --side: #101013; --panel: #131316; --card: #151519;
+      --card-2: #18181D; --card-3: #17171B; --pop: #1A1A1F; --chip-bg: #1F1F25;
+      --hair: #1E1E24; --hair-2: #1B1B20; --hair-4: #1A1A1F;
+      --card-border: #1F1F24; --card-border-2: #24242B; --int-border: #26262C;
+      --int-border-2: #34343C; --hover-border: #2E2E36; --row-hover: #1B1B20;
+      --text: #E7E4DE; --body-text: #C9C6CF; --secondary: #A09DA6;
+      --muted: #8B8893; --faint: #86838F; --ghost: #55525E; --ghost-2: #4A4852;
+      --ghost-3: #3F3D47; --on-accent: #141414;
+      --ember: #E8703A; --ember-hov: #F0854F; --link-hover: #F49463;
+      --green: #7FAF8A; --amber: #D9A03F;
+      --t-req: #7EA6C4; --t-dec: #CFA83D; --t-wo: #E8703A; --t-src: #908BA8; --t-wf: #7FAF8A;
+      --ember-tint: rgba(232,112,58,0.09); --ember-tint-faint: rgba(232,112,58,0.05);
+      --ember-border-2: #2A2418;
+      --amber-tint: rgba(217,160,63,0.07); --amber-fill: rgba(217,160,63,0.15); --amber-border: #3A3020;
+      --green-tint: rgba(127,175,138,0.06); --green-fill: rgba(127,175,138,0.15); --green-border: #24382B;
+      --shot-shadow: 0 24px 64px rgba(0,0,0,0.45);
+    }
+    .th-light {
+      --bg: #F2F1ED; --side: #EFEDE8; --panel: #EDEBE6; --card: #F8F7F4;
+      --card-2: #FBFAF8; --card-3: #F5F4F0; --pop: #FFFFFF; --chip-bg: #E9E7E1;
+      --hair: #E5E3DD; --hair-2: #ECEAE4; --hair-4: #E8E6E0;
+      --card-border: #E0DED7; --card-border-2: #D8D5CD; --int-border: #D0CDC4;
+      --int-border-2: #C4C1B8; --hover-border: #BEBBB1; --row-hover: #E9E7E1;
+      --text: #232128; --body-text: #3B3941; --secondary: #5F5C67;
+      --muted: #6B6873; --faint: #6B6873; --ghost: #A3A0AB; --ghost-2: #AFACB5;
+      --ghost-3: #B8B5BD; --on-accent: #FFFFFF;
+      --ember: #B54A18; --ember-hov: #A04214; --link-hover: #9E3F12;
+      --green: #3E7350; --amber: #82630C;
+      --t-req: #3E6E93; --t-dec: #82630C; --t-wo: #B54A18; --t-src: #655F80; --t-wf: #3E7350;
+      --ember-tint: rgba(181,74,24,0.10); --ember-tint-faint: rgba(181,74,24,0.06);
+      --ember-border-2: #E8D2C4;
+      --amber-tint: rgba(130,99,12,0.08); --amber-fill: rgba(130,99,12,0.16); --amber-border: #D0C6A9;
+      --green-tint: rgba(62,115,80,0.07); --green-fill: rgba(62,115,80,0.14); --green-border: #BCCBBE;
+      --shot-shadow: 0 24px 64px rgba(35,33,40,0.14);
+    }
+    .site { --mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+            --sans: 'Source Sans 3', -apple-system, 'Segoe UI', system-ui, sans-serif; }
+    body { margin: 0; }
+    .site { background: var(--bg); color: var(--body-text); font-family: var(--sans); font-size: 16px; line-height: 1.65; }
+    .site a { color: var(--ember); text-decoration: none; }
+    .site a:hover { color: var(--link-hover); }
+    .mono { font-family: var(--mono); }
+
+    /* ---- site chrome ---- */
+    .wrap { max-width: 1064px; margin: 0 auto; padding: 0 32px; }
+    .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .14em; color: var(--faint); text-transform: uppercase; margin-bottom: 10px; }
+    .h2 { font-size: 28px; line-height: 1.25; color: var(--text); margin: 0 0 10px; font-weight: 700; letter-spacing: -.01em; }
+    .lead { max-width: 640px; font-size: 17px; color: var(--secondary); margin: 0 0 28px; }
+    .band { margin-top: 96px; }
+    .split { display: grid; grid-template-columns: minmax(280px, 5fr) 7fr; gap: 40px; align-items: start; }
+    .split-rev { display: grid; grid-template-columns: 7fr minmax(280px, 5fr); gap: 40px; align-items: start; }
+    .copy-p { color: var(--secondary); font-size: 15.5px; margin: 0 0 14px; }
+    .copy-p strong { color: var(--text); font-weight: 600; }
+    .btn-p { display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; padding: 11px 22px; border-radius: 8px; background: var(--ember); color: var(--on-accent); cursor: pointer; }
+    .btn-p:hover { background: var(--ember-hov); color: var(--on-accent); }
+    .btn-s { display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; padding: 11px 22px; border-radius: 8px; border: 1px solid var(--int-border); color: var(--text); cursor: pointer; }
+    .btn-s:hover { border-color: var(--hover-border); }
+    .shot-note { font-family: var(--mono); font-size: 12px; color: var(--faint); }
+
+    /* status + ref chips (app vocabulary) */
+    .chip { font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
+    .chip-ok { color: var(--green); background: var(--green-fill); }
+    .chip-warn { color: var(--amber); background: var(--amber-fill); }
+    .chip-wo { color: var(--ember); background: var(--ember-tint); }
+    .chip-ref { font-family: var(--mono); font-size: 11px; color: var(--ember); background: var(--chip-bg); border-radius: 4px; padding: 1px 5px; cursor: pointer; white-space: nowrap; }
+    .c-req { color: var(--t-req); } .c-dec { color: var(--t-dec); } .c-wo { color: var(--t-wo); }
+    .c-src { color: var(--t-src); } .c-wf { color: var(--t-wf); }
+    .sw { width: 6px; height: 6px; border-radius: 2px; flex: 0 0 auto; }
+    .sw-req { background: var(--t-req); } .sw-dec { background: var(--t-dec); } .sw-wo { background: var(--t-wo); }
+    .sw-src { background: var(--t-src); } .sw-wf { background: var(--t-wf); }
+    .sw-hollow { background: transparent; border: 1px solid var(--ghost); }
+
+    /* ---- mini app window (pixel vocabulary from packages/ui/renderer/styles.css, ~0.85 scale) ---- */
+    .aw { border: 1px solid var(--card-border-2); border-radius: 12px; background: var(--bg); overflow: hidden; box-shadow: var(--shot-shadow); }
+    .aw-top { height: 38px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-bottom: 1px solid var(--hair); background: var(--panel); }
+    .aw-logo { width: 16px; height: 16px; border-radius: 4px; background: var(--ember); display: flex; align-items: center; justify-content: center; color: var(--on-accent); font-family: var(--mono); font-size: 10px; font-weight: 600; }
+    .aw-wordmark { font-weight: 600; font-size: 12px; color: var(--text); }
+    .aw-slash { color: var(--ghost-2); font-size: 12px; }
+    .aw-proj { font-family: var(--mono); font-size: 11px; color: var(--secondary); }
+    .aw-search { display: flex; align-items: center; gap: 8px; width: 280px; height: 24px; padding: 0 9px; margin: 0 auto; border: 1px solid var(--int-border); border-radius: 6px; background: var(--bg); color: var(--faint); font-size: 11px; }
+    .aw-kbd { margin-left: auto; font-family: var(--mono); font-size: 9px; border: 1px solid var(--int-border); border-radius: 4px; padding: 0 4px; color: var(--faint); }
+    .aw-health { display: flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--amber-border); background: var(--amber-tint); color: var(--amber); font-family: var(--mono); font-size: 10px; }
+    .aw-git { display: flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--int-border); color: var(--secondary); font-family: var(--mono); font-size: 10px; }
+    .aw-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--amber); }
+    .aw-body { display: flex; height: 584px; }
+    .aw-side { width: 172px; flex: 0 0 auto; background: var(--side); border-right: 1px solid var(--hair); padding: 10px 8px; }
+    .nav-item { height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 8px; border-radius: 6px; color: var(--body-text); font-size: 12px; }
+    .nav-item-on { background: var(--row-hover); color: var(--text); }
+    .nav-count { margin-left: auto; font-family: var(--mono); font-size: 9.5px; color: var(--ghost); }
+    .nav-glyph { width: 12px; text-align: center; color: var(--faint); font-family: var(--mono); font-size: 10px; }
+    .aw-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .tabs { height: 33px; display: flex; align-items: stretch; background: var(--panel); }
+    .tab { display: flex; align-items: center; gap: 7px; padding: 0 12px; border-right: 1px solid var(--hair-4); border-bottom: 1px solid var(--hair); cursor: pointer; }
+    .tab-id { font-family: var(--mono); font-size: 9.5px; }
+    .tab-title { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+    .tab-on { background: var(--bg); border-bottom-color: transparent; box-shadow: inset 0 2px 0 var(--ember); }
+    .tab-on .tab-title { color: var(--text); }
+    .tabs-fill { flex: 1; border-bottom: 1px solid var(--hair); }
+    .aw-content { flex: 1; display: flex; min-height: 0; }
+    .reader { flex: 1; min-width: 0; padding: 22px 28px; overflow: hidden; }
+    .crumb { font-family: var(--mono); font-size: 10px; color: var(--faint); display: flex; gap: 6px; align-items: center; }
+    .crumb-sep { color: var(--ghost-3); }
+    .doc-title { margin: 8px 0 0; font-size: 18px; font-weight: 600; letter-spacing: -.01em; line-height: 1.3; color: var(--text); }
+    .rd-h2 { margin: 18px 0 6px; font-size: 12.5px; font-weight: 600; color: var(--text); }
+    .rd-p { margin: 0 0 8px; line-height: 1.6; color: var(--body-text); font-size: 12.5px; }
+    .rd-li { display: flex; gap: 8px; color: var(--body-text); font-size: 12px; line-height: 1.5; padding: 2px 0; }
+    .rd-dash { color: var(--faint); flex: 0 0 auto; }
+    .rd-check { display: flex; gap: 8px; align-items: flex-start; padding: 3px 0; color: var(--body-text); font-size: 12px; line-height: 1.5; }
+    .rd-box { width: 13px; height: 13px; flex: 0 0 auto; margin-top: 2px; border-radius: 4px; border: 1px solid var(--int-border-2); color: var(--on-accent); font-size: 9px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+    .rd-box-done { background: var(--green); border-color: var(--green); }
+    .fm-card { margin-top: 12px; border: 1px solid var(--card-border); border-radius: 8px; background: var(--card); padding: 2px 12px; }
+    .fm-row { display: flex; align-items: center; min-height: 24px; border-bottom: 1px solid var(--hair-2); }
+    .fm-row:last-child { border-bottom: none; }
+    .fm-key { width: 88px; flex: 0 0 auto; font-family: var(--mono); font-size: 10px; color: var(--faint); }
+    .fm-val { font-family: var(--mono); font-size: 10.5px; color: var(--secondary); }
+    .panel-r { width: 296px; flex: 0 0 auto; border-left: 1px solid var(--hair); background: var(--panel); padding: 14px 14px 20px; overflow: hidden; }
+    .micro-label { font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em; color: var(--faint); }
+    .pkg-head { display: flex; align-items: center; gap: 8px; }
+    .pkg-total { margin-left: auto; font-family: var(--mono); font-size: 9.5px; color: var(--ember); }
+    .pkg-card { margin-top: 9px; border: 1px solid var(--int-border); border-radius: 8px; background: var(--bg); overflow: hidden; }
+    .pkg-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--hair-4); }
+    .pkg-row:last-child { border-bottom: none; }
+    .pkg-id { font-family: var(--mono); font-size: 9.5px; flex: 0 0 auto; }
+    .pkg-title { font-size: 11px; color: var(--secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pkg-tok { margin-left: auto; font-family: var(--mono); font-size: 9px; color: var(--faint); flex: 0 0 auto; }
+    .pkg-note { padding: 7px 10px; font-family: var(--mono); font-size: 9px; color: var(--faint); line-height: 1.5; border-top: 1px solid var(--hair-4); }
+    .btn-mini-p { height: 30px; border-radius: 7px; background: var(--ember); color: var(--on-accent); display: flex; align-items: center; justify-content: center; font-size: 11.5px; font-weight: 600; cursor: pointer; }
+    .btn-mini-p:hover { background: var(--ember-hov); }
+    .btn-mini-s { height: 27px; border-radius: 7px; border: 1px solid var(--int-border); color: var(--body-text); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; cursor: pointer; }
+    .btn-mini-s:hover { border-color: var(--hover-border); }
+    .act-row { display: flex; align-items: baseline; gap: 7px; padding: 3px 0; font-size: 10.5px; }
+    .act-dot { width: 5px; height: 5px; border-radius: 50%; flex: 0 0 auto; position: relative; top: -1px; }
+    .act-agent { font-family: var(--mono); font-size: 9.5px; color: var(--ember); flex: 0 0 auto; }
+    .act-text { color: var(--secondary); line-height: 1.45; }
+    .rev-card { margin-top: 10px; border: 1px solid var(--amber-border); border-radius: 8px; background: var(--amber-tint); padding: 9px 10px; }
+    .conn-card { border: 1px solid var(--card-border); border-radius: 7px; background: var(--card-3); padding: 7px 9px; margin-top: 6px; }
+    .conn-head { display: flex; align-items: center; gap: 6px; }
+    .conn-id { font-family: var(--mono); font-size: 9.5px; }
+    .conn-type { margin-left: auto; font-family: var(--mono); font-size: 8.5px; color: var(--faint); }
+    .conn-title { display: block; font-size: 11px; color: var(--text); margin-top: 2px; line-height: 1.35; }
+
+    /* pulse for the running session dot */
+    @keyframes veripulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+    .pulse { animation: veripulse 1.2s infinite; }
+    @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
+
+    /* ---- band 2: file toggle ---- */
+    .seg { display: inline-flex; border: 1px solid var(--int-border); border-radius: 7px; overflow: hidden; }
+    .seg-item { padding: 6px 14px; font-family: var(--mono); font-size: 11px; cursor: pointer; color: var(--faint); border-right: 1px solid var(--int-border); }
+    .seg-item:last-child { border-right: none; }
+    .seg-on { color: var(--text); background: var(--card-2); }
+    .file-card { border: 1px solid var(--card-border-2); border-radius: 10px; background: var(--card); overflow: hidden; }
+    .file-name { font-family: var(--mono); font-size: 12px; color: var(--muted); padding: 10px 16px; border-bottom: 1px solid var(--hair); background: var(--panel); }
+    .file-pre { margin: 0; padding: 16px 18px; font-family: var(--mono); font-size: 12.5px; line-height: 1.65; color: var(--secondary); white-space: pre; overflow: hidden; }
+    .fm-dim { color: var(--faint); }
+    .fh { color: var(--text); font-weight: 600; }
+    .same-file { list-style: none; margin: 20px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px; color: var(--secondary); }
+    .same-file li { border: 1px solid var(--card-border); border-radius: 8px; padding: 10px 14px; background: var(--card); }
+    .same-file b { display: block; color: var(--text); font-weight: 600; font-size: 13.5px; }
+
+    /* ---- band 3: comparison ---- */
+    .diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .diff-card { border: 1px solid var(--card-border-2); border-radius: 10px; background: var(--card); padding: 16px 18px; }
+    .diff-name { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--ember); margin-bottom: 6px; }
+    .diff-p { margin: 0; font-size: 14px; color: var(--secondary); line-height: 1.55; }
+    .diff-p strong { color: var(--text); font-weight: 600; }
+
+    /* ---- band 4: package explorer ---- */
+    .xp-row { border-bottom: 1px solid var(--hair-4); cursor: pointer; }
+    .xp-row:last-child { border-bottom: none; }
+    .xp-head { display: flex; align-items: center; gap: 10px; padding: 9px 14px; }
+    .xp-head:hover { background: var(--row-hover); }
+    .xp-id { font-family: var(--mono); font-size: 11.5px; flex: 0 0 auto; }
+    .xp-title { font-size: 13px; color: var(--body-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .xp-tok { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--faint); flex: 0 0 auto; }
+    .xp-chev { color: var(--ghost); font-size: 10px; width: 10px; flex: 0 0 auto; font-family: var(--mono); }
+    .xp-body { padding: 2px 14px 12px 40px; font-size: 12.5px; color: var(--muted); line-height: 1.55; font-style: italic; }
+
+    /* ---- band 5: review + receipt ---- */
+    .rq-card { border: 1px solid var(--card-border-2); border-radius: 10px; background: var(--card); overflow: hidden; }
+    .rq-head { padding: 10px 16px; border-bottom: 1px solid var(--hair-2); display: flex; align-items: center; gap: 8px; }
+    .rq-row { display: flex; align-items: center; gap: 12px; padding: 13px 16px; }
+    .receipt { border: 1px solid var(--green-border); border-radius: 10px; background: var(--green-tint); padding: 14px 16px; }
+    .receipt-head { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: var(--green); }
+    .receipt-date { margin-left: auto; font-family: var(--mono); font-size: 10.5px; font-weight: 400; color: var(--faint); }
+    .receipt-meta { margin-top: 10px; display: flex; gap: 10px; align-items: center; font-family: var(--mono); font-size: 11.5px; flex-wrap: wrap; }
+    .receipt-key { color: var(--faint); }
+    .receipt-sha { color: var(--text); background: var(--chip-bg); border-radius: 4px; padding: 2px 7px; }
+    .receipt-files { margin-top: 10px; font-family: var(--mono); font-size: 11.5px; line-height: 1.8; color: var(--secondary); }
+    .receipt-summary { margin-top: 8px; font-size: 12.5px; color: var(--secondary); line-height: 1.5; }
+
+    /* ---- band 6: agents ---- */
+    .agent-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+    .agent-chip { border: 1px solid var(--int-border); border-radius: 7px; padding: 7px 13px; font-size: 13.5px; color: var(--text); font-weight: 600; background: var(--card); }
+    .agent-chip span { color: var(--faint); font-weight: 400; font-size: 12px; }
+    .mcp-json { border: 1px solid var(--card-border); border-radius: 10px; background: var(--card); padding: 14px 16px; font-family: var(--mono); font-size: 11.5px; line-height: 1.75; color: var(--muted); }
+    .jk { color: var(--ember); } .jv { color: var(--body-text); }
+    .tool-grid { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+    .tool-chip { font-family: var(--mono); font-size: 11px; color: var(--secondary); background: var(--card-2); border: 1px solid var(--card-border); border-radius: 5px; padding: 3px 8px; }
+
+    /* ---- band 7: quickstart ---- */
+    .qs-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .qs-card { border: 1px solid var(--card-border-2); border-radius: 10px; background: var(--card); padding: 18px 20px; }
+    .qs-n { font-family: var(--mono); font-size: 11px; color: var(--ember); border: 1px solid var(--int-border); border-radius: 6px; padding: 1px 7px; }
+    .qs-h { font-size: 15.5px; color: var(--text); font-weight: 600; margin: 10px 0 6px; }
+    .qs-p { margin: 0; font-size: 13px; color: var(--secondary); line-height: 1.55; }
+    .qs-cmd { margin-top: 12px; font-family: var(--mono); font-size: 11.5px; color: var(--body-text); background: var(--bg); border: 1px solid var(--int-border); border-radius: 7px; padding: 8px 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* hero install command */
+    .cmd-row { display: flex; align-items: center; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .cmd-block { display: flex; align-items: center; gap: 12px; border: 1px solid var(--int-border); border-radius: 8px; background: var(--card); padding: 0 6px 0 16px; height: 44px; }
+    .cmd-text { font-family: var(--mono); font-size: 13.5px; color: var(--text); }
+    .cmd-dollar { color: var(--faint); }
+    .cmd-copy { height: 30px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--int-border); color: var(--secondary); font-size: 12px; font-weight: 600; display: flex; align-items: center; cursor: pointer; font-family: var(--sans); }
+    .cmd-copy:hover { border-color: var(--hover-border); color: var(--text); }
+  </style>
+</helmet>
+
+<div class="site {{themeClass}}" style="width: 1160px; min-height: 5520px; padding-bottom: 40px">
+
+  <!-- ================= NAV ================= -->
+  <header style="display: flex; align-items: center; gap: 6px; max-width: 1064px; margin: 0 auto; padding: 16px 32px">
+    <a href="#" class="mono" style="font-weight: 700; font-size: 17px; letter-spacing: .02em; color: var(--text); margin-right: auto"><span style="color: var(--ember)">V</span>eri</a>
+    <a href="#" style="color: var(--secondary); font-size: 14px; padding: 10px 12px">Docs</a>
+    <a href="#" style="color: var(--secondary); font-size: 14px; padding: 10px 12px">GitHub</a>
+    <a href="#" style="font-size: 14px; font-weight: 600; color: var(--text); border: 1px solid var(--int-border); border-radius: 8px; padding: 7px 14px; margin-left: 8px">Download</a>
+  </header>
+
+  <!-- ================= HERO ================= -->
+  <section style="max-width: 1064px; margin: 0 auto; padding: 56px 32px 0; text-align: center">
+    <h1 style="font-size: 46px; line-height: 1.12; font-weight: 700; letter-spacing: -.015em; color: var(--text); max-width: 720px; margin: 0 auto 18px">A knowledge base your coding agents read</h1>
+    <p style="font-size: 18px; line-height: 1.6; color: var(--secondary); max-width: 620px; margin: 0 auto 28px">Requirements, decisions, and work orders live as <strong style="color: var(--body-text); font-weight: 600">plain Markdown in your repo</strong>. Veri hands each coding task the context it needs — without rebuilding the project from chat history every session.</p>
+    <div class="cmd-row">
+      <div class="cmd-block">
+        <div class="cmd-text"><span class="cmd-dollar">$&nbsp;</span>npm install -g @veri/cli</div>
+        <div class="cmd-copy" onClick="{{ copyCmd }}">{{ copyLabel }}</div>
+      </div>
+      <div class="btn-p">Download for macOS</div>
+      <a href="#" style="font-size: 15px; text-decoration: underline; text-underline-offset: 3px; padding: 11px 4px">10-minute quickstart</a>
+    </div>
+    <div class="mono" style="margin-top: 14px; font-size: 13px; color: var(--muted)">v0.1.0 · Apache-2.0 · app is macOS 13+ · CLI, MCP server &amp; Action run anywhere Node 20+ does</div>
+  </section>
+
+  <!-- ================= LIVE MINI-APP DEMO ================= -->
+  <div style="max-width: 1160px; margin: 44px auto 0; padding: 0 32px">
+    <div class="aw">
+      <div class="aw-top">
+        <div style="display: flex; align-items: center; gap: 7px">
+          <div class="aw-logo">V</div>
+          <div class="aw-wordmark">Veri</div>
+          <div class="aw-slash">/</div>
+          <div class="aw-proj">acme-invoices</div>
+        </div>
+        <div class="aw-search"><span>Search or jump to…</span><span class="aw-kbd">⌘K</span></div>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <div class="aw-health"><div class="aw-dot"></div><span>2</span></div>
+          <div class="aw-git">main · clean</div>
+        </div>
+      </div>
+      <div class="aw-body">
+        <div class="aw-side">
+          <div class="nav-item"><span class="nav-glyph">⌂</span>Home</div>
+          <div class="nav-item nav-item-on"><span class="sw sw-wo"></span>Work orders<span class="nav-count">4</span></div>
+          <div class="nav-item"><span class="sw sw-req"></span>Requirements<span class="nav-count">4</span></div>
+          <div class="nav-item"><span class="sw sw-dec"></span>Decisions<span class="nav-count">{{ decCount }}</span></div>
+          <div class="nav-item"><span class="sw sw-src"></span>Sources<span class="nav-count">2</span></div>
+          <div class="nav-item"><span class="sw sw-wf"></span>Workflow<span class="nav-count">1</span></div>
+        </div>
+        <div class="aw-main">
+          <div class="tabs">
+            <div class="tab {{woTabCls}}" onClick="{{ tabWo }}"><span class="tab-id c-wo">WO-002</span><span class="tab-title">PDF export pipeline</span></div>
+            <div class="tab {{reqTabCls}}" onClick="{{ tabReq }}"><span class="tab-id c-req">REQ-001</span><span class="tab-title">Branded PDF invoices</span></div>
+            <div class="tab {{decTabCls}}" onClick="{{ tabDec }}"><span class="tab-id c-dec">DEC-005</span><span class="tab-title">Typst for PDF rendering</span></div>
+            <div class="tabs-fill"></div>
+          </div>
+          <div class="aw-content">
+
+            <!-- WORK ORDER tab -->
+            <sc-if value="{{ isWo }}" hint-placeholder-val="{{ true }}">
+              <div class="reader">
+                <div class="crumb"><span>work-orders</span><span class="crumb-sep">/</span><span class="c-wo">WO-002</span></div>
+                <div style="display: flex; align-items: flex-start; gap: 12px">
+                  <h3 class="doc-title" style="flex: 1; margin: 8px 0 0">PDF export pipeline</h3>
+                  <span class="chip chip-wo" style="margin-top: 12px">in-progress</span>
+                </div>
+                <div class="rd-h2">Summary</div>
+                <p class="rd-p">Render branded invoice PDFs from the invoice data model. Output must be deterministic and print-identical across machines, per <span class="chip-ref">[[REQ-001]]</span>.</p>
+                <div class="rd-h2">In scope</div>
+                <div class="rd-li"><span class="rd-dash">–</span><span>Template compilation with Typst, per <span class="chip-ref">[[DEC-005]]</span></span></div>
+                <div class="rd-li"><span class="rd-dash">–</span><span>Invoice numbering follows <span class="chip-ref">[[REQ-003]]</span></span></div>
+                <div class="rd-li"><span class="rd-dash">–</span><span style="color: var(--muted)">Out of scope: email delivery, batch export</span></div>
+                <div class="rd-h2">Acceptance tests</div>
+                <div class="rd-check"><div class="rd-box rd-box-done">✓</div><span style="color: var(--muted)">Sample invoice renders byte-identical on two machines</span></div>
+                <div class="rd-check"><div class="rd-box"></div><span>Custom fonts embed correctly in exported PDF</span></div>
+                <div class="rd-check"><div class="rd-box"></div><span>Rendering fails loudly on missing template variables</span></div>
+              </div>
+              <div class="panel-r">
+                <div class="pkg-head"><span class="micro-label">CONTEXT PACKAGE</span><span class="pkg-total">{{ pkgTotal }}</span></div>
+                <div class="pkg-card">
+                  <sc-for list="{{ pkgRows }}" as="r" hint-placeholder-count="9">
+                    <div class="pkg-row"><span class="sw {{r.sw}}"></span><span class="pkg-id {{r.c}}">{{r.id}}</span><span class="pkg-title">{{r.title}}</span><span class="pkg-tok">{{r.tok}}</span></div>
+                  </sc-for>
+                  <div class="pkg-note">+ DEC-003 rides along by name only — flagged already rejected</div>
+                </div>
+                <div style="margin-top: 11px; display: flex; flex-direction: column; gap: 7px">
+                  <div class="btn-mini-p" onClick="{{ startRun }}">{{ startLabel }}</div>
+                  <div class="btn-mini-s" onClick="{{ copyKick }}">{{ kickLabel }}</div>
+                </div>
+                <sc-if value="{{ anyActivity }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top: 14px; border-top: 1px solid var(--hair); padding-top: 10px">
+                    <div class="micro-label" style="margin-bottom: 4px">AGENT SESSION</div>
+                    <sc-if value="{{ p1 }}" hint-placeholder-val="{{ false }}">
+                      <div class="act-row"><span class="act-dot {{runDotCls}}" style="background: transparent; border: 1px solid var(--ember)"></span><span class="act-agent">claude-code</span><span class="act-text">fetched the context package — 9 docs, ~1.8k tokens</span></div>
+                    </sc-if>
+                    <sc-if value="{{ p2 }}" hint-placeholder-val="{{ false }}">
+                      <div class="act-row"><span class="act-dot" style="background: var(--t-dec)"></span><span class="act-text">filed <span class="c-dec mono" style="font-size: 10px">DEC-011</span> Embed fonts in PDF output — <span style="color: var(--amber)">proposed</span></span></div>
+                    </sc-if>
+                    <sc-if value="{{ p3 }}" hint-placeholder-val="{{ false }}">
+                      <div class="act-row"><span class="act-dot" style="background: var(--green)"></span><span class="act-text">receipt landed — commit <span class="mono" style="font-size: 10px; color: var(--text)">b21e88f</span> · 3 files</span></div>
+                    </sc-if>
+                    <sc-if value="{{ p4 }}" hint-placeholder-val="{{ false }}">
+                      <div class="rev-card">
+                        <div class="micro-label" style="color: var(--amber)">NEEDS REVIEW</div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-top: 7px">
+                          <span class="conn-id c-dec">DEC-011</span>
+                          <span style="font-size: 11.5px; color: var(--text); flex: 1">Embed fonts in PDF output</span>
+                          <span class="chip {{revChipCls}}">{{ revChipLabel }}</span>
+                        </div>
+                        <sc-if value="{{ notApproved }}" hint-placeholder-val="{{ true }}">
+                          <div class="btn-mini-p" style="margin-top: 9px; height: 26px; font-size: 10.5px" onClick="{{ approve }}">Promote to active</div>
+                        </sc-if>
+                        <sc-if value="{{ approvedV }}" hint-placeholder-val="{{ false }}">
+                          <div style="margin-top: 8px; font-size: 10.5px; color: var(--green); line-height: 1.45">Approved. DEC-011 now travels in every context package it constrains.</div>
+                        </sc-if>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ approvedV }}" hint-placeholder-val="{{ false }}">
+                      <div class="mono" style="margin-top: 9px; font-size: 10px; color: var(--faint); text-align: right; cursor: pointer" onClick="{{ replay }}">↻ replay session</div>
+                    </sc-if>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <!-- REQUIREMENT tab -->
+            <sc-if value="{{ isReq }}" hint-placeholder-val="{{ false }}">
+              <div class="reader">
+                <div class="crumb"><span>requirements</span><span class="crumb-sep">/</span><span class="c-req">REQ-001</span></div>
+                <div style="display: flex; align-items: flex-start; gap: 12px">
+                  <h3 class="doc-title" style="flex: 1; margin: 8px 0 0">Branded PDF invoices</h3>
+                  <span class="chip chip-ok" style="margin-top: 12px">approved</span>
+                </div>
+                <div class="rd-h2">Statement</div>
+                <p class="rd-p">Users export invoices as branded PDFs: the customer's logo, the agreed layout, and print-identical output on every machine. This is the product's core deliverable — an invoice a client can be billed with.</p>
+                <div class="rd-h2">Acceptance criteria</div>
+                <div class="rd-check"><div class="rd-box rd-box-done">✓</div><span style="color: var(--muted)">Logo and brand color render from project settings</span></div>
+                <div class="rd-check"><div class="rd-box rd-box-done">✓</div><span style="color: var(--muted)">A4 and US Letter both supported</span></div>
+                <div class="rd-check"><div class="rd-box"></div><span>Output identical across macOS and Linux CI</span></div>
+                <div class="fm-card">
+                  <div class="fm-row"><span class="fm-key">status</span><span class="fm-val" style="color: var(--green)">approved</span></div>
+                  <div class="fm-row"><span class="fm-key">approved</span><span class="fm-val">2026-07-18</span></div>
+                  <div class="fm-row"><span class="fm-key">links</span><span class="fm-val">3 links — <span class="c-wo">WO-002</span> implemented-by · <span class="c-src">SRC-002</span> informed-by · <span class="c-dec">DEC-004</span> constrained-by</span></div>
+                </div>
+              </div>
+              <div class="panel-r">
+                <div class="micro-label">CONNECTIONS</div>
+                <div class="conn-card"><div class="conn-head"><span class="sw sw-wo"></span><span class="conn-id c-wo">WO-002</span><span class="conn-type">implements</span></div><span class="conn-title">PDF export pipeline</span></div>
+                <div class="conn-card"><div class="conn-head"><span class="sw sw-src"></span><span class="conn-id c-src">SRC-002</span><span class="conn-type">informed-by</span></div><span class="conn-title">Invoice requirements interview</span></div>
+                <div class="conn-card"><div class="conn-head"><span class="sw sw-dec"></span><span class="conn-id c-dec">DEC-004</span><span class="conn-type">constrained-by</span></div><span class="conn-title">Invoice data schema</span></div>
+                <div style="margin-top: 14px; font-size: 11px; color: var(--faint); line-height: 1.6">Every connection is a typed link in the file's frontmatter — <span class="mono" style="font-size: 10px">veri check</span> validates all of them.</div>
+              </div>
+            </sc-if>
+
+            <!-- DECISION tab -->
+            <sc-if value="{{ isDec }}" hint-placeholder-val="{{ false }}">
+              <div class="reader">
+                <div class="crumb"><span>decisions</span><span class="crumb-sep">/</span><span class="c-dec">DEC-005</span></div>
+                <div style="display: flex; align-items: flex-start; gap: 12px">
+                  <h3 class="doc-title" style="flex: 1; margin: 8px 0 0">Typst for PDF rendering</h3>
+                  <span class="chip chip-ok" style="margin-top: 12px">active</span>
+                </div>
+                <div class="rd-h2">Choice</div>
+                <p class="rd-p">Compile invoice templates with Typst, embedded in the Rust core.</p>
+                <div class="rd-h2">Rejected alternatives</div>
+                <div class="rd-li"><span class="rd-dash">–</span><span><strong style="color: var(--text); font-weight: 600">Handlebars + headless browser</strong> — the <span class="chip-ref">[[DEC-003]]</span> approach; slow and nondeterministic print output.</span></div>
+                <div class="rd-li"><span class="rd-dash">–</span><span><strong style="color: var(--text); font-weight: 600">LaTeX</strong> — deterministic but a 4&nbsp;GB toolchain dependency.</span></div>
+                <div class="rd-li"><span class="rd-dash">–</span><span><strong style="color: var(--text); font-weight: 600">wkhtmltopdf</strong> — unmaintained upstream.</span></div>
+                <div class="rd-h2">Rationale</div>
+                <p class="rd-p" style="color: var(--secondary)">Supersedes <span class="chip-ref">[[DEC-003]]</span>. Typst gives sub-second compiles and byte-stable output; implemented by <span class="chip-ref">[[WO-002]]</span>.</p>
+              </div>
+              <div class="panel-r">
+                <div class="micro-label">CONNECTIONS</div>
+                <div class="conn-card"><div class="conn-head"><span class="sw sw-dec"></span><span class="conn-id c-dec">DEC-003</span><span class="conn-type">supersedes</span></div><span class="conn-title" style="color: var(--muted); text-decoration: line-through">Handlebars template rendering</span></div>
+                <div class="conn-card"><div class="conn-head"><span class="sw sw-wo"></span><span class="conn-id c-wo">WO-002</span><span class="conn-type">implemented-by</span></div><span class="conn-title">PDF export pipeline</span></div>
+                <div style="margin-top: 14px; font-size: 11px; color: var(--faint); line-height: 1.6">Active decisions travel into every future context package they constrain. Agents stop re-opening what you settled in March.</div>
+              </div>
+            </sc-if>
+
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot-note" style="padding: 12px 4px 0; text-align: center">the real interface, miniaturized — switch documents, start the agent session, approve what it files</div>
+  </div>
+
+  <!-- ================= BAND 2: PLAIN FILES ================= -->
+  <section class="band">
+    <div class="wrap">
+      <div class="eyebrow">Local-first</div>
+      <h2 class="h2">Plain files are the architecture</h2>
+      <div class="split-rev">
+        <div>
+          <div class="seg" style="margin-bottom: 12px">
+            <div class="seg-item {{segAppCls}}" onClick="{{ setApp }}">In the app</div>
+            <div class="seg-item {{segRawCls}}" onClick="{{ setRaw }}">The file on disk</div>
+          </div>
+          <div class="file-card" style="height: 372px">
+            <div class="file-name">veri/decisions/DEC-005-typst-for-pdf-rendering.md</div>
+            <sc-if value="{{ viewApp }}" hint-placeholder-val="{{ true }}">
+              <div style="padding: 18px 22px">
+                <div class="crumb"><span>decisions</span><span class="crumb-sep">/</span><span class="c-dec">DEC-005</span></div>
+                <div style="display: flex; align-items: flex-start; gap: 12px">
+                  <div class="doc-title" style="flex: 1; font-size: 17px">Typst for PDF rendering</div>
+                  <span class="chip chip-ok" style="margin-top: 10px">active</span>
+                </div>
+                <div class="rd-h2">Choice</div>
+                <p class="rd-p">Compile invoice templates with Typst, embedded in the Rust core.</p>
+                <div class="rd-h2">Rejected alternatives</div>
+                <div class="rd-li"><span class="rd-dash">–</span><span><strong style="color: var(--text); font-weight: 600">Handlebars + headless browser</strong> — the <span class="chip-ref">[[DEC-003]]</span> approach; slow and nondeterministic print output.</span></div>
+                <div class="rd-li"><span class="rd-dash">–</span><span><strong style="color: var(--text); font-weight: 600">LaTeX</strong> — deterministic but a 4&nbsp;GB toolchain dependency.</span></div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ viewRaw }}" hint-placeholder-val="{{ false }}">
+              <pre class="file-pre"><span class="fm-dim">---
+id: DEC-005
+type: decision
+status: active
+approved: 2026-08-05
+links:
+  - id: DEC-003
+    rel: supersedes
+  - id: WO-002
+    rel: implemented-by
+---</span>
+
+<span class="fh">## Choice</span>
+
+Compile invoice templates with Typst,
+embedded in the Rust core.
+
+<span class="fh">## Rejected alternatives</span>
+
+- **Handlebars + headless browser** — the
+  <span style="color: var(--ember)">[[DEC-003]]</span> approach; slow and
+  nondeterministic print output.</pre>
+            </sc-if>
+          </div>
+        </div>
+        <div>
+          <p class="copy-p">A Veri project is a <span class="mono" style="font-size: 13.5px; color: var(--text); background: var(--card-2); border: 1px solid var(--card-border); border-radius: 4px; padding: 1px 5px">veri/</span> directory of readable Markdown. <strong>The files are the source of truth</strong> — the app is a view over them. Flip the toggle: same document, same bytes.</p>
+          <p class="copy-p">Four things operate on the same knowledge, and none of them owns it:</p>
+          <ul class="same-file">
+            <li><b>The Veri app</b>reads and edits the files</li>
+            <li><b>Your editor</b>opens them like any Markdown</li>
+            <li><b>Git</b>versions, diffs, and syncs them</li>
+            <li><b>Your agent</b>retrieves them over MCP</li>
+          </ul>
+          <p class="copy-p" style="margin-top: 16px">Delete Veri and your project knowledge is still a folder of Markdown that renders on GitHub.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= BAND 3: THE INCUMBENT ================= -->
+  <section class="band">
+    <div class="wrap">
+      <div class="eyebrow">Why not a docs folder?</div>
+      <h2 class="h2">You already keep a CLAUDE.md. Maybe an ADR folder.</h2>
+      <p class="lead">Good — that instinct is the whole idea. A CLAUDE.md tells your agent how to behave; an ADR folder remembers why. Veri is what they grow into when one growing file stops scaling. Four things a docs folder can't do:</p>
+      <div class="diff-grid">
+        <div class="diff-card">
+          <div class="diff-name">Scoped retrieval</div>
+          <p class="diff-p">Each task gets <strong>the documents linked to it</strong> — a few thousand tokens, assembled fresh — not one ever-growing file pasted into every session whether it's relevant or not.</p>
+        </div>
+        <div class="diff-card">
+          <div class="diff-name">Typed links, linted</div>
+          <p class="diff-p"><span class="chip-ref">[[REQ-001]]</span> is a reference <strong><span class="mono" style="font-size: 13px">veri check</span> validates</strong> — broken links, work with no requirement, unapproved dependencies — the way a compiler validates code. A heading in a docs folder is just a heading.</p>
+        </div>
+        <div class="diff-card">
+          <div class="diff-name">The approval gate</div>
+          <p class="diff-p">Agent-filed decisions are <strong>proposals until you promote them</strong>. An ADR folder can't tell canon from suggestion once agents start writing into it.</p>
+        </div>
+        <div class="diff-card">
+          <div class="diff-name">Receipts</div>
+          <p class="diff-p">Finished work carries <strong>commit, files changed, and what was done</strong> — appended to the work order itself, with git provenance. Not a line in a chat log that scrolled away.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= BAND 4: THE PACKAGE ================= -->
+  <section class="band">
+    <div class="wrap">
+      <div class="eyebrow">Scoped context</div>
+      <h2 class="h2">The agent gets a package, not a repo dump</h2>
+      <div class="split">
+        <div>
+          <p class="copy-p">The context package for a task is <strong>the documents linked to it</strong> — the project workflow, its requirements, every active decision within two hops, source excerpts. Typically a few thousand tokens, with a per-document estimate, assembled fresh from current file versions every time.</p>
+          <p class="copy-p">Superseded decisions ride along by name only, flagged as already rejected — so the agent doesn't relitigate them.</p>
+          <p class="copy-p">You see the exact package before the agent does, and start the session from it with one click. <strong>Click a document</strong> to see why it's in the package.</p>
+        </div>
+        <div>
+          <div style="border: 1px solid var(--card-border-2); border-radius: 10px; background: var(--card); overflow: hidden">
+            <div style="display: flex; align-items: center; gap: 8px; padding: 11px 16px; border-bottom: 1px solid var(--hair-2)">
+              <span class="micro-label" style="font-size: 10.5px">CONTEXT PACKAGE — <span class="c-wo">WO-002</span></span>
+              <span class="mono" style="margin-left: auto; font-size: 11px; color: var(--ember)">~1.8k tokens</span>
+            </div>
+            <sc-for list="{{ xpRows }}" as="r" hint-placeholder-count="9">
+              <div class="xp-row">
+                <div class="xp-head" onClick="{{ r.pick }}">
+                  <span class="xp-chev">{{ r.chev }}</span>
+                  <span class="sw {{r.sw}}"></span>
+                  <span class="xp-id {{r.c}}">{{r.id}}</span>
+                  <span class="xp-title">{{r.title}}</span>
+                  <span class="xp-tok">{{r.tok}}</span>
+                </div>
+                <sc-if value="{{ r.isOpen }}" hint-placeholder-val="{{ false }}">
+                  <div class="xp-body">{{ r.why }}</div>
+                </sc-if>
+              </div>
+            </sc-for>
+            <div style="padding: 9px 16px; border-top: 1px solid var(--hair-2); font-family: var(--mono); font-size: 10.5px; color: var(--faint); line-height: 1.5">+ DEC-003 by name only, flagged already rejected · rebuilt from current files on every request</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= BAND 5: APPROVAL + RECEIPTS ================= -->
+  <section class="band">
+    <div class="wrap">
+      <div class="eyebrow">Human approval</div>
+      <h2 class="h2">Agents propose. You decide what becomes canon.</h2>
+      <p class="lead">Agent-written requirements start as drafts, agent-filed decisions as proposals — labeled non-binding until you promote them. Nothing an agent writes silently becomes project truth. And when the work is done, it comes back as a receipt.</p>
+      <div class="split" style="grid-template-columns: 1fr 1fr">
+        <div>
+          <div class="rq-card">
+            <div class="rq-head"><span class="micro-label" style="font-size: 10.5px; color: var(--amber)">NEEDS REVIEW</span><span class="mono" style="margin-left: auto; font-size: 10.5px; color: var(--faint)">{{ queueCount }}</span></div>
+            <div class="rq-row">
+              <span class="sw sw-req"></span>
+              <span class="mono c-req" style="font-size: 12px">REQ-004</span>
+              <span style="font-size: 14px; color: var(--text); flex: 1">Import time entries from CSV</span>
+              <span class="chip {{promChipCls}}">{{ promChipLabel }}</span>
+              <sc-if value="{{ notPromoted }}" hint-placeholder-val="{{ true }}">
+                <div class="btn-mini-p" style="padding: 0 13px; height: 28px; font-size: 11.5px" onClick="{{ promote }}">Promote</div>
+              </sc-if>
+            </div>
+            <sc-if value="{{ promotedV }}" hint-placeholder-val="{{ false }}">
+              <div style="padding: 0 16px 13px; font-size: 12.5px; color: var(--green)">Approved just now — the promotion is an ordinary file change, ready to commit.</div>
+            </sc-if>
+          </div>
+          <div class="shot-note" style="padding: 10px 4px 0">the review queue on the home view — try Promote</div>
+        </div>
+        <div>
+          <div class="receipt">
+            <div class="receipt-head"><span>✓&nbsp; Receipt</span><span class="receipt-date">2026-08-21</span></div>
+            <div class="receipt-meta">
+              <span class="receipt-key">commit</span><span class="receipt-sha">b21e88f</span>
+              <span class="receipt-key">session</span><span style="color: var(--secondary)">claude-code · s-41</span>
+            </div>
+            <div class="receipt-files">M&nbsp; core/src/render/typst.rs<br>M&nbsp; core/src/render/fonts.rs<br>A&nbsp; core/tests/pdf_bytes.rs</div>
+            <div class="receipt-summary">Implemented deterministic PDF rendering with embedded fonts; byte-identical output verified across two machines.</div>
+          </div>
+          <div class="shot-note" style="padding: 10px 4px 0">appended to the work order itself — <span class="mono">git diff</span> shows every word</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= BAND 6: AGENT-NATIVE ================= -->
+  <section class="band">
+    <div class="wrap">
+      <div class="eyebrow">Agent-native</div>
+      <h2 class="h2">Works with your coding agent</h2>
+      <div class="split">
+        <div>
+          <p class="copy-p">Veri exposes the knowledge base over <strong>MCP</strong>, the open protocol coding agents already speak. One click writes the project's <span class="mono" style="font-size: 13px; color: var(--text)">.mcp.json</span>; your agent gets ten tools to read context and file work back. No prompt pasting, no lock-in to one model.</p>
+          <div class="agent-chips">
+            <div class="agent-chip">Claude Code</div>
+            <div class="agent-chip">Cursor</div>
+            <div class="agent-chip">Codex CLI</div>
+            <div class="agent-chip">Gemini CLI</div>
+            <div class="agent-chip" style="color: var(--muted); font-weight: 400">+ anything that speaks MCP</div>
+          </div>
+          <p class="copy-p" style="margin-top: 18px; font-size: 13.5px; color: var(--muted)">Per-agent connection guides live in the docs.</p>
+        </div>
+        <div>
+          <div class="mcp-json">{<br>&nbsp;&nbsp;<span class="jk">"mcpServers"</span>: {<br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="jk">"veri"</span>: {<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="jk">"command"</span>: <span class="jv">"node"</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="jk">"args"</span>: [<span class="jv">"…/@veri/mcp/dist/server.js"</span>, <span class="jv">"."</span>]<br>&nbsp;&nbsp;&nbsp;&nbsp;}<br>&nbsp;&nbsp;}<br>}</div>
+          <div class="tool-grid">
+            <span class="tool-chip">get_context</span>
+            <span class="tool-chip">get_document</span>
+            <span class="tool-chip">get_neighbors</span>
+            <span class="tool-chip">search</span>
+            <span class="tool-chip">file_requirement</span>
+            <span class="tool-chip">file_decision</span>
+            <span class="tool-chip">file_work_order</span>
+            <span class="tool-chip">file_source</span>
+            <span class="tool-chip">file_receipt</span>
+            <span class="tool-chip">get_import_instructions</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= BAND 7: QUICKSTART ================= -->
+  <section class="band">
+    <div class="wrap">
+      <div class="eyebrow">Get started</div>
+      <h2 class="h2">Start in ten minutes</h2>
+      <div class="qs-grid">
+        <div class="qs-card">
+          <span class="qs-n">1</span>
+          <div class="qs-h">Install Veri</div>
+          <p class="qs-p">The macOS app, or the CLI anywhere Node 20+ runs.</p>
+          <div class="qs-cmd"><span style="color: var(--faint)">$ </span>npm install -g @veri/cli</div>
+        </div>
+        <div class="qs-card">
+          <span class="qs-n">2</span>
+          <div class="qs-h">Open the sample project</div>
+          <p class="qs-p">The app bundles a worked invoicing example — sixteen documents to read, edit, and break. On the CLI:</p>
+          <div class="qs-cmd"><span style="color: var(--faint)">$ </span>veri init --demo</div>
+        </div>
+        <div class="qs-card">
+          <span class="qs-n">3</span>
+          <div class="qs-h">Connect your agent</div>
+          <p class="qs-p">One click writes <span class="mono" style="font-size: 12px">.mcp.json</span>. Open a work order and watch the agent pull its package.</p>
+          <div class="qs-cmd" style="color: var(--muted)">Settings → Agent connection</div>
+        </div>
+      </div>
+      <p style="margin: 20px 0 0; font-size: 14px; color: var(--muted)">Not on a Mac? The CLI, MCP server, and GitHub Action are plain Node and run anywhere Node 20+ does — only the app is macOS-only today. <a href="#" style="text-decoration: underline; text-underline-offset: 3px">Full quickstart →</a></p>
+    </div>
+  </section>
+
+  <!-- ================= FIN ================= -->
+  <section style="margin: 104px auto 0; text-align: center; border-top: 1px solid var(--hair); padding: 72px 32px 8px; max-width: 1064px">
+    <h2 class="h2">Give your agent a memory that outlives the session</h2>
+    <p style="color: var(--secondary); max-width: 520px; margin: 0 auto 26px">Free, open source, local-first. Your knowledge base is yours — Veri just keeps it working.</p>
+    <div style="display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap">
+      <div class="btn-p">Download for macOS</div>
+      <div class="btn-s">Star on GitHub</div>
+      <a href="#" style="font-size: 15px; text-decoration: underline; text-underline-offset: 3px; padding: 11px 4px">or start with the quickstart</a>
+    </div>
+    <div class="mono" style="margin-top: 22px; font-size: 12.5px; color: var(--muted)">Apache-2.0 &nbsp;·&nbsp; <a href="#" style="color: inherit; text-decoration: underline; text-underline-offset: 3px">browse the sample knowledge base on GitHub</a> &nbsp;·&nbsp; <a href="#" style="color: inherit; text-decoration: underline; text-underline-offset: 3px">changelog</a></div>
+  </section>
+
+  <footer style="max-width: 1064px; margin: 64px auto 0; padding: 24px 32px 8px; border-top: 1px solid var(--hair); color: var(--muted); font-size: 13.5px; display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between">
+    <span>Veri — plain files, no telemetry. Updates come from GitHub Releases; that's the app's only network access.</span>
+    <span><a href="#" style="color: var(--muted); text-decoration: underline; text-underline-offset: 3px">Quickstart</a> · <a href="#" style="color: var(--muted); text-decoration: underline; text-underline-offset: 3px">Workflow guide</a> · <a href="#" style="color: var(--muted); text-decoration: underline; text-underline-offset: 3px">Source</a> · <a href="#" style="color: var(--muted); text-decoration: underline; text-underline-offset: 3px">Issues</a></span>
+  </footer>
+
+</div>
+
+<script data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark","section":"Site"},"$preview":{"width":1160,"height":5520}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: 'wo', phase: 0, approved: false, view: 'app', open: null, promoted: false, copied: false, kcopied: false };
+    this._timers = [];
+    this._copyTimer = null;
+    this._kickTimer = null;
+  }
+
+  clearTimers() {
+    this._timers.forEach(function (t) { clearTimeout(t); });
+    this._timers = [];
+  }
+
+  componentWillUnmount() { this.clearTimers(); clearTimeout(this._copyTimer); clearTimeout(this._kickTimer); }
+
+  startRun() {
+    if (this.state.phase > 0 && this.state.phase < 4) return;
+    this.clearTimers();
+    this.setState({ phase: 1, approved: false });
+    var self = this;
+    this._timers.push(setTimeout(function () { self.setState({ phase: 2 }); }, 1200));
+    this._timers.push(setTimeout(function () { self.setState({ phase: 3 }); }, 2400));
+    this._timers.push(setTimeout(function () { self.setState({ phase: 4 }); }, 3400));
+  }
+
+  renderVals() {
+    var s = this.state;
+    var self = this;
+    var theme = this.props.theme ?? 'dark';
+
+    var pkgData = [
+      { id: 'WF-001', title: 'Workflow', tok: '~210', c: 'c-wf', sw: 'sw-wf', why: 'The project’s working rules ride in every package: how decisions are filed, what needs approval.' },
+      { id: 'WO-002', title: 'PDF export pipeline', tok: '~340', c: 'c-wo', sw: 'sw-wo', why: 'The task itself — deliverable, scope, and acceptance tests.' },
+      { id: 'REQ-001', title: 'Branded PDF invoices', tok: '~180', c: 'c-req', sw: 'sw-req', why: 'Linked as “implements” — the requirement this work order exists to satisfy.' },
+      { id: 'REQ-003', title: 'Invoice numbering scheme', tok: '~140', c: 'c-req', sw: 'sw-req', why: 'Referenced from the work order’s in-scope list.' },
+      { id: 'DEC-005', title: 'Typst for PDF rendering', tok: '~260', c: 'c-dec', sw: 'sw-dec', why: 'Active decision directly linked — constrains the implementation approach.' },
+      { id: 'DEC-004', title: 'Invoice data schema', tok: '~190', c: 'c-dec', sw: 'sw-dec', why: 'Active decision one hop away via REQ-001 — the data the pipeline renders.' },
+      { id: 'DEC-002', title: 'Rust core owns rendering', tok: '~150', c: 'c-dec', sw: 'sw-dec', why: 'Active decision within two hops — where this code must live.' },
+      { id: 'DEC-001', title: 'Local-first data storage', tok: '~140', c: 'c-dec', sw: 'sw-dec', why: 'Active decision within two hops — no server round-trips in the export path.' },
+      { id: 'SRC-002', title: 'Invoice requirements interview', tok: '~160', c: 'c-src', sw: 'sw-src', why: 'Source excerpt — the customer evidence behind REQ-001.' }
+    ];
+
+    return {
+      themeClass: theme === 'light' ? 'th-light' : 'th-dark',
+
+      /* hero + panel copy affordances (own timers — never flushed by the session's clearTimers) */
+      copyLabel: s.copied ? 'Copied' : 'Copy',
+      copyCmd: function () {
+        try { navigator.clipboard.writeText('npm install -g @veri/cli'); } catch (e) {}
+        self.setState({ copied: true });
+        clearTimeout(self._copyTimer);
+        self._copyTimer = setTimeout(function () { self.setState({ copied: false }); }, 1500);
+      },
+      kickLabel: s.kcopied ? 'Copied' : 'Copy kickoff prompt',
+      copyKick: function () {
+        try { navigator.clipboard.writeText('Work on WO-002. Fetch its context package over MCP with get_context and stay inside the stated scope.'); } catch (e) {}
+        self.setState({ kcopied: true });
+        clearTimeout(self._kickTimer);
+        self._kickTimer = setTimeout(function () { self.setState({ kcopied: false }); }, 1500);
+      },
+
+      /* mini app tabs */
+      isWo: s.tab === 'wo', isReq: s.tab === 'req', isDec: s.tab === 'dec',
+      woTabCls: s.tab === 'wo' ? 'tab-on' : '',
+      reqTabCls: s.tab === 'req' ? 'tab-on' : '',
+      decTabCls: s.tab === 'dec' ? 'tab-on' : '',
+      tabWo: function () { self.setState({ tab: 'wo' }); },
+      tabReq: function () { self.setState({ tab: 'req' }); },
+      tabDec: function () { self.setState({ tab: 'dec' }); },
+
+      /* package rows (mini panel) */
+      pkgRows: pkgData,
+      pkgTotal: '9 docs · ~1.8k tokens',
+      decCount: s.phase >= 2 ? '6' : '5',
+
+      /* agent session */
+      startRun: function () { self.startRun(); },
+      startLabel: s.phase === 0 ? 'Start agent session' : (s.phase < 4 ? 'Session running…' : 'Replay session'),
+      runDotCls: (s.phase > 0 && s.phase < 4) ? 'pulse' : '',
+      anyActivity: s.phase >= 1,
+      p1: s.phase >= 1, p2: s.phase >= 2, p3: s.phase >= 3, p4: s.phase >= 4,
+      notApproved: !s.approved,
+      approvedV: s.approved,
+      revChipCls: s.approved ? 'chip-ok' : 'chip-warn',
+      revChipLabel: s.approved ? 'active' : 'proposed',
+      approve: function () { self.setState({ approved: true }); },
+      replay: function () { self.clearTimers(); self.setState({ phase: 0, approved: false }); },
+
+      /* band 2 toggle */
+      viewApp: s.view === 'app', viewRaw: s.view === 'raw',
+      segAppCls: s.view === 'app' ? 'seg-on' : '',
+      segRawCls: s.view === 'raw' ? 'seg-on' : '',
+      setApp: function () { self.setState({ view: 'app' }); },
+      setRaw: function () { self.setState({ view: 'raw' }); },
+
+      /* band 4 explorer */
+      xpRows: pkgData.map(function (r) {
+        var isOpen = s.open === r.id;
+        return Object.assign({}, r, {
+          isOpen: isOpen,
+          chev: isOpen ? '▾' : '▸',
+          pick: function () { self.setState({ open: isOpen ? null : r.id }); }
+        });
+      }),
+
+      /* band 5 promote */
+      notPromoted: !s.promoted,
+      promotedV: s.promoted,
+      promChipCls: s.promoted ? 'chip-ok' : 'chip-warn',
+      promChipLabel: s.promoted ? 'approved' : 'draft',
+      queueCount: s.promoted ? '0 pending' : '1 pending',
+      promote: function () { self.setState({ promoted: true }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
