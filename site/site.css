@@ -404,6 +404,20 @@ section.band { margin: 64px auto 0; }
 .dl-sub a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .dl-sub a:hover { color: var(--text); }
 
+/* WO-084: the honest cross-platform sentence, set in body type rather
+   than the mono sub-line so a non-Mac visitor finds it without hunting
+   (SRC-041 critical finding #2). --muted clears AA at this size on --bg
+   in both palettes. */
+.dl-platforms {
+  margin: 12px auto 0;
+  max-width: 600px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.dl-platforms a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.dl-platforms a:hover { color: var(--text); }
+
 /* Wider than the text column so the loop demo stays legible at rendered
    size (WO-083); its frames are 1344px-wide crops of the app that lead
    with the context-package panel. */
