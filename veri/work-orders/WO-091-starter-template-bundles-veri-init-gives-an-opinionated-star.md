@@ -2,7 +2,7 @@
 id: WO-091
 type: work-order
 title: "Starter template bundles: veri init gives an opinionated start per project type"
-status: in-progress
+status: done
 created: 2026-08-24
 updated: 2026-08-24
 links:
@@ -10,6 +10,14 @@ links:
     rel: extends
   - id: REQ-008
     rel: constrained-by
+binds:
+  paths:
+    - packages/core/src/scaffold.ts
+    - packages/cli/src/**
+    - packages/cli/starters/**
+  tests:
+    - packages/core/src/scaffold.test.ts
+    - packages/cli/src/commands.test.ts
 ---
 
 ## Summary
@@ -39,11 +47,11 @@ Today `veri init` scaffolds an empty knowledge base (plus `--demo` for the skiff
 
 ## Acceptance tests
 
-- [ ] `veri init --starter <each bundle>` produces a corpus that passes veri check with zero issues, every seeded requirement `draft` and every seeded decision `proposed`
-- [ ] Seeded ids respect the floor: filing the next document after init allocates the next free id with no collision
-- [ ] An unknown starter name fails with the list of available bundles
-- [ ] Quickstart and reference pages document the flag; npm test green
+- [x] `veri init --starter <each bundle>` produces a corpus that passes veri check with zero issues, every seeded requirement `draft` and every seeded decision `proposed` (commands.test.ts loops all three bundles: check exits 0 with "ok — 7 documents, 0 issues · 0 advisories", asserts every requirement `draft`, every decision `proposed`, the workflow `draft`, and no `approved:` stamp anywhere; verified live with the built CLI on the library bundle)
+- [x] Seeded ids respect the floor: filing the next document after init allocates the next free id with no collision (scaffold writes veri/ids from the seeded ids — `REQ 4`/`DEC 2`/`WF 1`, asserted byte-exact in scaffold.test.ts; commands.test.ts files after init and gets REQ-005 and DEC-003 in every bundle, check still clean)
+- [x] An unknown starter name fails with the list of available bundles (`unknown starter "mainframe" — available starters: cli-tool, library, web-app`, exit 1; a bare `--starter` prints usage plus the same list; both asserted in commands.test.ts with nothing scaffolded)
+- [x] Quickstart and reference pages document the flag; npm test green (site/docs/quickstart.html gains the one-sentence starter path, site/docs/reference.html's CLI block lists `--starter <name>` with the bundle names; 584 tests pass across all five workspaces)
 
 ## Receipts
 
-(none yet)
+- 2026-08-24 — 32eb9bb — packages/core/src/scaffold.ts, packages/core/src/scaffold.test.ts, packages/cli/src/commands.ts, packages/cli/src/cli.ts, packages/cli/src/commands.test.ts, packages/cli/package.json, packages/cli/starters/ (cli-tool, library, web-app: each 4 draft requirements + 2 proposed decisions + draft workflow.md), site/docs/quickstart.html, site/docs/reference.html, action/dist/index.js, veri/decisions/DEC-085-starter-bundles-shipped-set-seeding-mechanics-and-pending-on.md, veri/ids — starter bundles seed at init via core's starterRoot option (dates restamped to init day, seeded ids recorded in veri/ids), `veri init --starter <name>` with directory-derived listing, everything seeded pending per REQ-008; DEC-085 filed as proposed. The app's New-project flow is deliberately not wired — a starter picker would trip the design gate (CLI-only, noted in DEC-085).
