@@ -2,7 +2,7 @@
 id: WO-086
 type: work-order
 title: "Site typography: adopt the app's typefaces, self-hosted"
-status: backlog
+status: in-progress
 created: 2026-08-24
 updated: 2026-08-24
 links:

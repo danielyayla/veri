@@ -3,6 +3,26 @@
    dark is the default; light rides prefers-color-scheme (WO-065).
    Color literals live only in the two token blocks. */
 
+/* The app's typefaces, self-hosted (WO-086) — the same variable-weight
+   latin-subset woff2 files packages/ui/renderer/fonts.css bundles, so
+   product, site, and docs read as one artifact. No third-party fetch
+   (DEC-033); both faces are OFL-licensed (license metadata embedded;
+   see assets/fonts/README.txt). URLs resolve relative to this file. */
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("assets/fonts/source-sans-3-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("assets/fonts/jetbrains-mono-latin.woff2") format("woff2");
+}
+
 :root {
   color-scheme: dark;
   --bg: #0F0F11;
@@ -44,8 +64,8 @@
   --ghost: #55525E;
   --focus-ring: rgba(232, 112, 58, 0.4);
   --shot-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
-  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
-  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 }
 
 @media (prefers-color-scheme: light) {
