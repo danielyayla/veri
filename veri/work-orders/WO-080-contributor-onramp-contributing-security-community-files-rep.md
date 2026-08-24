@@ -2,7 +2,7 @@
 id: WO-080
 type: work-order
 title: "Contributor onramp: CONTRIBUTING, SECURITY, community files, repo settings"
-status: in-progress
+status: done
 created: 2026-08-24
 updated: 2026-08-24
 links:
@@ -51,7 +51,7 @@ Give an outside contributor a path from "found the repo" to "opened a useful PR"
 - [x] A test PR from a non-maintainer perspective hits no undocumented obstacle: templates render, required checks are named, the gate's failure mode is explained — PR #7 from a branch: template rendered, checks test + veri-check both green, CONTRIBUTING names them and the gate's failure mode
 - [x] Dependabot opens its first update PRs and they pass CI — 9 PRs on first run across github-actions, npm (incl. the minor/patch group), and cargo; spot-checked PRs 5/6/8/9/10 green on both checks
 - [x] Discussions is live and linked from the issue-template config — enabled with GitHub's default categories; /discussions returns 200; config.yml contact-links it alongside the troubleshooting page
-- [ ] main is protected: required checks CI + Veri gate — blocked in-session by the permission classifier; exact API call handed to Daniel
+- [x] main is protected: required checks CI + Veri gate — ruleset "protect-main" (id 21294844) active on the default branch: required checks test + veri-check, no deletions, no force pushes; repository admins bypass so the maintainer's direct-push workflow survives. Verified via /rules/branches/main
 
 ## Receipts
 
