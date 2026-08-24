@@ -2,7 +2,7 @@
 id: WO-087
 type: work-order
 title: "Site chrome polish: nav IA, docs copy buttons, open-source texture"
-status: backlog
+status: in-progress
 created: 2026-08-24
 updated: 2026-08-24
 links:
