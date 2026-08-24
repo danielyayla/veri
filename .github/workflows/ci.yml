@@ -19,3 +19,5 @@ jobs:
       - run: npm test
       - name: veri check (this repo enforces its own rules)
         run: node packages/cli/dist/cli.js check
+      - name: action bundle is current (npm test rebuilt it from source)
+        run: git diff --exit-code -- action/dist

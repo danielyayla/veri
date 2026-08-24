@@ -1,0 +1,30 @@
+# Veri Check — the veri/ knowledge-base gate as a PR check (WO-076, REQ-025).
+# The runner is the bundled CLI (action/dist/index.js, built from
+# packages/action): the same checkReport the local `veri check` renders, so
+# the two can never disagree.
+name: 'Veri Check'
+description: 'Gate pull requests on a veri/ knowledge base: veri check violations fail the run; drift and provenance advisories annotate it.'
+author: 'Daniel Kapper'
+branding:
+  icon: 'check-circle'
+  color: 'orange'
+
+inputs:
+  path:
+    description: 'Path to the project root — the directory containing veri/ — relative to the workspace.'
+    required: false
+    default: '.'
+  strict-advisories:
+    description: 'Fail the run when advisories (stamp drift, receipt provenance) are present. By default advisories annotate but pass.'
+    required: false
+    default: 'false'
+
+outputs:
+  issues:
+    description: 'Number of gate violations found.'
+  advisories:
+    description: 'Number of advisories found.'
+
+runs:
+  using: 'node24'
+  main: 'action/dist/index.js'

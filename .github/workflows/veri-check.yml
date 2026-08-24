@@ -1,0 +1,19 @@
+# Self-adoption of the published action (WO-076, REQ-025): this repo's own
+# PRs run the same gate the marketplace ships. fetch-depth: 0 gives receipt
+# verification the full history it needs.
+name: Veri gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  veri-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./

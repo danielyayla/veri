@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assembleContext } from '@veri/core';
-import { approve, architecture, check, context, importPrompt, init, list, migrate, newDoc, open } from './commands.ts';
+import { approve, architecture, check, checkReport, context, importPrompt, init, list, migrate, newDoc, open } from './commands.ts';
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const FIVE_ISSUES = fileURLToPath(new URL('../fixtures/five-issues', import.meta.url));
@@ -209,6 +209,33 @@ test('migrate stamps a pre-marker project; a second run is a no-op; newer refuse
 test('check on this repository exits 0', async () => {
   const result = await check(REPO_ROOT);
   assert.equal(result.code, 0, result.lines.join('\n'));
+});
+
+test('checkReport is the structured source check renders from (WO-076)', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  cpSync(FIVE_ISSUES, cwd, { recursive: true });
+  const report = await checkReport(cwd);
+  assert.ok(report !== null);
+  assert.equal(report.issues.length, 5);
+  assert.equal(report.advisories.length, 11);
+  for (const advisory of report.advisories) {
+    assert.ok(advisory.kind.length > 0 && advisory.file.endsWith('.md'), `advisory carries kind and file: ${JSON.stringify(advisory)}`);
+  }
+  // The renderer adds nothing of its own: every check line is derived from
+  // the report the GitHub Action consumes (REQ-025 — one source of truth).
+  const rendered = await check(cwd);
+  assert.deepEqual(
+    rendered.lines,
+    [
+      report.formatLine,
+      ...report.issues.map((issue) => `${issue.file}: ${issue.message}`),
+      ...report.advisories.map((advisory) => `(advisory) ${advisory.file}: ${advisory.message}`),
+      ...report.skips,
+      `${report.issues.length} issue(s) · ${report.advisories.length} advisories`,
+    ],
+  );
+  assert.equal(await checkReport(tmpdir()), null);
 });
 
 test('context prints the exact package get_context serves (DEC-038)', async (t) => {

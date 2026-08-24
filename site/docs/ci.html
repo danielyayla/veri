@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The CI gate — Veri</title>
+<meta name="description" content="Run veri check on every pull request with the Veri Check GitHub Action: gate violations fail the PR, drift and provenance advisories annotate it.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../assets/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<link rel="stylesheet" href="../site.css?v=2">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <a class="top-wordmark" href="../"><span class="v">V</span>eri</a>
+  <a class="nav" href="../#product">Product</a>
+  <a class="nav" href="workflow.html">Workflow</a>
+  <a class="nav here" href="quickstart.html">Docs</a>
+  <a class="nav" href="https://github.com/danielyayla/veri">GitHub</a>
+  <a class="top-dl" href="https://github.com/danielyayla/veri/releases/latest">Download</a>
+</header>
+
+<nav class="docs-strip" aria-label="Documentation pages">
+  <a href="quickstart.html">Quickstart</a>
+  <a href="workflow.html">Workflow</a>
+  <a href="connect-claude-code.html">Connect your agent</a>
+  <a href="brownfield.html">Import a repo</a>
+  <a href="ci.html" class="here">CI gate</a>
+  <a href="reference.html">Reference</a>
+  <a href="troubleshooting.html">Troubleshooting</a>
+</nav>
+
+<article class="doc" id="main">
+<h1>The CI gate</h1>
+<p class="doc-lead">On one machine, <code>veri check</code> is a habit. On a team, it has to be a gate: the <b>Veri Check</b> GitHub Action runs the same checker on every pull request, so a change that breaks the knowledge base can't merge quietly.</p>
+
+<p>The action wraps Veri's own CLI — the identical check derivation your terminal runs — so a local <code>veri check</code> and the PR verdict can never disagree. It runs entirely inside your CI: no hosted service, no credentials, nothing leaves the runner.</p>
+
+<h2>1. Add the workflow</h2>
+<p>One file in your repo, <code>.github/workflows/veri-check.yml</code>:</p>
+<pre><code>name: Veri gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  veri-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: danielyayla/veri@v1</code></pre>
+<p>That's the whole setup. <code>fetch-depth: 0</code> matters: receipt verification checks the commits your receipts cite against real history, and a shallow checkout doesn't have it. On a shallow checkout the action doesn't guess — it skips receipt verification and says so in an annotation rather than reporting false findings.</p>
+
+<h2>2. What fails, what warns</h2>
+<p>The action keeps the CLI's two tiers exactly:</p>
+<ul>
+  <li><b>Gate violations fail the pull request</b> — broken links, invalid frontmatter, duplicate IDs, a work order started against an unapproved requirement, a work order marked done with unchecked criteria or no receipts. Each violation is an error annotation on the document that carries it.</li>
+  <li><b>Advisories annotate but pass</b> — stamp drift (an approved document edited after its stamp), receipt provenance (a cited commit that's missing, mis-prefixed, or names files it never touched), and architecture findings appear as warning annotations on the affected documents, and the run stays green.</li>
+</ul>
+<p>To make advisories block too:</p>
+<pre><code>      - uses: danielyayla/veri@v1
+        with:
+          strict-advisories: true</code></pre>
+
+<h2>3. Inputs and outputs</h2>
+<table>
+  <tr><th>Input</th><th>Default</th><th>Meaning</th></tr>
+  <tr><td><code>path</code></td><td><code>.</code></td><td>Project root — the directory containing <code>veri/</code> — relative to the workspace, for monorepos where the knowledge base isn't at the top.</td></tr>
+  <tr><td><code>strict-advisories</code></td><td><code>false</code></td><td>Fail the run when advisories are present instead of only annotating.</td></tr>
+</table>
+<p>The step exposes <code>issues</code> and <code>advisories</code> counts as outputs, and writes a short verdict table to the job summary.</p>
+
+<h2>Veri eats its own gate</h2>
+<p>The <a href="https://github.com/danielyayla/veri">Veri repository</a> runs this exact action on its own pull requests — the knowledge base that builds Veri is protected by the check Veri ships. If the gate were ever wrong, it would break our own merges first.</p>
+
+<div class="next">
+  <b>Where next:</b> the <a href="workflow.html">workflow guide</a> for what the gate is protecting, or <a href="reference.html">the reference</a> for every rule <code>veri check</code> enforces.
+</div>
+</article>
+
+<footer class="foot">
+  <span>Veri — plain files, no telemetry.</span>
+  <span><a href="../">Home</a> · <a href="https://github.com/danielyayla/veri">Source</a> · <a href="https://github.com/danielyayla/veri/issues">Issues</a></span>
+</footer>
+
+</body>
+</html>

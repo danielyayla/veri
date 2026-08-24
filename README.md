@@ -15,6 +15,7 @@ order → watch the agent use it. The
 [website](https://danielyayla.github.io/veri/) covers the
 [workflow](https://danielyayla.github.io/veri/docs/workflow.html),
 [agent connection](https://danielyayla.github.io/veri/docs/connect-claude-code.html),
+[CI gate](https://danielyayla.github.io/veri/docs/ci.html),
 [reference](https://danielyayla.github.io/veri/docs/reference.html), and
 [troubleshooting](https://danielyayla.github.io/veri/docs/troubleshooting.html).
 
@@ -42,6 +43,7 @@ DEC-004); published output targets Node >= 20.
 - `@veri/core` — parse, validate, and graph a `veri/` directory
 - `@veri/cli` — the `veri` binary: `init`, `new`, `check`, `approve`, `migrate`, `import`, `list`, `open`
 - `@veri/mcp` — stdio MCP server: `get_context`, `search`, `file_decision`, `file_receipt`
+- `@veri/action` — the Veri Check GitHub Action runner, bundled to `action/dist/` (the root `action.yml` is the published surface)
 - `@veri/ui` — the Electron desktop app
 - `site/` — the website, hand-authored static files deployed by CI
 

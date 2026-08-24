@@ -108,9 +108,28 @@ function importSkipNotes(observed: ImportFactsResult | undefined): string[] {
   );
 }
 
-export async function check(cwd: string): Promise<CmdResult> {
+/**
+ * Structured result of the health check (WO-076, REQ-025). One derivation
+ * shared by the terminal renderer in check() and the GitHub Action runner,
+ * so a local `veri check` and the CI surface can never disagree.
+ */
+export interface CheckReport {
+  formatLine: string;
+  documentCount: number;
+  /** Gate violations — non-zero exit. `file` is veri/-relative; a
+      duplicate-id issue names every claimant, comma-separated. */
+  issues: Array<{ file: string; message: string }>;
+  /** The DEC-025 advisory tier: informs, never affects the exit code. */
+  advisories: Array<{ kind: string; file: string; message: string }>;
+  /** Checks that could not run here (no git, shallow clone, module not on
+      disk), pre-rendered exactly as check() prints them. */
+  skips: string[];
+}
+
+/** Returns null when cwd has no veri/ directory. */
+export async function checkReport(cwd: string): Promise<CheckReport | null> {
   const dir = requireVeriDir(cwd);
-  if (dir === null) return NO_VERI_DIR;
+  if (dir === null) return null;
   const load = await loadProject(dir);
   const { issues, advisories } = checkProject(load);
   // Receipt verification (WO-044) and git drift (WO-045): git facts come
@@ -129,10 +148,19 @@ export async function check(cwd: string): Promise<CmdResult> {
   if (observed !== undefined) {
     advisories.push(...checkObservedArchitecture(load.documents, observed.edges));
   }
-  const skipNote = [
-    ...(git.kind === 'ok' ? [] : [`(provenance: skipped — ${git.reason})`]),
-    ...importSkipNotes(observed),
-  ];
+  return {
+    formatLine: formatLine(load.format),
+    documentCount: load.documents.length,
+    issues: issues.map((issue) => ({ file: fileOf(issue), message: issue.message })),
+    advisories: advisories.map((advisory) => ({ kind: advisory.kind, file: advisory.file, message: advisory.message })),
+    skips: [...(git.kind === 'ok' ? [] : [`(provenance: skipped — ${git.reason})`]), ...importSkipNotes(observed)],
+  };
+}
+
+export async function check(cwd: string): Promise<CmdResult> {
+  const report = await checkReport(cwd);
+  if (report === null) return NO_VERI_DIR;
+  const { issues, advisories, skips } = report;
   // Advisories print after issues and never touch the count or exit code (DEC-025).
   const advisoryLines = advisories.map((advisory) => `(advisory) ${advisory.file}: ${advisory.message}`);
   // The format line leads the report (REQ-015); issues, then advisories, then
@@ -141,20 +169,20 @@ export async function check(cwd: string): Promise<CmdResult> {
     return {
       code: 0,
       lines: [
-        formatLine(load.format),
+        report.formatLine,
         ...advisoryLines,
-        ...skipNote,
-        `ok — ${load.documents.length} documents, 0 issues · ${advisories.length} advisories`,
+        ...skips,
+        `ok — ${report.documentCount} documents, 0 issues · ${advisories.length} advisories`,
       ],
     };
   }
   return {
     code: 1,
     lines: [
-      formatLine(load.format),
-      ...issues.map((issue) => `${fileOf(issue)}: ${issue.message}`),
+      report.formatLine,
+      ...issues.map((issue) => `${issue.file}: ${issue.message}`),
       ...advisoryLines,
-      ...skipNote,
+      ...skips,
       `${issues.length} issue(s) · ${advisories.length} advisories`,
     ],
   };
