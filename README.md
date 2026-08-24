@@ -44,7 +44,7 @@ DEC-004); published output targets Node >= 20.
 - `@veri/cli` — the `veri` binary: `init`, `new`, `check`, `approve`, `migrate`, `import`, `list`, `open`
 - `@veri/mcp` — stdio MCP server: `get_context`, `search`, `file_decision`, `file_receipt`
 - `@veri/action` — the Veri Check GitHub Action runner, bundled to `action/dist/` (the root `action.yml` is the published surface)
-- `@veri/ui` — the Electron desktop app
+- `@veri/ui` — the Tauri 2 desktop app (Rust shell, Node sidecar)
 - `site/` — the website, hand-authored static files deployed by CI
 
 ### Configuring the MCP server from a checkout
