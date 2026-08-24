@@ -2,7 +2,7 @@
 id: WO-071
 type: work-order
 title: "Spike: Tauri 2 feasibility as an Electron replacement for packages/ui"
-status: backlog
+status: done
 created: 2026-08-20
 updated: 2026-08-24
 links:
@@ -12,6 +12,8 @@ links:
     rel: informs
   - id: SRC-038
     rel: designed-by
+  - id: REQ-023
+    rel: informs
 ---
 
 ## Summary
@@ -52,3 +54,4 @@ A time-boxed feasibility spike, not a migration: boot the existing packages/ui r
 ## Receipts
 
 - 2026-08-20 — c84613f — veri/sources/SRC-037-spike-report-tauri-2-feasibility-for-the-desktop-shell.md, veri/work-orders/WO-071-…md, veri/ids (spike code outside repo: scratchpad/veri-tauri-spike — sidecar.mjs, shim.js, src-tauri/) — Spike executed end to end: renderer booted in Tauri 2, all four capabilities green in the automated acceptance run (incl. live MCP handshake, 7 tools), measurements taken, SRC-037 report filed; WO left in backlog for Daniel's review.
+- 2026-08-24 — 8b42738 — veri/work-orders/WO-071-spike-tauri-2-feasibility-as-an-electron-replacement-for-pac.md — Closure: acceptance boxes checked against the evidence already in the repo ([[SRC-037]]'s measured report and the c84613f acceptance run) and status set done. The spike's question — is Tauri 2 a feasible Electron replacement? — was answered yes by the spike itself and then by reality: Daniel approved [[DEC-063]] (Tauri 2 shell with Node sidecar, superseding DEC-008) and [[WO-073]] shipped the migration; the app on main is Tauri 2. [[SRC-038]] linked designed-by to satisfy the DEC-012 gate (the spike itself changed no shipped code), and [[REQ-023]] linked rel informs — the spike's report framed that requirement's 50 MB ceiling. No new work performed.
