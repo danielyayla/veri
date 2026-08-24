@@ -40,13 +40,13 @@ Make the release surface read as professionally as the pipeline behind it. Three
 
 ## Acceptance tests
 
-- [ ] Pushing an action tag (v1, v1.0.0-style) produces no failed release run — verified by pushing the next action tag or a dry-run tag
-- [ ] The tag-scheme decision is recorded in an approved DEC
-- [ ] CHANGELOG.md exists and the next release's notes open with a human "What's new" section above the artifact sizes
-- [ ] RELEASING.md documents both release flows end to end, including the v1 retag step
-- [ ] ci.yml triggers only on main (plus pull_request/workflow_dispatch)
-- [ ] The action is visible on GitHub Marketplace, or a documented reason why not
+- [x] Pushing an action tag (v1, v1.0.0-style) produces no failed release run — verified by pushing the next action tag or a dry-run tag — dry-run tag v0.0.0-wo079-dryrun: run 32728086523 green, guard success, release skipped
+- [ ] The tag-scheme decision is recorded in an approved DEC — DEC-075 filed, awaiting approval
+- [x] CHANGELOG.md exists and the next release's notes open with a human "What's new" section above the artifact sizes — CHANGELOG landed; the workflow assembles NOTES.md (what's-new + sizes) and the guard refuses a release without its section; the assembly path itself runs at the next real app release
+- [x] RELEASING.md documents both release flows end to end, including the v1 retag step
+- [x] ci.yml triggers only on main (plus pull_request/workflow_dispatch)
+- [x] The action is visible on GitHub Marketplace, or a documented reason why not — not listed (404); publishing is a web-only manual step, documented in RELEASING.md and flagged to Daniel
 
 ## Receipts
 
-(none yet)
+- 2026-08-24 — 7ffce40 — .github/workflows/release.yml, .github/workflows/ci.yml, CHANGELOG.md, RELEASING.md, veri/decisions/DEC-075, veri/requirements/REQ-028, veri/ids — Release guard job classifies tags (app version → build; anything else → green skip with notice) and fail-fasts app releases missing their CHANGELOG section; release notes now assemble as What's-new-above-sizes from CHANGELOG.md; RELEASING.md documents app and action flows including the v1 retag and the Electron-bridge asset carry-forward; ci.yml drops the stale my branch. Live-verified: dry-run tag v0.0.0-wo079-dryrun → run 32728086523 success (guard: success, release: skipped), tag deleted after. Marketplace listing confirmed unpublished (404) — manual web step documented in RELEASING.md. DEC-075 filed proposed, awaiting Daniel.
