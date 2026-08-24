@@ -2,7 +2,7 @@
 id: WO-074
 type: work-order
 title: "Spurious drift advisories from UTC/local date skew in stamps vs git facts"
-status: in-progress
+status: done
 created: 2026-08-21
 updated: 2026-08-24
 links:
