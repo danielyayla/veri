@@ -2,7 +2,8 @@
 id: DEC-069
 type: decision
 title: "The CI surface is a bundled Node action wrapping the CLI's structured check report"
-status: proposed
+status: active
+approved: 2026-08-24
 created: 2026-08-24
 updated: 2026-08-24
 links:
