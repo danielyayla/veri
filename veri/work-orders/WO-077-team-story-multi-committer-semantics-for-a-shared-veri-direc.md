@@ -2,7 +2,7 @@
 id: WO-077
 type: work-order
 title: "Team story: multi-committer semantics for a shared veri/ directory"
-status: in-progress
+status: done
 created: 2026-08-24
 updated: 2026-08-24
 links:
@@ -47,13 +47,14 @@ Define and implement how a veri/ knowledge base behaves with more than one commi
 
 ## Acceptance tests
 
-- [ ] Two branches that each allocate the same new ID produce, after merge, a `veri check` error naming both files and the resolution path — never silent corruption
-- [ ] The chosen allocation/renumber design is recorded in approved DECs, and any renumber tooling rewrites the ID and all inbound links/[[refs]] in one pass with no dangling references
-- [ ] Approval by a second maintainer is representable in frontmatter, validated by core, and honored by the gate exactly like the owner's stamp
-- [ ] The PR-review-as-approval baseline is documented end to end: a veri/ change proposed on a branch, reviewed, and merged lands as approved with provenance intact
-- [ ] A solo project sees zero behavior change: existing repos pass `veri check` unmodified
-- [ ] The website documents the team workflow from clone to first multi-maintainer approval
+- [x] Two branches that each allocate the same new ID produce, after merge, a `veri check` error naming both files and the resolution path — never silent corruption (verified live in a scratch git repo: two branches each allocated DEC-001, git merged *cleanly*, `veri check` exited 1 naming both files and the `veri renumber` command)
+- [x] The chosen allocation/renumber design is recorded in approved DECs ([[DEC-070]], [[DEC-071]], [[DEC-072]], all active 2026-08-24), and `veri renumber` rewrites the ID, filename, and all inbound links/[[refs]] in one computed-then-written pass — contested references are never rewritten by guessing, so nothing dangles either way (renumber.test.ts: post-renumber projects are check-clean in every scenario)
+- [x] Approval by a second maintainer is representable in frontmatter (`approved_by:` validated against the workflow's `maintainers:` list), validated by core (unknown-approver issue, missing-approver advisory), and honored by the gate exactly like the owner's stamp — the gate tests stamp presence, not identity
+- [x] The PR-review-as-approval baseline is documented end to end (site/docs/team.html) and verified live: REQ-001 proposed on a branch by Owner, stamped on the branch by maintainer Ada via `veri approve` (--as defaulted from git identity), merged to main as accepted with approved_by: Ada and the stamp commit authored by Ada
+- [x] A solo project sees zero behavior change: this repo (227 documents, no maintainers list) passes `veri check` unmodified with the identical report, and the full 552-test suite is green
+- [x] The website documents the team workflow from clone to first multi-maintainer approval (site/docs/team.html, linked from every docs strip, the reference, and the README)
 
 ## Receipts
 
 - 2026-08-24 — 51840df — veri/decisions/DEC-070-id-allocation-stays-sequential-collisions-resolve-by-one-ato.md, veri/decisions/DEC-071-maintainers-ride-the-workflow-frontmatter-stamps-gain-approv.md, veri/decisions/DEC-072-the-approval-stamp-commit-rides-the-pull-request-merge-never.md, veri/ids — Design pass: audited today's duplicate-id detection, veri/ids merge behavior, and the stamp format; filed the three proposed DECs settling the id-collision scheme (sequential allocation + atomic veri renumber), multi-maintainer stamps (maintainers list in workflow frontmatter + approved_by), and the PR-review-as-approval baseline (stamp commit rides the PR; merge never approves). No code yet — implementation awaits DEC approval.
+- 2026-08-24 — 10fb4d8 — packages/core/src/renumber.ts, packages/core/src/schema.ts, packages/core/src/check.ts, packages/core/src/approve.ts, packages/core/src/workflow-default.ts, packages/cli/src/commands.ts, packages/cli/src/cli.ts, packages/cli/src/git.ts, action/dist/index.js, site/docs/team.html — Implemented per the approved DECs: atomic renumberDocument with the guided duplicate-id error and --refs policy for contested references; maintainers/approved_by schema, unknown-approver issue and missing-approver advisory, veri approve --as with git-identity default; scaffolded workflow gains Working-as-a-team rules; team.html plus strips/reference/README; action bundle rebuilt. 552 tests green; both collision resolution and the PR-approval walk verified live in a scratch two-branch git repo.
