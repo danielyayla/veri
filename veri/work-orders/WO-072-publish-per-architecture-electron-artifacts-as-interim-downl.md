@@ -2,9 +2,9 @@
 id: WO-072
 type: work-order
 title: "Publish per-architecture Electron artifacts as interim download-size mitigation"
-status: backlog
+status: done
 created: 2026-08-20
-updated: 2026-08-20
+updated: 2026-08-24
 links:
   - id: REQ-023
     rel: mitigates
@@ -76,4 +76,4 @@ interim Electron artifacts now would be pure waste.
 
 ## Receipts
 
-(none yet)
+- 2026-08-24 — 021e4f0 — veri/work-orders/WO-072-publish-per-architecture-electron-artifacts-as-interim-downl.md — Closure without performing the work: the interim Electron per-arch mitigation was overtaken by [[DEC-063]]/[[WO-073]] (Tauri 2 shell shipped 2026-08-21, per-arch DMGs 41.9/43.8 MB, Electron shell deleted from main, no Electron references left in .github/workflows). Resolution section added, acceptance boxes checked as obviated with evidence (the accepted re-scoping pattern, cf. WO-084's acceptance wording), status set done. No code, CI, or release artifacts were built. Existing links (REQ-023 mitigates, SRC-037 informed-by) were sufficient; no link or stamp changes — maintainer may veto the closure by reverting these two commits. (agent session, Claude Code)
