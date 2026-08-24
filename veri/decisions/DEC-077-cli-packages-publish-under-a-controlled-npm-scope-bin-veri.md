@@ -2,7 +2,8 @@
 id: DEC-077
 type: decision
 title: "CLI packages publish under a controlled npm scope, bin stays veri, lockstep 0.x versioning"
-status: proposed
+status: active
+approved: 2026-08-24
 created: 2026-08-24
 updated: 2026-08-24
 links:

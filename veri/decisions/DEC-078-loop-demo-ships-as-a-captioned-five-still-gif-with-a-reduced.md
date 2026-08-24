@@ -2,7 +2,8 @@
 id: DEC-078
 type: decision
 title: "Loop demo ships as a captioned five-still GIF with a reduced-motion picture fallback"
-status: proposed
+status: active
+approved: 2026-08-24
 created: 2026-08-24
 updated: 2026-08-24
 links:

@@ -2,7 +2,8 @@
 id: DEC-076
 type: decision
 title: "Document date stamps read the local calendar, matching git committer dates"
-status: proposed
+status: active
+approved: 2026-08-24
 created: 2026-08-24
 updated: 2026-08-24
 links:
