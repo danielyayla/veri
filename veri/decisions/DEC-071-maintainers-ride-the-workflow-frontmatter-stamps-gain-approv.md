@@ -2,7 +2,8 @@
 id: DEC-071
 type: decision
 title: "Maintainers ride the workflow frontmatter; approval stamps gain approved_by"
-status: proposed
+status: active
+approved: 2026-08-24
 created: 2026-08-24
 updated: 2026-08-24
 links:

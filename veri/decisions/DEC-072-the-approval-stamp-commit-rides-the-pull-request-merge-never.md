@@ -2,7 +2,8 @@
 id: DEC-072
 type: decision
 title: "The approval stamp commit rides the pull request; merge never approves"
-status: proposed
+status: active
+approved: 2026-08-24
 created: 2026-08-24
 updated: 2026-08-24
 links:

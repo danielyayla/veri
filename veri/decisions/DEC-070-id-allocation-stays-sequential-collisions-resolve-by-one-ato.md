@@ -2,7 +2,8 @@
 id: DEC-070
 type: decision
 title: "Id allocation stays sequential; collisions resolve by one atomic renumber"
-status: proposed
+status: active
+approved: 2026-08-24
 created: 2026-08-24
 updated: 2026-08-24
 links:
