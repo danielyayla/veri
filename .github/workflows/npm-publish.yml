@@ -1,0 +1,56 @@
+# WO-081 / DEC-077 (proposed): manual npm publish for the three public
+# packages — @veri/core, @veri/cli, @veri/mcp. Never tag-triggered: the
+# v* namespace is shared and guarded (DEC-075), and publishing stays a
+# deliberate maintainer act. Dry-run is the default; a real publish
+# requires flipping the input AND an NPM_TOKEN repository secret, which
+# does not exist until DEC-077 is approved and the scope is claimed.
+name: npm-publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (no packages actually published)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - run: npm ci
+
+      # Builds every package, then runs every test suite — the same
+      # bar as CI. Nothing publishes off a red tree.
+      - run: npm test
+
+      - name: Check version lockstep (DEC-077)
+        run: |
+          core=$(node -p "require('./packages/core/package.json').version")
+          cli=$(node -p "require('./packages/cli/package.json').version")
+          mcp=$(node -p "require('./packages/mcp/package.json').version")
+          echo "core=$core cli=$cli mcp=$mcp"
+          if [ "$core" != "$cli" ] || [ "$core" != "$mcp" ]; then
+            echo "::error::@veri/core, @veri/cli, and @veri/mcp must share one version (DEC-077 lockstep)"
+            exit 1
+          fi
+
+      - name: Publish (dry-run ${{ inputs.dry_run }})
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          flag=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then flag="--dry-run"; fi
+          for w in @veri/core @veri/cli @veri/mcp; do
+            npm publish --workspace "$w" $flag
+          done

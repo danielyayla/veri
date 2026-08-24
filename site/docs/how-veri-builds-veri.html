@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How Veri builds Veri — Veri</title>
+<meta name="description" content="This repository is built by executing Veri work orders. A walkthrough of one real work order — WO-077 — from filing through approval, context package, implementation, and receipts, with every commit linked.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../assets/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<link rel="stylesheet" href="../site.css?v=2">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <a class="top-wordmark" href="../"><span class="v">V</span>eri</a>
+  <a class="nav" href="../#product">Product</a>
+  <a class="nav" href="workflow.html">Workflow</a>
+  <a class="nav here" href="quickstart.html">Docs</a>
+  <a class="nav" href="https://github.com/danielyayla/veri">GitHub</a>
+  <a class="top-dl" href="https://github.com/danielyayla/veri/releases/latest">Download</a>
+</header>
+
+<nav class="docs-strip" aria-label="Documentation pages">
+  <a href="quickstart.html">Quickstart</a>
+  <a href="workflow.html">Workflow</a>
+  <a href="connect-claude-code.html">Connect your agent</a>
+  <a href="brownfield.html">Import a repo</a>
+  <a href="ci.html">CI gate</a>
+  <a href="team.html">Teams</a>
+  <a href="how-veri-builds-veri.html" class="here">Built with Veri</a>
+  <a href="reference.html">Reference</a>
+  <a href="troubleshooting.html">Troubleshooting</a>
+</nav>
+
+<article class="doc" id="main">
+<h1>How Veri builds Veri</h1>
+<p class="doc-lead">Veri's repository is self-hosted: every feature is built by executing a Veri work order, by an AI agent working from a context package, gated by human approval, and closed with commit-provenanced receipts. The <a href="https://github.com/danielyayla/veri/tree/main/veri">veri/ directory</a> holds 85 work orders and 77 decisions in the open. This page traces one of them — <b>WO-077, the team-collaboration semantics</b> — end to end. Nothing here is a mock-up: every document and commit is linked, and you can audit the whole run in the git history.</p>
+
+<p>The feature in question: what happens when a <code>veri/</code> knowledge base has more than one committer — colliding ids, who may approve, how stamps flow through pull requests. A real feature with design questions, code, tests, and docs. Here is how it moved.</p>
+
+<h2>1. The work order is filed — <code>backlog</code>, binding on nothing</h2>
+<p>Work starts as a document, not a chat prompt. An agent session filed <a href="https://github.com/danielyayla/veri/blob/main/veri/work-orders/WO-077-team-story-multi-committer-semantics-for-a-shared-veri-direc.md">WO-077</a> as a <code>backlog</code> proposal: a summary of the problem, an explicit in-scope and out-of-scope list, and acceptance tests as unchecked boxes.</p>
+<pre><code>commit <a href="https://github.com/danielyayla/veri/commit/f7464a2">f7464a2</a> — WO-076/WO-077: file CI-action and team-story
+                  work orders as backlog proposals</code></pre>
+<p>Out of scope was as deliberate as in scope: no real-time collaboration, no server, no accounts — files and git remain the whole substrate. An agent that later strays outside that list is deviating from a document it was handed, not from a vibe.</p>
+
+<h2>2. The requirement is drafted — and a human approves it</h2>
+<p>A work order needs a reason to exist. The agent drafted <a href="https://github.com/danielyayla/veri/blob/main/veri/requirements/REQ-026-a-knowledge-base-with-more-than-one-committer.md">REQ-026 — "A knowledge base with more than one committer"</a> — born <code>draft</code>, because nothing an agent files binds on its own. Then the approval gate did its job:</p>
+<pre><code>commit <a href="https://github.com/danielyayla/veri/commit/bcc16f2">bcc16f2</a> — draft REQ-025 (CI gate) and REQ-026
+                  (multi-committer), link as implements
+commit <a href="https://github.com/danielyayla/veri/commit/022d4f2">022d4f2</a> — REQ-025/REQ-026 approved by Daniel; both
+                  work orders promoted to in-progress</code></pre>
+<p>The approval is a stamped frontmatter edit — <code>status: accepted</code> plus <code>approved: 2026-08-24</code> — visible in the diff of that commit. This ordering is enforced, not etiquette: a work order that goes <code>in-progress</code> while linking an unapproved requirement is a <code>veri check</code> error, locally and on <a href="ci.html">every pull request</a>.</p>
+
+<h2>3. The agent pulls the context package</h2>
+<p>An implementing agent doesn't spelunk the repo or get a pasted prompt. It asks the MCP server for WO-077's context package, and gets the workflow rules, the work order, every linked requirement and decision, with token costs stated:</p>
+<pre><code># Context package · WO-077 — Team story: multi-committer
+  semantics for a shared veri/ directory   (10 docs · ~10.3k tokens)
+
+Workflow  WF-001  Veri project workflow                    ~513
+WO-077    Team story: multi-committer semantics            ~1434
+REQ-001   Linked markdown document format       accepted   ~253
+REQ-008   Document approval workflow            accepted   ~702
+REQ-012   Website and user documentation        accepted   ~581
+REQ-026   A knowledge base with &gt;1 committer    accepted   ~805
+DEC-002   Markdown files are the source of truth  active   ~286
+DEC-070   Ids stay sequential; atomic renumber     active   ~951
+DEC-071   Maintainers ride workflow frontmatter    active   ~870
+DEC-072   The approval stamp rides the PR          active   ~743</code></pre>
+<p>(That's the package as served today — the three DEC-07x rows joined it during this very work order; step 4 is where they came from.) Ten documents, ~10k tokens — the project's constitution for this one task, instead of the whole repo or none of it. <code>REQ-008</code> rides along so the agent knows the approval rules it must respect; <code>DEC-002</code> rides along so it knows a server-based design was rejected long ago.</p>
+
+<h2>4. Design questions become proposed decisions — and work stops</h2>
+<p>The task had three genuinely open questions: how id collisions resolve, who may stamp approvals, and where the approval act lives in a PR workflow. The agent didn't just pick answers and code them in. It filed three decisions — born <code>proposed</code>, each with the alternatives it rejected and why — appended a receipt for the session, and stopped:</p>
+<pre><code>commit <a href="https://github.com/danielyayla/veri/commit/51840df">51840df</a> — design pass — DEC-070/071/072 proposed
+                  (id renumber, maintainer stamps, PR approval baseline)
+commit <a href="https://github.com/danielyayla/veri/commit/880feaa">880feaa</a> — receipt — design pass filed as
+                  DEC-070/071/072, proposed</code></pre>
+<p>The receipt on that first session ends: <i>"No code yet — implementation awaits DEC approval."</i> The three documents are live: <a href="https://github.com/danielyayla/veri/blob/main/veri/decisions/DEC-070-id-allocation-stays-sequential-collisions-resolve-by-one-ato.md">DEC-070</a> (sequential ids, one atomic <code>veri renumber</code>), <a href="https://github.com/danielyayla/veri/blob/main/veri/decisions/DEC-071-maintainers-ride-the-workflow-frontmatter-stamps-gain-approv.md">DEC-071</a> (a maintainers list in the workflow frontmatter, stamps gain <code>approved_by</code>), <a href="https://github.com/danielyayla/veri/blob/main/veri/decisions/DEC-072-the-approval-stamp-commit-rides-the-pull-request-merge-never.md">DEC-072</a> (the stamp commit rides the PR; merge never approves). Each records what lost — branch-aware id reservation, UUIDs, bot-written stamps — so no future session relitigates them.</p>
+
+<h2>5. A human approves the design</h2>
+<pre><code>commit <a href="https://github.com/danielyayla/veri/commit/38639a6">38639a6</a> — DEC-070/071/072 approved by Daniel</code></pre>
+<p>One commit, three frontmatter stamps. This is the whole approval gate: authorship is cheap and agent-friendly; <b>authority requires a human act</b>, recorded in the files where the next context package will serve it.</p>
+
+<h2>6. Implementation — and a receipt with a commit to check</h2>
+<p>With the decisions active, the next session implemented against them: an atomic <code>renumberDocument</code> in core, duplicate-id errors with a guided fix, <code>approved_by</code> validation, <code>veri approve --as</code>, the scaffolded workflow's team rules, and the <a href="team.html">team docs page</a>. Then it appended a second receipt to WO-077 naming the commit, the files, and what was verified:</p>
+<pre><code>commit <a href="https://github.com/danielyayla/veri/commit/10fb4d8">10fb4d8</a> — team semantics — veri renumber, maintainer
+                  stamps, team docs
+
+receipt: "…552 tests green; both collision resolution and the
+PR-approval walk verified live in a scratch two-branch git repo."</code></pre>
+<p>Receipts aren't self-reported theater: <code>veri check</code> verifies them against git — a receipt citing a commit that doesn't exist, or doesn't reference its work order, surfaces as an advisory.</p>
+
+<h2>7. Done means checked boxes, receipts, and a green gate</h2>
+<pre><code>commit <a href="https://github.com/danielyayla/veri/commit/d7fe6a3">d7fe6a3</a> — WO-077: done — team semantics shipped,
+                  all acceptance boxes verified</code></pre>
+<p>Every acceptance box in <a href="https://github.com/danielyayla/veri/blob/main/veri/work-orders/WO-077-team-story-multi-committer-semantics-for-a-shared-veri-direc.md">the work order</a> is checked with its evidence inline — which test file, which live verification, which DEC. A work order is <code>done</code> only when all boxes are checked <i>and</i> a receipt exists; <code>veri check</code> holds that line at zero issues, and the <a href="ci.html">same check gates this repo's pull requests</a>.</p>
+
+<h2>Why this is the proof</h2>
+<p>Eight commits, one afternoon, four documents created and two promoted — and the same loop has run 85 times in this repository: the desktop app, the CLI, the MCP server, the Tauri migration, the CI action, and this website were all built this way. If you want to know whether the method survives contact with real software, the evidence isn't this page — it's <a href="https://github.com/danielyayla/veri/tree/main/veri">the corpus itself</a>, where every decision has its rejected alternatives and every "done" has a commit you can check out.</p>
+
+<div class="next">
+  <b>Where next:</b> the <a href="workflow.html">workflow guide</a> teaches the method this page demonstrated, and the <a href="quickstart.html">quickstart</a> gets it running on your own repo in ten minutes.
+</div>
+</article>
+
+<footer class="foot">
+  <span>Veri — plain files, no telemetry.</span>
+  <span><a href="../">Home</a> · <a href="https://github.com/danielyayla/veri">Source</a> · <a href="https://github.com/danielyayla/veri/issues">Issues</a></span>
+</footer>
+
+</body>
+</html>

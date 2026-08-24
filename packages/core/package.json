@@ -4,6 +4,16 @@
   "license": "Apache-2.0",
   "description": "Parse, validate, and graph a veri/ knowledge directory",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danielyayla/veri.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://danielyayla.github.io/veri/",
+  "bugs": "https://github.com/danielyayla/veri/issues",
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=20"
   },

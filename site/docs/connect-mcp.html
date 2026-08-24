@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect any MCP client — Veri</title>
+<meta name="description" content="Veri's MCP server is a standard stdio server. The three facts any MCP client needs — command, server path, project root — plus a generic config and how to verify the connection.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../assets/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<link rel="stylesheet" href="../site.css?v=2">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <a class="top-wordmark" href="../"><span class="v">V</span>eri</a>
+  <a class="nav" href="../#product">Product</a>
+  <a class="nav" href="workflow.html">Workflow</a>
+  <a class="nav here" href="quickstart.html">Docs</a>
+  <a class="nav" href="https://github.com/danielyayla/veri">GitHub</a>
+  <a class="top-dl" href="https://github.com/danielyayla/veri/releases/latest">Download</a>
+</header>
+
+<nav class="docs-strip" aria-label="Documentation pages">
+  <a href="quickstart.html">Quickstart</a>
+  <a href="workflow.html">Workflow</a>
+  <a href="connect-claude-code.html" class="here">Connect your agent</a>
+  <a href="brownfield.html">Import a repo</a>
+  <a href="ci.html">CI gate</a>
+  <a href="team.html">Teams</a>
+  <a href="how-veri-builds-veri.html">Built with Veri</a>
+  <a href="reference.html">Reference</a>
+  <a href="troubleshooting.html">Troubleshooting</a>
+</nav>
+
+<article class="doc" id="main">
+<h1>Connecting any MCP client</h1>
+<p class="doc-lead">There is nothing Claude-specific about Veri's server: it's a standard <a href="https://modelcontextprotocol.io">MCP</a> server speaking stdio. Any client that can launch a stdio server — an agent CLI, an IDE, your own tooling — connects with the same three facts. Using one of the agents Veri configures automatically? See <a href="connect-claude-code.html">Claude Code</a>, <a href="connect-cursor.html">Cursor</a>, <a href="connect-codex-cli.html">Codex CLI</a>, or <a href="connect-gemini.html">Gemini CLI</a> instead — Veri writes those configs for you.</p>
+
+<h2>The three facts</h2>
+<table>
+  <tr><th>Fact</th><th>Value</th></tr>
+  <tr><td>Command</td><td><code>node</code> — your own Node, version 20 or newer</td></tr>
+  <tr><td>First argument</td><td>The server script that ships inside the Veri app:<br><code>/Applications/Veri.app/Contents/Resources/app/node_modules/@veri/mcp/dist/server.js</code><br>(no version segment — the path survives app self-updates). From a source checkout it's <code>packages/mcp/dist/server.js</code> after <code>npm install &amp;&amp; npm test</code>.</td></tr>
+  <tr><td>Second argument</td><td>The project root the server serves: the directory containing <code>veri/</code>. Relative paths resolve against it.</td></tr>
+</table>
+<p>One server serves one project. The server is subprocess-free, reads and writes only the project's files, and makes no network calls.</p>
+
+<h2>A generic config</h2>
+<p>Most clients accept the common <code>mcpServers</code> JSON shape — this is exactly what Veri's own connection panel writes as a project-scoped <code>.mcp.json</code>:</p>
+<pre><code>{
+  "mcpServers": {
+    "veri": {
+      "command": "node",
+      "args": [
+        "/Applications/Veri.app/Contents/Resources/app/node_modules/@veri/mcp/dist/server.js",
+        "/Users/you/code/your-project"
+      ]
+    }
+  }
+}</code></pre>
+<p>Clients with their own format (TOML, YAML, a settings UI) need the same three facts in their own spelling: a stdio server named <code>veri</code>, command <code>node</code>, and the two arguments above. If your client distinguishes transports, choose <b>stdio</b> — Veri's server has no HTTP or SSE mode.</p>
+
+<div class="callout"><b>Restart your client after configuring.</b> MCP clients read their config on launch. Once connected, the client should list a <b>veri</b> server with ten tools.</div>
+
+<h2>Verify it works</h2>
+<p>The most direct proof doesn't need the client at all: Veri's connection panel (<b>Settings → Agent connection → Verify connection</b>) launches the server with the exact command and arguments and performs a real MCP handshake, including a search call proving it serves <i>this</i> project's documents. If that's green, any remaining problem is in your client's config file, not the server. Failures name one of five causes, each covered in <a href="troubleshooting.html">troubleshooting</a>.</p>
+
+<h2>What your client gets</h2>
+<p>The same ten tools every connected agent gets — <code>get_context</code>, <code>get_import_instructions</code>, <code>search</code>, <code>get_document</code>, <code>get_neighbors</code>, <code>file_decision</code>, <code>file_work_order</code>, <code>file_requirement</code>, <code>file_source</code>, <code>file_receipt</code> — detailed in the tool table on the <a href="connect-claude-code.html">Claude Code page</a>. Everything a tool writes lands as a <code>proposed</code>/<code>draft</code> markdown file for your review; nothing binds without your <a href="workflow.html">approval stamp</a>.</p>
+
+<div class="next">
+  <b>Where next:</b> the <a href="quickstart.html">quickstart</a> to watch the agent pull its first context package, or <a href="troubleshooting.html">troubleshooting</a> if verification didn't come back green. Configured agents: <a href="connect-claude-code.html">Claude Code</a> · <a href="connect-cursor.html">Cursor</a> · <a href="connect-codex-cli.html">Codex CLI</a> · <a href="connect-gemini.html">Gemini CLI</a>.
+</div>
+</article>
+
+<footer class="foot">
+  <span>Veri — plain files, no telemetry.</span>
+  <span><a href="../">Home</a> · <a href="https://github.com/danielyayla/veri">Source</a> · <a href="https://github.com/danielyayla/veri/issues">Issues</a></span>
+</footer>
+
+</body>
+</html>

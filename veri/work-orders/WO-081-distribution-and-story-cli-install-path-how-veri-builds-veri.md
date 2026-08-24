@@ -2,10 +2,14 @@
 id: WO-081
 type: work-order
 title: "Distribution and story: CLI install path, \"How Veri builds Veri\", docs continuity"
-status: backlog
+status: in-progress
 created: 2026-08-24
 updated: 2026-08-24
 links:
+  - id: REQ-012
+    rel: extends
+  - id: REQ-027
+    rel: extends
   - id: SRC-040
     rel: informed-by
 ---
@@ -31,15 +35,17 @@ The reach layer, after the table stakes land. Two problems and one opportunity f
 
 ## Requirements
 
+- [[REQ-012]] — extends (the site pages: walkthrough, 404, generic connect)
+- [[REQ-027]] — extends (a discoverable project needs a stated install path)
 - [[SRC-040]] — informed-by
 
 ## Acceptance tests
 
-- [ ] An approved DEC records the CLI distribution choice and its rejected alternatives
-- [ ] Following the documented install path on a clean machine yields a working `veri check` — or, if app/action-only is chosen, the docs state that plainly where a CLI-seeker will look
-- [ ] The "How Veri builds Veri" page is live, traces a real work order with its actual receipts, and is linked from the README
-- [ ] Docs pages link back to the repo; an unknown docs URL lands on a 404 page; a generic MCP-client connect page exists
-- [ ] If packages publish: `npx <chosen-name> check` runs the real CLI, and the versioning scheme is written down
+- [ ] An approved DEC records the CLI distribution choice and its rejected alternatives (DEC-077 is filed with five rejected alternatives, but is `proposed` — blocked on Daniel's approval, and on the open question of whether the `@veri` npm org is claimable)
+- [x] Following the documented install path on a clean machine yields a working `veri check` — or, if app/action-only is chosen, the docs state that plainly where a CLI-seeker will look (README's new "Installing the CLI" section states plainly there is no npm/Homebrew path today, warns off `npx veri`, and documents the two real paths — app bundle/action and source checkout with the exact commands; the npm path itself awaits DEC-077)
+- [x] The "How Veri builds Veri" page is live, traces a real work order with its actual receipts, and is linked from the README (site/docs/how-veri-builds-veri.html traces WO-077 through its 8 real commits f7464a2→d7fe6a3, all verified ancestors of main, quoting its actual receipts and context-package roster; linked from the README self-hosting sentence, the homepage fin + footer, and every docs strip; deploys with the next push to main via site.yml)
+- [x] Docs pages link back to the repo; an unknown docs URL lands on a 404 page; a generic MCP-client connect page exists (every docs page carries the GitHub header-nav link and footer Source/Issues links — verified by grep across site/docs/*.html; site/404.html added at the site root where GitHub Pages serves it for project sites; site/docs/connect-mcp.html added with the stdio config and cross-linked from all four agent connect pages)
+- [ ] If packages publish: `npx <chosen-name> check` runs the real CLI, and the versioning scheme is written down (blocked on DEC-077 approval, scope claim, and an NPM_TOKEN credential; the publish workflow, lockstep-version guard, package metadata, and RELEASING.md ritual are prepared and dry-run-only until then)
 
 ## Receipts
 

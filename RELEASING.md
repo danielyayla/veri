@@ -61,6 +61,26 @@ on every push, so a green main is a releasable action.
    the GitHub Marketplace" → publish. GitHub has no API for this step.
    As of 2026-08-24 the listing is not yet published.
 
+## npm packages (proposed — DEC-077, not yet active)
+
+Nothing is published to npm today; the npm name `veri` belongs to an
+unrelated package. DEC-077 (proposed) settles the path: `@veri/core`,
+`@veri/cli`, and `@veri/mcp` publish under a scope Daniel controls
+(first choice `@veri`, fallback `@verikb`), bin name `veri`, the three
+versions moving in lockstep on their own 0.x line, independent of the
+app version. Once the DEC is approved, the scope claimed, and an
+`NPM_TOKEN` repository secret added:
+
+1. Bump all three package versions together (the workflow refuses a
+   mismatched set).
+2. Land on main, wait for green.
+3. Run the `npm-publish` workflow (Actions → npm-publish → Run
+   workflow) with dry-run **on**; review the file lists it prints.
+4. Re-run with dry-run **off**.
+
+Until then the workflow exists but only dry-runs, and the README's
+"Installing the CLI" section states the not-on-npm status.
+
 ## Rules of thumb
 
 - Never reuse or move a version tag except the action's floating `v1`.

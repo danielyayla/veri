@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page not found — Veri</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/veri/assets/favicon.svg" type="image/svg+xml">
+<!-- GitHub Pages serves this file for any unknown URL, at any path depth,
+     so everything is absolute against the /veri/ project base (DEC-033)
+     and the styles are inlined — the page depends on nothing relative.
+     If the site ever moves to a custom domain, update the /veri/ prefixes. -->
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0F0F11; --text: #E7E4DE; --secondary: #A09DA6; --muted: #8B8893;
+    --ember: #E8703A; --on-accent: #141414; --hair: #1E1E24;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      color-scheme: light;
+      --bg: #F2F1ED; --text: #232128; --secondary: #5F5C67; --muted: #6B6873;
+      --ember: #B54A18; --on-accent: #FFFFFF; --hair: #E5E3DD;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans);
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center; padding: 24px;
+  }
+  .code { font-family: var(--mono); font-size: 15px; color: var(--muted); margin: 0 0 14px; }
+  h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 10px; }
+  h1 .v { color: var(--ember); }
+  p { color: var(--secondary); font-size: 16px; max-width: 480px; margin: 0 0 26px; line-height: 1.55; }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; align-items: center; }
+  .btn {
+    display: inline-block; background: var(--ember); color: var(--on-accent);
+    text-decoration: none; font-weight: 600; font-size: 15px;
+    padding: 11px 22px; border-radius: 8px;
+  }
+  a.plain { color: var(--secondary); font-size: 15px; text-decoration: underline; text-underline-offset: 3px; }
+  a.plain:hover { color: var(--text); }
+  .foot { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--hair); font-size: 13px; color: var(--muted); }
+  .foot a { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<p class="code">404 — no document has that id</p>
+<h1><span class="v">V</span>eri</h1>
+<p>This page doesn't exist — it may have moved, or the link is stale. Everything on the site is reachable from the homepage and the docs.</p>
+<div class="row">
+  <a class="btn" href="/veri/">Go to the homepage</a>
+  <a class="plain" href="/veri/docs/quickstart.html">Quickstart</a>
+  <a class="plain" href="/veri/docs/reference.html">Reference</a>
+</div>
+<p class="foot">Think something should be here? <a href="https://github.com/danielyayla/veri/issues">Open an issue</a>.</p>
+
+</body>
+</html>

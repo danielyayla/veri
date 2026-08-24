@@ -30,13 +30,14 @@
   <a href="brownfield.html">Import a repo</a>
   <a href="ci.html">CI gate</a>
   <a href="team.html">Teams</a>
+  <a href="how-veri-builds-veri.html">Built with Veri</a>
   <a href="reference.html">Reference</a>
   <a href="troubleshooting.html">Troubleshooting</a>
 </nav>
 
 <article class="doc" id="main">
 <h1>Connecting Claude Code (and other MCP clients)</h1>
-<p class="doc-lead">Veri's connection panel writes one config format: a project-scoped <code>.mcp.json</code>. This page documents exactly what gets written, where, and how to verify it works — for Claude Code and for any client that can launch a stdio MCP server. Using a different agent? See <a href="connect-cursor.html">Cursor</a>, <a href="connect-codex-cli.html">Codex CLI</a>, or <a href="connect-gemini.html">Gemini CLI</a>.</p>
+<p class="doc-lead">Veri's connection panel writes one config format: a project-scoped <code>.mcp.json</code>. This page documents exactly what gets written, where, and how to verify it works — for Claude Code and for any client that can launch a stdio MCP server. Using a different agent? See <a href="connect-cursor.html">Cursor</a>, <a href="connect-codex-cli.html">Codex CLI</a>, <a href="connect-gemini.html">Gemini CLI</a>, or <a href="connect-mcp.html">any other MCP client</a>.</p>
 
 <h2>What Veri writes</h2>
 <p>Open the project in Veri, click <b>Settings</b> at the bottom of the left rail, choose <b>Agent connection</b>, and click <b>Set up connection</b>. Veri writes a <code>.mcp.json</code> file at the <b>project root</b> — the directory that contains <code>veri/</code>, which is where Claude Code looks for project-scoped MCP config:</p>
@@ -87,10 +88,10 @@
 </table>
 
 <h2>Other MCP clients</h2>
-<p>There's nothing Claude-specific about the server: it's a standard stdio MCP server. Any client that can launch one works with the same three facts — command <code>node</code>, the <code>server.js</code> path shown in Veri's panel, and your project root as the argument. Configure those in your client's own format, then use Veri's <b>Verify connection</b> to prove the server side end to end (it exercises the same script and root your client will).</p>
+<p>There's nothing Claude-specific about the server: it's a standard stdio MCP server. Any client that can launch one works with the same three facts — command <code>node</code>, the <code>server.js</code> path shown in Veri's panel, and your project root as the argument. The <a href="connect-mcp.html">generic MCP client page</a> spells out the three facts, a copyable config, and the verification path for clients Veri doesn't configure automatically.</p>
 
 <div class="next">
-  <b>Where next:</b> back to the <a href="quickstart.html">quickstart</a> to watch the agent pull its first context package, or <a href="troubleshooting.html">troubleshooting</a> if verification didn't come back green. Other agents: <a href="connect-cursor.html">Cursor</a> · <a href="connect-codex-cli.html">Codex CLI</a> · <a href="connect-gemini.html">Gemini CLI</a>.
+  <b>Where next:</b> back to the <a href="quickstart.html">quickstart</a> to watch the agent pull its first context package, or <a href="troubleshooting.html">troubleshooting</a> if verification didn't come back green. Other agents: <a href="connect-cursor.html">Cursor</a> · <a href="connect-codex-cli.html">Codex CLI</a> · <a href="connect-gemini.html">Gemini CLI</a> · <a href="connect-mcp.html">any MCP client</a>.
 </div>
 </article>
 

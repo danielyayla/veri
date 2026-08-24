@@ -30,13 +30,14 @@
   <a href="brownfield.html">Import a repo</a>
   <a href="ci.html">CI gate</a>
   <a href="team.html">Teams</a>
+  <a href="how-veri-builds-veri.html">Built with Veri</a>
   <a href="reference.html">Reference</a>
   <a href="troubleshooting.html">Troubleshooting</a>
 </nav>
 
 <article class="doc" id="main">
 <h1>Connecting Gemini CLI</h1>
-<p class="doc-lead">Veri connects Gemini CLI (<code>gemini</code>) through a project-scoped <code>.gemini/settings.json</code>. This page documents exactly what gets written, where, and how to verify it works. Using a different agent? See <a href="connect-claude-code.html">Claude Code</a>, <a href="connect-cursor.html">Cursor</a>, or <a href="connect-codex-cli.html">Codex CLI</a>.</p>
+<p class="doc-lead">Veri connects Gemini CLI (<code>gemini</code>) through a project-scoped <code>.gemini/settings.json</code>. This page documents exactly what gets written, where, and how to verify it works. Using a different agent? See <a href="connect-claude-code.html">Claude Code</a>, <a href="connect-cursor.html">Cursor</a>, <a href="connect-codex-cli.html">Codex CLI</a>, or <a href="connect-mcp.html">any other MCP client</a>.</p>
 
 <h2>What Veri writes</h2>
 <p>Open a work order in Veri and click <b>Start agent session</b>. The roster lists every agent detected on your machine; if Gemini CLI's row says <i>mcp config: veri entry missing</i>, click <b>Set up &amp; launch</b>. Veri writes the <code>veri</code> server entry into <code>.gemini/settings.json</code> inside the <b>project root</b> — the directory that contains <code>veri/</code>, which is where Gemini CLI looks for project-scoped settings:</p>
@@ -70,7 +71,7 @@
 <p>The same ten tools every connected agent gets — <code>get_context</code>, <code>get_import_instructions</code>, <code>search</code>, <code>get_document</code>, <code>get_neighbors</code>, <code>file_decision</code>, <code>file_work_order</code>, <code>file_requirement</code>, <code>file_source</code>, <code>file_receipt</code> — detailed in the tool table on the <a href="connect-claude-code.html">Claude Code page</a>.</p>
 
 <div class="next">
-  <b>Where next:</b> the <a href="quickstart.html">quickstart</a> to watch the agent pull its first context package, or <a href="troubleshooting.html">troubleshooting</a> if verification didn't come back green. Other agents: <a href="connect-claude-code.html">Claude Code</a> · <a href="connect-cursor.html">Cursor</a> · <a href="connect-codex-cli.html">Codex CLI</a>.
+  <b>Where next:</b> the <a href="quickstart.html">quickstart</a> to watch the agent pull its first context package, or <a href="troubleshooting.html">troubleshooting</a> if verification didn't come back green. Other agents: <a href="connect-claude-code.html">Claude Code</a> · <a href="connect-cursor.html">Cursor</a> · <a href="connect-codex-cli.html">Codex CLI</a> · <a href="connect-mcp.html">any MCP client</a>.
 </div>
 </article>
 

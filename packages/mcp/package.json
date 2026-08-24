@@ -4,6 +4,16 @@
   "license": "Apache-2.0",
   "description": "Stdio MCP server for Veri knowledge bases: context packages and write-back",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danielyayla/veri.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://danielyayla.github.io/veri/",
+  "bugs": "https://github.com/danielyayla/veri/issues",
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=20"
   },

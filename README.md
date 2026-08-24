@@ -39,6 +39,9 @@ network access is checking GitHub Releases for updates.
 
 This repo is self-hosted: Veri is built by executing Veri work orders
 (see [veri/](veri/)).
+[How Veri builds Veri](https://danielyayla.github.io/veri/docs/how-veri-builds-veri.html)
+walks one real work order end to end — filing, approval, context
+package, implementation, receipts — with every commit linked.
 
 ## Platforms
 
@@ -46,6 +49,23 @@ The desktop app runs on macOS 13+ (Apple silicon and Intel). No Windows
 or Linux app exists yet, and none is currently scheduled. The CLI, MCP
 server, and GitHub Action are plain Node and run anywhere Node 20+
 does.
+
+## Installing the CLI
+
+There is no npm or Homebrew install path today. The npm name `veri`
+belongs to an unrelated package — **do not** `npx veri`; it installs
+someone else's software. Publishing `@veri/cli` under a controlled
+scope is proposed (see
+[DEC-077](veri/decisions/DEC-077-cli-packages-publish-under-a-controlled-npm-scope-bin-veri.md));
+until that lands, the CLI ships two ways:
+
+- **Inside the app** — the [macOS app](https://github.com/danielyayla/veri/releases/latest)
+  bundles the same `@veri/cli` code it runs on, and CI runs it for you:
+  the [Veri Check GitHub Action](https://danielyayla.github.io/veri/docs/ci.html)
+  is the CLI's `check` in a workflow snippet.
+- **From source** — clone this repo, then `npm install && npm test`;
+  the binary is `packages/cli/dist/cli.js` (`node packages/cli/dist/cli.js check`,
+  or `npm link -w @veri/cli` to get `veri` on your PATH).
 
 ## Development
 
