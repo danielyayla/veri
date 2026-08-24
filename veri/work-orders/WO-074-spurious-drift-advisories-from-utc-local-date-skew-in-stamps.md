@@ -35,10 +35,10 @@ Core stamps documents with the UTC calendar date (today() = new Date().toISOStri
 
 ## Acceptance tests
 
-- [ ] A project scaffolded and committed while local date != UTC date shows no drift-approved-edited advisory on WF-001
-- [ ] packages/ui snapshot.test.ts git tests pass regardless of wall-clock time and timezone
-- [ ] A regression test fails on the old behavior across the date boundary
+- [x] A project scaffolded and committed while local date != UTC date shows no drift-approved-edited advisory on WF-001 — snapshot.test.ts "a fresh scaffold committed while the local date differs from UTC shows no drift (WO-074)" pins a zone (UTC+14 or UTC-12) whose local date differs from UTC right now, scaffolds, commits, and asserts zero drift-approved-edited advisories
+- [x] packages/ui snapshot.test.ts git tests pass regardless of wall-clock time and timezone — full snapshot.test.ts run green under TZ=Etc/GMT-14 and TZ=Etc/GMT+12 (9/9 both); stamps and %cs now read the same local calendar
+- [x] A regression test fails on the old behavior across the date boundary — core dates.test.ts pins the observed window (2026-08-20T22:30Z = 01:30 local in UTC+3) with fixed instants under process.env.TZ: localToday's stamp yields no advisory from checkDrift, while the old toISOString().slice(0, 10) stamp for the same instant yields the spurious drift-approved-edited on WF-001
 
 ## Receipts
 
-(none yet)
+- 2026-08-24 — ebc19c4 — packages/core/src/{dates,dates.test,scaffold,create,approve,save,links,index}.ts, packages/core/package.json, packages/mcp/src/writeback.ts, packages/ui/src/lib/{write,write.test,snapshot.test}.ts, packages/ui/src/renderer/views/{review,templates}.ts, veri/decisions/DEC-076 — one localToday() producer replaces every UTC date stamp so stamps match git %cs committer dates; regression tests pin the skew wall-clock-free; DEC-076 filed (proposed)
