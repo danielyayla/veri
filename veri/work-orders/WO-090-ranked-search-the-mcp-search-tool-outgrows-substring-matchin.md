@@ -2,7 +2,7 @@
 id: WO-090
 type: work-order
 title: "Ranked search: the MCP search tool outgrows substring matching"
-status: backlog
+status: in-progress
 created: 2026-08-24
 updated: 2026-08-24
 links:
