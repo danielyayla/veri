@@ -32,7 +32,47 @@ permissions:
   contents: write # create the release and upload artifacts
 
 jobs:
+  # WO-079 / DEC-075: app releases and the action's version tags (v1,
+  # v1.0.0, …) share the v* namespace. The guard tells them apart instead
+  # of failing: only a tag equal to v<packages/ui version> is an app
+  # release; anything else passes through green with a notice. An app
+  # release additionally requires its CHANGELOG.md section up front, so a
+  # missing entry fails here in seconds, not after a ten-minute build.
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.decide.outputs.proceed }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Is this tag an app release?
+        id: decide
+        run: |
+          APP_VERSION=$(node -p "require('./packages/ui/package.json').version")
+          if [ "${GITHUB_REF_NAME}" = "v${APP_VERSION}" ]; then
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Tag ${GITHUB_REF_NAME} does not match the app version (v${APP_VERSION}) — treating it as a non-release tag (e.g. the action's major tag) and skipping the app release. See RELEASING.md."
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: App releases require a changelog entry
+        if: steps.decide.outputs.proceed == 'true'
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          section=$(awk -v ver="$version" '
+            $0 ~ "^## \\[" ver "\\]" {found=1; next}
+            found && /^## \[/ {exit}
+            found {print}
+          ' CHANGELOG.md)
+          if [ -z "$(printf "%s" "$section" | tr -d "[:space:]")" ]; then
+            echo "CHANGELOG.md has no '## [${version}]' section — move the Unreleased entries under it before tagging (see RELEASING.md)" >&2
+            exit 1
+          fi
+
   release:
+    needs: guard
+    if: needs.guard.outputs.proceed == 'true'
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
@@ -41,14 +81,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-
-      - name: Tag must match the app version
-        run: |
-          APP_VERSION=$(node -p "require('./packages/ui/package.json').version")
-          if [ "${GITHUB_REF_NAME}" != "v${APP_VERSION}" ]; then
-            echo "Tag ${GITHUB_REF_NAME} != packages/ui version v${APP_VERSION}" >&2
-            exit 1
-          fi
 
       - run: npm ci
 
@@ -99,6 +131,24 @@ jobs:
         working-directory: packages/ui
         run: node scripts/make-updater-manifest.mjs
 
+      # WO-079: release notes are "What's new" from CHANGELOG.md (the guard
+      # already proved the section exists) above the SIZES.md manifest, so
+      # every release states its changes and its sizes.
+      - name: Assemble release notes (what's new + sizes)
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          {
+            echo "## What's new in ${version}"
+            echo
+            awk -v ver="$version" '
+              $0 ~ "^## \\[" ver "\\]" {found=1; next}
+              found && /^## \[/ {exit}
+              found {print}
+            ' CHANGELOG.md
+            echo
+            cat packages/ui/src-tauri/release-assets/SIZES.md
+          } > packages/ui/src-tauri/release-assets/NOTES.md
+
       # WO-033's lesson carried over: CI creates the one draft and uploads
       # serially; the build tool never touches the release API.
       - name: Create the release draft up front
@@ -108,7 +158,7 @@ jobs:
           if ! gh release view "${GITHUB_REF_NAME}" > /dev/null 2>&1; then
             gh release create "${GITHUB_REF_NAME}" --draft --verify-tag \
               --title "${GITHUB_REF_NAME}" \
-              --notes-file packages/ui/src-tauri/release-assets/SIZES.md
+              --notes-file packages/ui/src-tauri/release-assets/NOTES.md
           fi
 
       - name: Upload artifacts and update feed to the draft
