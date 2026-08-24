@@ -2,10 +2,12 @@
 id: WO-079
 type: work-order
 title: "Release hygiene: action-tag collision, human release notes, release runbook"
-status: backlog
+status: in-progress
 created: 2026-08-24
 updated: 2026-08-24
 links:
+  - id: REQ-028
+    rel: implements
   - id: SRC-040
     rel: informed-by
   - id: REQ-025

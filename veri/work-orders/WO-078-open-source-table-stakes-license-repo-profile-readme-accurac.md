@@ -2,7 +2,7 @@
 id: WO-078
 type: work-order
 title: "Open-source table stakes: license, repo profile, README accuracy"
-status: in-progress
+status: done
 created: 2026-08-24
 updated: 2026-08-24
 links:
@@ -42,7 +42,7 @@ Close the gaps that make the project legally and visibly not-open-source: choose
 
 - [x] A DEC recording the license choice is approved, LICENSE exists at the root, and GitHub's repo page renders the license chip
 - [x] Every package.json declares the matching `license` field
-- [ ] Repo description, homepage, topics, and social-preview image are set (visible via `gh repo view` and the repo page) — description/homepage/topics verified live; the social-preview image has no API and awaits Daniel's manual upload of site/assets/og.png in Settings → General
+- [x] Repo description, homepage, topics, and social-preview image are set (visible via `gh repo view` and the repo page) — description/homepage/topics verified live; social-preview image uploaded manually by Daniel (2026-08-24)
 - [x] README nowhere mentions Electron, shows a screenshot and badges, and states the platform scope
 - [x] One place states the authoritative dev Node version; README, CONTRIBUTING (when it lands), and CI agree with it
 
