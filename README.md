@@ -1,9 +1,22 @@
 # Veri
 
+[![CI](https://github.com/danielyayla/veri/actions/workflows/ci.yml/badge.svg)](https://github.com/danielyayla/veri/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/danielyayla/veri)](https://github.com/danielyayla/veri/releases/latest)
+[![License](https://img.shields.io/github/license/danielyayla/veri)](LICENSE)
+
 A knowledge base your coding agents read — requirements, decisions, and
 work orders as plain markdown files living in your repo. Veri hands an
 agent a complete context package for any task over MCP, and everything
 the agent writes back lands in files you review.
+
+Veri is for developers who build with coding agents every day and are
+done re-explaining their project's decisions at the start of each
+session.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="site/assets/app-dark.png">
+  <img src="site/assets/app-light.png" alt="The Veri desktop app: a work order open in the editor, with its assembled context package and an agent-session kickoff in the right sidebar">
+</picture>
 
 **[Download Veri for macOS](https://github.com/danielyayla/veri/releases/latest)**
 — macOS 13+, Apple silicon & Intel. Agents launch Veri's MCP server with
@@ -25,6 +38,13 @@ network access is checking GitHub Releases for updates.
 
 This repo is self-hosted: Veri is built by executing Veri work orders
 (see [veri/](veri/)).
+
+## Platforms
+
+The desktop app runs on macOS 13+ (Apple silicon and Intel). No Windows
+or Linux app exists yet, and none is currently scheduled. The CLI, MCP
+server, and GitHub Action are plain Node and run anywhere Node 20+
+does.
 
 ## Development
 
@@ -76,32 +96,7 @@ Or add a project-scoped `.mcp.json` next to your `veri/` directory:
 
 (This repository's own [.mcp.json](.mcp.json) does exactly that.)
 
-The server exposes ten tools:
-
-- `get_context(id)` — context package for a work order: the project
-  workflow first, then the work order, its linked requirements and
-  decisions (2 hops), pending proposals labeled non-binding, source
-  excerpts, and the project's document templates, with per-document and
-  total token estimates; superseded decisions are named as already
-  rejected, bodies omitted; when the neighborhood is too large to
-  inline, its outer ring arrives as a context map to retrieve from
-  instead of full bodies (the same package `veri context <WO-id>`
-  prints in a terminal)
-- `search(query)` — case-insensitive substring match over id, title, body
-- `get_document(id)` — one document in full, exactly as on disk
-- `get_neighbors(id)` — a document's outbound links and backlinks, with
-  relations
-- `file_decision(title, choice, …)` — record a decision with the next
-  free DEC id, `status: proposed` (awaiting the user's approval)
-- `file_work_order(title, summary, …)` — propose a unit of work with the
-  next free WO id, `status: backlog`
-- `file_requirement(title, body, …)` — draft a requirement with the next
-  free REQ id, `status: draft` (awaiting the user's acceptance)
-- `file_source(title, body, …)` — file a source document: imported
-  evidence with the paths, commit refs, and excerpts it rests on
-- `file_receipt(work_order_id, commit, files, summary)` — append a
-  work-session receipt to a work order — or to an import manifest as an
-  import's completion signal; receipts accumulate, never overwrite
-- `get_import_instructions()` — the brownfield import instruction
-  package: what to mine from an existing repo, the filing rules, and a
-  census of what the knowledge base already holds
+The server exposes ten tools — context packages, search, document
+retrieval, and guarded write-back. The
+[reference page](https://danielyayla.github.io/veri/docs/reference.html#mcp-tools)
+lists each tool and what it returns.

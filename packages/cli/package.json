@@ -1,6 +1,7 @@
 {
   "name": "@veri/cli",
   "version": "0.1.0",
+  "license": "Apache-2.0",
   "description": "CLI for Veri knowledge bases over the veri/ directory",
   "type": "module",
   "engines": {

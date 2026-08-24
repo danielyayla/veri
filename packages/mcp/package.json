@@ -1,6 +1,7 @@
 {
   "name": "@veri/mcp",
   "version": "0.1.0",
+  "license": "Apache-2.0",
   "description": "Stdio MCP server for Veri knowledge bases: context packages and write-back",
   "type": "module",
   "engines": {

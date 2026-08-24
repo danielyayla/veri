@@ -1,6 +1,7 @@
 {
   "name": "@veri/action",
   "version": "0.1.0",
+  "license": "Apache-2.0",
   "description": "GitHub Action runner: veri check as a PR gate, bundled to action/dist at the repo root",
   "private": true,
   "type": "module",

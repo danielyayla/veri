@@ -2,10 +2,14 @@
 id: WO-078
 type: work-order
 title: "Open-source table stakes: license, repo profile, README accuracy"
-status: backlog
+status: in-progress
 created: 2026-08-24
 updated: 2026-08-24
 links:
+  - id: REQ-027
+    rel: implements
+  - id: DEC-074
+    rel: constrained-by
   - id: SRC-040
     rel: informed-by
 ---

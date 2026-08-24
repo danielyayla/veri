@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reference — Veri</title>
-<meta name="description" content="The veri/ on-disk format: document types, frontmatter, links and rels, templates, the format marker, veri check rules, and the CLI.">
+<meta name="description" content="The veri/ on-disk format: document types, frontmatter, links and rels, templates, the format marker, veri check rules, the CLI, and the MCP server's tools.">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="../assets/favicon-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
@@ -129,6 +129,22 @@ veri import                print the kickoff prompt for mining this repo into pr
 veri list [type]           list documents: id, status, title
 veri open [dir]            open the project in the Veri desktop app</code></pre>
 <p>The CLI and the desktop app read and write the same files; everything above works identically from either.</p>
+
+<h2 id="mcp-tools">The MCP server's tools</h2>
+<p>The stdio MCP server (<code>@veri/mcp</code>) serves one project and exposes ten tools. Reads return documents exactly as on disk; writes can only produce pending documents — nothing an agent files becomes binding without your approval.</p>
+<table>
+  <tr><th>Tool</th><th>What it does</th></tr>
+  <tr><td><code>get_context(id)</code></td><td>Context package for a work order: the project workflow first, then the work order, its linked requirements and decisions (2 hops), pending proposals labeled non-binding, source excerpts, and the project's document templates, with per-document and total token estimates. Superseded decisions are named as already rejected, bodies omitted; when the neighborhood is too large to inline, its outer ring arrives as a context map to retrieve from instead of full bodies. The same package <code>veri context &lt;WO-id&gt;</code> prints in a terminal.</td></tr>
+  <tr><td><code>search(query)</code></td><td>Case-insensitive substring match over id, title, and body.</td></tr>
+  <tr><td><code>get_document(id)</code></td><td>One document in full, exactly as on disk.</td></tr>
+  <tr><td><code>get_neighbors(id)</code></td><td>A document's outbound links and backlinks, with relations.</td></tr>
+  <tr><td><code>file_decision(title, choice, …)</code></td><td>Record a decision with the next free DEC id, <code>status: proposed</code> (awaiting your approval).</td></tr>
+  <tr><td><code>file_work_order(title, summary, …)</code></td><td>Propose a unit of work with the next free WO id, <code>status: backlog</code>.</td></tr>
+  <tr><td><code>file_requirement(title, body, …)</code></td><td>Draft a requirement with the next free REQ id, <code>status: draft</code> (awaiting your acceptance).</td></tr>
+  <tr><td><code>file_source(title, body, …)</code></td><td>File a source document: imported evidence with the paths, commit refs, and excerpts it rests on.</td></tr>
+  <tr><td><code>file_receipt(work_order_id, commit, files, summary)</code></td><td>Append a work-session receipt to a work order — or to an import manifest as an import's completion signal. Receipts accumulate, never overwrite.</td></tr>
+  <tr><td><code>get_import_instructions()</code></td><td>The brownfield import instruction package: what to mine from an existing repo, the filing rules, and a census of what the knowledge base already holds.</td></tr>
+</table>
 
 <div class="next">
   <b>Where next:</b> the <a href="workflow.html">workflow guide</a> for the method these formats carry, or <a href="troubleshooting.html">troubleshooting</a> for when a check or connection misbehaves.
