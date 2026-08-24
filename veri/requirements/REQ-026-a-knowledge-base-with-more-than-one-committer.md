@@ -2,7 +2,8 @@
 id: REQ-026
 type: requirement
 title: "A knowledge base with more than one committer"
-status: draft
+status: accepted
+approved: 2026-08-24
 created: 2026-08-24
 updated: 2026-08-24
 links:

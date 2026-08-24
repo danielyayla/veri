@@ -2,7 +2,7 @@
 id: WO-076
 type: work-order
 title: "CI surface: a published GitHub Action that runs veri check on pull requests"
-status: backlog
+status: in-progress
 created: 2026-08-24
 updated: 2026-08-24
 links:

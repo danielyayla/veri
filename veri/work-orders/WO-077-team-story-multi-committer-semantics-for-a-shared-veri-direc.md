@@ -2,7 +2,7 @@
 id: WO-077
 type: work-order
 title: "Team story: multi-committer semantics for a shared veri/ directory"
-status: backlog
+status: in-progress
 created: 2026-08-24
 updated: 2026-08-24
 links:
