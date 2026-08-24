@@ -4,12 +4,14 @@ type: work-order
 title: "Spike: Tauri 2 feasibility as an Electron replacement for packages/ui"
 status: backlog
 created: 2026-08-20
-updated: 2026-08-20
+updated: 2026-08-24
 links:
   - id: DEC-008
     rel: informs
   - id: DEC-001
     rel: informs
+  - id: SRC-038
+    rel: designed-by
 ---
 
 ## Summary
@@ -40,12 +42,12 @@ A time-boxed feasibility spike, not a migration: boot the existing packages/ui r
 
 ## Acceptance tests
 
-- [ ] Tauri app boots the existing renderer and displays the real project (snapshot served through the sidecar)
-- [ ] Native folder picker opens a different Veri project and the app re-points to it
-- [ ] A veri/ document round-trips: read, edit, save through core's saveDocumentFile guards, external-edit watcher event observed
-- [ ] Native macOS menu bar present with standard roles plus Help → Report an Issue
-- [ ] MCP status/setup and live verify-connection succeed against the real @veri/mcp server; installed agents detected
-- [ ] Comparison report exists with measured (not estimated) bundle size, startup, memory, and code-delta numbers for both shells
+- [x] Tauri app boots the existing renderer and displays the real project (snapshot served through the sidecar) — [[SRC-037]] "What was built": the Electron-built renderer bundle, byte-for-byte, booted in the Tauri 2 shell against this repo's real knowledge base via the Node sidecar (receipt c84613f, automated acceptance run 2026-08-20)
+- [x] Native folder picker opens a different Veri project and the app re-points to it — [[SRC-037]] capability 1: native NSOpenPanel via tauri-plugin-dialog; re-point validated in core, MRU updated, watchers re-armed; switched to a 17-doc scaffolded demo project and back
+- [x] A veri/ document round-trips: read, edit, save through core's saveDocumentFile guards, external-edit watcher event observed — [[SRC-037]] capability 2: edit persisted, `updated:` bumped, fs-watcher `veri:changed` event reached the renderer through the sidecar → Rust → WebView pipeline
+- [x] Native macOS menu bar present with standard roles plus Help → Report an Issue — [[SRC-037]] capability 3: real macOS menu bar from Tauri's menu API with predefined role items plus Help → "Report an Issue…", screenshot-verified
+- [x] MCP status/setup and live verify-connection succeed against the real @veri/mcp server; installed agents detected — [[SRC-037]] capability 4: mcp-status, agent detection (found Claude Code), verify-connection spawned the real @veri/mcp server — handshake ok, 7 tools, searchProved=true
+- [x] Comparison report exists with measured (not estimated) bundle size, startup, memory, and code-delta numbers for both shells — [[SRC-037]] "Numbers (measured)": 6.8 MB vs 276 MB .app, 3.0 MB vs 194 MB installer, 0.69 s vs 1.34 s warm start, RSS ≈269 MB vs 270 MB, 795 lines of glue vs 700 replaced; real runs on this machine, not estimates
 
 ## Receipts
 
