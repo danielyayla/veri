@@ -22,7 +22,7 @@ links:
     rel: designs
 ---
 
-Design source for the website redesign realizing the [[SRC-041]] critique work orders. Produced 2026-08-24 with Claude Design; agent-filed, not yet reviewed by Daniel.
+Design source for the website redesign realizing the [[SRC-041]] critique work orders. Produced 2026-08-24 with Claude Design. Reviewed and approved by Daniel 2026-08-24.
 
 ## Artifacts
 

@@ -16,6 +16,8 @@ links:
     rel: constrained-by
 ---
 
+Approved by Daniel 2026-08-24.
+
 ## Summary
 
 The small-surface items from SRC-041 that SRC-042's design resolves but no existing work order owns. Nav IA simplifies to Docs · GitHub · Download — the "Product" mid-page anchor and the top-level "Workflow" duplicate are dropped on the homepage and every docs page, fixing the double-active nav state on site/docs/workflow.html (both "Workflow" and "Docs" carry class="nav here"). Docs code blocks get a copy button (small inline script, DEC-033-compatible). The final CTA band gains the missing open-source texture: Apache-2.0 license, a Star on GitHub action, a link to browse the sample knowledge base on GitHub, and a changelog/releases link — per the SRC-042 fin-band treatment.

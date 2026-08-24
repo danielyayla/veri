@@ -16,6 +16,8 @@ links:
     rel: constrained-by
 ---
 
+Approved by Daniel 2026-08-24.
+
 ## Summary
 
 Build the four interactive micro-demos designed in SRC-042 as the homepage's product demonstration, replacing WO-083's planned demo recording (a GIF/video) with working miniatures of the real interface: (1) the hero mini-app — switchable WO-002/REQ-001/DEC-005 tabs, the context package panel, a scripted agent session (package fetch → DEC-011 filed as proposed → receipt lands → user promotes to active), (2) the "In the app ⇄ The file on disk" toggle on DEC-005 in the plain-files band, (3) the click-to-expand context package explorer that states why each of the nine documents is included, (4) the review-queue Promote interaction. All demos are hand-authored vanilla JS + the existing token system — no build step, no framework (DEC-033). The target markup, copy, and measurements are in design/website-microdemos/ (Main.dc.html; strip the canvas scaffolding, keep the treatment). Note: this supersedes the "demo recording" line item in WO-083's in-scope list — Daniel decides whether WO-083 is amended or this work order simply lands instead of that item.

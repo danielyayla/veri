@@ -14,6 +14,8 @@ links:
     rel: constrained-by
 ---
 
+Approved by Daniel 2026-08-24.
+
 ## Summary
 
 Replace the site's system-font stacks with the app's own faces — Source Sans 3 for text, JetBrains Mono for mono — so product, site, and docs read as one artifact (SRC-042's typography opinion). Fonts must be self-hosted woff2 in site/assets/, mirroring the app's packages/ui/renderer/fonts.css subsets and weights (Source Sans 3 400/600/700, JetBrains Mono 400/500/600/700): no Google Fonts fetch, keeping the site's zero-third-party, no-telemetry stance intact. System stacks remain as fallbacks with close metrics.
