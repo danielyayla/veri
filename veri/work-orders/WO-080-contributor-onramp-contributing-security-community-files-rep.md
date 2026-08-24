@@ -2,10 +2,12 @@
 id: WO-080
 type: work-order
 title: "Contributor onramp: CONTRIBUTING, SECURITY, community files, repo settings"
-status: backlog
+status: in-progress
 created: 2026-08-24
 updated: 2026-08-24
 links:
+  - id: REQ-029
+    rel: implements
   - id: SRC-040
     rel: informed-by
   - id: REQ-008
@@ -25,7 +27,7 @@ Give an outside contributor a path from "found the repo" to "opened a useful PR"
 - .github/PULL_REQUEST_TEMPLATE.md (what changed, linked WO/issue, how verified)
 - .github/ISSUE_TEMPLATE/config.yml: blank_issues_enabled: false, contact links to the troubleshooting page and Discussions
 - Label set beyond bug/feedback (good-first-issue, help-wanted, docs, action, app) and 3–5 seeded good-first-issues
-- .github/dependabot.yml covering npm (root + workspaces), github-actions, and cargo (packages/ui/src-tauri)
+- .github/dependabot.yml covering npm (root + workspaces), github-actions, and cargo (the Tauri shell's src-tauri crate — a manifest path for dependabot, not UI design work)
 - Enable GitHub Discussions with a starter category structure
 - Branch protection on main requiring the CI and Veri gate checks (aligned with WO-077's multi-committer direction)
 
