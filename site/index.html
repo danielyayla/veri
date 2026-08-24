@@ -16,7 +16,7 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="assets/favicon-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="stylesheet" href="site.css?v=2">
+<link rel="stylesheet" href="site.css?v=3">
 </head>
 <body>
 
@@ -109,32 +109,32 @@
 <section class="band">
   <div class="wrap">
     <div class="eyebrow">Context, not prompt engineering</div>
-    <h2>Why not just prompt harder?</h2>
-    <p class="lead">Because a prompt lives and dies with its session. Veri keeps context outside the conversation, where it compounds.</p>
+    <h2>Why not just CLAUDE.md and an ADR folder?</h2>
+    <p class="lead">If you keep an agent-instructions file — CLAUDE.md, AGENTS.md — and architecture decision records, you already believe the idea. What a folder of files can't do is scale with the project: one file carries everything, into every session, and nothing checks that any of it still holds. Veri keeps the plain files and adds the four things the folder can't.</p>
     <div class="vs-grid">
       <div class="vs-card">
-        <h3>Without Veri</h3>
+        <h3>A growing CLAUDE.md</h3>
         <ol>
-          <li>explain the project</li>
-          <li class="fade">explain the architecture</li>
-          <li class="fade">explain previous decisions</li>
-          <li class="fade">paste the requirements</li>
-          <li>ask the agent to work</li>
-          <li>session ends — everything is forgotten</li>
-          <li class="loops">repeat, from zero, every session</li>
+          <li>one file carries everything, into every session</li>
+          <li class="fade">every task pays the whole file's token cost</li>
+          <li class="fade">no links between documents — nothing flags drift</li>
+          <li class="fade">an agent edit becomes an instruction, silently</li>
+          <li>outcomes scatter across chat logs and commit messages</li>
+          <li class="loops">prune it by hand, or watch it rot</li>
         </ol>
       </div>
       <div class="vs-card with">
         <h3>With Veri</h3>
         <ol>
-          <li>open a <strong>work order</strong></li>
-          <li>Veri retrieves the relevant project knowledge</li>
-          <li>the agent works, inside the stated scope</li>
-          <li><strong>decisions and a receipt</strong> return to the knowledge base</li>
-          <li class="loops">the next session inherits what was learned</li>
+          <li>each task gets a <strong>scoped package</strong> — only the documents linked to it</li>
+          <li>typed links between documents, and <code>veri check</code> flags what breaks</li>
+          <li>agent writings arrive as <strong>drafts you promote</strong></li>
+          <li>finished work files a <strong>receipt</strong> on the work order</li>
+          <li class="loops">knowledge accumulates; the per-task cost doesn't</li>
         </ol>
       </div>
     </div>
+    <p class="vs-note">Keep your CLAUDE.md — Veri is what it points at. This repository's own is two lines, and the second says to fetch the context package.</p>
   </div>
 </section>
 

@@ -556,6 +556,14 @@ section.band { margin: 88px auto 0; }
 
 .vs-card li strong { color: var(--text); font-weight: 600; }
 
+.vs-note {
+  margin: 24px auto 0;
+  max-width: 640px;
+  text-align: center;
+  font-size: 15px;
+  color: var(--muted);
+}
+
 /* ---- plain files ---- */
 
 .file-card {
