@@ -48,31 +48,93 @@ test('exact id matches with or without zero-padding and ranks first', () => {
   for (const raw of ['req14', 'REQ-014', 'req014']) {
     const hits = rankDocs(DOCS, parsePaletteQuery(raw));
     assert.equal(hits[0].id, 'REQ-014', `query ${raw}`);
-    assert.equal(hits[0].score, 100);
+    assert.equal(hits[0].score, 1000);
+    assert.deepEqual(hits[0].matched, ['id']);
   }
 });
 
-test('rank tiers: id prefix > title starts-with > title contains > body', () => {
+test('rank tiers: id prefix > title match > body match', () => {
   const prefix = rankDocs(DOCS, parsePaletteQuery('dec'));
   assert.deepEqual(prefix.map((h) => h.id), ['DEC-002', 'DEC-005']);
-  assert.ok(prefix.every((h) => h.score === 80));
+  assert.ok(prefix.every((h) => h.score === 800));
 
   const hits = rankDocs(DOCS, parsePaletteQuery('pdf export'));
-  // Title starts-with (REQ-014, WO-002 both start "PDF export…") beats contains.
+  // Both terms whole words in both titles, full phrase starts both titles.
   assert.deepEqual(hits.map((h) => h.id), ['REQ-014', 'WO-002']);
-  assert.ok(hits.every((h) => h.score === 62));
+  assert.ok(hits.every((h) => h.score === 250)); // 100 + 100 + 50 phrase-start
+  assert.ok(hits.every((h) => h.matched.length === 1 && h.matched[0] === 'title'));
 
   const contains = rankDocs(DOCS, parsePaletteQuery('export'));
-  assert.ok(contains.every((h) => h.score === 55));
+  assert.ok(contains.every((h) => h.score === 125)); // 100 whole word + 25 phrase-contain
 });
 
 test('body match scores lowest and carries a one-line snippet', () => {
   const hits = rankDocs(DOCS, parsePaletteQuery('auth token'));
   assert.equal(hits.length, 1);
   assert.equal(hits[0].id, 'WO-003');
-  assert.equal(hits[0].score, 30);
+  assert.equal(hits[0].score, 80); // two whole-word body terms, 40 each
+  assert.deepEqual(hits[0].matched, ['body']);
   assert.ok(hits[0].snippet !== null && hits[0].snippet.includes('auth token flow'));
   assert.ok(!hits[0].snippet.includes('\n'), 'snippet collapses newlines');
+});
+
+// ---- Ranked multi-term scoring (WO-090) ----------------------------------
+
+const RANK_DOCS: VeriDocument[] = [
+  doc({ id: 'REQ-101', type: 'requirement', title: 'Ledger export rules', status: 'accepted' }),
+  doc({ id: 'REQ-102', type: 'requirement', title: 'Quarterly report', status: 'accepted', body: 'The ledger export feeds it.' }),
+  doc({ id: 'REQ-103', type: 'requirement', title: 'Ledgering conventions', status: 'accepted' }),
+  doc({ id: 'REQ-104', type: 'requirement', title: 'Archival', status: 'accepted', body: 'Only the ledger is archived.' }),
+];
+
+test('a title hit outranks a body-only hit for the same term', () => {
+  const hits = rankDocs(RANK_DOCS, parsePaletteQuery('export'));
+  assert.equal(hits[0].id, 'REQ-101');
+  assert.deepEqual(hits[0].matched, ['title']);
+  assert.equal(hits[1].id, 'REQ-102');
+  assert.deepEqual(hits[1].matched, ['body']);
+  assert.ok(hits[0].score > hits[1].score);
+});
+
+test('a whole-word match outranks a bare substring at the same tier', () => {
+  const hits = rankDocs(RANK_DOCS, parsePaletteQuery('ledger'));
+  const word = hits.find((h) => h.id === 'REQ-101')!; // "Ledger" whole word
+  const substring = hits.find((h) => h.id === 'REQ-103')!; // "Ledgering"
+  assert.ok(word.score > substring.score);
+});
+
+test('multi-term queries AND-match: every term must land, scores sum per term', () => {
+  const hits = rankDocs(RANK_DOCS, parsePaletteQuery('ledger export'));
+  // REQ-103 and REQ-104 have ledger but not export — dropped by AND.
+  assert.deepEqual(hits.map((h) => h.id), ['REQ-101', 'REQ-102']);
+  // Two matched terms beat the same document's single-term score.
+  const single = rankDocs(RANK_DOCS, parsePaletteQuery('ledger')).find((h) => h.id === 'REQ-101')!;
+  assert.ok(hits[0].score > single.score, 'multi-term beats single-term');
+});
+
+test('terms may land in different fields; matched names each field', () => {
+  const docs = [doc({ id: 'WO-101', type: 'work-order', title: 'Ledger rework', status: 'backlog', body: 'Blocks the export.' })];
+  const hits = rankDocs(docs, parsePaletteQuery('ledger export'));
+  assert.equal(hits.length, 1);
+  assert.deepEqual(hits[0].matched, ['title', 'body']);
+  assert.ok(hits[0].snippet !== null && hits[0].snippet.includes('export'));
+});
+
+test('backward compatibility: every full-phrase substring hit is still a hit', () => {
+  // Old behavior matched "auth token" as one substring; term-splitting must
+  // keep that hit (and may add docs matching the terms apart).
+  const phrase = rankDocs(DOCS, parsePaletteQuery('auth token'));
+  assert.ok(phrase.some((h) => h.id === 'WO-003'));
+  const titlePhrase = rankDocs(DOCS, parsePaletteQuery('pdf export'));
+  assert.ok(titlePhrase.some((h) => h.id === 'REQ-014') && titlePhrase.some((h) => h.id === 'WO-002'));
+});
+
+test('ordering is deterministic and independent of document load order', () => {
+  const reversed = [...RANK_DOCS].reverse();
+  for (const raw of ['ledger', 'ledger export', 'req', '']) {
+    const q = parsePaletteQuery(raw);
+    assert.equal(JSON.stringify(rankDocs(reversed, q)), JSON.stringify(rankDocs(RANK_DOCS, q)));
+  }
 });
 
 test('filters compose and drop non-matching docs', () => {
@@ -97,9 +159,9 @@ test('empty text lists every filter-surviving doc at base score', () => {
 test('recently opened docs get a fading rank boost', () => {
   const hits = rankDocs(DOCS, parsePaletteQuery('export'), ['WO-002']);
   assert.equal(hits[0].id, 'WO-002');
-  assert.equal(hits[0].score, 67); // 55 + 12
+  assert.equal(hits[0].score, 137); // 125 + 12
   const later = rankDocs(DOCS, parsePaletteQuery('export'), ['X', 'X', 'X', 'X', 'X', 'X', 'WO-002']);
-  assert.equal(later.find((h) => h.id === 'WO-002')?.score, 55); // boost fades to zero
+  assert.equal(later.find((h) => h.id === 'WO-002')?.score, 125); // boost fades to zero
 });
 
 test('is:proposed means awaiting review: proposed decisions and draft requirements (SRC-006)', () => {
@@ -219,13 +281,40 @@ test('is:active treats proposed decisions as living', () => {
   );
 });
 
+// ---- Dogfood: ranked search over this repository's own corpus (WO-090) ---
+
+test('a title-word query on the dogfood corpus ranks title hits first with full recall', async () => {
+  const { loadProject } = await import('@veri/core');
+  const { documents } = await loadProject(new URL('../../../veri', import.meta.url));
+  const needle = 'brownfield';
+  const hits = rankDocs(documents, parsePaletteQuery(needle));
+
+  // Full recall: every substring hit of the old scan is still returned.
+  const substringIds = documents
+    .filter((d) => d.title.toLowerCase().includes(needle) || d.body.toLowerCase().includes(needle))
+    .map((d) => d.id)
+    .sort();
+  assert.deepEqual(hits.map((h) => h.id).sort(), substringIds);
+  assert.ok(hits.length > 1, 'expected both title and body hits in the corpus');
+
+  // Ranking: every title-matching document sits above every body-only match.
+  const lastTitle = hits.map((h) => h.matched.includes('title')).lastIndexOf(true);
+  const firstBodyOnly = hits.findIndex((h) => !h.matched.includes('title'));
+  assert.ok(hits[0].matched.includes('title'), 'top hit must match on title');
+  assert.ok(firstBodyOnly === -1 || lastTitle < firstBodyOnly, 'a body-only hit outranked a title hit');
+
+  // Determinism: two runs over the same files are byte-identical.
+  const again = rankDocs(await loadProject(new URL('../../../veri', import.meta.url)).then((p) => p.documents), parsePaletteQuery(needle));
+  assert.equal(JSON.stringify(hits), JSON.stringify(again));
+});
+
 test('palette zero-strip is prefix-anchored: req14 never matches REQ-1004 (WO-050)', () => {
   const docs = [...DOCS, doc({ id: 'REQ-1004', type: 'requirement', title: 'Wide id', status: 'draft' })];
   const hits14 = rankDocs(docs, parsePaletteQuery('req14'));
   assert.equal(hits14[0].id, 'REQ-014');
-  assert.equal(hits14[0].score, 100);
+  assert.equal(hits14[0].score, 1000);
   assert.ok(!hits14.some((h) => h.id === 'REQ-1004'));
   const hits1004 = rankDocs(docs, parsePaletteQuery('req1004'));
   assert.equal(hits1004[0].id, 'REQ-1004');
-  assert.equal(hits1004[0].score, 100);
+  assert.equal(hits1004[0].score, 1000);
 });

@@ -5,7 +5,7 @@ import { PALETTE_MAX_ROWS, paletteRows } from './palette.ts';
 import { VIEW_META } from './tabs.ts';
 
 function hit(id: string, score: number): PaletteHit {
-  return { id, type: 'work-order', status: 'backlog', title: id, score, snippet: null };
+  return { id, type: 'work-order', status: 'backlog', title: id, score, matched: ['title'], snippet: null };
 }
 
 function result(query: Partial<PaletteQuery>, hits: PaletteHit[]): PaletteResult {
@@ -13,7 +13,7 @@ function result(query: Partial<PaletteQuery>, hits: PaletteHit[]): PaletteResult
 }
 
 test('typing a view name surfaces the view row among doc hits by score', () => {
-  const rows = paletteRows(result({ text: 'search' }, [hit('WO-001', 62), hit('WO-002', 55)]));
+  const rows = paletteRows(result({ text: 'search' }, [hit('WO-001', 150), hit('WO-002', 125)]));
   assert.deepEqual(
     rows.map((r) => (r.kind === 'view' ? r.view : r.kind === 'doc' ? r.hit.id : r.kind === 'command' ? r.label : `+${r.count}`)),
     ['WO-001', 'search', 'WO-002'],
@@ -108,7 +108,7 @@ test('command rows are suppressed while a type or status filter is active', () =
 });
 
 test('a doc hit outranks the command row at equal-ish scores', () => {
-  const rows = paletteRows(result({ text: 'new' }, [hit('WO-018', 62)]));
+  const rows = paletteRows(result({ text: 'new' }, [hit('WO-018', 150)]));
   assert.equal(rows[0]?.kind, 'doc');
 });
 

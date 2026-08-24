@@ -91,7 +91,8 @@ test('the built server answers tools/list and get_context over stdio', { skip: !
   assert.ok(text.includes('Already rejected'));
 
   const search = responses.get(4)?.result;
-  assert.match(search?.content?.[0]?.text ?? '', /DEC-001\s+decision\s+active/);
+  // Ranked hits carry their score and matched fields (WO-090).
+  assert.match(search?.content?.[0]?.text ?? '', /DEC-001\s+decision\s+active\s+.*\[score \d+ · [a-z,]+\]/);
 });
 
 // REQ-019's drift test, MCP side: the tool names scaffolded harness files

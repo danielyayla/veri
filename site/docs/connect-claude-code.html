@@ -77,7 +77,7 @@
 <table>
   <tr><th>Tool</th><th>What it does</th></tr>
   <tr><td><code>get_context</code></td><td>The context package for a work order: the project workflow, the work order, all linked requirements and active decisions (two hops), source excerpts, with token estimates. Superseded decisions are named as already rejected.</td></tr>
-  <tr><td><code>search</code></td><td>Case-insensitive substring search over every document's id, title, and body.</td></tr>
+  <tr><td><code>search</code></td><td>Ranked, case-insensitive search over every document's id, title, and body — title and whole-word hits score above body substrings, top 25 returned.</td></tr>
   <tr><td><code>get_document</code></td><td>One document in full by id — how an agent follows a link the context package only named.</td></tr>
   <tr><td><code>get_neighbors</code></td><td>A document's direct links, inbound and outbound, with each neighbor's type and status.</td></tr>
   <tr><td><code>file_decision</code></td><td>Records a decision the agent made during implementation, with the alternatives it rejected — filed for your review.</td></tr>

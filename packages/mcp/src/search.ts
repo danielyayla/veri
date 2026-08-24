@@ -32,9 +32,10 @@ export async function searchDocs(projectRoot: string, query: string): Promise<Se
 }
 
 // ---- Palette search (WO-013, SRC-005 layer 2) ----------------------------
-// Ranked matching over the same corpus the MCP `search` tool scans, exported
-// so the UI reuses this one implementation (DEC-009: no second index). The
-// MCP tool itself keeps the plain substring semantics of `searchDocs`.
+// Ranked matching shared by the UI palette, the Search view, and the MCP
+// `search` tool (DEC-044, WO-090): one scoring implementation, no second
+// algorithm to drift (DEC-009: no second index). `searchDocs` above keeps
+// its WO-003 substring semantics as a library export only.
 
 const TYPE_PREFIX: Record<string, DocType> = {
   req: 'requirement',
@@ -69,7 +70,11 @@ export interface PaletteHit {
   status: string;
   title: string;
   score: number;
-  /** One-line context around a body match; null for id/title matches. */
+  /** Where the query landed: id tier, or per-term title/body hits (WO-090).
+      Empty for the empty-text base score. */
+  matched: Array<'id' | 'title' | 'body'>;
+  /** One-line context around the first body-matched term; null when the
+      match is entirely id/title. */
   snippet: string | null;
 }
 
@@ -132,15 +137,39 @@ export function relatedIds(documents: VeriDocument[], id: string): Set<string> {
   return hood;
 }
 
+/** Score tiers (WO-090). Id tiers dominate everything else; term tiers sum
+    across AND-matched terms (whole word above bare substring, title above
+    body); phrase bonuses reward the full query appearing intact in a title. */
+const SCORE = {
+  idExact: 1000,
+  idPrefix: 800,
+  titleWord: 100,
+  titleSub: 80,
+  bodyWord: 40,
+  bodySub: 30,
+  phraseTitleStart: 50,
+  phraseTitleContain: 25,
+} as const;
+
+const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const hasWholeWord = (haystack: string, term: string): boolean =>
+  new RegExp(`\\b${escapeRegExp(term)}\\b`).test(haystack);
+
 /**
- * Score tiers per the SRC-005 handoff: exact id (zero-padding optional, so
- * `req14` → REQ-014) → id prefix → title starts-with → title contains →
- * body match (with snippet). Recently opened docs get a fading boost.
- * Empty text scores every filter-surviving doc 1, so `wo:` alone lists all
- * work orders and an empty palette floats the recents.
+ * Ranked matching per the SRC-005 handoff, extended by WO-090 to multi-term
+ * queries: exact id (zero-padding optional, so `req14` → REQ-014) → id
+ * prefix → per-term scoring. Free text splits on whitespace; every term must
+ * match title or body (AND), and the score sums the terms' best tiers —
+ * whole-word beats substring, title beats body — plus a bonus when the full
+ * phrase sits in the title. Recently opened docs get a fading boost. Empty
+ * text scores every filter-surviving doc 1, so `wo:` alone lists all work
+ * orders and an empty palette floats the recents. Ordering is deterministic:
+ * score, then id.
  */
 export function rankDocs(documents: VeriDocument[], query: PaletteQuery, recents: string[] = []): PaletteHit[] {
   const qId = query.text.replace(/[^a-z0-9]/g, '');
+  const terms = query.text === '' ? [] : query.text.split(' ');
   const hood = query.related === null ? null : relatedIds(documents, query.related);
   const hits: PaletteHit[] = [];
   for (const doc of documents) {
@@ -160,28 +189,44 @@ export function rankDocs(documents: VeriDocument[], query: PaletteQuery, recents
     const title = doc.title.toLowerCase();
     let score = 0;
     let snippet: string | null = null;
+    const matched: PaletteHit['matched'] = [];
     if (query.text === '') {
       score = 1;
     } else if (qId !== '' && (idNorm === qId || idShort === qId)) {
-      score = 100;
+      score = SCORE.idExact;
+      matched.push('id');
     } else if (qId !== '' && idNorm.startsWith(qId)) {
-      score = 80;
-    } else if (title.startsWith(query.text)) {
-      score = 62;
-    } else if (title.includes(query.text)) {
-      score = 55;
+      score = SCORE.idPrefix;
+      matched.push('id');
     } else {
+      // Per-term AND matching: every term must land somewhere, each term
+      // contributes its best tier only.
       const body = doc.body.replace(/\s+/g, ' ');
-      const at = body.toLowerCase().indexOf(query.text);
-      if (at >= 0) {
-        score = 30;
-        snippet = `…${body.slice(Math.max(0, at - 20), at + 60).trim()}…`;
+      const bodyLower = body.toLowerCase();
+      let allTermsMatch = true;
+      for (const term of terms) {
+        if (title.includes(term)) {
+          score += hasWholeWord(title, term) ? SCORE.titleWord : SCORE.titleSub;
+          if (!matched.includes('title')) matched.push('title');
+        } else {
+          const at = bodyLower.indexOf(term);
+          if (at < 0) {
+            allTermsMatch = false;
+            break;
+          }
+          score += hasWholeWord(bodyLower, term) ? SCORE.bodyWord : SCORE.bodySub;
+          if (!matched.includes('body')) matched.push('body');
+          if (snippet === null) snippet = `…${body.slice(Math.max(0, at - 20), at + 60).trim()}…`;
+        }
       }
+      if (!allTermsMatch) continue;
+      if (title.startsWith(query.text)) score += SCORE.phraseTitleStart;
+      else if (title.includes(query.text)) score += SCORE.phraseTitleContain;
     }
     if (score === 0) continue;
     const recency = recents.indexOf(doc.id);
     if (recency >= 0) score += Math.max(0, 12 - recency * 2);
-    hits.push({ id: doc.id, type: doc.type, status: doc.status, title: doc.title, score, snippet });
+    hits.push({ id: doc.id, type: doc.type, status: doc.status, title: doc.title, score, matched, snippet });
   }
   return hits.sort((a, b) => b.score - a.score || compareIds(a.id, b.id));
 }

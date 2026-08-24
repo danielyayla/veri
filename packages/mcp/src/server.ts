@@ -48,6 +48,10 @@ server.registerTool(
   },
 );
 
+/** Ranked hits the search tool returns before truncating (WO-090); the
+    tool description states this cap. */
+const SEARCH_CAP = 25;
+
 server.registerTool(
   'search',
   {
@@ -57,7 +61,9 @@ server.registerTool(
       '(is:active means living, is:proposed the review queue), and related:<ID> narrows to the 1-hop link ' +
       'neighborhood of that id: documents it links to and documents linking to it, via frontmatter links ' +
       'and inline [[refs]], plus the id itself. An unknown related: id returns no matches, never an error. ' +
-      'Example: "related:WO-028 is:active".',
+      'Multi-word text AND-matches each word. Hits are ranked by score — id, then title, then body matches, ' +
+      `whole words above substrings — and truncated to the top ${SEARCH_CAP}; each line ends with its score ` +
+      'and where it matched. Example: "related:WO-028 is:active".',
     inputSchema: { query: z.string() },
   },
   async ({ query }) => {
@@ -65,7 +71,15 @@ server.registerTool(
       guardFormat();
       const { hits } = await paletteSearch(projectRoot, query);
       if (hits.length === 0) return ok('no matches');
-      return ok(hits.map((hit) => `${hit.id}  ${hit.type}  ${hit.status}  ${hit.title}`).join('\n'));
+      const lines = hits
+        .slice(0, SEARCH_CAP)
+        .map(
+          (hit) =>
+            `${hit.id}  ${hit.type}  ${hit.status}  ${hit.title}` +
+            `  [score ${hit.score}${hit.matched.length > 0 ? ` · ${hit.matched.join(',')}` : ''}]`,
+        );
+      if (hits.length > SEARCH_CAP) lines.unshift(`top ${SEARCH_CAP} of ${hits.length} matches by score:`);
+      return ok(lines.join('\n'));
     } catch (err) {
       return fail(err);
     }

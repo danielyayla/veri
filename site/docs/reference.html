@@ -170,7 +170,7 @@ veri open [dir]            open the project in the Veri desktop app</code></pre>
 <table>
   <tr><th>Tool</th><th>What it does</th></tr>
   <tr><td><code>get_context(id)</code></td><td>Context package for a work order: the project workflow first, then the work order, its linked requirements and decisions (2 hops), pending proposals labeled non-binding, source excerpts, and the project's document templates, with per-document and total token estimates. Superseded decisions are named as already rejected, bodies omitted; when the neighborhood is too large to inline, its outer ring arrives as a context map to retrieve from instead of full bodies. The same package <code>veri context &lt;WO-id&gt;</code> prints in a terminal.</td></tr>
-  <tr><td><code>search(query)</code></td><td>Case-insensitive substring match over id, title, and body.</td></tr>
+  <tr><td><code>search(query)</code></td><td>Ranked, case-insensitive search over id, title, and body: multi-word queries AND-match each word, title and whole-word hits score above body substrings, and hits return with their score, capped at the top 25.</td></tr>
   <tr><td><code>get_document(id)</code></td><td>One document in full, exactly as on disk.</td></tr>
   <tr><td><code>get_neighbors(id)</code></td><td>A document's outbound links and backlinks, with relations.</td></tr>
   <tr><td><code>file_decision(title, choice, …)</code></td><td>Record a decision with the next free DEC id, <code>status: proposed</code> (awaiting your approval).</td></tr>

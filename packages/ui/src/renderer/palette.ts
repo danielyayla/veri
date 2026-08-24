@@ -56,15 +56,18 @@ export function paletteRows(result: PaletteResult, opts: { brownfield?: boolean 
       if (view === 'import' && opts.brownfield !== true) continue;
       const label = VIEW_LABELS[view] ?? meta.label;
       const terms = [label.toLowerCase(), ...(VIEW_ALIASES[view] ?? [])];
+      // 130 sits between the ranking core's single-term title-starts (150)
+      // and title-contains (125) tiers — the same slot the old constant held
+      // against the pre-WO-090 scale.
       if (text === '') scored.push({ row: { kind: 'view', view, label, glyph: meta.glyph }, score: 0.5 });
       else if (terms.some((term) => term.includes(text)))
-        scored.push({ row: { kind: 'view', view, label, glyph: meta.glyph }, score: 58 });
+        scored.push({ row: { kind: 'view', view, label, glyph: meta.glyph }, score: 130 });
     }
     for (const [command, meta] of Object.entries(COMMAND_META) as Array<
       [CommandKey, (typeof COMMAND_META)[CommandKey]]
     >) {
       if (text !== '' && meta.terms.some((term) => term.includes(text)))
-        scored.push({ row: { kind: 'command', command, label: meta.label, glyph: meta.glyph }, score: 58 });
+        scored.push({ row: { kind: 'command', command, label: meta.label, glyph: meta.glyph }, score: 130 });
     }
   }
   const rows = scored

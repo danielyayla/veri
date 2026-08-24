@@ -4,7 +4,7 @@ import type { PaletteHit } from '@veri/mcp';
 import { SEARCH_MAX_ROWS, boldSegments, searchRows } from './searchview.ts';
 
 function hit(id: string, snippet: string | null = null): PaletteHit {
-  return { id, type: 'work-order', status: 'backlog', title: id, score: 30, snippet };
+  return { id, type: 'work-order', status: 'backlog', title: id, score: 30, matched: ['body'], snippet };
 }
 
 // ---- render cap (WO-048, SRC-022: "results render the top 200") ----
