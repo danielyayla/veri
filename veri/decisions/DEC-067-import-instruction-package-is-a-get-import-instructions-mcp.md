@@ -2,7 +2,8 @@
 id: DEC-067
 type: decision
 title: "Import instruction package is a get_import_instructions MCP tool; one kickoff prompt in core"
-status: proposed
+status: active
+approved: 2026-08-24
 created: 2026-08-24
 updated: 2026-08-24
 links:

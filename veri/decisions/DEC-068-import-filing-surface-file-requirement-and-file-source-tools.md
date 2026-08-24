@@ -2,7 +2,8 @@
 id: DEC-068
 type: decision
 title: "Import filing surface: file_requirement and file_source tools; manifests defined by imported-via links"
-status: proposed
+status: active
+approved: 2026-08-24
 created: 2026-08-24
 updated: 2026-08-24
 links:
