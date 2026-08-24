@@ -2,7 +2,7 @@
 id: WO-091
 type: work-order
 title: "Starter template bundles: veri init gives an opinionated start per project type"
-status: backlog
+status: in-progress
 created: 2026-08-24
 updated: 2026-08-24
 links:
