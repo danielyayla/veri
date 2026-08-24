@@ -2,7 +2,7 @@
 id: WO-088
 type: work-order
 title: "Code bindings on work orders and spec-to-code drift detectors"
-status: backlog
+status: in-progress
 created: 2026-08-24
 updated: 2026-08-24
 links:
