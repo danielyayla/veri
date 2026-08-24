@@ -18,6 +18,14 @@ links:
     rel: builds-on
   - id: SRC-043
     rel: derived-from
+binds:
+  paths:
+    - packages/core/src/**
+    - packages/cli/src/**
+    - packages/mcp/src/**
+    - site/docs/**
+  tests:
+    - packages/mcp/src/check.test.ts
 ---
 
 ## Summary

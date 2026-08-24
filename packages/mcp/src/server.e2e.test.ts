@@ -79,6 +79,7 @@ test('the built server answers tools/list and get_context over stdio', { skip: !
     'get_document',
     'get_import_instructions',
     'get_neighbors',
+    'run_check',
     'search',
   ]);
 

@@ -12,7 +12,8 @@ The workflow is a first-class document: `veri/workflow.md` (WF-001,
 per DEC-018). It arrives as the first section of every context
 package — read it and follow it. In short: work order first, read
 every linked document, stay in scope, file choices as proposed
-decisions, append receipts, `veri check` before done.
+decisions, append receipts, and verify before done — `veri check` in
+a terminal, or `run_check` over MCP (zero violations is the bar).
 
 ## Document format
 

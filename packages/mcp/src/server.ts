@@ -4,6 +4,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { assembleImportInstructions, classifyFormat, formatStatement, isOperableFormat, loadProject } from '@veri/core';
 import { z } from 'zod';
+import { runCheck } from './check.ts';
 import { assembleContext } from './context.ts';
 import { getDocument, getNeighbors } from './read.ts';
 import { paletteSearch } from './search.ts';
@@ -264,6 +265,29 @@ server.registerTool(
       const veriDir = join(projectRoot, 'veri');
       const { documents } = await loadProject(veriDir);
       return ok(assembleImportInstructions(veriDir, documents));
+    } catch (err) {
+      return fail(err);
+    }
+  },
+);
+
+server.registerTool(
+  'run_check',
+  {
+    description:
+      'The project health check — the same derivation `veri check` runs, as structured JSON. ' +
+      '`violations` are the gate (any entry fails the CLI with exit 1); `advisories` inform and never block; ' +
+      '`skipped` names checks this server cannot run with the reason — the git-backed tier (provenance, drift) ' +
+      'needs a terminal `veri check`, since this server spawns no subprocesses. ' +
+      'Call this before filing a receipt or declaring a work order done: pass true with zero violations is the bar.',
+    inputSchema: {},
+  },
+  async () => {
+    try {
+      guardFormat();
+      const result = await runCheck(projectRoot);
+      if (result === null) throw new Error('no veri/ directory here');
+      return ok(JSON.stringify(result, null, 2));
     } catch (err) {
       return fail(err);
     }

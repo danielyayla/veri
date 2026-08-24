@@ -85,6 +85,7 @@
   <tr><td><code>file_requirement</code></td><td>Drafts a requirement with the next free REQ id — born <code>draft</code>, awaiting your acceptance.</td></tr>
   <tr><td><code>file_source</code></td><td>Files a source document — imported evidence with the file paths, commit refs, and excerpts it rests on.</td></tr>
   <tr><td><code>file_receipt</code></td><td>Appends a work-session receipt (commit, files, summary) to a work order — or to an import manifest as an import's completion signal. Receipts accumulate; they never overwrite.</td></tr>
+  <tr><td><code>run_check</code></td><td>The project health check — the same derivation <code>veri check</code> runs, as structured JSON: violations (the gate), advisories (inform only), and skipped checks with reasons. Agents call it before filing a receipt or declaring work done.</td></tr>
   <tr><td><code>get_import_instructions</code></td><td>The <a href="brownfield.html">brownfield import</a> instruction package: what to mine from an existing repo, the filing rules, and a census of what the knowledge base already holds.</td></tr>
 </table>
 </div>

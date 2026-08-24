@@ -12529,6 +12529,55 @@ function checkBindingDrift(documents, facts, options) {
   return advisories;
 }
 
+// ../core/dist/report.js
+function formatLine(format) {
+  if (format.kind === "current")
+    return `format ${format.version} (current)`;
+  return formatStatement(format) ?? `format ${String(format.kind)}`;
+}
+function fileOf(issue) {
+  return issue.kind === "duplicate-id" ? issue.files.join(", ") : issue.file;
+}
+function idOf(value) {
+  const id = value.id;
+  return typeof id === "string" ? id : void 0;
+}
+function importSkipNotes(skipped) {
+  return skipped.map((entry) => `(architecture: skipped module ${entry.name} \u2014 ${entry.path} is not on disk)`);
+}
+function buildCheckReport(load, host) {
+  const { issues, advisories } = checkProject(load);
+  if (host.git.kind === "ok") {
+    advisories.push(...checkProvenance(load.documents, host.git.facts));
+    advisories.push(...checkDrift(load.documents, host.git.facts, host.git.veriPath));
+    advisories.push(...checkBindingDrift(load.documents, host.git.facts, {
+      veriPath: host.git.veriPath,
+      today: host.today,
+      staleAfterDays: staleAfterDays(load.documents)
+    }));
+  }
+  advisories.push(...checkBoundTests(load.documents, host.testFacts));
+  if (host.importFacts !== void 0) {
+    advisories.push(...checkObservedArchitecture(load.documents, host.importFacts.edges));
+  }
+  return {
+    formatLine: formatLine(load.format),
+    documentCount: load.documents.length,
+    issues: issues.map((issue) => ({ kind: issue.kind, id: idOf(issue), file: fileOf(issue), message: issue.message })),
+    advisories: advisories.map((advisory) => ({
+      kind: advisory.kind,
+      id: idOf(advisory),
+      file: advisory.file,
+      message: advisory.message
+    })),
+    skips: [
+      ...host.git.kind === "ok" ? [] : [`(provenance: skipped \u2014 ${host.git.reason})`],
+      ...host.git.kind !== "ok" && bindingClaimants(load.documents).length > 0 ? [`(binding drift: skipped \u2014 ${host.git.reason})`] : [],
+      ...importSkipNotes(host.importFacts?.skipped ?? [])
+    ]
+  };
+}
+
 // ../cli/dist/git.js
 import { spawnSync } from "node:child_process";
 function git(cwd, args) {
@@ -12670,56 +12719,23 @@ function requireVeriDir(cwd) {
   const dir = join6(cwd, "veri");
   return existsSync3(dir) ? dir : null;
 }
-function fileOf(issue) {
-  return issue.kind === "duplicate-id" ? issue.files.join(", ") : issue.file;
-}
 function veriPathInRepo(repoRoot, veriDir) {
   return relative2(realpathSync(repoRoot), realpathSync(veriDir)).split(sep2).join("/");
-}
-function formatLine(format) {
-  if (format.kind === "current")
-    return `format ${format.version} (current)`;
-  return formatStatement(format) ?? `format ${String(format.kind)}`;
-}
-function importSkipNotes(observed) {
-  return (observed?.skipped ?? []).map((entry) => `(architecture: skipped module ${entry.name} \u2014 ${entry.path} is not on disk)`);
 }
 async function checkReport(cwd) {
   const dir = requireVeriDir(cwd);
   if (dir === null)
     return null;
   const load = await loadProject(dir);
-  const { issues, advisories } = checkProject(load);
   const git2 = collectGitFacts(cwd);
-  if (git2.kind === "ok") {
-    advisories.push(...checkProvenance(load.documents, git2.facts));
-    advisories.push(...checkDrift(load.documents, git2.facts, veriPathInRepo(git2.root, dir)));
-    advisories.push(...checkBindingDrift(load.documents, git2.facts, {
-      veriPath: veriPathInRepo(git2.root, dir),
-      today: localToday(),
-      staleAfterDays: staleAfterDays(load.documents)
-    }));
-  }
-  const tests = boundTests(load.documents);
-  if (tests.length > 0) {
-    advisories.push(...checkBoundTests(load.documents, collectTestFacts(git2.kind === "ok" ? git2.root : cwd, tests)));
-  }
+  const root2 = git2.kind === "ok" ? git2.root : cwd;
   const modules = moduleRegistry(load.documents);
-  const observed = modules.length > 0 ? collectImportFacts(cwd, modules) : void 0;
-  if (observed !== void 0) {
-    advisories.push(...checkObservedArchitecture(load.documents, observed.edges));
-  }
-  return {
-    formatLine: formatLine(load.format),
-    documentCount: load.documents.length,
-    issues: issues.map((issue) => ({ file: fileOf(issue), message: issue.message })),
-    advisories: advisories.map((advisory) => ({ kind: advisory.kind, file: advisory.file, message: advisory.message })),
-    skips: [
-      ...git2.kind === "ok" ? [] : [`(provenance: skipped \u2014 ${git2.reason})`],
-      ...git2.kind !== "ok" && bindingClaimants(load.documents).length > 0 ? [`(binding drift: skipped \u2014 ${git2.reason})`] : [],
-      ...importSkipNotes(observed)
-    ]
-  };
+  return buildCheckReport(load, {
+    git: git2.kind === "ok" ? { kind: "ok", facts: git2.facts, veriPath: veriPathInRepo(git2.root, dir) } : git2,
+    today: localToday(),
+    testFacts: collectTestFacts(root2, boundTests(load.documents)),
+    importFacts: modules.length > 0 ? collectImportFacts(cwd, modules) : void 0
+  });
 }
 
 // src/report.ts

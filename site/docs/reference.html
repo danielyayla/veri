@@ -165,7 +165,7 @@ veri open [dir]            open the project in the Veri desktop app</code></pre>
 <p>The CLI and the desktop app read and write the same files; everything above works identically from either.</p>
 
 <h2 id="mcp-tools">The MCP server's tools</h2>
-<p>The stdio MCP server (<code>@veri/mcp</code>) serves one project and exposes ten tools. Reads return documents exactly as on disk; writes can only produce pending documents — nothing an agent files becomes binding without your approval.</p>
+<p>The stdio MCP server (<code>@veri/mcp</code>) serves one project and exposes eleven tools. Reads return documents exactly as on disk; writes can only produce pending documents — nothing an agent files becomes binding without your approval.</p>
 <div class="table-scroll">
 <table>
   <tr><th>Tool</th><th>What it does</th></tr>
@@ -178,6 +178,7 @@ veri open [dir]            open the project in the Veri desktop app</code></pre>
   <tr><td><code>file_requirement(title, body, …)</code></td><td>Draft a requirement with the next free REQ id, <code>status: draft</code> (awaiting your acceptance).</td></tr>
   <tr><td><code>file_source(title, body, …)</code></td><td>File a source document: imported evidence with the paths, commit refs, and excerpts it rests on.</td></tr>
   <tr><td><code>file_receipt(work_order_id, commit, files, summary)</code></td><td>Append a work-session receipt to a work order — or to an import manifest as an import's completion signal. Receipts accumulate, never overwrite.</td></tr>
+  <tr><td><code>run_check()</code></td><td>The health check as structured JSON — the same derivation <code>veri check</code> runs: <code>violations</code> (the gate; any entry fails the CLI), <code>advisories</code> (inform, never block), and <code>skipped</code> checks named with reasons. The git-backed tier (provenance, drift) is skipped over MCP — the server spawns no subprocesses — so agents run it for the document gates and bound tests, and a terminal <code>veri check</code> covers the rest.</td></tr>
   <tr><td><code>get_import_instructions()</code></td><td>The brownfield import instruction package: what to mine from an existing repo, the filing rules, and a census of what the knowledge base already holds.</td></tr>
 </table>
 </div>

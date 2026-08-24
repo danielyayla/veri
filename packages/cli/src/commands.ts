@@ -3,12 +3,11 @@ import { existsSync, realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, bindingClaimants, boundTests, checkBindingDrift, checkBoundTests, checkDrift, checkObservedArchitecture, checkProject, checkProvenance, classifyFormat, compareIds, createDocument, formatStatement, importKickoffPrompt, isBrownfieldRoot, isOperableFormat, loadProject, localToday, maintainerRegistry, migrateProject, moduleRegistry, renderArchitecture, renumberDocument, scaffoldProject, staleAfterDays, workOrdersTouching } from '@veri/core';
-import type { DocType, FormatClassification, Issue } from '@veri/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, classifyFormat, compareIds, createDocument, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, maintainerRegistry, migrateProject, moduleRegistry, renderArchitecture, renumberDocument, scaffoldProject, workOrdersTouching } from '@veri/core';
+import type { CheckReport, DocType } from '@veri/core';
 import { collectGitFacts, gitUserName } from './git.ts';
 import { collectTestFacts } from './testfacts.ts';
 import { collectImportFacts } from './imports.ts';
-import type { ImportFactsResult } from './imports.ts';
 
 export interface CmdResult {
   code: number;
@@ -84,10 +83,6 @@ export async function newDoc(cwd: string, typeArg: string | undefined, title: st
   }
 }
 
-function fileOf(issue: Issue): string {
-  return issue.kind === 'duplicate-id' ? issue.files.join(', ') : issue.file;
-}
-
 /** The veri/ directory's repo-root-relative path with forward slashes, for
     mapping document files onto the paths git reports (WO-045). Both sides
     resolve through realpath — git reports the toplevel symlink-resolved
@@ -96,88 +91,31 @@ function veriPathInRepo(repoRoot: string, veriDir: string): string {
   return relative(realpathSync(repoRoot), realpathSync(veriDir)).split(sep).join('/');
 }
 
-/** One line naming the format version — and the migration, when one applies (REQ-015). */
-function formatLine(format: FormatClassification): string {
-  if (format.kind === 'current') return `format ${format.version} (current)`;
-  return formatStatement(format) ?? `format ${String(format.kind)}`;
-}
-
-/** Skip notes for registry modules the collector could not find on disk (WO-067). */
-function importSkipNotes(observed: ImportFactsResult | undefined): string[] {
-  return (observed?.skipped ?? []).map(
-    (entry) => `(architecture: skipped module ${entry.name} — ${entry.path} is not on disk)`,
-  );
-}
-
 /**
- * Structured result of the health check (WO-076, REQ-025). One derivation
- * shared by the terminal renderer in check() and the GitHub Action runner,
- * so a local `veri check` and the CI surface can never disagree.
+ * Structured result of the health check (WO-076, REQ-025). The derivation
+ * lives in core as buildCheckReport (WO-089) and is shared by the terminal
+ * renderer in check(), the GitHub Action runner, and the MCP server's
+ * run_check — no surface can disagree with another. This adapter only
+ * collects the host facts (DEC-040): git history, bound-test existence,
+ * and observed imports. Returns null when cwd has no veri/ directory.
  */
-export interface CheckReport {
-  formatLine: string;
-  documentCount: number;
-  /** Gate violations — non-zero exit. `file` is veri/-relative; a
-      duplicate-id issue names every claimant, comma-separated. */
-  issues: Array<{ file: string; message: string }>;
-  /** The DEC-025 advisory tier: informs, never affects the exit code. */
-  advisories: Array<{ kind: string; file: string; message: string }>;
-  /** Checks that could not run here (no git, shallow clone, module not on
-      disk), pre-rendered exactly as check() prints them. */
-  skips: string[];
-}
+export type { CheckReport } from '@veri/core';
 
-/** Returns null when cwd has no veri/ directory. */
 export async function checkReport(cwd: string): Promise<CheckReport | null> {
   const dir = requireVeriDir(cwd);
   if (dir === null) return null;
   const load = await loadProject(dir);
-  const { issues, advisories } = checkProject(load);
-  // Receipt verification (WO-044) and git drift (WO-045): git facts come
-  // from the host, checks stay pure in core (DEC-040). No repository means
-  // a note, never a failure.
   const git = collectGitFacts(cwd);
-  if (git.kind === 'ok') {
-    advisories.push(...checkProvenance(load.documents, git.facts));
-    advisories.push(...checkDrift(load.documents, git.facts, veriPathInRepo(git.root, dir)));
-    // Binding drift (WO-088): same DEC-040 split — git facts from the host,
-    // detectors pure in core, findings on the DEC-025 advisory tier.
-    advisories.push(
-      ...checkBindingDrift(load.documents, git.facts, {
-        veriPath: veriPathInRepo(git.root, dir),
-        today: localToday(),
-        staleAfterDays: staleAfterDays(load.documents),
-      }),
-    );
-  }
-  // Bound tests (WO-088) need the filesystem, not git — they run either way.
-  // The identifiers are repo-root-relative; without a repository root the
-  // working directory is the best available anchor.
-  const tests = boundTests(load.documents);
-  if (tests.length > 0) {
-    advisories.push(...checkBoundTests(load.documents, collectTestFacts(git.kind === 'ok' ? git.root : cwd, tests)));
-  }
-  // Observed architecture (WO-067): the host collects import edges, core
-  // compares them against the intended architecture — same split (DEC-040),
-  // same advisory tier (DEC-025). No registry means nothing to observe.
+  // Bound-test identifiers are repo-root-relative; without a repository
+  // root the working directory is the best available anchor (WO-088).
+  const root = git.kind === 'ok' ? git.root : cwd;
   const modules = moduleRegistry(load.documents);
-  const observed = modules.length > 0 ? collectImportFacts(cwd, modules) : undefined;
-  if (observed !== undefined) {
-    advisories.push(...checkObservedArchitecture(load.documents, observed.edges));
-  }
-  return {
-    formatLine: formatLine(load.format),
-    documentCount: load.documents.length,
-    issues: issues.map((issue) => ({ file: fileOf(issue), message: issue.message })),
-    advisories: advisories.map((advisory) => ({ kind: advisory.kind, file: advisory.file, message: advisory.message })),
-    skips: [
-      ...(git.kind === 'ok' ? [] : [`(provenance: skipped — ${git.reason})`]),
-      ...(git.kind !== 'ok' && bindingClaimants(load.documents).length > 0
-        ? [`(binding drift: skipped — ${git.reason})`]
-        : []),
-      ...importSkipNotes(observed),
-    ],
-  };
+  return buildCheckReport(load, {
+    git: git.kind === 'ok' ? { kind: 'ok', facts: git.facts, veriPath: veriPathInRepo(git.root, dir) } : git,
+    today: localToday(),
+    testFacts: collectTestFacts(root, boundTests(load.documents)),
+    importFacts: modules.length > 0 ? collectImportFacts(cwd, modules) : undefined,
+  });
 }
 
 export async function check(cwd: string): Promise<CmdResult> {
@@ -288,7 +226,7 @@ export async function architecture(cwd: string): Promise<CmdResult> {
   const observed = modules.length > 0 ? collectImportFacts(cwd, modules) : undefined;
   return {
     code: 0,
-    lines: [renderArchitecture(load.documents, observed?.edges), ...importSkipNotes(observed)],
+    lines: [renderArchitecture(load.documents, observed?.edges), ...importSkipNotes(observed?.skipped ?? [])],
   };
 }
 

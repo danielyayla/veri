@@ -20,5 +20,6 @@ export * from './context.ts';
 export * from './provenance.ts';
 export * from './drift.ts';
 export * from './binds.ts';
+export * from './report.ts';
 export * from './workflow-default.ts';
 export * from './brownfield.ts';

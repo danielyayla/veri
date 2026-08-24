@@ -110,6 +110,10 @@ Before writing any code:
 3. Follow the project workflow, which arrives as the first section of
    that package (canonical copy: \`veri/workflow.md\`).
 
+Before filing a receipt or declaring work done, verify: call
+\`run_check()\` over MCP, or run \`veri check\` in a terminal. Zero
+violations is the bar — advisories inform, never block.
+
 The package contains everything that binds: the workflow, the work
 order, its linked requirements and decisions, and source excerpts.
 `;
