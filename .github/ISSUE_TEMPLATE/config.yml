@@ -1,0 +1,9 @@
+# WO-080: route non-issues away from the tracker before they're filed.
+blank_issues_enabled: false
+contact_links:
+  - name: Troubleshooting guide
+    url: https://danielyayla.github.io/veri/docs/troubleshooting.html
+    about: Common setup and connection problems, with fixes.
+  - name: Questions & ideas — Discussions
+    url: https://github.com/danielyayla/veri/discussions
+    about: Ask a question or float an idea without filing an issue.
