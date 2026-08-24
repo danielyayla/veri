@@ -2,7 +2,7 @@
 id: WO-089
 type: work-order
 title: "run_check over MCP — agents self-check before proposing work"
-status: backlog
+status: in-progress
 created: 2026-08-24
 updated: 2026-08-24
 links:
