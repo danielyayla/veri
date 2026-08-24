@@ -2,7 +2,7 @@
 id: WO-088
 type: work-order
 title: "Code bindings on work orders and spec-to-code drift detectors"
-status: in-progress
+status: done
 created: 2026-08-24
 updated: 2026-08-24
 links:
@@ -59,16 +59,16 @@ Give work orders an optional machine-readable binding to the code they claim —
 
 ## Acceptance tests
 
-- [ ] A work order may declare `binds.paths` and `binds.tests`; the schema validates shape, and a work order without the block passes every check unchanged
-- [ ] A commit touching a source file that matches no in-progress work order's bound paths surfaces an unclaimed-code-change advisory naming the file and commit
-- [ ] A commit touching a file matched by an in-progress work order's bound paths produces no unclaimed-change advisory
-- [ ] An in-progress work order with bindings and no commits on its bound paths within the staleness window surfaces a stale advisory naming the work order and the window
-- [ ] A bound test identifier that no longer exists surfaces an advisory; existence facts come from the host, and core stays free of filesystem and git access
-- [ ] All new findings flow through the existing advisory pipeline and never change `veri check`'s exit status
-- [ ] Outside a git repository, every new detector degrades to a skip with a note — never a failure or a false verdict
-- [ ] The format documentation and work-order template document the `binds:` block
-- [ ] This repository's own `veri check` runs green with at least one binding-carrying work order in the corpus
+- [x] A work order may declare `binds.paths` and `binds.tests`; the schema validates shape, and a work order without the block passes every check unchanged
+- [x] A commit touching a source file that matches no in-progress work order's bound paths surfaces an unclaimed-code-change advisory naming the file and commit
+- [x] A commit touching a file matched by an in-progress work order's bound paths produces no unclaimed-change advisory
+- [x] An in-progress work order with bindings and no commits on its bound paths within the staleness window surfaces a stale advisory naming the work order and the window
+- [x] A bound test identifier that no longer exists surfaces an advisory; existence facts come from the host, and core stays free of filesystem and git access
+- [x] All new findings flow through the existing advisory pipeline and never change `veri check`'s exit status
+- [x] Outside a git repository, every new detector degrades to a skip with a note — never a failure or a false verdict
+- [x] The format documentation and work-order template document the `binds:` block
+- [x] This repository's own `veri check` runs green with at least one binding-carrying work order in the corpus
 
 ## Receipts
 
-(none yet)
+- 2026-08-24 — cbb5cca — packages/core/src (binds.ts, binds.test.ts, schema.ts, types.ts, parse.ts, create.ts, index.ts), packages/cli/src (testfacts.ts, commands.ts, commands.test.ts), action/dist/index.js, site/docs/reference.html, veri/work-orders/WO-088, veri/decisions/DEC-080 — binds schema + three drift detectors on the advisory tier, CLI wiring with non-git skip note, commented binds in new work orders, reference docs, self-hosting binding on this work order; DEC-080 filed as proposed; all workspaces green (37 CLI / 175 core tests), veri check 0 issues.
