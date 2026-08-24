@@ -1,4 +1,5 @@
 export * from './ids.ts';
+export * from './dates.ts';
 export * from './types.ts';
 export * from './schema.ts';
 export * from './parse.ts';

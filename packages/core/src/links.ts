@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { ID_RE } from './ids.ts';
 import { bumpUpdated } from './save.ts';
 import type { Link } from './types.ts';
+import { localToday } from './dates.ts';
 
 /**
  * Typed-link editing's write path (WO-056, SRC-028): rewrite ONLY the
@@ -98,7 +99,7 @@ export async function setDocumentLinks(
   veriDir: string | URL,
   file: string,
   links: Link[],
-  date: string = new Date().toISOString().slice(0, 10),
+  date: string = localToday(),
 ): Promise<SetLinksResult> {
   const root = typeof veriDir === 'string' ? veriDir : fileURLToPath(veriDir);
   if (isAbsolute(file) || file.split(/[\\/]/).includes('..') || !file.endsWith('.md')) {

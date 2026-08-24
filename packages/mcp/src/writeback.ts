@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { loadProject, nextIdNumber, recordIssuedId } from '@veri/core';
+import { loadProject, localToday, nextIdNumber, recordIssuedId } from '@veri/core';
 
 export interface FileDecisionInput {
   title: string;
@@ -42,9 +42,9 @@ export interface FileReceiptInput {
   date?: string;
 }
 
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+// One clock for every stamp: the local calendar date, matching git's %cs
+// committer dates the drift detectors compare against (WO-074).
+const today = localToday;
 
 function slugify(title: string): string {
   const slug = title

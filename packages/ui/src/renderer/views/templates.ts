@@ -6,6 +6,7 @@
  * body-only markdown with no frontmatter to protect.
  */
 import type { DocType } from '@veri/core';
+import { localToday } from '@veri/core/dates';
 import { h } from '../dom.ts';
 import { TYPE_META } from '../theme.ts';
 import type { ActiveTpl, Ctx } from '../app.ts';
@@ -112,7 +113,7 @@ function conflictBanner(ctx: Ctx, tpl: ActiveTpl): HTMLElement | null {
 export function templatesView(ctx: Ctx): HTMLElement {
   const active = ctx.state.tplType;
   const tpl = ctx.tplView();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
 
   const rows = TPL_TYPES.map((type) => {
     const customized = ctx.tplChip(type);

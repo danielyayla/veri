@@ -2,12 +2,16 @@
 id: WO-074
 type: work-order
 title: "Spurious drift advisories from UTC/local date skew in stamps vs git facts"
-status: backlog
+status: in-progress
 created: 2026-08-21
-updated: 2026-08-21
+updated: 2026-08-24
 links:
   - id: WO-045
     rel: follows-from
+  - id: REQ-021
+    rel: implements
+  - id: SRC-010
+    rel: designed-by
 ---
 
 ## Summary

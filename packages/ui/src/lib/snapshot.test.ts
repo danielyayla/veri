@@ -85,6 +85,45 @@ test('this host collects git facts: git-backed drift joins the snapshot advisory
   assert.match(drift[0].message, /DEC-001 was approved 2026-08-10 but its file changed afterwards/);
 });
 
+test('a fresh scaffold committed while the local date differs from UTC shows no drift (WO-074)', async (t) => {
+  // Pin a zone where the local calendar date is guaranteed to differ from
+  // the UTC date right now: UTC+14 is a day ahead once UTC passes 10:00,
+  // UTC-12 is a day behind until UTC reaches 12:00 (POSIX Etc/GMT signs are
+  // inverted, and the Etc zones span GMT-14 east to GMT+12 west).
+  // Stamping (scaffoldProject) and committing (spawnSync inherits env) both
+  // happen inside that zone, exactly the skew window that used to produce a
+  // spurious drift-approved-edited advisory on WF-001's approved: stamp.
+  const prevTz = process.env.TZ;
+  process.env.TZ = new Date().getUTCHours() >= 10 ? 'Etc/GMT-14' : 'Etc/GMT+12';
+  t.after(() => {
+    if (prevTz === undefined) delete process.env.TZ;
+    else process.env.TZ = prevTz;
+  });
+  assert.notEqual(
+    `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`,
+    new Date().toISOString().slice(0, 10),
+    'the pinned zone must put the local date on the other side of the UTC boundary',
+  );
+
+  const dir = sandbox(t);
+  const git = (...args: string[]) => {
+    const run = spawnSync('git', args, { cwd: dir, encoding: 'utf8' });
+    assert.equal(run.status, 0, run.stderr);
+  };
+  git('init', '-q');
+  git('config', 'user.email', 'test@example.com');
+  git('config', 'user.name', 'Test');
+  git('add', '.');
+  git('commit', '-q', '-m', 'initial scaffold');
+
+  const snap = await buildSnapshot(dir);
+  assert.deepEqual(snap.issues, []);
+  assert.deepEqual(
+    snap.advisories.filter((advisory) => advisory.kind === 'drift-approved-edited'),
+    [],
+  );
+});
+
 // ---------------------------------------------------------------------------
 // WO-051 — incremental snapshots. The invariant: an incremental build after
 // any sequence of file events deep-equals a from-scratch buildSnapshot.

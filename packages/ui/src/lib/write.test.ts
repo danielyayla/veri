@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { localToday } from '@veri/core';
 import { appendNote, appendReviewNote, approveDoc, setLinks, setStatus } from './write.ts';
 
 const WO_FILE = [
@@ -40,7 +41,7 @@ test('setStatus rewrites only the status and updated lines', async () => {
   const root = await makeProject();
   await setStatus(root, 'WO-001', 'in-progress');
   const after = await readFile(join(root, 'veri', 'work-orders', 'WO-001-build-it.md'), 'utf8');
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
   const changed = WO_FILE.split('\n')
     .map((line) => {
       if (line === 'status: backlog') return 'status: in-progress';
@@ -60,7 +61,7 @@ test('appendNote creates a Notes section and stamps updated', async () => {
   const root = await makeProject();
   await appendNote(root, 'WO-001', 'Linked [[REQ-001]] for context');
   const after = await readFile(join(root, 'veri', 'work-orders', 'WO-001-build-it.md'), 'utf8');
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
   assert.ok(after.includes(`## Notes\n\n- ${today} — Linked [[REQ-001]] for context`));
   assert.ok(after.includes(`updated: ${today}`));
   // The receipts section is untouched.
@@ -72,7 +73,7 @@ test('appendNote appends to an existing Notes section without clobbering', async
   await appendNote(root, 'WO-001', 'first');
   await appendNote(root, 'WO-001', 'second');
   const after = await readFile(join(root, 'veri', 'work-orders', 'WO-001-build-it.md'), 'utf8');
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
   assert.ok(after.includes(`- ${today} — first\n- ${today} — second`));
   assert.equal(after.match(/## Notes/g)!.length, 1);
 });
@@ -102,7 +103,7 @@ test('setLinks rewrites only the links block and updated:, via core', async () =
     { id: 'REQ-002', rel: 'relates-to' },
   ]);
   const after = await readFile(join(root, 'veri', 'work-orders', 'WO-001-build-it.md'), 'utf8');
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
   const changed = WO_FILE.replace(
     'links:\n  - id: REQ-001\n    rel: delivers',
     'links:\n  - id: REQ-001\n    rel: delivers\n  - id: REQ-002\n    rel: relates-to',
@@ -144,7 +145,7 @@ async function makeReviewProject(): Promise<string> {
 test('approveDoc stamps and flips through the shared core write path', async () => {
   const root = await makeReviewProject();
   const result = await approveDoc(root, 'REQ-001');
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
   assert.equal(result.from, 'draft');
   assert.equal(result.to, 'accepted');
   assert.equal(result.approved, today);
@@ -171,7 +172,7 @@ test('proposed is a writable decision status; requirements still reject it', asy
 test('appendReviewNote creates the section, appends entries, and refuses non-pending docs', async () => {
   const root = await makeReviewProject();
   const path = join(root, 'veri', 'requirements', 'REQ-001-pending.md');
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
 
   await appendReviewNote(root, 'REQ-001', 'Tighten the wording.');
   let after = await readFile(path, 'utf8');

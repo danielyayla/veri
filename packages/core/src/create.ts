@@ -5,6 +5,7 @@ import type { DocType } from './ids.ts';
 import { nextIdNumber, recordIssuedId, type IdPrefix } from './idstore.ts';
 import { loadProject } from './load.ts';
 import { getTemplate } from './templates.ts';
+import { localToday } from './dates.ts';
 
 /**
  * Document creation (REQ-009 §2): type + title in, a check-passing file out.
@@ -65,7 +66,7 @@ export async function createDocument(
   veriDir: string | URL,
   type: DocType,
   title: string,
-  date: string = new Date().toISOString().slice(0, 10),
+  date: string = localToday(),
 ): Promise<CreateResult> {
   const trimmed = title.trim();
   if (trimmed === '') throw new Error('a title is required');

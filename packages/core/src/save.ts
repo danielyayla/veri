@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { localToday } from './dates.ts';
 
 /**
  * The direct-editing write path (REQ-009, WO-022): the buffer is written
@@ -86,7 +87,7 @@ export async function saveDocumentFile(
   veriDir: string | URL,
   file: string,
   text: string,
-  date: string = new Date().toISOString().slice(0, 10),
+  date: string = localToday(),
 ): Promise<SaveResult> {
   const root = typeof veriDir === 'string' ? veriDir : fileURLToPath(veriDir);
   if (isAbsolute(file) || file.split(/[\\/]/).includes('..') || !file.endsWith('.md')) {

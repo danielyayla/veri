@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { writeDefaultTemplates } from './templates.ts';
 import { FORMAT_FILE, writeFormatMarker } from './format.ts';
 import { AGENTS_MD, CLAUDE_MD_POINTER, defaultWorkflowMd } from './workflow-default.ts';
+import { localToday } from './dates.ts';
 
 /** The four subdirectories every Veri project has (REQ-001). */
 export const VERI_SUBDIRS = ['requirements', 'decisions', 'work-orders', 'sources'] as const;
@@ -61,7 +62,7 @@ export function scaffoldProject(root: string, opts: ScaffoldOptions = {}): Scaff
       mkdirSync(join(veriDir, sub), { recursive: true });
       writeFileSync(join(veriDir, sub, '.gitkeep'), '');
     }
-    writeFileSync(join(veriDir, 'workflow.md'), defaultWorkflowMd(today()));
+    writeFileSync(join(veriDir, 'workflow.md'), defaultWorkflowMd(localToday()));
     writeFormatMarker(veriDir);
     writeDefaultTemplates(veriDir);
     const { filesWritten, filesSkipped } = writePointerFiles(root);
@@ -74,7 +75,7 @@ export function scaffoldProject(root: string, opts: ScaffoldOptions = {}): Scaff
   cpSync(join(demoRoot, 'veri'), veriDir, { recursive: true });
   // A demo may ship its own workflow.md; only projects without one get the default.
   if (!existsSync(join(veriDir, 'workflow.md'))) {
-    writeFileSync(join(veriDir, 'workflow.md'), defaultWorkflowMd(today()));
+    writeFileSync(join(veriDir, 'workflow.md'), defaultWorkflowMd(localToday()));
   }
   // A demo may ship its own marker (it should); stamp only if it doesn't.
   if (!existsSync(join(veriDir, FORMAT_FILE))) writeFormatMarker(veriDir);
@@ -97,10 +98,6 @@ export function scaffoldProject(root: string, opts: ScaffoldOptions = {}): Scaff
   filesWritten.push(...pointers.filesWritten);
   filesSkipped.push(...pointers.filesSkipped);
   return { veriDir, docCount, filesWritten, filesSkipped };
-}
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 
 // Harness entry files are generated pointers, never content (DEC-018).

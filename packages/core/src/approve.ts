@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { loadProject } from './load.ts';
 import { checkProject, maintainerRegistry } from './check.ts';
 import { parseDocument } from './parse.ts';
+import { localToday } from './dates.ts';
 
 export interface ApproveResult {
   id: string;
@@ -31,7 +32,7 @@ const PROMOTION: Record<string, { from: string; to: string }> = {
 export async function approveDocument(
   veriDir: string | URL,
   id: string,
-  date: string = new Date().toISOString().slice(0, 10),
+  date: string = localToday(),
   approvedBy?: string,
 ): Promise<ApproveResult> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error(`approval date must be YYYY-MM-DD, got "${date}"`);

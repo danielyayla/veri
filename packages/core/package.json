@@ -15,6 +15,10 @@
     "./ids": {
       "types": "./dist/ids.d.ts",
       "default": "./dist/ids.js"
+    },
+    "./dates": {
+      "types": "./dist/dates.d.ts",
+      "default": "./dist/dates.js"
     }
   },
   "files": [

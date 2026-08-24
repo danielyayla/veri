@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { approveDocument, loadProject, setDocumentLinks } from '@veri/core';
+import { approveDocument, loadProject, localToday, setDocumentLinks } from '@veri/core';
 import type { ApproveResult, Link, VeriDocument } from '@veri/core';
 
 /** Statuses the UI may write, per the vocabularies in CLAUDE.md / core's schema. */
@@ -11,9 +11,9 @@ const WRITABLE_STATUSES: Record<string, readonly string[]> = {
   source: ['imported'],
 };
 
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+// One clock for every stamp: the local calendar date, matching git's %cs
+// committer dates the drift detectors compare against (WO-074).
+const today = localToday;
 
 async function findDoc(projectRoot: string, id: string): Promise<{ doc: VeriDocument; path: string }> {
   const veriDir = join(projectRoot, 'veri');

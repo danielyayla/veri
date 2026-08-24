@@ -2,14 +2,15 @@
     document — provenance, "what approving means", request-changes composer,
     and the approve popover with the exact frontmatter diff. */
 import type { VeriDocument } from '@veri/core';
+import { localToday } from '@veri/core/dates';
 import { h } from '../dom.ts';
 import { TYPE_META } from '../theme.ts';
 import { connections, importEvidenceOf, importManifestOf, isPending } from '../derive.ts';
 import type { Ctx } from '../app.ts';
 
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+// One clock for every stamp: the local calendar date, matching git's %cs
+// committer dates the drift detectors compare against (WO-074).
+const today = localToday;
 
 /** Scroll the reader to a rendered `## <name>` heading (SRC-006: the review
     material is the document itself, not a generated summary). */
