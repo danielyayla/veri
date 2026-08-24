@@ -2,7 +2,7 @@
 id: WO-082
 type: work-order
 title: "Positioning: answer \"why not just CLAUDE.md / ADRs?\" on the homepage"
-status: backlog
+status: done
 created: 2026-08-24
 updated: 2026-08-24
 links:
@@ -39,11 +39,11 @@ The highest-leverage finding in SRC-041: the site's "Why not just prompt harder?
 
 ## Acceptance tests
 
-- [ ] The homepage names CLAUDE.md/AGENTS.md and ADRs and states what Veri adds over them, in the site's existing voice
-- [ ] The "explain the project / paste the requirements" strawman framing is gone
-- [ ] A developer who already keeps an AGENTS.md can quote back Veri's four differentiators after reading one band
-- [ ] Light and dark renderings both pass the existing AA contrast baseline from WO-065
+- [x] The homepage names CLAUDE.md/AGENTS.md and ADRs and states what Veri adds over them, in the site's existing voice
+- [x] The "explain the project / paste the requirements" strawman framing is gone
+- [x] A developer who already keeps an AGENTS.md can quote back Veri's four differentiators after reading one band
+- [x] Light and dark renderings both pass the existing AA contrast baseline from WO-065
 
 ## Receipts
 
-(none yet)
+- 2026-08-24 · 6f1a8c8 · site/index.html, site/site.css — replaced the "Why not just prompt harder?" band with "Why not just CLAUDE.md and an ADR folder?": lead names CLAUDE.md/AGENTS.md and architecture decision records and states the four differentiators (scoped per-task retrieval, typed links + veri check, drafts-you-promote approval gate, receipts); vs-cards reworked from the manual re-explanation strawman to how a single growing instructions file degrades; closing .vs-note ("Keep your CLAUDE.md — Veri is what it points at") with new CSS class, cache-bust to site.css?v=3 on the homepage. Verified live in the browser (band renders, styles apply, no console errors); .vs-note contrast computed 5.51:1 dark / 4.82:1 light, AA pass. README checked for the strawman framing — absent, so the conditional README item was a no-op (README was also mid-edit by a concurrent session and left untouched).
