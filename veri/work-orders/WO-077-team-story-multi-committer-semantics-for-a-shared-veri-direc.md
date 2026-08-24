@@ -56,4 +56,4 @@ Define and implement how a veri/ knowledge base behaves with more than one commi
 
 ## Receipts
 
-(none yet)
+- 2026-08-24 — 51840df — veri/decisions/DEC-070-id-allocation-stays-sequential-collisions-resolve-by-one-ato.md, veri/decisions/DEC-071-maintainers-ride-the-workflow-frontmatter-stamps-gain-approv.md, veri/decisions/DEC-072-the-approval-stamp-commit-rides-the-pull-request-merge-never.md, veri/ids — Design pass: audited today's duplicate-id detection, veri/ids merge behavior, and the stamp format; filed the three proposed DECs settling the id-collision scheme (sequential allocation + atomic veri renumber), multi-maintainer stamps (maintainers list in workflow frontmatter + approved_by), and the PR-review-as-approval baseline (stamp commit rides the PR; merge never approves). No code yet — implementation awaits DEC approval.
