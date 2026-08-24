@@ -2,7 +2,7 @@
 id: WO-090
 type: work-order
 title: "Ranked search: the MCP search tool outgrows substring matching"
-status: in-progress
+status: done
 created: 2026-08-24
 updated: 2026-08-24
 links:
@@ -12,6 +12,12 @@ links:
     rel: consistent-with
   - id: REQ-017
     rel: extends
+binds:
+  paths:
+    - packages/mcp/src/**
+    - site/docs/**
+  tests:
+    - packages/mcp/src/search.test.ts
 ---
 
 ## Summary
@@ -41,11 +47,11 @@ The agent-facing MCP `search` tool is a case-insensitive substring scan over id,
 
 ## Acceptance tests
 
-- [ ] A title-word query against the dogfood corpus ranks the title-matching document first, above body-only matches, with the previous substring behavior's full recall preserved (every old hit still present unless the stated cap truncates)
-- [ ] The MCP tool and the command palette produce their ordering from one shared scoring function (verified by import graph, not code similarity)
-- [ ] Ranking is deterministic: two runs over the same files return byte-identical results
-- [ ] npm test green including new ranking tests; veri check zero issues
+- [x] A title-word query against the dogfood corpus ranks the title-matching document first, above body-only matches, with the previous substring behavior's full recall preserved (every old hit still present unless the stated cap truncates) (dogfood test in packages/mcp/src/search.test.ts runs "brownfield" against this repo's veri/, asserts title hits above body-only and recall equal to a manual substring scan; live JSON-RPC call against the built server ranked REQ-024 at score 250 above body-only WO-091 at 80)
+- [x] The MCP tool and the command palette produce their ordering from one shared scoring function (verified by import graph, not code similarity) (packages/mcp/src/server.ts imports paletteSearch from ./search.ts and packages/ui/src/sidecar/app.ts imports paletteSearch from @veri/mcp — both reach the one rankDocs; no second scorer exists)
+- [x] Ranking is deterministic: two runs over the same files return byte-identical results (search.test.ts asserts JSON-identical output across two corpus loads and across reversed document input order; sort key is score then compareIds, a total order)
+- [x] npm test green including new ranking tests; veri check zero issues (578 tests pass across all five workspaces including 7 new ranking/determinism/recall tests; veri check: 247 documents, 0 issues, 1 pre-existing WO-034 advisory)
 
 ## Receipts
 
-(none yet)
+- 2026-08-24 — 2cfcc06 — packages/mcp/src (search.ts, search.test.ts, server.ts, server.e2e.test.ts), packages/ui/src/renderer (palette.ts, palette.test.ts, searchview.test.ts), site/docs (reference.html, connect-claude-code.html), veri/decisions/DEC-083, veri/ids — multi-term AND ranking with whole-word bonus and matched field in the shared rankDocs core; MCP search returns score+matched capped at a stated top 25; palette view-row constant recalibrated; DEC-083 filed as proposed. Note: the summary's premise predates DEC-044 — the MCP tool already shared paletteSearch; this session delivered the missing ranking depth (whole-word, multi-term, score surface, cap).
