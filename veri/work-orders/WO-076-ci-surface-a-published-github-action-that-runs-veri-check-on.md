@@ -2,7 +2,7 @@
 id: WO-076
 type: work-order
 title: "CI surface: a published GitHub Action that runs veri check on pull requests"
-status: in-progress
+status: done
 created: 2026-08-24
 updated: 2026-08-24
 links:
@@ -51,9 +51,10 @@ Make Veri's guarantees mechanical for a whole team, not one machine: a published
 - [x] A PR introducing only advisories (stamp drift, receipt naming files a commit didn't touch) passes by default but shows annotations on the affected documents (verified on this repo: WO-034's receipt-prefix advisory as a `::warning`, exit 0)
 - [x] Setting the escalation input turns those advisories into failures (verified: strict-advisories=true → explanatory `::error`, exit 1)
 - [x] Receipt commit verification works on a default shallow checkout or the docs state the exact fetch-depth needed, and the action fails informatively rather than falsely when history is missing (verified on a depth-1 clone: provenance skips with a `::notice` carrying the fetch-depth: 0 hint; docs state the requirement)
-- [ ] This repo runs the action on its own PRs and it is green on main (workflow committed; needs the local commits pushed to GitHub for a live run)
+- [x] This repo runs the action on its own PRs and it is green on main (run 32723169554 on main, 2026-08-24: success in 10s, WO-034 advisory registered as a warning annotation on its document; CI run 32723169546 confirmed the committed bundle byte-identical to a fresh Ubuntu rebuild)
 - [x] The website documents install-to-green in one page with a copy-pasteable workflow snippet (site/docs/ci.html, linked from every docs page's strip)
 
 ## Receipts
 
 - 2026-08-24 — 2b49730 — packages/cli/src/commands.ts, packages/action/src/main.ts, packages/action/src/report.ts, packages/action/build.mjs, action.yml, action/dist/index.js, .github/workflows/veri-check.yml, .github/workflows/ci.yml, site/docs/ci.html, veri/decisions/DEC-069-the-ci-surface-is-a-bundled-node-action-wrapping-the-cli-s-s.md — Implemented the Veri Check action per DEC-069 (proposed): checkReport extracted as the shared derivation, zero-dep bundled runner with error/warning/notice annotations and strict-advisories escalation, self-adoption workflow, bundle-freshness CI step, ci.html docs; all suites green (541 tests), live-verified gate failure, advisory pass, escalation, and shallow-checkout skip — the green-on-main box awaits a push to GitHub.
+- 2026-08-24 — 542392f — veri/work-orders/WO-076-ci-surface-a-published-github-action-that-runs-veri-check-on.md — Pushed to GitHub; Veri gate run 32723169554 green on main (action success, advisory annotated), CI run 32723169546 green including the bundle-freshness diff — all acceptance boxes checked, WO done.
