@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Veri — brownfield import (design reference)</title>
+<style>
+  :root{
+    --bg:#0F0F11; --panel:#131316; --card:#151519; --card2:#18181D;
+    --hair:#1E1E24; --cardb:#1F1F24; --int:#26262C; --int-hover:#3A3A44;
+    --text:#E7E4DE; --body:#C9C6CF; --secondary:#A09DA6; --muted:#8B8893;
+    --faint:#6E6B76; --ghost:#55525E; --ghost2:#4A4852;
+    --ember:#E8703A; --on-ember:#141414; --green:#7FAF8A; --amber:#D9A03F;
+    --amberb:#3A3020; --req:#7EA6C4; --dec:#CFA83D; --wo:#E8703A; --src:#908BA8;
+    --sans:"Source Sans 3",-apple-system,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--body);font-family:var(--sans);font-size:14px;line-height:1.65}
+
+  /* ---- scenario bar (design-reference chrome, not part of the app) ---- */
+  .scenbar{position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+    padding:10px 16px;background:#0A0A0C;border-bottom:1px solid var(--hair)}
+  .scenbar b{font:600 10px var(--mono);letter-spacing:.1em;color:var(--faint);margin-right:6px}
+  .scen{font:500 11px var(--mono);color:var(--secondary);border:1px solid var(--int);border-radius:6px;
+    padding:4px 9px;cursor:pointer;background:transparent}
+  .scen:hover{border-color:var(--int-hover)}
+  .scen.on{color:var(--on-ember);background:var(--ember);border-color:var(--ember)}
+  .stage{display:none}
+  .stage.on{display:block}
+
+  /* ---- shared idioms ---- */
+  .col{max-width:640px;margin:0 auto;padding:30px 40px 60px}
+  .colw{max-width:980px;margin:0 auto;padding:30px 40px 60px}
+  .crumb{font:400 11px var(--mono);color:var(--faint)}
+  .crumb .here{color:var(--ember)}
+  .h1{font-size:24px;font-weight:600;color:var(--text);letter-spacing:-.01em;margin-top:10px}
+  .sub{margin-top:8px;font-size:13.5px;color:var(--muted);line-height:1.6;max-width:560px}
+  .card{background:var(--card);border:1px solid var(--int);border-radius:10px;padding:18px 20px;margin-top:16px}
+  .eyebrow{font:400 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+  .eyebrow.warn{color:var(--amber)} .eyebrow.ember{color:var(--ember)} .eyebrow.src{color:var(--src)}
+  .btn-primary{display:inline-flex;align-items:center;height:34px;padding:0 16px;border-radius:7px;border:0;
+    background:var(--ember);color:var(--on-ember);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer}
+  .btn-primary:hover{filter:brightness(1.1)}
+  .btn-primary[disabled]{opacity:.4;cursor:default;filter:none}
+  .btn-primary.copied{background:rgba(127,175,138,.15);color:var(--green);outline:1px solid #24382B}
+  .btn-ghost{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:7px;background:transparent;
+    border:1px solid var(--int);color:var(--secondary);font-family:var(--sans);font-size:12.5px;font-weight:500;cursor:pointer}
+  .btn-ghost:hover{border-color:var(--int-hover)}
+  .caption{margin-top:12px;font-size:11.5px;color:var(--ghost)}
+  .idchip{font:500 10px var(--mono);border-radius:4px;padding:1px 6px;cursor:pointer}
+  .idchip.req{color:var(--req);background:rgba(126,166,196,.1)}
+  .idchip.dec{color:var(--dec);background:rgba(207,168,61,.1)}
+  .idchip.src{color:var(--src);background:rgba(144,139,168,.12)}
+  .pend{font:500 9.5px var(--mono);color:var(--amber);background:rgba(217,160,63,.08);
+    border:1px solid var(--amberb);border-radius:4px;padding:1px 6px}
+  .evid{font:500 9.5px var(--mono);color:var(--src);background:rgba(144,139,168,.1);
+    border:1px solid #2B2836;border-radius:4px;padding:1px 6px}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .pulse{animation:pulse 3s ease-in-out infinite}
+
+  /* ---- 1. start here (home, brownfield) ---- */
+  .hv-head{display:flex;align-items:baseline;gap:12px;margin-bottom:18px}
+  .hv-title{font-size:20px;font-weight:600;color:var(--text)}
+  .hv-count{font:400 11px var(--mono);color:var(--faint)}
+  .start-card{background:var(--card);border:1px solid var(--int);border-radius:10px;padding:18px 20px;margin-bottom:14px}
+  .start-h{font-size:16px;font-weight:600;color:var(--text);margin-top:6px}
+  .path-row{display:flex;align-items:stretch;gap:6px;margin-top:14px}
+  .path-card{flex:1;background:var(--card2);border:1px solid var(--cardb);border-radius:8px;padding:10px 12px}
+  .path-card b{display:block;font:500 11px var(--mono)}
+  .path-card span{display:block;margin-top:3px;font-size:11.5px;color:var(--muted);line-height:1.45}
+  .path-join{align-self:center;color:var(--ghost2);font-family:var(--mono);font-size:12px}
+  .act-row{display:flex;gap:10px;align-items:center;margin-top:16px}
+  .hv-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .hv-card{background:var(--card);border:1px solid var(--cardb);border-radius:10px;padding:14px 16px;min-height:96px}
+  .hv-card-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .hv-empty{font-size:12.5px;color:var(--ghost);padding:8px 0 2px}
+
+  /* ---- 2. import view ---- */
+  .mine-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 24px;margin-top:12px}
+  .mine-list{list-style:none}
+  .mine-list li{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;color:var(--secondary)}
+  .mine-list .g{font-family:var(--mono);font-size:11px;color:var(--ghost2);width:12px;text-align:center}
+  .pf-row{display:flex;align-items:center;gap:9px;margin-top:12px;font-size:13px}
+  .pf-row .ok{color:var(--green)} .pf-mono{font:400 11px var(--mono);color:var(--faint);margin-left:auto}
+  .notice-amber{display:flex;gap:9px;align-items:flex-start;margin-top:12px;padding:10px 12px;border:1px solid var(--amberb);
+    border-radius:6px;background:rgba(217,160,63,.06);font-size:12.5px;color:var(--amber)}
+  .notice-amber .dot{width:6px;height:6px;border-radius:50%;background:var(--amber);flex:0 0 auto;margin-top:6px}
+  .notice-amber a{color:var(--amber);font-weight:600;text-decoration:underline;cursor:pointer;white-space:nowrap}
+  .prompt-block{display:none;margin-top:12px;background:var(--bg);border:1px solid var(--cardb);border-radius:7px;
+    padding:12px 14px;font:400 11px var(--mono);line-height:1.7;color:var(--muted);white-space:pre-wrap}
+  .prompt-block.open{display:block}
+  .feed-head{display:flex;align-items:baseline;gap:10px}
+  .feed-counts{margin-left:auto;font:400 10.5px var(--mono);color:var(--faint)}
+  .feed{margin-top:10px}
+  .feed-row{display:flex;align-items:center;gap:9px;padding:6px 2px;border-top:1px solid var(--hair);font-size:13px}
+  .feed-row:first-child{border-top:0}
+  .feed-dot{width:6px;height:6px;border-radius:50%;background:var(--ember);flex:0 0 auto}
+  .feed-tag{font:500 10px var(--mono);color:var(--ember)}
+  .feed-title{color:var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .feed-time{margin-left:auto;font:400 10.5px var(--mono);color:var(--faint)}
+  .feed-watch{display:flex;align-items:center;gap:8px;padding:8px 2px;border-top:1px solid var(--hair);
+    font:400 11px var(--mono);color:var(--ghost)}
+  .feed-watch .dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
+  .done-card{background:var(--card);border:1px solid #24382B;border-radius:10px;padding:18px 20px;margin-top:16px;
+    background:linear-gradient(rgba(127,175,138,.05),rgba(127,175,138,.05)),var(--card)}
+  .done-h{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:var(--green)}
+  .done-counts{margin-top:8px;font:400 11px var(--mono);color:var(--secondary)}
+
+  /* ---- 3. review queue ---- */
+  .nr-card{background:var(--card);border:1px solid var(--hair);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+  .nr-head{display:flex;align-items:center;margin-bottom:8px}
+  .nr-label{font:400 10px var(--mono);letter-spacing:.1em;color:var(--amber)}
+  .nr-meta{margin-left:auto;font:400 10.5px var(--mono);color:var(--faint)}
+  .grp-head{display:flex;align-items:center;gap:7px;padding:8px 2px 4px;border-top:1px solid var(--hair);margin-top:4px}
+  .grp-swatch{width:7px;height:7px;border-radius:2px;background:var(--src)}
+  .grp-label{font:400 10px var(--mono);letter-spacing:.1em;color:var(--faint)}
+  .grp-prog{margin-left:auto;font:400 10.5px var(--mono);color:var(--secondary)}
+  .nr-row{display:flex;align-items:center;gap:10px;padding:6px 6px;border-radius:6px;cursor:pointer;font-size:13px}
+  .nr-row:hover{background:#17171B}
+  .nr-row .t{color:var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nr-row .when{margin-left:auto;font:400 10.5px var(--mono);color:var(--faint);flex:0 0 auto}
+  .nr-idcol{width:58px;flex:0 0 auto}
+
+  /* ---- 4. imported doc banner ---- */
+  .doc-head{margin-top:10px}
+  .doc-title{font-size:24px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+  .banner{margin-top:16px;background:rgba(217,160,63,.06);border:1px solid var(--amberb);border-radius:8px;padding:12px 14px}
+  .banner-l1{font-size:13px;font-weight:600;color:var(--amber)}
+  .banner-l2{margin-top:5px;font-size:11.5px;color:var(--secondary);line-height:1.7}
+  .banner-disc{margin-top:7px;font-size:11.5px;color:var(--muted);cursor:pointer}
+  .banner-acts{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+  .b-sec{height:28px;padding:0 12px;border-radius:7px;border:1px solid var(--int);background:transparent;
+    color:var(--body);font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer}
+  .b-app{height:28px;padding:0 12px;border-radius:7px;border:0;background:var(--green);
+    color:#0F0F11;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer}
+  .doc-body{margin-top:20px;max-width:720px}
+  .doc-body h2{font-size:15px;font-weight:600;color:var(--text);margin:18px 0 6px}
+  .doc-body p{font-size:14.5px;color:var(--body)}
+  .doc-body li{font-size:14.5px;margin-left:18px}
+</style>
+</head>
+<body>
+
+<div class="scenbar"><b>SCENARIO</b>
+  <button class="scen on" data-s="start">start here</button>
+  <button class="scen" data-s="ready">import · ready</button>
+  <button class="scen" data-s="noagent">import · no agent</button>
+  <button class="scen" data-s="running">import · in progress</button>
+  <button class="scen" data-s="done">done + review queue</button>
+  <button class="scen" data-s="doc">imported doc</button>
+</div>
+
+<!-- ============ 1. START HERE (home, brownfield) ============ -->
+<div class="stage on" id="s-start"><div class="colw">
+  <div class="hv-head"><div class="hv-title">atlas</div><div class="hv-count">0 documents</div></div>
+  <div class="start-card">
+    <div class="eyebrow ember">START HERE</div>
+    <div class="start-h">This repo has a history. Veri can read it.</div>
+    <div class="path-row">
+      <div class="path-card"><b style="color:var(--src)">sources</b><span>evidence enters</span></div>
+      <div class="path-join">→</div>
+      <div class="path-card"><b style="color:var(--req)">requirements</b><span>what must hold</span></div>
+      <div class="path-join">→</div>
+      <div class="path-card"><b style="color:var(--dec)">decisions</b><span>what was chosen</span></div>
+      <div class="path-join">→</div>
+      <div class="path-card"><b style="color:var(--wo)">work orders</b><span>units of work</span></div>
+    </div>
+    <div class="act-row">
+      <button class="btn-primary" onclick="go('ready')">Import project knowledge</button>
+      <button class="btn-ghost">Start from scratch</button>
+    </div>
+    <div class="caption">Your connected agent reads this repo and files proposals — nothing becomes binding until you approve it.</div>
+  </div>
+  <div class="hv-grid">
+    <div class="hv-card"><div class="hv-card-head"><div class="eyebrow">HEALTH</div></div><div class="hv-empty">Nothing to check yet.</div></div>
+    <div class="hv-card"><div class="hv-card-head"><div class="eyebrow">IN FLIGHT</div></div><div class="hv-empty">No work orders yet.</div></div>
+    <div class="hv-card"><div class="hv-card-head"><div class="eyebrow">AGENT ACTIVITY</div></div><div class="hv-empty">No sessions yet.</div></div>
+    <div class="hv-card"><div class="hv-card-head"><div class="eyebrow">RECENTLY CHANGED</div></div><div class="hv-empty">Documents appear here as they change.</div></div>
+  </div>
+</div></div>
+
+<!-- ============ 2a. IMPORT · READY ============ -->
+<div class="stage" id="s-ready"><div class="col">
+  <div class="crumb">atlas / <span class="here">import</span></div>
+  <div class="h1">Import project knowledge</div>
+  <div class="sub">Your agent reads this repo — code, git history, ADRs, READMEs — and files what
+    it finds as proposals. You review every one before it binds.</div>
+
+  <div class="card">
+    <div class="eyebrow">WHAT THE AGENT MINES</div>
+    <div class="mine-cols">
+      <ul class="mine-list">
+        <li style="font:400 10px var(--mono);letter-spacing:.1em;color:var(--ghost)">READS</li>
+        <li><span class="g">·</span>code layout</li>
+        <li><span class="g">·</span>git history</li>
+        <li><span class="g">·</span>ADRs &amp; design docs</li>
+        <li><span class="g">·</span>READMEs</li>
+        <li><span class="g">·</span>CLAUDE.md / AGENTS.md</li>
+      </ul>
+      <ul class="mine-list">
+        <li style="font:400 10px var(--mono);letter-spacing:.1em;color:var(--ghost)">FILES</li>
+        <li><span class="g">+</span>evidence sources</li>
+        <li><span class="g">+</span>requirements&nbsp;<span class="pend">draft</span></li>
+        <li><span class="g">+</span>decisions&nbsp;<span class="pend">proposed</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="eyebrow">PREFLIGHT</div>
+    <div class="pf-row"><span class="ok">✓</span><span>Agent connected — Claude Code · config verified</span>
+      <span class="pf-mono">.mcp.json</span></div>
+  </div>
+
+  <div class="card">
+    <div class="act-row" style="margin-top:0">
+      <button class="btn-primary" id="copybtn" onclick="copyFlip(this)">Copy import kickoff</button>
+      <button class="btn-ghost" onclick="document.getElementById('pblock').classList.toggle('open')">Show what it says</button>
+    </div>
+    <div class="prompt-block" id="pblock">You are importing existing project knowledge into Veri.
+Call get_document("WF-001") and follow the import section: read this
+repo's code layout, git history, ADRs, READMEs, and agent docs. File
+an import manifest source first, then evidence sources, then draft
+requirements and proposed decisions — every claim linked to its
+evidence. File a receipt on the manifest when done. Nothing you file
+is binding until the user approves it.</div>
+    <div class="caption">Veri never reads your code itself. The agent works in your terminal; filed documents appear here as they land.</div>
+  </div>
+</div></div>
+
+<!-- ============ 2b. IMPORT · NO AGENT ============ -->
+<div class="stage" id="s-noagent"><div class="col">
+  <div class="crumb">atlas / <span class="here">import</span></div>
+  <div class="h1">Import project knowledge</div>
+  <div class="sub">Your agent reads this repo — code, git history, ADRs, READMEs — and files what
+    it finds as proposals. You review every one before it binds.</div>
+
+  <div class="card">
+    <div class="eyebrow">PREFLIGHT</div>
+    <div class="notice-amber"><div class="dot"></div>
+      <div>No agent connection found for this project.&nbsp;&nbsp;<a>Open connection panel →</a></div></div>
+  </div>
+
+  <div class="card">
+    <div class="act-row" style="margin-top:0">
+      <button class="btn-primary" disabled title="Connect an agent first">Copy import kickoff</button>
+      <button class="btn-ghost">Show what it says</button>
+    </div>
+    <div class="caption">Veri never reads your code itself. The agent works in your terminal; filed documents appear here as they land.</div>
+  </div>
+</div></div>
+
+<!-- ============ 2c. IMPORT · IN PROGRESS ============ -->
+<div class="stage" id="s-running"><div class="col">
+  <div class="crumb">atlas / <span class="here">import</span></div>
+  <div class="h1">Import project knowledge</div>
+
+  <div class="card">
+    <div class="feed-head"><div class="eyebrow ember">FILING</div>
+      <div class="feed-counts">2 sources · 2 requirements · 3 decisions</div></div>
+    <div class="feed">
+      <div class="feed-row"><div class="feed-dot"></div><span class="feed-tag">agent</span>
+        <span class="idchip dec">DEC-005</span><span class="feed-title">Stripe webhooks are the billing source of truth</span><span class="feed-time">just now</span></div>
+      <div class="feed-row"><div class="feed-dot"></div><span class="feed-tag">agent</span>
+        <span class="idchip dec">DEC-004</span><span class="feed-title">Postgres is the primary store; Redis is cache only</span><span class="feed-time">1m</span></div>
+      <div class="feed-row"><div class="feed-dot"></div><span class="feed-tag">agent</span>
+        <span class="idchip req">REQ-002</span><span class="feed-title">CSV export for monthly statements</span><span class="feed-time">2m</span></div>
+      <div class="feed-row"><div class="feed-dot"></div><span class="feed-tag">agent</span>
+        <span class="idchip dec">DEC-003</span><span class="feed-title">Fastify over Express for the API layer</span><span class="feed-time">3m</span></div>
+      <div class="feed-row"><div class="feed-dot"></div><span class="feed-tag">agent</span>
+        <span class="idchip req">REQ-001</span><span class="feed-title">Invoices are immutable once issued</span><span class="feed-time">4m</span></div>
+      <div class="feed-row"><div class="feed-dot"></div><span class="feed-tag">agent</span>
+        <span class="idchip src">SRC-002</span><span class="feed-title">Repo evidence — src/db/, migration history</span><span class="feed-time">5m</span></div>
+      <div class="feed-row"><div class="feed-dot"></div><span class="feed-tag">agent</span>
+        <span class="idchip src">SRC-001</span><span class="feed-title">Import manifest — repo mining session</span><span class="feed-time">6m</span></div>
+      <div class="feed-watch"><div class="dot pulse"></div>Watching veri/ for filed documents…</div>
+    </div>
+  </div>
+</div></div>
+
+<!-- ============ 2d. DONE + REVIEW QUEUE ============ -->
+<div class="stage" id="s-done"><div class="colw">
+  <div class="hv-head"><div class="hv-title">atlas</div><div class="hv-count">14 documents</div></div>
+
+  <div class="nr-card">
+    <div class="nr-head"><div class="nr-label">NEEDS REVIEW</div><div class="nr-meta">8 pending</div></div>
+    <div class="grp-head"><div class="grp-swatch"></div>
+      <div class="grp-label">IMPORTED · REPO MINING SESSION</div><div class="grp-prog">3 of 11 reviewed</div></div>
+    <div class="nr-row" onclick="go('doc')"><span class="nr-idcol"><span class="idchip src">SRC-002</span></span>
+      <span class="t">Repo evidence — src/db/, migration history</span><span class="evid">evidence</span><span class="when">18m</span></div>
+    <div class="nr-row" onclick="go('doc')"><span class="nr-idcol"><span class="idchip src">SRC-003</span></span>
+      <span class="t">Repo evidence — docs/adr/, 9 records</span><span class="evid">evidence</span><span class="when">17m</span></div>
+    <div class="nr-row" onclick="go('doc')"><span class="nr-idcol"><span class="idchip req">REQ-001</span></span>
+      <span class="t">Invoices are immutable once issued</span><span class="pend">draft</span><span class="when">15m</span></div>
+    <div class="nr-row" onclick="go('doc')"><span class="nr-idcol"><span class="idchip req">REQ-002</span></span>
+      <span class="t">CSV export for monthly statements</span><span class="pend">draft</span><span class="when">14m</span></div>
+    <div class="nr-row" onclick="go('doc')"><span class="nr-idcol"><span class="idchip dec">DEC-004</span></span>
+      <span class="t">Postgres is the primary store; Redis is cache only</span><span class="pend">proposed</span><span class="when">12m</span></div>
+    <div class="nr-row" onclick="go('doc')"><span class="nr-idcol"><span class="idchip dec">DEC-005</span></span>
+      <span class="t">Stripe webhooks are the billing source of truth</span><span class="pend">proposed</span><span class="when">11m</span></div>
+  </div>
+
+  <div class="done-card" style="max-width:640px">
+    <div class="done-h">✓ Import complete — 14 documents filed</div>
+    <div class="done-counts">3 sources · 4 requirements · 7 decisions</div>
+    <div class="act-row"><button class="btn-primary">Review imported documents</button></div>
+  </div>
+</div></div>
+
+<!-- ============ 4. IMPORTED DOC ============ -->
+<div class="stage" id="s-doc"><div class="col" style="max-width:760px">
+  <div class="crumb"><span class="idchip dec" style="padding:0;background:none">DEC-004</span> · decision</div>
+  <div class="doc-head"><div class="doc-title">Postgres is the primary store; Redis is cache only</div></div>
+
+  <div class="banner">
+    <div class="banner-l1">◌ Awaiting your review</div>
+    <div class="banner-l2">Filed by an agent import session on 2026-08-24 from evidence in
+      <span class="idchip src">SRC-002</span> <span class="idchip src">SRC-003</span>.
+      It is not yet binding — work orders that depend on it stay gated until you approve.</div>
+    <div class="banner-disc">▸ What approving means</div>
+    <div class="banner-acts"><button class="b-sec">Request changes</button><button class="b-app">Approve…</button></div>
+  </div>
+
+  <div class="doc-body">
+    <h2>Choice</h2>
+    <p>PostgreSQL holds all durable state. Redis appears only as a read-through
+      cache and job queue; nothing in Redis is unrecoverable.</p>
+    <h2>Rejected alternatives</h2>
+    <li><b>Redis as session store of record</b> — sessions in
+      <code style="font-family:var(--mono);font-size:.9em">src/auth/</code> are re-derivable from Postgres</li>
+    <h2>Rationale</h2>
+    <p>Every migration since 2024 (see <span class="idchip src">SRC-002</span>) treats Postgres as
+      canonical; two incidents in the git history recover Redis from Postgres, never the reverse.</p>
+  </div>
+</div></div>
+
+<script>
+  function go(s){
+    document.querySelectorAll('.scen').forEach(b=>b.classList.toggle('on',b.dataset.s===s));
+    document.querySelectorAll('.stage').forEach(el=>el.classList.toggle('on',el.id==='s-'+s));
+    window.scrollTo(0,0);
+  }
+  document.querySelectorAll('.scen').forEach(b=>b.addEventListener('click',()=>go(b.dataset.s)));
+  function copyFlip(btn){
+    btn.classList.add('copied');btn.textContent='✓ Copied — paste into your agent';
+    setTimeout(()=>{btn.classList.remove('copied');btn.textContent='Copy import kickoff';},1800);
+  }
+</script>
+</body>
+</html>
