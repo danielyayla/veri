@@ -2,7 +2,7 @@
 id: WO-089
 type: work-order
 title: "run_check over MCP — agents self-check before proposing work"
-status: in-progress
+status: done
 created: 2026-08-24
 updated: 2026-08-24
 links:
@@ -58,13 +58,13 @@ Expose `veri check` over the MCP server as a `run_check` tool returning structur
 
 ## Acceptance tests
 
-- [ ] `run_check` returns every violation and advisory the CLI's `veri check` reports for the same tree, with machine-readable kind, document id, and tier — verified by a test comparing the two surfaces on a fixture corpus
-- [ ] The result distinguishes violations (would fail the CLI) from advisories (inform only), matching DEC-025 semantics
-- [ ] When git-backed checks cannot run under the server's posture, the result names them as skipped with a reason — they never vanish silently
-- [ ] The MCP server spawns no subprocesses, or a proposed decision records the deliberate relaxation with rejected alternatives
-- [ ] The tool works end-to-end from Claude Code against this repository's own veri/ directory
-- [ ] Agent-facing documentation instructs running run_check before filing a receipt or reporting completion
+- [x] `run_check` returns every violation and advisory the CLI's `veri check` reports for the same tree, with machine-readable kind, document id, and tier — verified by a test comparing the two surfaces on a fixture corpus
+- [x] The result distinguishes violations (would fail the CLI) from advisories (inform only), matching DEC-025 semantics
+- [x] When git-backed checks cannot run under the server's posture, the result names them as skipped with a reason — they never vanish silently
+- [x] The MCP server spawns no subprocesses, or a proposed decision records the deliberate relaxation with rejected alternatives
+- [x] The tool works end-to-end from Claude Code against this repository's own veri/ directory
+- [x] Agent-facing documentation instructs running run_check before filing a receipt or reporting completion
 
 ## Receipts
 
-(none yet)
+- 2026-08-24 — cb32ba2 — packages/core/src (report.ts, index.ts, workflow-default.ts), packages/cli/src/commands.ts, packages/mcp/src (check.ts, check.test.ts, facts.ts, server.ts, server.e2e.test.ts), action/dist/index.js, AGENTS.md, site/docs (reference.html, connect-claude-code.html, connect-mcp.html), veri/decisions/DEC-081, veri/work-orders/WO-089 — run_check tool over MCP wrapping core's new buildCheckReport (one derivation for CLI, Action, and MCP); git tier skipped-with-reason under the subprocess-free posture, fs-only test/import fact collectors, surface-parity test on a fixture corpus; DEC-081 filed as proposed; all workspaces green (571 tests), veri check 0 issues, live JSON-RPC proof against this repo's own veri/.
