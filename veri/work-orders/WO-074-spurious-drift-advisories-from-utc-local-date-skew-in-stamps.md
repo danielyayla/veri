@@ -42,4 +42,4 @@ Core stamps documents with the UTC calendar date (today() = new Date().toISOStri
 ## Receipts
 
 - 2026-08-24 — ebc19c4 — packages/core/src/{dates,dates.test,scaffold,create,approve,save,links,index}.ts, packages/core/package.json, packages/mcp/src/writeback.ts, packages/ui/src/lib/{write,write.test,snapshot.test}.ts, packages/ui/src/renderer/views/{review,templates}.ts, veri/decisions/DEC-076 — one localToday() producer replaces every UTC date stamp so stamps match git %cs committer dates; regression tests pin the skew wall-clock-free; DEC-076 filed (proposed)
-- 2026-08-24 — 35ddb30 — veri/work-orders/WO-074 — DEC-076 approved by Daniel (stamp commit e9540d6); last blocker cleared, status flipped to done
+- 2026-08-24 — 35ddb30 — veri/work-orders/WO-074-spurious-drift-advisories-from-utc-local-date-skew-in-stamps.md — DEC-076 approved by Daniel (stamp commit e9540d6); last blocker cleared, status flipped to done
