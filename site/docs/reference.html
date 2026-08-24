@@ -77,12 +77,18 @@ links:
     rel: implements
   - id: DEC-005
     rel: constrained-by
+binds:
+  paths:
+    - src/export/**
+  tests:
+    - tests/export.test.ts
 ---</code></pre>
 <ul>
   <li><b><code>id</code></b> — type prefix plus a number of three or more digits, zero-padded to three below 1000 (<code>REQ-001</code>, <code>REQ-1000</code>). The prefix must match <code>type</code>. Ids are assigned by the app/CLI as the next free number and never reused.</li>
   <li><b><code>created</code> / <code>updated</code> / <code>approved</code></b> — <code>YYYY-MM-DD</code> dates. <code>approved</code> appears only when the user promotes a document.</li>
   <li><b><code>approved_by</code></b> — the display name of the maintainer who stamped the approval. Written by <code>veri approve --as</code>; required (and validated against the workflow's <code>maintainers:</code> list) only in projects that declare one — see the <a href="team.html">team workflow</a>.</li>
   <li><b><code>links</code></b> — outbound edges: a target <code>id</code> and a <code>rel</code>. Inbound links are derived, never stored.</li>
+  <li><b><code>binds</code></b> — (work orders, optional) the code this work order claims: <code>paths</code> is repo-root-relative globs (<code>*</code> and <code>?</code> within a segment, <code>**</code> across segments, a bare directory claims everything under it); <code>tests</code> is test files proving it, as a path or <code>path::name</code> where the name must appear in the file. See <a href="#binding-drift">binding drift</a>.</li>
   <li><b>Unknown keys are preserved</b> — Veri round-trips frontmatter it doesn't recognize, so your own fields are safe.</li>
 </ul>
 
@@ -124,6 +130,16 @@ links:
   <tr><td><code>format-mismatch</code></td><td>The <code>veri/format</code> marker doesn't match what this Veri reads — migrate, or update Veri.</td></tr>
 </table>
 <p>Softer signals ship as <i>advisories</i> — shown greyed in the app, never failing the check.</p>
+
+<h2 id="binding-drift">Binding drift</h2>
+<p>When an in-progress work order declares <code>binds</code>, <code>veri check</code> also watches the code side of the contract. Three advisories — deterministic, derived from git history on demand, and never failing the check:</p>
+<table>
+  <tr><th>Advisory</th><th>Fires when</th></tr>
+  <tr><td><code>drift-unclaimed-change</code></td><td>A commit since the in-progress work began touches code that no in-progress work order's <code>binds.paths</code> matches and whose subject names no work order — code changing outside every declared claim.</td></tr>
+  <tr><td><code>drift-stale-wo</code></td><td>An in-progress work order's bound paths have seen no commits for the staleness window (default 14 days; set <code>stale_after_days</code> on the workflow document to change it).</td></tr>
+  <tr><td><code>drift-missing-test</code></td><td>A bound test no longer resolves: the file is gone, or the <code>::name</code> no longer appears in it.</td></tr>
+</table>
+<p>"Since the in-progress work began" is derived, never stored: a commit whose subject names the work order and a form of "start" anchors it, falling back to the work order's <code>created</code> date. Work orders without <code>binds</code> change nothing — the detectors are inert until a project opts in. Outside a git repository they skip with a note.</p>
 
 <h2>The CLI</h2>
 <pre><code>veri init [--demo]         scaffold a veri/ directory (--demo: the sample project)

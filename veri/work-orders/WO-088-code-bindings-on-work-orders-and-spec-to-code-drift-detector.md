@@ -16,6 +16,13 @@ links:
     rel: constrained-by
   - id: SRC-043
     rel: derived-from
+binds:
+  paths:
+    - packages/core/src/**
+    - packages/cli/src/**
+    - site/docs/reference.html
+  tests:
+    - packages/core/src/binds.test.ts
 ---
 
 ## Summary

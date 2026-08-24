@@ -513,3 +513,34 @@ test('veri approve defaults --as from git user.name when it matches a listed mai
   assert.equal(refused.code, 1);
   assert.match(refused.lines.join('\n'), /--as <name>/);
 });
+
+test('binding drift skips with a note outside git, while bound-test facts still check (WO-088)', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+
+  init(cwd, { demo: false });
+  await newDoc(cwd, 'requirement', 'Exports work');
+  await approve(cwd, 'REQ-001');
+  await newDoc(cwd, 'work-order', 'Export pipeline');
+  const file = join(cwd, 'veri/work-orders/WO-001-export-pipeline.md');
+  const raw = readFileSync(file, 'utf8')
+    .replace('status: backlog', 'status: in-progress')
+    .replace(
+      /^---\n$/m,
+      'links:\n  - id: REQ-001\n    rel: implements\nbinds:\n  paths:\n    - src/export/**\n  tests:\n    - tests/gone.test.ts\n---\n',
+    );
+  writeFileSync(file, raw);
+
+  const report = await checkReport(cwd);
+  assert.ok(report !== null);
+  assert.equal(report.issues.length, 0, report.issues.map((i) => i.message).join('\n'));
+  // No repository: the git-backed binding detectors say so instead of guessing.
+  assert.ok(
+    report.skips.some((s) => s.startsWith('(binding drift: skipped')),
+    report.skips.join('\n'),
+  );
+  // The test-existence check needs only the filesystem — it still runs.
+  const missing = report.advisories.filter((a) => a.kind === 'drift-missing-test');
+  assert.equal(missing.length, 1);
+  assert.match(missing[0].message, /tests\/gone\.test\.ts/);
+});

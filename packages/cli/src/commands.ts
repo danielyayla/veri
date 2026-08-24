@@ -3,9 +3,10 @@ import { existsSync, realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, checkDrift, checkObservedArchitecture, checkProject, checkProvenance, classifyFormat, compareIds, createDocument, formatStatement, importKickoffPrompt, isBrownfieldRoot, isOperableFormat, loadProject, maintainerRegistry, migrateProject, moduleRegistry, renderArchitecture, renumberDocument, scaffoldProject, workOrdersTouching } from '@veri/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, bindingClaimants, boundTests, checkBindingDrift, checkBoundTests, checkDrift, checkObservedArchitecture, checkProject, checkProvenance, classifyFormat, compareIds, createDocument, formatStatement, importKickoffPrompt, isBrownfieldRoot, isOperableFormat, loadProject, localToday, maintainerRegistry, migrateProject, moduleRegistry, renderArchitecture, renumberDocument, scaffoldProject, staleAfterDays, workOrdersTouching } from '@veri/core';
 import type { DocType, FormatClassification, Issue } from '@veri/core';
 import { collectGitFacts, gitUserName } from './git.ts';
+import { collectTestFacts } from './testfacts.ts';
 import { collectImportFacts } from './imports.ts';
 import type { ImportFactsResult } from './imports.ts';
 
@@ -139,6 +140,22 @@ export async function checkReport(cwd: string): Promise<CheckReport | null> {
   if (git.kind === 'ok') {
     advisories.push(...checkProvenance(load.documents, git.facts));
     advisories.push(...checkDrift(load.documents, git.facts, veriPathInRepo(git.root, dir)));
+    // Binding drift (WO-088): same DEC-040 split — git facts from the host,
+    // detectors pure in core, findings on the DEC-025 advisory tier.
+    advisories.push(
+      ...checkBindingDrift(load.documents, git.facts, {
+        veriPath: veriPathInRepo(git.root, dir),
+        today: localToday(),
+        staleAfterDays: staleAfterDays(load.documents),
+      }),
+    );
+  }
+  // Bound tests (WO-088) need the filesystem, not git — they run either way.
+  // The identifiers are repo-root-relative; without a repository root the
+  // working directory is the best available anchor.
+  const tests = boundTests(load.documents);
+  if (tests.length > 0) {
+    advisories.push(...checkBoundTests(load.documents, collectTestFacts(git.kind === 'ok' ? git.root : cwd, tests)));
   }
   // Observed architecture (WO-067): the host collects import edges, core
   // compares them against the intended architecture — same split (DEC-040),
@@ -153,7 +170,13 @@ export async function checkReport(cwd: string): Promise<CheckReport | null> {
     documentCount: load.documents.length,
     issues: issues.map((issue) => ({ file: fileOf(issue), message: issue.message })),
     advisories: advisories.map((advisory) => ({ kind: advisory.kind, file: advisory.file, message: advisory.message })),
-    skips: [...(git.kind === 'ok' ? [] : [`(provenance: skipped — ${git.reason})`]), ...importSkipNotes(observed)],
+    skips: [
+      ...(git.kind === 'ok' ? [] : [`(provenance: skipped — ${git.reason})`]),
+      ...(git.kind !== 'ok' && bindingClaimants(load.documents).length > 0
+        ? [`(binding drift: skipped — ${git.reason})`]
+        : []),
+      ...importSkipNotes(observed),
+    ],
   };
 }
 

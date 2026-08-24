@@ -89,6 +89,11 @@ export async function createDocument(
     `status: ${INITIAL_STATUS[type]}`,
     `created: ${date}`,
     `updated: ${date}`,
+    // WO-088: new work orders surface the binding block ready to uncomment —
+    // the field is optional, so the commented form changes nothing.
+    ...(type === 'work-order'
+      ? ['# binds:         # code this work order claims (optional)', '#   paths: []    # repo-root-relative globs', '#   tests: []    # test files proving it (path or path::name)']
+      : []),
     '---',
   ].join('\n');
   const file = join(TYPE_SUBDIR[type], `${id}-${slugifyTitle(trimmed)}.md`);

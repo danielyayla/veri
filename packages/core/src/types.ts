@@ -19,6 +19,10 @@ export interface VeriDocument {
   approved?: string;
   /** Display name of the maintainer who stamped the approval (DEC-071). */
   approvedBy?: string;
+  /** Code this work order claims (WO-088): repo-root-relative path globs
+      and test identifiers (`path` or `path::name`). Only on work orders
+      that declare a `binds:` block. */
+  binds?: { paths: string[]; tests: string[] };
   /** Full validated frontmatter; unknown extra keys are preserved here. */
   frontmatter: Record<string, unknown>;
   body: string;
@@ -54,6 +58,14 @@ export type Advisory =
   | { kind: 'drift-superseded-link'; file: string; id: string; targetId: string; message: string }
   | { kind: 'drift-edited-after-done'; file: string; id: string; workOrderId: string; sha: string; message: string }
   | { kind: 'drift-approved-edited'; file: string; id: string; sha: string; message: string }
+  // Binding drift (WO-088, REQ-021): code and its claims disagree. For
+  // unclaimed changes `file` is the first unclaimed repo-root-relative path
+  // and `id` the short sha — no document anchors a commit, so document-keyed
+  // surfaces (the UI's per-document grouping) naturally skip it. The other
+  // two anchor to the work order that carries the binding.
+  | { kind: 'drift-unclaimed-change'; file: string; id: string; sha: string; message: string }
+  | { kind: 'drift-stale-wo'; file: string; id: string; message: string }
+  | { kind: 'drift-missing-test'; file: string; id: string; test: string; message: string }
   // Observed architecture (WO-067, REQ-022): the code contains an edge an
   // active decision forbids. Advisory — intended-vs-observed deviation is
   // drift, and drift informs, never blocks (DEC-025). `file` is the

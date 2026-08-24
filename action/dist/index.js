@@ -7368,7 +7368,7 @@ import { resolve as resolve3 } from "node:path";
 
 // ../cli/dist/commands.js
 import { existsSync as existsSync3, realpathSync } from "node:fs";
-import { dirname as dirname2, join as join5, relative as relative2, resolve as resolve2, sep as sep2 } from "node:path";
+import { dirname as dirname2, join as join6, relative as relative2, resolve as resolve2, sep as sep2 } from "node:path";
 import { fileURLToPath as fileURLToPath4 } from "node:url";
 
 // ../core/dist/ids.js
@@ -7395,6 +7395,14 @@ function extractInlineRefs(body) {
     seen.add(match[1]);
   }
   return [...seen];
+}
+
+// ../core/dist/dates.js
+function localToday(now = /* @__PURE__ */ new Date()) {
+  const y = String(now.getFullYear()).padStart(4, "0");
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 // ../../node_modules/zod/v3/external.js
@@ -11481,7 +11489,16 @@ var decisionSchema = external_exports.object({
   superseded_by: idField.optional(),
   architecture: architectureSchema.optional()
 }).passthrough();
-var workOrderSchema = external_exports.object({ ...baseFields, type: external_exports.literal("work-order"), status: external_exports.enum(["backlog", "in-progress", "done"]) }).passthrough();
+var bindsSchema = external_exports.object({
+  paths: external_exports.array(external_exports.string().min(1)).default([]),
+  tests: external_exports.array(external_exports.string().min(1)).default([])
+}).passthrough();
+var workOrderSchema = external_exports.object({
+  ...baseFields,
+  type: external_exports.literal("work-order"),
+  status: external_exports.enum(["backlog", "in-progress", "done"]),
+  binds: bindsSchema.optional()
+}).passthrough();
 var sourceSchema = external_exports.object({ ...baseFields, type: external_exports.literal("source"), status: external_exports.literal("imported") }).passthrough();
 var workflowSchema = external_exports.object({
   ...baseFields,
@@ -11498,7 +11515,10 @@ var workflowSchema = external_exports.object({
   design_gate_paths: external_exports.array(external_exports.string().min(1)).optional(),
   // DEC-059: the module registry architecture constraints resolve against
   // (DEC-058). Absent → no modules defined, and any constraint fails check.
-  modules: external_exports.array(moduleEntrySchema).optional()
+  modules: external_exports.array(moduleEntrySchema).optional(),
+  // WO-088: days of bound-path silence before an in-progress work order
+  // counts as stale. Absent → the core default (DEFAULT_STALE_AFTER_DAYS).
+  stale_after_days: external_exports.number().int().positive().optional()
 }).passthrough();
 var frontmatterSchema = external_exports.discriminatedUnion("type", [requirementSchema, decisionSchema, workOrderSchema, sourceSchema, workflowSchema]).superRefine((fm, ctx) => {
   const implied = typeOfId(fm.id);
@@ -11553,6 +11573,7 @@ function parseDocument(file, content) {
     updated: fm.updated,
     links: fm.links.map(({ id, rel }) => ({ id, rel })),
     ...fm.type === "decision" && fm.superseded_by !== void 0 ? { supersededBy: fm.superseded_by } : {},
+    ...fm.type === "work-order" && fm.binds !== void 0 ? { binds: { paths: fm.binds.paths, tests: fm.binds.tests } } : {},
     ...(fm.type === "requirement" || fm.type === "decision" || fm.type === "workflow") && fm.approved !== void 0 ? { approved: fm.approved } : {},
     ...(fm.type === "requirement" || fm.type === "decision" || fm.type === "workflow") && fm.approved_by !== void 0 ? { approvedBy: fm.approved_by } : {},
     frontmatter: fm,
@@ -12362,6 +12383,152 @@ function checkProject(load) {
   };
 }
 
+// ../core/dist/binds.js
+var short2 = (sha) => sha.slice(0, 7);
+var DEFAULT_STALE_AFTER_DAYS = 14;
+function staleAfterDays(documents) {
+  for (const doc of documents) {
+    if (doc.type !== "workflow" || doc.status === "retired")
+      continue;
+    const value = doc.frontmatter["stale_after_days"];
+    if (typeof value === "number" && Number.isInteger(value) && value > 0)
+      return value;
+  }
+  return DEFAULT_STALE_AFTER_DAYS;
+}
+function globToRegExp(pattern) {
+  let out = "";
+  let i = 0;
+  while (i < pattern.length) {
+    const ch = pattern[i];
+    if (ch === "*") {
+      if (pattern[i + 1] === "*") {
+        if (pattern[i + 2] === "/") {
+          out += "(?:[^/]+/)*";
+          i += 3;
+        } else {
+          out += ".*";
+          i += 2;
+        }
+      } else {
+        out += "[^/]*";
+        i += 1;
+      }
+    } else if (ch === "?") {
+      out += "[^/]";
+      i += 1;
+    } else {
+      out += ch.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+      i += 1;
+    }
+  }
+  return new RegExp(`^${out}$`);
+}
+function pathMatchesBinds(path, patterns) {
+  return patterns.some((pattern) => {
+    const clean = pattern.replace(/\/+$/, "");
+    if (clean === "")
+      return false;
+    if (globToRegExp(clean).test(path))
+      return true;
+    return !/[*?]/.test(clean) && path.startsWith(`${clean}/`);
+  });
+}
+function bindingClaimants(documents) {
+  return documents.filter((doc) => doc.type === "work-order" && doc.status === "in-progress" && (doc.binds?.paths.length ?? 0) > 0);
+}
+function boundTests(documents) {
+  const out = /* @__PURE__ */ new Set();
+  for (const doc of documents) {
+    if (doc.type !== "work-order" || doc.status !== "in-progress")
+      continue;
+    for (const test of doc.binds?.tests ?? [])
+      out.add(test);
+  }
+  return [...out];
+}
+function checkBoundTests(documents, testFacts) {
+  const resolved = new Map(testFacts.map((fact) => [fact.id, fact.exists]));
+  const advisories = [];
+  for (const doc of documents) {
+    if (doc.type !== "work-order" || doc.status !== "in-progress")
+      continue;
+    for (const test of doc.binds?.tests ?? []) {
+      if (resolved.get(test) === false) {
+        advisories.push({
+          kind: "drift-missing-test",
+          file: doc.file,
+          id: doc.id,
+          test,
+          message: `${doc.id} binds test "${test}", which no longer resolves \u2014 the bound proof is gone`
+        });
+      }
+    }
+  }
+  return advisories;
+}
+function isStartCommit(docId, subject) {
+  return subject.includes(docId) && /\bstart(?:ed|s)?\b/i.test(subject);
+}
+function startAnchor(facts, workOrder) {
+  const index = facts.commits.findIndex((commit) => isStartCommit(workOrder.id, commit.subject));
+  if (index >= 0)
+    return { index, date: facts.commits[index].date };
+  return { index: void 0, date: workOrder.created };
+}
+function inEra(commitIndex, commitDate, anchor) {
+  return anchor.index !== void 0 ? commitIndex < anchor.index : commitDate >= anchor.date;
+}
+function daysBetween(from, to) {
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 864e5);
+}
+function checkBindingDrift(documents, facts, options) {
+  if (options.veriPath === "")
+    return [];
+  const claimants = bindingClaimants(documents);
+  if (claimants.length === 0)
+    return [];
+  const windowDays = options.staleAfterDays ?? DEFAULT_STALE_AFTER_DAYS;
+  const veriPrefix = `${options.veriPath}/`;
+  const anchors = new Map(claimants.map((wo) => [wo.id, startAnchor(facts, wo)]));
+  const advisories = [];
+  facts.commits.forEach((commit, index) => {
+    if (subjectWorkOrders(commit.subject).length > 0)
+      return;
+    if (!claimants.some((wo) => inEra(index, commit.date, anchors.get(wo.id))))
+      return;
+    const code = commit.files.filter((file) => !file.startsWith(veriPrefix));
+    const unclaimed = code.filter((file) => !claimants.some((wo) => pathMatchesBinds(file, wo.binds.paths)));
+    if (unclaimed.length === 0)
+      return;
+    const shown = unclaimed.slice(0, 3).join(", ");
+    const more = unclaimed.length > 3 ? ` and ${unclaimed.length - 3} more` : "";
+    advisories.push({
+      kind: "drift-unclaimed-change",
+      file: unclaimed[0],
+      id: short2(commit.sha),
+      sha: commit.sha,
+      message: `commit ${short2(commit.sha)} "${commit.subject}" touched ${shown}${more} \u2014 no in-progress work order claims it by binding or subject`
+    });
+  });
+  for (const wo of claimants) {
+    const anchor = anchors.get(wo.id);
+    if (daysBetween(anchor.date, options.today) < windowDays)
+      continue;
+    const newest = facts.commits.find((commit) => commit.files.some((file) => pathMatchesBinds(file, wo.binds.paths)));
+    if (newest !== void 0 && daysBetween(newest.date, options.today) < windowDays)
+      continue;
+    const since = newest === void 0 ? `no commits have touched its bound paths since it started (${anchor.date})` : `no commits have touched its bound paths since ${newest.date}`;
+    advisories.push({
+      kind: "drift-stale-wo",
+      file: wo.file,
+      id: wo.id,
+      message: `${wo.id} is in-progress but ${since} \u2014 stale after ${windowDays} days`
+    });
+  }
+  return advisories;
+}
+
 // ../cli/dist/git.js
 import { spawnSync } from "node:child_process";
 function git(cwd, args) {
@@ -12386,9 +12553,30 @@ function collectGitFacts(cwd) {
   return { kind: "ok", facts: parseGitLog(log.stdout), root: toplevel.stdout.trim() };
 }
 
+// ../cli/dist/testfacts.js
+import { readFileSync as readFileSync3, statSync } from "node:fs";
+import { join as join4 } from "node:path";
+function collectTestFacts(root2, ids) {
+  return ids.map((id) => ({ id, exists: resolves(root2, id) }));
+}
+function resolves(root2, id) {
+  const sep3 = id.indexOf("::");
+  const path = sep3 === -1 ? id : id.slice(0, sep3);
+  const name = sep3 === -1 ? "" : id.slice(sep3 + 2);
+  try {
+    if (!statSync(join4(root2, path)).isFile())
+      return false;
+    if (name === "")
+      return true;
+    return readFileSync3(join4(root2, path), "utf8").includes(name);
+  } catch {
+    return false;
+  }
+}
+
 // ../cli/dist/imports.js
-import { existsSync as existsSync2, readFileSync as readFileSync3, readdirSync, statSync } from "node:fs";
-import { dirname, extname, join as join4, relative, resolve, sep } from "node:path";
+import { existsSync as existsSync2, readFileSync as readFileSync4, readdirSync, statSync as statSync2 } from "node:fs";
+import { dirname, extname, join as join5, relative, resolve, sep } from "node:path";
 var SOURCE_EXTENSIONS = /* @__PURE__ */ new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]);
 var SPECIFIER_RES = [
   /\bimport\s*(?:[\w*\s{},$]+?from\s*)?["']([^"'\n]+)["']/g,
@@ -12400,7 +12588,7 @@ function walk(dir, files) {
   for (const entry of entries) {
     if (entry.name.startsWith(".") || entry.name === "node_modules")
       continue;
-    const full = join4(dir, entry.name);
+    const full = join5(dir, entry.name);
     if (entry.isDirectory())
       walk(full, files);
     else if (entry.isFile() && SOURCE_EXTENSIONS.has(extname(entry.name)))
@@ -12412,18 +12600,18 @@ function collectImportFacts(cwd, modules) {
   const skipped = [];
   for (const entry of modules) {
     const root2 = resolve(cwd, entry.path);
-    if (existsSync2(root2) && statSync(root2).isDirectory())
+    if (existsSync2(root2) && statSync2(root2).isDirectory())
       roots.push({ entry, root: root2 });
     else
       skipped.push(entry);
   }
   const packageNames = [];
   for (const { entry, root: root2 } of roots) {
-    const manifest = join4(root2, "package.json");
+    const manifest = join5(root2, "package.json");
     if (!existsSync2(manifest))
       continue;
     try {
-      const parsed = JSON.parse(readFileSync3(manifest, "utf8"));
+      const parsed = JSON.parse(readFileSync4(manifest, "utf8"));
       if (typeof parsed.name === "string" && parsed.name !== "") {
         packageNames.push({ name: parsed.name, module: entry.name });
       }
@@ -12453,7 +12641,7 @@ function collectImportFacts(cwd, modules) {
     walk(root2, files);
     for (const file of files) {
       const from = moduleOf(file);
-      const text = readFileSync3(file, "utf8");
+      const text = readFileSync4(file, "utf8");
       for (const line of text.split("\n")) {
         for (const re of SPECIFIER_RES) {
           for (const match of line.matchAll(re)) {
@@ -12479,7 +12667,7 @@ function collectImportFacts(cwd, modules) {
 var TYPE_LIST = DOC_TYPES.join(" | ");
 var DEMO_ROOT = fileURLToPath4(new URL("../demo/", import.meta.url));
 function requireVeriDir(cwd) {
-  const dir = join5(cwd, "veri");
+  const dir = join6(cwd, "veri");
   return existsSync3(dir) ? dir : null;
 }
 function fileOf(issue) {
@@ -12506,6 +12694,15 @@ async function checkReport(cwd) {
   if (git2.kind === "ok") {
     advisories.push(...checkProvenance(load.documents, git2.facts));
     advisories.push(...checkDrift(load.documents, git2.facts, veriPathInRepo(git2.root, dir)));
+    advisories.push(...checkBindingDrift(load.documents, git2.facts, {
+      veriPath: veriPathInRepo(git2.root, dir),
+      today: localToday(),
+      staleAfterDays: staleAfterDays(load.documents)
+    }));
+  }
+  const tests = boundTests(load.documents);
+  if (tests.length > 0) {
+    advisories.push(...checkBoundTests(load.documents, collectTestFacts(git2.kind === "ok" ? git2.root : cwd, tests)));
   }
   const modules = moduleRegistry(load.documents);
   const observed = modules.length > 0 ? collectImportFacts(cwd, modules) : void 0;
@@ -12517,7 +12714,11 @@ async function checkReport(cwd) {
     documentCount: load.documents.length,
     issues: issues.map((issue) => ({ file: fileOf(issue), message: issue.message })),
     advisories: advisories.map((advisory) => ({ kind: advisory.kind, file: advisory.file, message: advisory.message })),
-    skips: [...git2.kind === "ok" ? [] : [`(provenance: skipped \u2014 ${git2.reason})`], ...importSkipNotes(observed)]
+    skips: [
+      ...git2.kind === "ok" ? [] : [`(provenance: skipped \u2014 ${git2.reason})`],
+      ...git2.kind !== "ok" && bindingClaimants(load.documents).length > 0 ? [`(binding drift: skipped \u2014 ${git2.reason})`] : [],
+      ...importSkipNotes(observed)
+    ]
   };
 }
 

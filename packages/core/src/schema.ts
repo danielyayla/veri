@@ -81,8 +81,28 @@ const decisionSchema = z
   })
   .passthrough();
 
+// WO-088: a work order may claim the code it changes — repo-root-relative
+// path globs and test identifiers (a file path, optionally `::name`). The
+// binding drift detectors run off this block; absence is legal and leaves
+// every existing check untouched. Malformed bindings fail the schema — a
+// binding that silently cannot fire would be a no-op check (the DEC-058
+// posture).
+const bindsSchema = z
+  .object({
+    paths: z.array(z.string().min(1)).default([]),
+    tests: z.array(z.string().min(1)).default([]),
+  })
+  .passthrough();
+
+export type BindsBlock = z.infer<typeof bindsSchema>;
+
 const workOrderSchema = z
-  .object({ ...baseFields, type: z.literal('work-order'), status: z.enum(['backlog', 'in-progress', 'done']) })
+  .object({
+    ...baseFields,
+    type: z.literal('work-order'),
+    status: z.enum(['backlog', 'in-progress', 'done']),
+    binds: bindsSchema.optional(),
+  })
   .passthrough();
 
 const sourceSchema = z
@@ -107,6 +127,9 @@ const workflowSchema = z
     // DEC-059: the module registry architecture constraints resolve against
     // (DEC-058). Absent → no modules defined, and any constraint fails check.
     modules: z.array(moduleEntrySchema).optional(),
+    // WO-088: days of bound-path silence before an in-progress work order
+    // counts as stale. Absent → the core default (DEFAULT_STALE_AFTER_DAYS).
+    stale_after_days: z.number().int().positive().optional(),
   })
   .passthrough();
 
