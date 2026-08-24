@@ -16,7 +16,7 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="assets/favicon-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="stylesheet" href="site.css?v=3">
+<link rel="stylesheet" href="site.css?v=4">
 </head>
 <body>
 
@@ -44,65 +44,56 @@
   <div class="dl-sub"><span id="dl-version"></span>macOS 13+ · <a id="dl-arm" href="https://github.com/danielyayla/veri/releases/latest">Apple silicon</a> &amp; <a id="dl-intel" href="https://github.com/danielyayla/veri/releases/latest">Intel</a> · free &amp; open source</div>
 </section>
 
-<div class="hero-shot">
+<div class="hero-shot" id="product">
   <div class="shot-card">
     <picture>
-      <source media="(prefers-color-scheme: light)" srcset="assets/app-light.png">
-      <img src="assets/app-dark.png" width="1560" height="952" fetchpriority="high"
-        alt="Veri showing a work order titled PDF export pipeline: summary, in-scope and out-of-scope lists in the reader, and a context package panel on the right listing the workflow, requirements, and decisions an agent will receive, with per-document token estimates and a Start agent session button.">
+      <source media="(prefers-reduced-motion: reduce)" srcset="assets/loop-demo-still.png">
+      <img src="assets/loop-demo.gif" width="1344" height="838" fetchpriority="high"
+        alt="Five app captures from one pass around the loop, dark theme, each captioned. One: the work order PDF export pipeline beside its nine-document context package, about 1.8k tokens. Two: the Start agent session menu listing Claude Code, Cursor, Codex CLI, Gemini CLI, and web chat. Three: decision DEC-006, veraPDF for PDF/A validation, filed as a proposal awaiting review. Four: the work order again, now done, with the receipt the agent filed — commit 4c9f2e1, three files. Five: the home view with DEC-006 pending in the review queue and the receipt at the top of agent activity.">
     </picture>
+    <div class="shot-note">prompts are temporary — knowledge accumulates: one pass around the loop, five captures, ~50s (a still under reduced motion)</div>
   </div>
 </div>
 
-<section class="band" id="problem">
+<section class="band">
   <div class="wrap">
-    <div class="eyebrow">The problem</div>
-    <h2>Your agent forgets what the project already knows</h2>
-    <div class="problem-grid">
-      <p class="lead" style="margin:0">Coding agents can implement almost anything — but every new session starts with incomplete institutional memory. So you explain. Again. Chat history is not a durable project knowledge system: the session ends, and everything it learned evaporates.</p>
-      <ul class="reexplain">
-        <li>what the product is supposed to do</li>
-        <li>why the architecture is the way it is</li>
-        <li>which approaches were already rejected</li>
-        <li>what is currently in and out of scope</li>
-        <li>how the previous work was implemented</li>
-      </ul>
-    </div>
-  </div>
-</section>
+    <div class="eyebrow">Local-first</div>
+    <h2>Plain files are the architecture</h2>
+    <div class="split rev">
+      <div class="file-card">
+        <div class="file-name">veri/decisions/DEC-005-typst-for-pdf-rendering.md</div>
+        <pre><code><span class="fm">---
+id: DEC-005
+type: decision
+status: active
+approved: 2026-08-05
+links:
+  - id: DEC-003
+    rel: supersedes
+---</span>
 
-<section class="band" id="product">
-  <div class="wrap">
-    <div class="eyebrow">The loop</div>
-    <h2>Prompts are temporary. Project knowledge accumulates.</h2>
-    <p class="lead">Work moves through a cycle, and every pass around it leaves the knowledge base knowing more.</p>
-    <ol class="cycle">
-      <li>
-        <h3>Capture knowledge</h3>
-        <p>Sources, requirements, decisions, and workflow rules live as Markdown in the repository.</p>
-      </li>
-      <li>
-        <h3>Define work</h3>
-        <p>A work order states the deliverable, acceptance criteria, linked requirements — and what is explicitly out of scope.</p>
-      </li>
-      <li>
-        <h3>Assemble context</h3>
-        <p>Veri walks the project's document links and builds a scoped context package for that work order.</p>
-      </li>
-      <li>
-        <h3>Agent implements</h3>
-        <p>The agent fetches the package over MCP — not an enormous hand-written prompt.</p>
-      </li>
-      <li>
-        <h3>Knowledge comes back</h3>
-        <p>The agent files the decisions it made and a receipt: commit, files changed, what was done.</p>
-      </li>
-      <li>
-        <h3>Next session starts smarter</h3>
-        <p>The knowledge base now holds what the project learned. Future tasks inherit it automatically.</p>
-      </li>
-    </ol>
-    <p class="cycle-caption">Evidence → requirements &amp; decisions → work order → agent context → implementation → receipt — and around again.</p>
+<span class="h">## Choice</span>
+
+Compile invoice templates with Typst.
+
+<span class="h">## Rejected alternatives</span>
+
+- **Handlebars + headless browser** — the
+  <span class="ref">[[DEC-003]]</span> approach; slow and
+  nondeterministic print output.</code></pre>
+      </div>
+      <div class="copy">
+        <p>A Veri project is a <code>veri/</code> directory of readable Markdown. <strong>The files are the source of truth</strong> — the app is a view over them.</p>
+        <p>Four things operate on the same knowledge, and none of them owns it:</p>
+        <ul class="same-file">
+          <li><b>The Veri app</b>reads and edits the files</li>
+          <li><b>Your editor</b>opens them like any Markdown</li>
+          <li><b>Git</b>versions, diffs, and syncs them</li>
+          <li><b>Your agent</b>retrieves them over MCP</li>
+        </ul>
+        <p style="margin-top:16px">Delete Veri and your project knowledge is still a folder of Markdown that renders on GitHub.</p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -110,6 +101,7 @@
   <div class="wrap">
     <div class="eyebrow">Context, not prompt engineering</div>
     <h2>Why not just CLAUDE.md and an ADR folder?</h2>
+    <p class="lead" style="margin-bottom:14px">Every new agent session starts with incomplete institutional memory — the session ends, and everything it learned evaporates.</p>
     <p class="lead">If you keep an agent-instructions file — CLAUDE.md, AGENTS.md — and architecture decision records, you already believe the idea. What a folder of files can't do is scale with the project: one file carries everything, into every session, and nothing checks that any of it still holds. Veri keeps the plain files and adds the four things the folder can't.</p>
     <div class="vs-grid">
       <div class="vs-card">
@@ -142,20 +134,10 @@
   <div class="wrap">
     <div class="eyebrow">Scoped context</div>
     <h2>The agent gets a package, not a repo dump</h2>
-    <div class="split">
-      <div class="copy">
-        <p>The context package for a task is <strong>the documents linked to it</strong> — the project workflow, its requirements, every active decision within two hops, source excerpts. Typically a few thousand tokens, with a per-document estimate, assembled fresh from current file versions every time.</p>
-        <p>Superseded decisions ride along by name only, flagged as already rejected — so the agent doesn't relitigate them.</p>
-        <p>You see the exact package before the agent does, and start the session from it with one click.</p>
-      </div>
-      <div class="shot-card">
-        <picture>
-          <source media="(prefers-color-scheme: light)" srcset="assets/pkg-light.png">
-          <img src="assets/pkg-dark.png" width="664" height="1260" loading="lazy"
-            alt="The context package panel for a work order: nine documents — workflow, work order, two requirements, four decisions, one source — each with a token estimate, totalling about 1.8k tokens, above a Start agent session button and the package rules.">
-        </picture>
-        <div class="shot-note">the package for WO-002, ~1.8k tokens</div>
-      </div>
+    <div class="copy" style="max-width:620px">
+      <p>The context package for a task is <strong>the documents linked to it</strong> — the project workflow, its requirements, every active decision within two hops, source excerpts. Typically a few thousand tokens, with a per-document estimate, assembled fresh from current file versions every time. It's the panel on the right in the demo above.</p>
+      <p>Superseded decisions ride along by name only, flagged as already rejected — so the agent doesn't relitigate them.</p>
+      <p>You see the exact package before the agent does, and start the session from it with one click.</p>
     </div>
   </div>
 </section>
@@ -164,20 +146,7 @@
   <div class="wrap">
     <div class="eyebrow">Decisions</div>
     <h2>Decisions that stay decided</h2>
-    <div class="split rev">
-      <div class="shot-card">
-        <picture>
-          <source media="(prefers-color-scheme: light)" srcset="assets/decision-light.png">
-          <img src="assets/decision-dark.png" width="1380" height="850" loading="lazy"
-            alt="A decision document in Veri: Choice — compile invoice templates with Typst; Rejected alternatives — Handlebars plus headless browser, LaTeX, wkhtmltopdf, each with the reason it lost; Rationale linking the superseded decision and the implementing work order.">
-        </picture>
-        <div class="shot-note">DEC-005 from the sample project</div>
-      </div>
-      <div class="copy">
-        <p>A decision records <strong>what was chosen, why, and which alternatives were rejected</strong>.</p>
-        <p>Active decisions travel into every future context package they constrain. Agents stop re-opening what you settled in March — and when a decision is superseded, the package says so.</p>
-      </div>
-    </div>
+    <p class="lead" style="margin-bottom:0">A decision records <strong>what was chosen, why, and which alternatives were rejected</strong> — like DEC-005 above. Active decisions travel into every future context package they constrain. Agents stop re-opening what you settled in March — and when a decision is superseded, the package says so.</p>
   </div>
 </section>
 
@@ -194,90 +163,9 @@
       </picture>
       <div class="shot-note">the review queue on the home view</div>
     </div>
-  </div>
-</section>
-
-<section class="band">
-  <div class="wrap">
-    <div class="eyebrow">Local-first</div>
-    <h2>Plain files are the architecture</h2>
-    <div class="split rev">
-      <div class="file-card">
-        <div class="file-name">veri/decisions/DEC-005-typst-for-pdf-rendering.md</div>
-        <pre><code><span class="fm">---
-id: DEC-005
-type: decision
-status: active
-approved: 2026-08-05
-links:
-  - id: DEC-003
-    rel: supersedes
----</span>
-
-<span class="h">## Choice</span>
-
-Compile invoice templates with Typst,
-embedded in the Rust core.
-
-<span class="h">## Rejected alternatives</span>
-
-- **Handlebars + headless browser** — the
-  <span class="ref">[[DEC-003]]</span> approach; slow and
-  nondeterministic print output.</code></pre>
-      </div>
-      <div class="copy">
-        <p>A Veri project is a <code>veri/</code> directory of readable Markdown. <strong>The files are the source of truth</strong> — the app is a view over them.</p>
-        <p>Four things operate on the same knowledge, and none of them owns it:</p>
-        <ul class="same-file">
-          <li><b>The Veri app</b>reads and edits the files</li>
-          <li><b>Your editor</b>opens them like any Markdown</li>
-          <li><b>Git</b>versions, diffs, and syncs them</li>
-          <li><b>Your agent</b>retrieves them over MCP</li>
-        </ul>
-        <p style="margin-top:16px">Delete Veri and your project knowledge is still a folder of Markdown that renders on GitHub.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="band">
-  <div class="wrap">
-    <div class="eyebrow">Auditability</div>
-    <h2>Work comes back as receipts</h2>
-    <div class="split">
-      <div class="copy">
-        <p>When an agent finishes a session it files a receipt on the work order: <strong>when, which commit, which files, what was done</strong> — appended to the document itself.</p>
-        <p>Decisions, approvals, status changes, and receipts are ordinary file changes. The evolution of the project's reasoning is as inspectable as the evolution of its code: <code>git diff</code> shows every word.</p>
-      </div>
-      <div class="shot-card">
-        <picture>
-          <source media="(prefers-color-scheme: light)" srcset="assets/activity-light.png">
-          <img src="assets/activity-dark.png" width="850" height="608" loading="lazy"
-            alt="The agent activity feed: decisions filed and receipts landed over the past weeks, each with its document id and a relative timestamp — for example 'WO-001 Receipt filed: commit b21e88f, 1 file'.">
-        </picture>
-        <div class="shot-note">agent activity on the home view</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="band">
-  <div class="wrap">
-    <div class="eyebrow">Health</div>
-    <h2>A linter for project intent</h2>
-    <div class="split rev">
-      <div class="shot-card">
-        <picture>
-          <source media="(prefers-color-scheme: light)" srcset="assets/health-light.png">
-          <img src="assets/health-dark.png" width="850" height="390" loading="lazy"
-            alt="The health card showing two veri check findings: broken-link — REQ-004 references SRC-003 but no document has that id; wo-without-requirement — work order WO-004 does not link to any requirement.">
-        </picture>
-        <div class="shot-note">veri check surfacing in the app</div>
-      </div>
-      <div class="copy">
-        <p><code>veri check</code> validates the knowledge graph the way a compiler validates code: broken links, work orders with no requirement, dependencies that were never approved, completed work with no receipt.</p>
-        <p>Issues surface quietly in the app and in CI-friendly output — so the knowledge base stays coherent as it grows.</p>
-      </div>
+    <div class="copy" style="max-width:620px; margin-top:26px">
+      <p>And when a session finishes, <strong>work comes back as receipts</strong>: when, which commit, which files, what was done — appended to the work order itself.</p>
+      <p>Decisions, approvals, status changes, and receipts are ordinary file changes. The evolution of the project's reasoning is as inspectable as the evolution of its code: <code>git diff</code> shows every word.</p>
     </div>
   </div>
 </section>
@@ -286,7 +174,34 @@ embedded in the Rust core.
   <div class="wrap">
     <div class="eyebrow">Agent-native</div>
     <h2>Works with your coding agent</h2>
-    <p class="lead">Veri exposes the knowledge base over <a href="https://modelcontextprotocol.io">MCP</a>, the open protocol coding agents already speak — Claude Code today, and anything else that implements it. One click writes the project's <code>.mcp.json</code>; your agent gets ten tools to read context and file work back. No prompt pasting, no lock-in to one model. <a href="docs/connect-claude-code.html">Connection guide →</a></p>
+    <p class="lead">Veri exposes the knowledge base over <a href="https://modelcontextprotocol.io">MCP</a>, the open protocol coding agents already speak. One click writes the project's <code>.mcp.json</code>; your agent gets ten tools to read context and file work back. No prompt pasting, no lock-in to one model.</p>
+    <div class="split">
+      <div class="copy">
+        <p>Veri detects the agents on your machine and starts a session from the work order's kickoff prompt — or copy the prompt into any client that speaks MCP.</p>
+        <ul class="agent-links">
+          <li><a href="docs/connect-claude-code.html">Claude Code<span>connection guide →</span></a></li>
+          <li><a href="docs/connect-cursor.html">Cursor<span>connection guide →</span></a></li>
+          <li><a href="docs/connect-codex-cli.html">Codex CLI<span>connection guide →</span></a></li>
+          <li><a href="docs/connect-gemini.html">Gemini CLI<span>connection guide →</span></a></li>
+        </ul>
+        <p style="margin-top:16px">Something else? <a href="docs/connect-mcp.html">Any MCP client works</a>.</p>
+      </div>
+      <div class="file-card">
+        <div class="file-name">.mcp.json — written by Veri at the project root</div>
+        <pre><code>{
+  "mcpServers": {
+    "veri": {
+      "command": "node",
+      "args": [
+        "…/@veri/mcp/dist/server.js",
+        "/Users/you/code/your-project"
+      ]
+    }
+  }
+}</code></pre>
+        <div class="tool-strip">get_context · search · get_document · get_neighbors · file_decision · file_work_order · file_requirement · file_source · file_receipt · get_import_instructions</div>
+      </div>
+    </div>
   </div>
 </section>
 

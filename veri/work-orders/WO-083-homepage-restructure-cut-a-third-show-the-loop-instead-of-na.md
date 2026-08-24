@@ -2,7 +2,7 @@
 id: WO-083
 type: work-order
 title: "Homepage restructure: cut a third, show the loop instead of narrating it"
-status: backlog
+status: in-progress
 created: 2026-08-24
 updated: 2026-08-24
 links:
@@ -45,11 +45,11 @@ SRC-041's structural finding: the homepage runs ten bands (~7,600px) and makes t
 
 ## Acceptance tests
 
-- [ ] Homepage is six or seven bands and at least a third shorter in rendered height than the current ~7,600px at 1060px width
-- [ ] A visitor sees the loop demonstrated (recording) before the third band of conceptual prose
-- [ ] "Plain files are the architecture" appears in the top three bands
-- [ ] The agent-native band shows a visual and names Claude Code, Cursor, Codex CLI, and Gemini CLI with working links
-- [ ] The demo media has a reduced-motion-respecting treatment and descriptive alt text; page passes the WO-065 responsive/AA baseline in both themes
+- [x] Homepage is six or seven bands and at least a third shorter in rendered height than the current ~7,600px at 1060px width — six `section.band` elements; rendered height measured in-browser at 1060px viewport: 5,062px vs 7,865px for the pre-change page served from HEAD (35.6% shorter; also under 5,067px, one third off the nominal 7,600px)
+- [x] A visitor sees the loop demonstrated (recording) before the third band of conceptual prose — the five-capture loop GIF (work order → Start agent session → DEC-006 filed proposed → receipt lands → review queue) is the page's first visual, directly under the hero copy and before any band
+- [x] "Plain files are the architecture" appears in the top three bands — it is band one
+- [x] The agent-native band shows a visual and names Claude Code, Cursor, Codex CLI, and Gemini CLI with working links — `.mcp.json` file-card with the ten real MCP tool names, plus four agent cards linking docs/connect-claude-code.html, connect-cursor.html, connect-codex-cli.html, connect-gemini.html (all curl 200 against a local `python3 -m http.server` from site/)
+- [x] The demo media has a reduced-motion-respecting treatment and descriptive alt text; page passes the WO-065 responsive/AA baseline in both themes — `<picture>` swaps a static first-frame PNG under `prefers-reduced-motion: reduce` (zero JS), alt text narrates all five captures; no horizontal scroll at 375px; new elements' contrast computed in both palettes (agent-link sub 5.91:1 dark / 4.95:1 light, tool strip 5.24:1 / 5.09:1, shot-note 5.16:1 / 4.82:1 — all AA), colors token-only
 
 ## Receipts
 

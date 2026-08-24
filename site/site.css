@@ -225,7 +225,7 @@ img { max-width: 100%; height: auto; }
   padding: 0 16px;
 }
 
-section.band { margin: 88px auto 0; }
+section.band { margin: 64px auto 0; }
 
 .eyebrow {
   font-family: var(--mono);
@@ -265,8 +265,8 @@ section.band { margin: 88px auto 0; }
 
 .split.rev { grid-template-columns: 7fr minmax(280px, 5fr); }
 
-.split .copy p { color: var(--secondary); font-size: 16px; margin: 0 0 14px; }
-.split .copy p strong { color: var(--text); font-weight: 600; }
+.copy p { color: var(--secondary); font-size: 16px; margin: 0 0 14px; }
+.copy p strong { color: var(--text); font-weight: 600; }
 
 .principle {
   font-size: 18px;
@@ -360,147 +360,16 @@ section.band { margin: 88px auto 0; }
 .dl-sub a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .dl-sub a:hover { color: var(--text); }
 
+/* Wider than the text column so the loop demo stays legible at rendered
+   size (WO-083); its frames are 1344px-wide crops of the app that lead
+   with the context-package panel. */
 .hero-shot {
-  margin: 44px auto 0;
-  max-width: 1060px;
+  margin: 36px auto 0;
+  max-width: 1376px;
   padding: 0 16px;
 }
 
 .hero-shot .shot-card { box-shadow: var(--shot-shadow); }
-
-/* ---- the problem ---- */
-
-.problem-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 36px;
-  align-items: start;
-}
-
-.reexplain {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  font-size: 15px;
-  color: var(--secondary);
-}
-
-.reexplain li {
-  padding: 9px 0 9px 26px;
-  border-bottom: 1px solid var(--hair);
-  position: relative;
-}
-
-.reexplain li::before {
-  content: "↻";
-  position: absolute;
-  left: 2px;
-  color: var(--faint);
-  font-family: var(--mono);
-}
-
-.reexplain li:last-child { border-bottom: none; }
-
-/* ---- the loop ---- */
-
-.cycle {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 40px 44px;
-  counter-reset: stage;
-  position: relative;
-}
-
-.cycle li {
-  background: var(--card);
-  border: 1px solid var(--card-border-2);
-  border-radius: 10px;
-  padding: 18px 20px;
-  position: relative;
-  counter-increment: stage;
-}
-
-.cycle li h3 {
-  font-size: 16px;
-  color: var(--text);
-  font-weight: 600;
-  margin: 0 0 6px;
-}
-
-.cycle li h3::before {
-  content: counter(stage);
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--ember);
-  border: 1px solid var(--int-border);
-  border-radius: 6px;
-  padding: 1px 7px;
-  margin-right: 10px;
-  vertical-align: 1px;
-}
-
-.cycle li p { margin: 0; font-size: 14px; color: var(--secondary); }
-
-.cycle li .doc-chip {
-  font-family: var(--mono);
-  font-size: 12px;
-  border-radius: 5px;
-  padding: 1px 6px;
-  border: 1px solid var(--card-border-2);
-  background: var(--card-2);
-  white-space: nowrap;
-}
-
-/* Arrows between stages. Top row reads left-to-right, bottom row
-   right-to-left; the two vertical edges close the cycle. */
-
-.cycle li::after {
-  font-family: var(--mono);
-  color: var(--faint);
-  position: absolute;
-  font-size: 18px;
-}
-
-.cycle li:nth-child(1)::after,
-.cycle li:nth-child(2)::after { content: "→"; right: -33px; top: calc(50% - 14px); }
-
-.cycle li:nth-child(3)::after { content: "↓"; left: calc(50% - 5px); bottom: -34px; }
-
-/* Bottom row is laid out 6-5-4 so the flow reads as a circuit. */
-.cycle li:nth-child(4) { grid-column: 3; grid-row: 2; }
-.cycle li:nth-child(5) { grid-column: 2; grid-row: 2; }
-.cycle li:nth-child(6) { grid-column: 1; grid-row: 2; }
-
-.cycle li:nth-child(4)::after,
-.cycle li:nth-child(5)::after { content: "←"; left: -33px; top: calc(50% - 14px); }
-
-.cycle li:nth-child(6)::after { content: "↑"; left: calc(50% - 5px); top: -34px; }
-
-/* The stage the cycle is "on" pulses gently, one after another. */
-@media (prefers-reduced-motion: no-preference) {
-  .cycle li { animation: stage-live 12s infinite; }
-  .cycle li:nth-child(2) { animation-delay: 2s; }
-  .cycle li:nth-child(3) { animation-delay: 4s; }
-  .cycle li:nth-child(4) { animation-delay: 6s; }
-  .cycle li:nth-child(5) { animation-delay: 8s; }
-  .cycle li:nth-child(6) { animation-delay: 10s; }
-
-  @keyframes stage-live {
-    0%, 22%, 100% { border-color: var(--card-border-2); }
-    6%, 14% { border-color: var(--ember); }
-  }
-}
-
-.cycle-caption {
-  margin: 26px auto 0;
-  max-width: 560px;
-  text-align: center;
-  font-size: 15px;
-  color: var(--muted);
-}
 
 /* ---- with / without comparison ---- */
 
@@ -616,13 +485,54 @@ section.band { margin: 88px auto 0; }
 
 .same-file li b { display: block; color: var(--text); font-weight: 600; font-size: 14px; }
 
+/* ---- agent-native ---- */
+
+.agent-links {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.agent-links a {
+  display: block;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: var(--card);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.agent-links a:hover { border-color: var(--hover-border); color: var(--text); }
+
+.agent-links a span {
+  display: block;
+  color: var(--ember);
+  font-weight: 400;
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.tool-strip {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted);
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--hair);
+}
+
 /* ---- final CTA ---- */
 
 .fin {
-  margin: 96px auto 0;
+  margin: 72px auto 0;
   text-align: center;
   border-top: 1px solid var(--hair);
-  padding: 72px 16px 8px;
+  padding: 56px 16px 8px;
   max-width: 1060px;
 }
 
@@ -703,18 +613,6 @@ section.band { margin: 88px auto 0; }
 
 @media (max-width: 900px) {
   .split, .split.rev { grid-template-columns: 1fr; gap: 20px; }
-  .problem-grid { grid-template-columns: 1fr; gap: 20px; }
-
-  .cycle { grid-template-columns: 1fr; gap: 30px; }
-
-  /* Single column: restore document order and point every arrow down;
-     the last stage's arrow loops back up to the first. */
-  .cycle li:nth-child(4) { grid-column: auto; grid-row: auto; }
-  .cycle li:nth-child(5) { grid-column: auto; grid-row: auto; }
-  .cycle li:nth-child(6) { grid-column: auto; grid-row: auto; }
-
-  .cycle li::after { content: "↓" !important; left: calc(50% - 5px) !important; right: auto !important; top: auto !important; bottom: -28px !important; }
-  .cycle li:nth-child(6)::after { content: "↻" !important; }
 }
 
 @media (max-width: 640px) {
@@ -722,6 +620,7 @@ section.band { margin: 88px auto 0; }
   .band h2 { font-size: 24px; }
   .vs-grid { grid-template-columns: 1fr; }
   .same-file { grid-template-columns: 1fr; }
+  .agent-links { grid-template-columns: 1fr; }
   .hero { padding-top: 40px; }
   .top a.nav { padding: 10px 7px; font-size: 13.5px; }
   code { white-space: normal; }
