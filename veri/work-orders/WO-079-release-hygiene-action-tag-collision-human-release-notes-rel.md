@@ -2,7 +2,7 @@
 id: WO-079
 type: work-order
 title: "Release hygiene: action-tag collision, human release notes, release runbook"
-status: in-progress
+status: done
 created: 2026-08-24
 updated: 2026-08-24
 links:
@@ -41,7 +41,7 @@ Make the release surface read as professionally as the pipeline behind it. Three
 ## Acceptance tests
 
 - [x] Pushing an action tag (v1, v1.0.0-style) produces no failed release run — verified by pushing the next action tag or a dry-run tag — dry-run tag v0.0.0-wo079-dryrun: run 32728086523 green, guard success, release skipped
-- [ ] The tag-scheme decision is recorded in an approved DEC — DEC-075 filed, awaiting approval
+- [x] The tag-scheme decision is recorded in an approved DEC — DEC-075 approved 2026-08-24, active
 - [x] CHANGELOG.md exists and the next release's notes open with a human "What's new" section above the artifact sizes — CHANGELOG landed; the workflow assembles NOTES.md (what's-new + sizes) and the guard refuses a release without its section; the assembly path itself runs at the next real app release
 - [x] RELEASING.md documents both release flows end to end, including the v1 retag step
 - [x] ci.yml triggers only on main (plus pull_request/workflow_dispatch)

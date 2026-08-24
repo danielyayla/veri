@@ -2,7 +2,8 @@
 id: DEC-075
 type: decision
 title: "App and action tags share the v* namespace; a guard job separates them"
-status: proposed
+status: active
+approved: 2026-08-24
 created: 2026-08-24
 updated: 2026-08-24
 links:
