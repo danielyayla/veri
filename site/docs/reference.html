@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
 <link rel="preload" href="../assets/fonts/source-sans-3-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="../site.css?v=3">
+<link rel="stylesheet" href="../site.css?v=7">
 </head>
 <body>
 
@@ -18,8 +18,6 @@
 
 <header class="top">
   <a class="top-wordmark" href="../"><span class="v">V</span>eri</a>
-  <a class="nav" href="../#product">Product</a>
-  <a class="nav" href="workflow.html">Workflow</a>
   <a class="nav here" href="quickstart.html">Docs</a>
   <a class="nav" href="https://github.com/danielyayla/veri">GitHub</a>
   <a class="top-dl" href="https://github.com/danielyayla/veri/releases/latest">Download</a>
@@ -55,6 +53,7 @@
 <p>The <code>format</code> file holds a single integer. Veri reads it before parsing anything: a project needing a newer Veri is stated as such (never misparsed), an older-format project is offered an explicit migration (<code>veri migrate</code>), and a directory created before the marker existed is treated as the oldest format, not rejected.</p>
 
 <h2>Document types and statuses</h2>
+<div class="table-scroll">
 <table>
   <tr><th>Type</th><th>Id prefix</th><th>Statuses</th><th>Notes</th></tr>
   <tr><td><span class="type-req">requirement</span></td><td><code>REQ-</code></td><td><code>draft</code> → <code>accepted</code> → <code>retired</code></td><td><code>accepted</code> requires an <code>approved:</code> date — the user's stamp.</td></tr>
@@ -63,6 +62,7 @@
   <tr><td><span class="type-src">source</span></td><td><code>SRC-</code></td><td><code>imported</code></td><td>External evidence; one status, no lifecycle.</td></tr>
   <tr><td><span class="type-wf">workflow</span></td><td><code>WF-</code></td><td><code>draft</code> → <code>accepted</code> → <code>retired</code></td><td>One per project; scaffolded projects ship theirs pre-accepted.</td></tr>
 </table>
+</div>
 
 <h2>Frontmatter</h2>
 <pre><code>---
@@ -94,6 +94,7 @@ binds:
 
 <h2>Links and rels</h2>
 <p>In document bodies, <code>[[REQ-001]]</code> references any document by id (the app autocompletes on <code>[[</code>); broken references are flagged by <code>veri check</code>. In frontmatter, <code>rel</code> is free text — use what reads truthfully — but these are the conventions in use:</p>
+<div class="table-scroll">
 <table>
   <tr><th>rel</th><th>Meaning (A → B)</th></tr>
   <tr><td><code>implements</code></td><td>A delivers what B requires (work order → requirement).</td></tr>
@@ -103,6 +104,7 @@ binds:
   <tr><td><code>extends</code> / <code>refines</code> / <code>builds-on</code> / <code>follows-from</code></td><td>A continues or narrows B (decision lineages, requirement families).</td></tr>
   <tr><td><code>designed-by</code></td><td>B is the design artifact for A. Load-bearing when a project enforces a design gate: work orders touching UI must carry one.</td></tr>
 </table>
+</div>
 
 <h2>Templates</h2>
 <p><code>veri/templates/</code> holds the seed body for each type; <code>veri new</code> and the app's New-document flow start from them, and <code>veri check</code> expects each document to keep its template's <code>##</code> sections. The defaults:</p>
@@ -116,6 +118,7 @@ binds:
 
 <h2><code>veri check</code> rules</h2>
 <p>Zero issues is the bar — the app surfaces these live, and <code>veri check</code> exits non-zero in CI when any fire:</p>
+<div class="table-scroll">
 <table>
   <tr><th>Rule</th><th>Fires when</th></tr>
   <tr><td><code>duplicate-id</code></td><td>Two files claim the same id — the merge-collision case; the error names every claimant and the <code>veri renumber</code> resolution (see <a href="team.html">teams</a>).</td></tr>
@@ -129,16 +132,19 @@ binds:
   <tr><td><code>missing-section</code></td><td>A document lost a <code>##</code> section its type's template expects.</td></tr>
   <tr><td><code>format-mismatch</code></td><td>The <code>veri/format</code> marker doesn't match what this Veri reads — migrate, or update Veri.</td></tr>
 </table>
+</div>
 <p>Softer signals ship as <i>advisories</i> — shown greyed in the app, never failing the check.</p>
 
 <h2 id="binding-drift">Binding drift</h2>
 <p>When an in-progress work order declares <code>binds</code>, <code>veri check</code> also watches the code side of the contract. Three advisories — deterministic, derived from git history on demand, and never failing the check:</p>
+<div class="table-scroll">
 <table>
   <tr><th>Advisory</th><th>Fires when</th></tr>
   <tr><td><code>drift-unclaimed-change</code></td><td>A commit since the in-progress work began touches code that no in-progress work order's <code>binds.paths</code> matches and whose subject names no work order — code changing outside every declared claim.</td></tr>
   <tr><td><code>drift-stale-wo</code></td><td>An in-progress work order's bound paths have seen no commits for the staleness window (default 14 days; set <code>stale_after_days</code> on the workflow document to change it).</td></tr>
   <tr><td><code>drift-missing-test</code></td><td>A bound test no longer resolves: the file is gone, or the <code>::name</code> no longer appears in it.</td></tr>
 </table>
+</div>
 <p>"Since the in-progress work began" is derived, never stored: a commit whose subject names the work order and a form of "start" anchors it, falling back to the work order's <code>created</code> date. Work orders without <code>binds</code> change nothing — the detectors are inert until a project opts in. Outside a git repository they skip with a note.</p>
 
 <h2>The CLI</h2>
@@ -160,6 +166,7 @@ veri open [dir]            open the project in the Veri desktop app</code></pre>
 
 <h2 id="mcp-tools">The MCP server's tools</h2>
 <p>The stdio MCP server (<code>@veri/mcp</code>) serves one project and exposes ten tools. Reads return documents exactly as on disk; writes can only produce pending documents — nothing an agent files becomes binding without your approval.</p>
+<div class="table-scroll">
 <table>
   <tr><th>Tool</th><th>What it does</th></tr>
   <tr><td><code>get_context(id)</code></td><td>Context package for a work order: the project workflow first, then the work order, its linked requirements and decisions (2 hops), pending proposals labeled non-binding, source excerpts, and the project's document templates, with per-document and total token estimates. Superseded decisions are named as already rejected, bodies omitted; when the neighborhood is too large to inline, its outer ring arrives as a context map to retrieve from instead of full bodies. The same package <code>veri context &lt;WO-id&gt;</code> prints in a terminal.</td></tr>
@@ -173,6 +180,7 @@ veri open [dir]            open the project in the Veri desktop app</code></pre>
   <tr><td><code>file_receipt(work_order_id, commit, files, summary)</code></td><td>Append a work-session receipt to a work order — or to an import manifest as an import's completion signal. Receipts accumulate, never overwrite.</td></tr>
   <tr><td><code>get_import_instructions()</code></td><td>The brownfield import instruction package: what to mine from an existing repo, the filing rules, and a census of what the knowledge base already holds.</td></tr>
 </table>
+</div>
 
 <div class="next">
   <b>Where next:</b> the <a href="workflow.html">workflow guide</a> for the method these formats carry, or <a href="troubleshooting.html">troubleshooting</a> for when a check or connection misbehaves.
@@ -183,6 +191,37 @@ veri open [dir]            open the project in the Veri desktop app</code></pre>
   <span>Veri — plain files, no telemetry.</span>
   <span><a href="../">Home</a> · <a href="https://github.com/danielyayla/veri">Source</a> · <a href="https://github.com/danielyayla/veri/issues">Issues</a></span>
 </footer>
+
+<script>
+// Copy buttons on code blocks (WO-087, design SRC-042) — the same small
+// inline script on every docs page with a code block; vanilla JS, no
+// dependencies, per DEC-033. Buttons are injected here, so with scripts
+// disabled no dead control renders.
+(function () {
+  'use strict';
+  if (!navigator.clipboard) return;
+  document.querySelectorAll('.doc pre').forEach(function (pre) {
+    var code = pre.querySelector('code') || pre;
+    var wrap = document.createElement('div');
+    wrap.className = 'pre-wrap';
+    pre.parentNode.insertBefore(wrap, pre);
+    wrap.appendChild(pre);
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy-btn';
+    btn.textContent = 'Copy';
+    var timer = null;
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(code.textContent).then(function () {
+        btn.textContent = 'Copied';
+        clearTimeout(timer);
+        timer = setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      }, function () { /* clipboard refused — don't claim Copied */ });
+    });
+    wrap.appendChild(btn);
+  });
+})();
+</script>
 
 </body>
 </html>

@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
 <link rel="preload" href="../assets/fonts/source-sans-3-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="../site.css?v=3">
+<link rel="stylesheet" href="../site.css?v=7">
 </head>
 <body>
 
@@ -18,8 +18,6 @@
 
 <header class="top">
   <a class="top-wordmark" href="../"><span class="v">V</span>eri</a>
-  <a class="nav" href="../#product">Product</a>
-  <a class="nav here" href="workflow.html">Workflow</a>
   <a class="nav here" href="quickstart.html">Docs</a>
   <a class="nav" href="https://github.com/danielyayla/veri">GitHub</a>
   <a class="top-dl" href="https://github.com/danielyayla/veri/releases/latest">Download</a>
@@ -45,6 +43,7 @@
 
 <h2>The five document types</h2>
 
+<div class="table-scroll">
 <table>
   <tr><th>Type</th><th>Id</th><th>Answers</th></tr>
   <tr><td><span class="type-src">Source</span></td><td><code>SRC-…</code></td><td>"What do we know?" Evidence brought in from outside: interview notes, specs, transcripts, design handoffs. Sources are imported, never authored from nothing — they're the raw material everything else cites.</td></tr>
@@ -53,6 +52,7 @@
   <tr><td><span class="type-wo">Work order</span></td><td><code>WO-…</code></td><td>"What should be done next?" A scoped unit of work an agent can pick up: summary, in scope, out of scope, linked requirements, acceptance tests — and, once work happens, receipts.</td></tr>
   <tr><td><span class="type-wf">Workflow</span></td><td><code>WF-…</code></td><td>"How does work move here?" One per project. It states the path of work and the rules for implementers, and it's the first thing in every context package — so every agent session starts with your project's rules.</td></tr>
 </table>
+</div>
 
 <h2>The path of work</h2>
 <p>Documents aren't filed at random; they flow:</p>

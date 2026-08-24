@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
 <link rel="preload" href="../assets/fonts/source-sans-3-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="../site.css?v=3">
+<link rel="stylesheet" href="../site.css?v=7">
 </head>
 <body>
 
@@ -18,8 +18,6 @@
 
 <header class="top">
   <a class="top-wordmark" href="../"><span class="v">V</span>eri</a>
-  <a class="nav" href="../#product">Product</a>
-  <a class="nav" href="workflow.html">Workflow</a>
   <a class="nav here" href="quickstart.html">Docs</a>
   <a class="nav" href="https://github.com/danielyayla/veri">GitHub</a>
   <a class="top-dl" href="https://github.com/danielyayla/veri/releases/latest">Download</a>
@@ -87,6 +85,37 @@
   <span>Veri — plain files, no telemetry.</span>
   <span><a href="../">Home</a> · <a href="https://github.com/danielyayla/veri">Source</a> · <a href="https://github.com/danielyayla/veri/issues">Issues</a></span>
 </footer>
+
+<script>
+// Copy buttons on code blocks (WO-087, design SRC-042) — the same small
+// inline script on every docs page with a code block; vanilla JS, no
+// dependencies, per DEC-033. Buttons are injected here, so with scripts
+// disabled no dead control renders.
+(function () {
+  'use strict';
+  if (!navigator.clipboard) return;
+  document.querySelectorAll('.doc pre').forEach(function (pre) {
+    var code = pre.querySelector('code') || pre;
+    var wrap = document.createElement('div');
+    wrap.className = 'pre-wrap';
+    pre.parentNode.insertBefore(wrap, pre);
+    wrap.appendChild(pre);
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy-btn';
+    btn.textContent = 'Copy';
+    var timer = null;
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(code.textContent).then(function () {
+        btn.textContent = 'Copied';
+        clearTimeout(timer);
+        timer = setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      }, function () { /* clipboard refused — don't claim Copied */ });
+    });
+    wrap.appendChild(btn);
+  });
+})();
+</script>
 
 </body>
 </html>

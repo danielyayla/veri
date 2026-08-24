@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
 <link rel="preload" href="../assets/fonts/source-sans-3-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="../site.css?v=3">
+<link rel="stylesheet" href="../site.css?v=7">
 </head>
 <body>
 
@@ -18,8 +18,6 @@
 
 <header class="top">
   <a class="top-wordmark" href="../"><span class="v">V</span>eri</a>
-  <a class="nav" href="../#product">Product</a>
-  <a class="nav" href="workflow.html">Workflow</a>
   <a class="nav here" href="quickstart.html">Docs</a>
   <a class="nav" href="https://github.com/danielyayla/veri">GitHub</a>
   <a class="top-dl" href="https://github.com/danielyayla/veri/releases/latest">Download</a>
@@ -72,9 +70,10 @@
 
 <h2>Verify from inside Veri</h2>
 <p>The connection panel's static checks confirm the file exists, the entry is present, the server script exists on disk, and the root argument points at the open project. <b>LIVE CHECK → Verify connection</b> goes further: Veri launches the server with the exact command and arguments in your config — resolving <code>node</code> the way your terminal would — and performs a real MCP handshake, including a search call proving the server serves <i>this</i> project's documents.</p>
-<p>Success looks like: <i>"Server answered over MCP — serving this project (16 documents, 7 tools) with node v22.x."</i> A failure names one of five causes — missing Node, Node too old, server script missing, wrong project root, or the server didn't answer — each with a single fix. See <a href="troubleshooting.html">troubleshooting</a> for all five.</p>
+<p>Success looks like: <i>"Server answered over MCP — serving this project (16 documents, 10 tools) with node v22.x."</i> A failure names one of five causes — missing Node, Node too old, server script missing, wrong project root, or the server didn't answer — each with a single fix. See <a href="troubleshooting.html">troubleshooting</a> for all five.</p>
 
 <h2>What the agent gets</h2>
+<div class="table-scroll">
 <table>
   <tr><th>Tool</th><th>What it does</th></tr>
   <tr><td><code>get_context</code></td><td>The context package for a work order: the project workflow, the work order, all linked requirements and active decisions (two hops), source excerpts, with token estimates. Superseded decisions are named as already rejected.</td></tr>
@@ -88,6 +87,7 @@
   <tr><td><code>file_receipt</code></td><td>Appends a work-session receipt (commit, files, summary) to a work order — or to an import manifest as an import's completion signal. Receipts accumulate; they never overwrite.</td></tr>
   <tr><td><code>get_import_instructions</code></td><td>The <a href="brownfield.html">brownfield import</a> instruction package: what to mine from an existing repo, the filing rules, and a census of what the knowledge base already holds.</td></tr>
 </table>
+</div>
 
 <h2>Other MCP clients</h2>
 <p>There's nothing Claude-specific about the server: it's a standard stdio MCP server. Any client that can launch one works with the same three facts — command <code>node</code>, the <code>server.js</code> path shown in Veri's panel, and your project root as the argument. The <a href="connect-mcp.html">generic MCP client page</a> spells out the three facts, a copyable config, and the verification path for clients Veri doesn't configure automatically.</p>
@@ -101,6 +101,37 @@
   <span>Veri — plain files, no telemetry.</span>
   <span><a href="../">Home</a> · <a href="https://github.com/danielyayla/veri">Source</a> · <a href="https://github.com/danielyayla/veri/issues">Issues</a></span>
 </footer>
+
+<script>
+// Copy buttons on code blocks (WO-087, design SRC-042) — the same small
+// inline script on every docs page with a code block; vanilla JS, no
+// dependencies, per DEC-033. Buttons are injected here, so with scripts
+// disabled no dead control renders.
+(function () {
+  'use strict';
+  if (!navigator.clipboard) return;
+  document.querySelectorAll('.doc pre').forEach(function (pre) {
+    var code = pre.querySelector('code') || pre;
+    var wrap = document.createElement('div');
+    wrap.className = 'pre-wrap';
+    pre.parentNode.insertBefore(wrap, pre);
+    wrap.appendChild(pre);
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy-btn';
+    btn.textContent = 'Copy';
+    var timer = null;
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(code.textContent).then(function () {
+        btn.textContent = 'Copied';
+        clearTimeout(timer);
+        timer = setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      }, function () { /* clipboard refused — don't claim Copied */ });
+    });
+    wrap.appendChild(btn);
+  });
+})();
+</script>
 
 </body>
 </html>

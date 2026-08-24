@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
 <link rel="preload" href="../assets/fonts/source-sans-3-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="../site.css?v=3">
+<link rel="stylesheet" href="../site.css?v=7">
 </head>
 <body>
 
@@ -18,8 +18,6 @@
 
 <header class="top">
   <a class="top-wordmark" href="../"><span class="v">V</span>eri</a>
-  <a class="nav" href="../#product">Product</a>
-  <a class="nav" href="workflow.html">Workflow</a>
   <a class="nav here" href="quickstart.html">Docs</a>
   <a class="nav" href="https://github.com/danielyayla/veri">GitHub</a>
   <a class="top-dl" href="https://github.com/danielyayla/veri/releases/latest">Download</a>
@@ -42,12 +40,14 @@
 <p class="doc-lead">There is nothing Claude-specific about Veri's server: it's a standard <a href="https://modelcontextprotocol.io">MCP</a> server speaking stdio. Any client that can launch a stdio server — an agent CLI, an IDE, your own tooling — connects with the same three facts. Using one of the agents Veri configures automatically? See <a href="connect-claude-code.html">Claude Code</a>, <a href="connect-cursor.html">Cursor</a>, <a href="connect-codex-cli.html">Codex CLI</a>, or <a href="connect-gemini.html">Gemini CLI</a> instead — Veri writes those configs for you.</p>
 
 <h2>The three facts</h2>
+<div class="table-scroll">
 <table>
   <tr><th>Fact</th><th>Value</th></tr>
   <tr><td>Command</td><td><code>node</code> — your own Node, version 20 or newer</td></tr>
   <tr><td>First argument</td><td>The server script that ships inside the Veri app:<br><code>/Applications/Veri.app/Contents/Resources/app/node_modules/@veri/mcp/dist/server.js</code><br>(no version segment — the path survives app self-updates). From a source checkout it's <code>packages/mcp/dist/server.js</code> after <code>npm install &amp;&amp; npm test</code>.</td></tr>
   <tr><td>Second argument</td><td>The project root the server serves: the directory containing <code>veri/</code>. Relative paths resolve against it.</td></tr>
 </table>
+</div>
 <p>One server serves one project. The server is subprocess-free, reads and writes only the project's files, and makes no network calls.</p>
 
 <h2>A generic config</h2>
@@ -82,6 +82,37 @@
   <span>Veri — plain files, no telemetry.</span>
   <span><a href="../">Home</a> · <a href="https://github.com/danielyayla/veri">Source</a> · <a href="https://github.com/danielyayla/veri/issues">Issues</a></span>
 </footer>
+
+<script>
+// Copy buttons on code blocks (WO-087, design SRC-042) — the same small
+// inline script on every docs page with a code block; vanilla JS, no
+// dependencies, per DEC-033. Buttons are injected here, so with scripts
+// disabled no dead control renders.
+(function () {
+  'use strict';
+  if (!navigator.clipboard) return;
+  document.querySelectorAll('.doc pre').forEach(function (pre) {
+    var code = pre.querySelector('code') || pre;
+    var wrap = document.createElement('div');
+    wrap.className = 'pre-wrap';
+    pre.parentNode.insertBefore(wrap, pre);
+    wrap.appendChild(pre);
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy-btn';
+    btn.textContent = 'Copy';
+    var timer = null;
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(code.textContent).then(function () {
+        btn.textContent = 'Copied';
+        clearTimeout(timer);
+        timer = setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      }, function () { /* clipboard refused — don't claim Copied */ });
+    });
+    wrap.appendChild(btn);
+  });
+})();
+</script>
 
 </body>
 </html>

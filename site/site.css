@@ -608,9 +608,13 @@ section.band { margin: 64px auto 0; }
   width: 100%;
   font-size: 14px;
   margin: 14px 0;
-  display: block;
-  overflow-x: auto;
 }
+
+/* Wide tables scroll inside a wrapper div (WO-087, SRC-041): putting
+   display:block + overflow on the <table> itself strips its table
+   semantics for screen readers. */
+.table-scroll { overflow-x: auto; margin: 14px 0; }
+.table-scroll table { margin: 0; }
 
 .doc th, .doc td {
   border: 1px solid var(--card-border-2);
@@ -643,6 +647,31 @@ section.band { margin: 64px auto 0; }
 .type-wo  { color: var(--ember); }
 .type-src { color: var(--t-src); }
 .type-wf  { color: var(--t-wf); }
+
+/* Copy buttons on docs code blocks (WO-087, design SRC-042/Docs.dc.html).
+   The shared inline script on each docs page wraps every .doc pre in a
+   .pre-wrap and appends a real <button>, so with scripts disabled no dead
+   control renders. The button lives on the wrapper — outside the pre's
+   own horizontal scroll — so it stays put while long lines scroll. */
+.pre-wrap { position: relative; }
+
+.copy-btn {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--int-border);
+  border-radius: 5px;
+  background: var(--card);
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.copy-btn:hover { color: var(--text); border-color: var(--hover-border); }
 
 .next {
   margin-top: 40px;
