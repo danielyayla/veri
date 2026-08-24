@@ -2,7 +2,8 @@
 id: DEC-079
 type: decision
 title: "Deliberate divergences from the Vellum spec — what Veri adopts and what it declines, on the record"
-status: proposed
+status: active
+approved: 2026-08-24
 created: 2026-08-24
 updated: 2026-08-24
 links:
