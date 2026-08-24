@@ -46,13 +46,13 @@ Give an outside contributor a path from "found the repo" to "opened a useful PR"
 
 ## Acceptance tests
 
-- [ ] CONTRIBUTING.md exists and explains the work-order gate such that an outsider knows why the Veri gate might fail their PR and what to do about it
-- [ ] GitHub's community-standards checklist shows license, contributing, security policy, and issue/PR templates all present
-- [ ] A test PR from a non-maintainer perspective hits no undocumented obstacle: templates render, required checks are named, the gate's failure mode is explained
-- [ ] Dependabot opens its first update PRs and they pass CI
-- [ ] Discussions is live and linked from the issue-template config
-- [ ] main is protected: required checks CI + Veri gate
+- [x] CONTRIBUTING.md exists and explains the work-order gate such that an outsider knows why the Veri gate might fail their PR and what to do about it
+- [x] GitHub's community-standards checklist shows license, contributing, security policy, and issue/PR templates all present — community/profile health_percentage 100
+- [x] A test PR from a non-maintainer perspective hits no undocumented obstacle: templates render, required checks are named, the gate's failure mode is explained — PR #7 from a branch: template rendered, checks test + veri-check both green, CONTRIBUTING names them and the gate's failure mode
+- [x] Dependabot opens its first update PRs and they pass CI — 9 PRs on first run across github-actions, npm (incl. the minor/patch group), and cargo; spot-checked PRs 5/6/8/9/10 green on both checks
+- [x] Discussions is live and linked from the issue-template config — enabled with GitHub's default categories; /discussions returns 200; config.yml contact-links it alongside the troubleshooting page
+- [ ] main is protected: required checks CI + Veri gate — blocked in-session by the permission classifier; exact API call handed to Daniel
 
 ## Receipts
 
-(none yet)
+- 2026-08-24 — f1702bc — CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, .github/PULL_REQUEST_TEMPLATE.md, .github/ISSUE_TEMPLATE/config.yml, .github/dependabot.yml — Contributor onramp landed: CONTRIBUTING explains the work-order gate as a documented step (issue → maintainer files the WO → reference it in commits/PR); SECURITY.md routes to GitHub private vulnerability reporting (enabled on the repo); Contributor Covenant 2.1 adopted verbatim with a GitHub-handle contact; PR template asks what/WO/verified; issue chooser disables blank issues and links troubleshooting + Discussions (enabled, default categories). Labels feedback/action/app/cli created; good-first-issues #1–#4 seeded (CLI --version, list --json, Windsurf connect page, shell completions — all verified real gaps). Live-verified: community-profile health 100%; test PR #7 green on test + veri-check with the template rendering; Dependabot's first run opened 9 PRs across all three ecosystems, spot-checked green. Branch protection remains: the API call was denied by the session's permission classifier — handed to Daniel to run (or to permit and delegate).
