@@ -2,7 +2,7 @@
 id: WO-028
 type: work-order
 title: Packaged releases and auto-update for the desktop app
-status: backlog
+status: done
 created: 2026-08-17
 updated: 2026-08-24
 links:
@@ -156,3 +156,4 @@ acceptance boxes above are checked against that evidence, per box.
 
 - 2026-08-17 — a982fd4 — packages/ui/electron-builder.yml, packages/ui/build/entitlements.mac.plist, packages/ui/src/lib/updater.ts, packages/ui/src/main.ts, packages/ui/package.json, .github/workflows/release.yml, .gitignore, DEC-028, DEC-029, SRC-011 — claude-code session: electron-builder universal DMG+ZIP+blockmaps (asar off for real server.js/demo files), electron-updater with native Restart Now/Later dialog and install-on-quit, tag-triggered sign/notarize/publish CI; local unsigned build verified end-to-end (packaged app renders this project, survives empty feed silently); signing/notarization, real N-to-N+1 update, and CI run boxes await Apple credentials and a first tagged release — status stays in-progress
 - 2026-08-17 — 076d07f — workflows/release.yml — First live release run: added unsigned-build fallback when signing secrets are absent, tagged v0.1.1 (version bump and retag in commit 4c45b12, an unprefixed release commit), published release with DMG/zip/latest-mac.yml, verified DMG mounts and app launches
+- 2026-08-24 — 844194c — veri/work-orders/WO-028-packaged-releases-and-auto-update.md — Closure without new work: acceptance boxes checked against evidence already on the record — [[WO-034]]'s signed end-to-end verification on the Electron line (spctl-accepted notarized install, Restart Now, install-on-quit, differential 0.1.5→0.1.6) and the shipped Tauri line ([[DEC-063]]/[[WO-073]], releases v0.2.0/v0.2.1, live 0.2.0→0.2.1 update walk). Resolution section records the Electron→Tauri delivery path; the differential-download box is checked as proven-then-retired by approved [[DEC-065]], and the tag-to-published-release box notes two on-record deviations (maintainer publishes the CI draft per [[DEC-032]]; bridge-asset carry-forward is a documented manual step). No links or stamps changed; existing SRC-011 designed-by satisfies the design gate. veri check zero issues (known WO-034 advisory aside), npm test 292/292. Maintainer may veto by reverting commits 844194c and this one. (agent session, Claude Code)
