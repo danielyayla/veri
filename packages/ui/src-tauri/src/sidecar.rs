@@ -33,26 +33,36 @@ pub struct Sidecar {
 }
 
 fn node_binary(packaged: bool) -> PathBuf {
+    let exe_name = if cfg!(windows) { "node.exe" } else { "node" };
     if let Ok(explicit) = std::env::var("VERI_NODE") {
         return PathBuf::from(explicit);
     }
     if packaged {
-        // externalBin lands next to the app binary in Contents/MacOS/.
+        // externalBin lands next to the app binary: Contents/MacOS/ on
+        // macOS, the install directory on Windows, usr/bin in the Linux
+        // bundles (WO-092).
         if let Ok(exe) = std::env::current_exe() {
             if let Some(dir) = exe.parent() {
-                return dir.join("node");
+                return dir.join(exe_name);
             }
         }
     }
     // Dev: the fetched runtime if present (the same binary that ships),
     // otherwise whatever `node` the shell was launched with.
+    let triple = if cfg!(target_os = "macos") {
+        format!("{}-apple-darwin", std::env::consts::ARCH)
+    } else if cfg!(target_os = "linux") {
+        format!("{}-unknown-linux-gnu", std::env::consts::ARCH)
+    } else {
+        format!("{}-pc-windows-msvc.exe", std::env::consts::ARCH)
+    };
     let fetched = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("binaries")
-        .join(format!("node-{}-apple-darwin", std::env::consts::ARCH));
+        .join(format!("node-{triple}"));
     if fetched.exists() {
         fetched
     } else {
-        PathBuf::from("node")
+        PathBuf::from(exe_name)
     }
 }
 
@@ -84,15 +94,24 @@ impl Sidecar {
 
     pub fn spawn(self: &Arc<Self>) -> std::io::Result<()> {
         let packaged = !tauri::is_dev();
-        let mut child = Command::new(node_binary(packaged))
+        let mut command = Command::new(node_binary(packaged));
+        command
             .arg(sidecar_js(&self.app, packaged))
             .args(std::env::args().skip(1).find(|a| !a.starts_with('-')))
             .env("VERI_APP_VERSION", self.app.package_info().version.to_string())
             .env("VERI_PACKAGED", if packaged { "1" } else { "0" })
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::inherit())
-            .spawn()?;
+            .stderr(Stdio::inherit());
+        // WO-092: a GUI-subsystem app spawning a console-subsystem child
+        // (node.exe) flashes a console window on Windows; CREATE_NO_WINDOW
+        // keeps the sidecar invisible, matching the other platforms.
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+        }
+        let mut child = command.spawn()?;
 
         let stdin = child.stdin.take().expect("sidecar stdin");
         let stdout = child.stdout.take().expect("sidecar stdout");

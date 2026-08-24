@@ -1,12 +1,24 @@
-# WO-073: pushing a version tag (v0.2.0) builds, signs, notarizes, and
-# publishes the Tauri app — per-architecture DMGs plus the tauri-updater
-# feed (latest.json, .app.tar.gz archives with minisign signatures) — to a
-# GitHub Release. The tag is the only manual step.
+# WO-073 / WO-092: pushing a version tag (v0.2.0) builds and publishes the
+# Tauri app for every supported platform — signed/notarized per-architecture
+# macOS DMGs, a Linux AppImage and .deb, and a Windows NSIS installer — plus
+# the tauri-updater feed (latest.json and minisign-signed updater artifacts)
+# to one GitHub Release. The tag is the only manual step.
 #
-# When the Apple signing secrets are not configured, the build falls back
-# to an ad-hoc-signed, un-notarized app so the rest of the pipeline can be
-# exercised; installs will hit Gatekeeper warnings. The updater signing key
-# is NOT optional: without signed archives, installed apps refuse the feed.
+# Each platform builds on its own runner and uploads a workflow artifact;
+# the publish job merges them, gates every installer at REQ-023's 50 MB
+# ceiling, assembles the notes, and creates the one draft release.
+#
+# Signing posture (DEC-082, proposed): macOS artifacts are Developer
+# ID-signed and notarized; the Windows installer is NOT Authenticode-signed
+# (SmartScreen warns on first install); Linux artifacts follow the
+# platform's norm of no code signing. Every updater artifact on every
+# platform carries a minisign signature the installed app verifies.
+#
+# When the Apple signing secrets are not configured, the macOS build falls
+# back to an ad-hoc-signed, un-notarized app so the rest of the pipeline can
+# be exercised; installs will hit Gatekeeper warnings. The updater signing
+# key is NOT optional on any platform: without signed artifacts, installed
+# apps refuse the feed.
 #
 # Required repository secrets for signed builds:
 #   CSC_LINK                     base64 .p12 of the Developer ID
@@ -17,7 +29,7 @@
 #   APPLE_ID                     Apple ID for notarization
 #   APPLE_APP_SPECIFIC_PASSWORD  app-specific password for that ID
 #   APPLE_TEAM_ID                developer team id
-#   TAURI_SIGNING_PRIVATE_KEY    minisign private key for updater archives
+#   TAURI_SIGNING_PRIVATE_KEY    minisign private key for updater artifacts
 #                                (generated with `tauri signer generate`;
 #                                the matching pubkey lives in
 #                                packages/ui/src-tauri/tauri.conf.json)
@@ -70,11 +82,39 @@ jobs:
             exit 1
           fi
 
-  release:
+  # WO-092: one job per platform, each producing its release assets plus a
+  # manifest fragment (updater entries + sizes) for the publish job to merge.
+  build:
     needs: guard
     if: needs.guard.outputs.proceed == 'true'
-    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: darwin
+            # The arm64 runner cross-builds the x64 slice.
+            runner: macos-14
+            node-target: all
+          - platform: linux
+            # Oldest supported LTS runner: the AppImage links this image's
+            # glibc/webkit, so building here keeps it installable on older
+            # distros (Tauri's own guidance).
+            runner: ubuntu-22.04
+            node-target: linux-x64
+          - platform: windows
+            runner: windows-latest
+            node-target: win-x64
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
     steps:
+      # The repo's files are authored LF; tests and staging compare and ship
+      # byte content, so stop Git for Windows' autocrlf rewriting checkouts.
+      - name: Keep the checkout byte-identical (Windows)
+        if: runner.os == 'Windows'
+        run: git config --global core.autocrlf false
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
@@ -82,18 +122,46 @@ jobs:
           node-version: 22
           cache: npm
 
+      # The documented Tauri v2 build dependencies for Ubuntu 22.04.
+      - name: Linux system dependencies (Tauri v2)
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - name: Updater signing key must be present on every platform
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "TAURI_SIGNING_PRIVATE_KEY is not set — updater artifacts cannot be signed" >&2
+            exit 1
+          fi
+
       - run: npm ci
 
       - run: npm run build
 
-      - run: npm test
+      # macOS runs the full suite (the app's own package included); the
+      # other runners run the pure-Node package suites, matching the CI
+      # matrix (WO-092/REQ-030) — cross-platform app behavior beyond that
+      # is not provable on a build runner.
+      - name: Test
+        run: |
+          if [ "${{ matrix.platform }}" = "darwin" ]; then
+            npm test
+          else
+            npm test -w @veri/core -w @veri/cli -w @veri/mcp -w @veri/action
+          fi
 
       - name: Rust targets (arm64 runner cross-builds x64)
+        if: matrix.platform == 'darwin'
         run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
-      - name: Fetch the bundled Node runtime (both architectures)
+      - name: Fetch the bundled Node runtime
         working-directory: packages/ui
-        run: node scripts/fetch-node.mjs --target=all
+        run: node scripts/fetch-node.mjs --target=${{ matrix.node-target }}
 
       - name: Stage the sidecar tree
         working-directory: packages/ui
@@ -102,7 +170,8 @@ jobs:
       # Tauri's bundler imports APPLE_CERTIFICATE into a temporary keychain,
       # signs with the hardened runtime + entitlements.plist, and notarizes
       # via notarytool — no separate keychain step needed.
-      - name: Build, sign, notarize (per architecture)
+      - name: Build, sign, notarize (macOS, per architecture)
+        if: matrix.platform == 'darwin'
         working-directory: packages/ui
         env:
           APPLE_CERTIFICATE: ${{ secrets.CSC_LINK }}
@@ -113,10 +182,6 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
-          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
-            echo "TAURI_SIGNING_PRIVATE_KEY is not set — updater archives cannot be signed" >&2
-            exit 1
-          fi
           if [ -z "$APPLE_CERTIFICATE" ]; then
             echo "::warning::Apple signing secrets not set; building ad-hoc-signed, un-notarized app"
             unset APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID
@@ -124,16 +189,66 @@ jobs:
           npx tauri build --target aarch64-apple-darwin
           npx tauri build --target x86_64-apple-darwin
 
-      # Renames the per-arch updater archives apart, writes latest.json, and
-      # fails the release if a DMG crosses REQ-023's 50 MB ceiling. SIZES.md
-      # becomes the release notes, so every release states its sizes.
-      - name: Assemble release assets and updater manifest
+      - name: Build (Linux — AppImage + .deb)
+        if: matrix.platform == 'linux'
         working-directory: packages/ui
-        run: node scripts/make-updater-manifest.mjs
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npx tauri build --bundles appimage,deb
+
+      # Not Authenticode-signed (DEC-082, proposed): SmartScreen warns on
+      # first install; the updater artifact still carries its minisign
+      # signature, which the installed app verifies.
+      - name: Build (Windows — NSIS)
+        if: matrix.platform == 'windows'
+        working-directory: packages/ui
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npx tauri build --bundles nsis
+
+      # Collects this platform's bundles into release-assets/, writes the
+      # manifest fragment, and fails here if an installer crosses REQ-023's
+      # 50 MB ceiling — a size regression stops the platform job itself.
+      - name: Collect release assets and manifest fragment
+        working-directory: packages/ui
+        run: node scripts/make-updater-manifest.mjs --platform=${{ matrix.platform }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-assets-${{ matrix.platform }}
+          path: packages/ui/src-tauri/release-assets/
+          if-no-files-found: error
+
+  publish:
+    needs: [guard, build]
+    if: needs.guard.outputs.proceed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-assets-*
+          path: packages/ui/src-tauri/release-assets
+          merge-multiple: true
+
+      # Merges the three platform fragments into latest.json (failing if any
+      # platform's build vanished), re-checks the size gate across all
+      # installers, and writes SIZES.md (sizes + per-platform update-channel
+      # caveats) and ASSETS.txt (the exact upload/verify list).
+      - name: Merge the updater manifest and gate sizes
+        working-directory: packages/ui
+        run: node scripts/make-updater-manifest.mjs --merge
 
       # WO-079: release notes are "What's new" from CHANGELOG.md (the guard
       # already proved the section exists) above the SIZES.md manifest, so
-      # every release states its changes and its sizes.
+      # every release states its changes, its sizes, and its caveats.
       - name: Assemble release notes (what's new + sizes)
         run: |
           version="${GITHUB_REF_NAME#v}"
@@ -165,20 +280,13 @@ jobs:
         working-directory: packages/ui/src-tauri/release-assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          version="${GITHUB_REF_NAME#v}"
-          gh release upload "${GITHUB_REF_NAME}" --clobber \
-            "Veri_${version}_aarch64.dmg" \
-            "Veri_${version}_x64.dmg" \
-            "Veri_${version}_aarch64.app.tar.gz" \
-            "Veri_${version}_aarch64.app.tar.gz.sig" \
-            "Veri_${version}_x64.app.tar.gz" \
-            "Veri_${version}_x64.app.tar.gz.sig" \
-            "latest.json"
+        run: xargs -a ASSETS.txt gh release upload "${GITHUB_REF_NAME}" --clobber
 
       # WO-033: fail loudly if the feed is split or incomplete — a partial
       # latest.json release would break auto-update. Counts via GraphQL: the
-      # REST list endpoint serves stale results.
+      # REST list endpoint serves stale results. The expected list is
+      # ASSETS.txt, itself assembled from the per-platform fragments whose
+      # collectors fail on any missing bundle.
       - name: Verify one complete release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -199,18 +307,12 @@ jobs:
             exit 1
           fi
           assets=$(jq -r '.[0].releaseAssets.nodes[].name' <<< "$releases")
-          version="${GITHUB_REF_NAME#v}"
           missing=0
-          for f in "Veri_${version}_aarch64.dmg" \
-                   "Veri_${version}_x64.dmg" \
-                   "Veri_${version}_aarch64.app.tar.gz" \
-                   "Veri_${version}_aarch64.app.tar.gz.sig" \
-                   "Veri_${version}_x64.app.tar.gz" \
-                   "Veri_${version}_x64.app.tar.gz.sig" \
-                   "latest.json"; do
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
             if ! grep -qxF "$f" <<< "$assets"; then
               echo "Missing release asset: $f" >&2
               missing=1
             fi
-          done
+          done < packages/ui/src-tauri/release-assets/ASSETS.txt
           exit $missing

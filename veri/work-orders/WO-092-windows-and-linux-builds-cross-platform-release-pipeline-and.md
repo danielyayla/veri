@@ -2,12 +2,14 @@
 id: WO-092
 type: work-order
 title: "Windows and Linux builds: cross-platform release pipeline and CI test matrix"
-status: backlog
+status: in-progress
 created: 2026-08-24
 updated: 2026-08-24
 links:
   - id: REQ-030
     rel: implements
+  - id: SRC-038
+    rel: designed-by
   - id: REQ-023
     rel: consistent-with
   - id: DEC-063

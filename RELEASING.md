@@ -25,10 +25,14 @@ trigger; CI builds, signs, notarizes, and publishes (see
    git tag vX.Y.Z && git push origin vX.Y.Z
    ```
 
-5. CI creates a **draft** release with "What's new" (from the
-   changelog) above the artifact sizes, uploads both architectures'
-   DMGs, updater archives + signatures, and `latest.json`, then
-   verifies the release is complete. Review the draft and publish it.
+5. CI builds every platform in parallel — per-architecture macOS DMGs
+   (signed and notarized), a Linux AppImage and `.deb`, and a Windows
+   NSIS installer (not Authenticode-signed: SmartScreen warns on first
+   install; DEC-082) — then a publish job merges the minisign-signed
+   updater artifacts and `latest.json`, creates a **draft** release
+   with "What's new" (from the changelog) above the artifact sizes and
+   per-platform update caveats, and verifies the release is complete.
+   Review the draft and publish it.
 6. After publishing, copy the Electron-bridge assets forward from the
    previous release (`Veri-0.1.8-universal-mac.zip`, its `.blockmap`,
    and `latest-mac.yml`): 0.1.x installs read `releases/latest` for

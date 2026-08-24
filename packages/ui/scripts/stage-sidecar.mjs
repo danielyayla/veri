@@ -11,8 +11,12 @@
 // Output: src-tauri/sidecar-stage/ (gitignored), mapped to Resources/sidecar
 // by tauri.conf.json's bundle.resources.
 import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+/** Path containment must hold on Windows too (WO-092), where join/realpath
+    produce backslashes: compare on the native separator. */
+const within = (path, base) => path.startsWith(`${base}${sep}`);
 
 const here = dirname(fileURLToPath(import.meta.url));
 const pkgDir = join(here, '..');
@@ -47,10 +51,10 @@ while (queue.length > 0) {
     // package already staged — packages copy with their own node_modules
     // below, so Node resolves the nested copy exactly as it does here.
     // Two competing top-level copies would silently break resolution.
-    if ([...found.values()].some((base) => dir.startsWith(`${base}/`))) continue;
+    if ([...found.values()].some((base) => within(dir, base))) continue;
     throw new Error(`version conflict for ${name}: ${seen} vs ${dir}`);
   }
-  if ([...found.values()].some((base) => dir.startsWith(`${base}/`))) continue; // ships with its parent
+  if ([...found.values()].some((base) => within(dir, base))) continue; // ships with its parent
   found.set(name, dir);
   const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
   for (const dep of Object.keys(pkg.dependencies ?? {})) queue.push({ name: dep, fromDir: dir });
@@ -74,7 +78,7 @@ mkdirSync(stage, { recursive: true });
 // never ship.
 cpSync(join(pkgDir, 'dist'), join(stage, 'dist'), {
   recursive: true,
-  filter: (src) => !src.includes('/dist/renderer') && !/\.test\.[^/]+$/.test(src),
+  filter: (src) => !src.includes(`${sep}dist${sep}renderer`) && !/\.test\.[^/\\]+$/.test(src),
 });
 
 // Nearest-package.json context for dist/**/*.js: ESM, like the sources.
@@ -95,7 +99,7 @@ for (const [name, dir] of [...found.entries()].sort()) {
   cpSync(dir, dest, {
     recursive: true,
     dereference: true,
-    filter: (src) => !src.includes('/.git/'),
+    filter: (src) => !src.includes(`${sep}.git${sep}`),
   });
   total += 1;
 }
