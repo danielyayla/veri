@@ -2,7 +2,7 @@
 id: WO-084
 type: work-order
 title: "Install path on the site: hero install command and an honest non-Mac story"
-status: backlog
+status: in-progress
 created: 2026-08-24
 updated: 2026-08-24
 links:
