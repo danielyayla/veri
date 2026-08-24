@@ -2,7 +2,7 @@
 id: WO-085
 type: work-order
 title: "Homepage micro-demos: interactive product demonstrations, hand-authored"
-status: in-progress
+status: done
 created: 2026-08-24
 updated: 2026-08-24
 links:
@@ -46,12 +46,12 @@ Build the four interactive micro-demos designed in SRC-042 as the homepage's pro
 
 ## Acceptance tests
 
-- [ ] All four demos work with mouse and keyboard in current Safari, Chrome, and Firefox, in both palettes, with zero console errors
-- [ ] `prefers-reduced-motion: reduce` disables the pulse and timed autoplay while keeping every demo fully operable
-- [ ] With JavaScript disabled, the homepage still presents each demo's initial state legibly — no empty boxes
-- [ ] The hero demo's agent session teaches the full loop (package → proposal → receipt → human approval) without any prose band narrating it
-- [ ] Page passes the WO-065 responsive/AA baseline; total added JS stays inline and dependency-free
+- [x] All four demos work with mouse and keyboard in current Safari, Chrome, and Firefox, in both palettes, with zero console errors — verified in Chromium (Claude browser pane): all four demos driven by real clicks in dark and light `prefers-color-scheme` with zero console messages; keyboard paths (arrow/Home/End roving tabindex, native buttons) exercised by a node DOM smoke test running the page's actual inline script; the script is ES5-syntax vanilla JS using only long-universal APIs (`matchMedia` and `navigator.clipboard` both guarded), so Safari/Firefox rest on that audit rather than a live run — flagged for a maintainer spot-check
+- [x] `prefers-reduced-motion: reduce` disables the pulse and timed autoplay while keeping every demo fully operable — `.pulse` is animation-none under the media query (site.css), and the session script branches on `matchMedia('(prefers-reduced-motion: reduce)')`: the whole session appears at once on click, zero timers queued (asserted by the smoke test), approval and replay still operable
+- [x] With JavaScript disabled, the homepage still presents each demo's initial state legibly — no empty boxes — interactive-only controls carry `.js-only` and stay hidden until the script tags `<html class="js">`; the markup ships the mini-app on the WO-002 tab with the full package panel, the file toggle on the app view, all nine explorer explanations expanded, and the review queue with its draft row (smoke test asserts these initial states straight from the served markup)
+- [x] The hero demo's agent session teaches the full loop (package → proposal → receipt → human approval) without any prose band narrating it — the scripted session inside the panel is the only narration: fetch (9 docs · ~1.8k tokens) → DEC-011 filed proposed → receipt b21e88f · 3 files → NEEDS REVIEW card whose Promote-to-active the visitor clicks (sidebar decision count ticks 5 → 6); no band copy walks these steps
+- [x] Page passes the WO-065 responsive/AA baseline; total added JS stays inline and dependency-free — 375×812 Chromium: `scrollWidth === clientWidth === 375` (sidebar/search drop, panel stacks, tab strip scrolls in place); every demo color pair computed ≥ 4.5:1 in both palettes (light WO accent darkened to #A04214 ≈ 5.4:1 and chip fills thinned to 0.06 for ≈ 4.6:1, commented in the token block); all JS is two inline `<script>` blocks, no dependencies, six bands and the four agent connect links intact
 
 ## Receipts
 
-(none yet)
+- 2026-08-24 · commit d64f583 · site/index.html, site/site.css, this file · Four interactive micro-demos land as the homepage product demonstration per SRC-042, replacing the WO-083 hero GIF: hero mini-app (tabs + package panel + scripted agent session + promote), app⇄file toggle, package explorer, review-queue Promote — vanilla inline JS, both palettes, keyboard + reduced-motion + no-JS treatments; verified by node smoke test over the real inline script, Chromium click-through with zero console errors, and computed AA contrast audit.
