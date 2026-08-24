@@ -2,7 +2,7 @@
 id: WO-075
 type: work-order
 title: "Brownfield import: seed a veri/ knowledge base from an existing project"
-status: in-progress
+status: done
 created: 2026-08-24
 updated: 2026-08-24
 links:
@@ -52,9 +52,10 @@ Give existing projects a guided on-ramp: an agent-assisted import pass that mine
 - [x] Running the import flow on a repo with no veri/ directory produces a valid knowledge base where every generated requirement is status: draft and every generated decision is status: proposed
 - [x] Imported documents carry provenance links to SRC documents naming the files/commits they were derived from
 - [x] `veri check` passes on the imported tree and still blocks any work order from going in-progress against unapproved imported documents
-- [ ] The desktop app surfaces the imported, unapproved documents as a reviewable group (implemented and unit-tested; live app walk pending)
+- [x] The desktop app surfaces the imported, unapproved documents as a reviewable group (live walk 2026-08-24 via the VERI_UI_SHOT harness against a scratch brownfield project: START HERE variant, Import ready/filing/done, grouped review queue with evidence rows, provenance banner with evidence chips, derived progress after approval)
 - [x] The website documents the brownfield path from install to first stamped approval
 
 ## Receipts
 
 - 2026-08-24 — 41b7a85 — packages/core/src/brownfield.ts, packages/mcp/src/writeback.ts, packages/mcp/src/server.ts, packages/cli/src/commands.ts, packages/ui/src/renderer/views/import.ts, packages/ui/src/renderer/views/home.ts, packages/ui/src/renderer/views/review.ts, packages/ui/src/renderer/derive.ts, packages/ui/src/lib/snapshot.ts, site/docs/brownfield.html, README.md — Implemented the full brownfield import loop per SRC-039: MCP filing surface + instruction package (DEC-067/068 proposed), veri import CLI, app Import view and review grouping, website guide; 530 tests green, live-app walk of the review surfaces still pending.
+- 2026-08-24 — 41b7a85 — packages/ui/src-tauri/target (walk build), scratchpad/atlas (scratch project), veri/decisions/DEC-067, veri/decisions/DEC-068 — DEC-067/068 approved by Daniel; live app walk via VERI_UI_SHOT against a scratch brownfield project verified all four surfaces plus derived review progress — all acceptance boxes checked, WO done.
