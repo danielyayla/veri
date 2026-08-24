@@ -62,7 +62,7 @@
 <p>Copy is the only action; Veri never runs it for you.</p>
 
 <h2>Restart your agent</h2>
-<p>Agent apps read MCP config <b>on launch</b>. After any write, quit and reopen Claude Code — or start a new session — in the project folder. This is the one step Veri can't do for you. In Claude Code, <code>/mcp</code> should then list <b>veri</b> with seven tools.</p>
+<p>Agent apps read MCP config <b>on launch</b>. After any write, quit and reopen Claude Code — or start a new session — in the project folder. This is the one step Veri can't do for you. In Claude Code, <code>/mcp</code> should then list <b>veri</b> with ten tools.</p>
 
 <h2>Verify from inside Veri</h2>
 <p>The connection panel's static checks confirm the file exists, the entry is present, the server script exists on disk, and the root argument points at the open project. <b>LIVE CHECK → Verify connection</b> goes further: Veri launches the server with the exact command and arguments in your config — resolving <code>node</code> the way your terminal would — and performs a real MCP handshake, including a search call proving the server serves <i>this</i> project's documents.</p>
@@ -77,7 +77,10 @@
   <tr><td><code>get_neighbors</code></td><td>A document's direct links, inbound and outbound, with each neighbor's type and status.</td></tr>
   <tr><td><code>file_decision</code></td><td>Records a decision the agent made during implementation, with the alternatives it rejected — filed for your review.</td></tr>
   <tr><td><code>file_work_order</code></td><td>Proposes a new work order with the next free WO id, in backlog until you review it.</td></tr>
-  <tr><td><code>file_receipt</code></td><td>Appends a work-session receipt (commit, files, summary) to a work order. Receipts accumulate; they never overwrite.</td></tr>
+  <tr><td><code>file_requirement</code></td><td>Drafts a requirement with the next free REQ id — born <code>draft</code>, awaiting your acceptance.</td></tr>
+  <tr><td><code>file_source</code></td><td>Files a source document — imported evidence with the file paths, commit refs, and excerpts it rests on.</td></tr>
+  <tr><td><code>file_receipt</code></td><td>Appends a work-session receipt (commit, files, summary) to a work order — or to an import manifest as an import's completion signal. Receipts accumulate; they never overwrite.</td></tr>
+  <tr><td><code>get_import_instructions</code></td><td>The <a href="brownfield.html">brownfield import</a> instruction package: what to mine from an existing repo, the filing rules, and a census of what the knowledge base already holds.</td></tr>
 </table>
 
 <h2>Other MCP clients</h2>

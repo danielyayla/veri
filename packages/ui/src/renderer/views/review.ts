@@ -4,7 +4,7 @@
 import type { VeriDocument } from '@veri/core';
 import { h } from '../dom.ts';
 import { TYPE_META } from '../theme.ts';
-import { connections, isPending } from '../derive.ts';
+import { connections, importEvidenceOf, importManifestOf, isPending } from '../derive.ts';
 import type { Ctx } from '../app.ts';
 
 function today(): string {
@@ -156,10 +156,37 @@ export function reviewBanner(ctx: Ctx, doc: VeriDocument): HTMLElement | null {
   const discKey = `review:${doc.id}`;
   const discOpen = ctx.state.expanded.has(discKey);
 
-  const provenance = isReq
-    ? `Drafted by an agent session on ${doc.created}. Work orders can cite it but cannot start until you accept it.`
-    : `Filed as a proposal by an agent session on ${doc.created}. It is not yet binding — context packages label it ` +
-      `“pending” and work orders that depend on it stay gated until you approve.`;
+  // Imported documents name their evidence inline (WO-075, SRC-039 surface
+  // 4): the review act is reading the claim against it, one click away.
+  const manifest = importManifestOf(ctx.byId, doc);
+  const evidence = manifest !== null ? importEvidenceOf(ctx.byId, doc) : [];
+  const evidenceChips = evidence.flatMap((src, i) => [
+    i > 0 ? h('span', {}, ' ') : null,
+    h(
+      'button',
+      { class: 'btn-reset rv-ev-chip', fkey: `rv-ev:${src.id}`, onClick: () => ctx.openDoc(src.id, { preview: true }) },
+      src.id,
+    ),
+  ]);
+  const provenance: Array<HTMLElement | string | null> =
+    manifest !== null
+      ? isReq
+        ? [
+            `Drafted by an agent import session on ${doc.created}`,
+            ...(evidence.length > 0 ? [' from evidence in ', ...evidenceChips] : []),
+            '. Work orders can cite it but cannot start until you accept it.',
+          ]
+        : [
+            `Filed by an agent import session on ${doc.created}`,
+            ...(evidence.length > 0 ? [' from evidence in ', ...evidenceChips] : []),
+            '. It is not yet binding — work orders that depend on it stay gated until you approve.',
+          ]
+      : isReq
+        ? [`Drafted by an agent session on ${doc.created}. Work orders can cite it but cannot start until you accept it.`]
+        : [
+            `Filed as a proposal by an agent session on ${doc.created}. It is not yet binding — context packages label it ` +
+              `“pending” and work orders that depend on it stay gated until you approve.`,
+          ];
 
   const approveBtn =
     issueCount > 0
@@ -186,7 +213,7 @@ export function reviewBanner(ctx: Ctx, doc: VeriDocument): HTMLElement | null {
     'div',
     { class: 'rv-banner' },
     h('div', { class: 'rv-title' }, '◌ Awaiting your review'),
-    h('div', { class: 'rv-prov' }, provenance),
+    h('div', { class: 'rv-prov' }, ...provenance),
     h(
       'button',
       {

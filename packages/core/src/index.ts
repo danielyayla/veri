@@ -18,3 +18,4 @@ export * from './context.ts';
 export * from './provenance.ts';
 export * from './drift.ts';
 export * from './workflow-default.ts';
+export * from './brownfield.ts';

@@ -2,7 +2,7 @@
     Agent activity, Recently changed. Every row opens its doc as a preview. */
 import { h } from '../dom.ts';
 import { TYPE_META, statusColor } from '../theme.ts';
-import { inFlight, issueDocId, pendingDocs, projectActivity, recentlyChanged } from '../derive.ts';
+import { importBatches, importGroupLabel, inFlight, isPending, issueDocId, pendingDocs, projectActivity, recentlyChanged } from '../derive.ts';
 import { isLiving } from '../sidebar.ts';
 import type { Ctx } from '../app.ts';
 
@@ -70,6 +70,48 @@ function startHereCard(ctx: Ctx): HTMLElement {
   );
 }
 
+/**
+ * START HERE, brownfield variant (WO-075, SRC-039 entry 1a): the folder has
+ * code, the knowledge base is empty — import leads. "Start from scratch"
+ * collapses to the greenfield card for this session only; nothing persisted.
+ */
+function brownfieldStartCard(ctx: Ctx): HTMLElement {
+  const steps: HTMLElement[] = [];
+  PATH_OF_WORK.forEach(([name, color, hint], i) => {
+    if (i > 0) steps.push(h('span', { class: 'hv-sh-arrow' }, '→'));
+    steps.push(
+      h(
+        'div',
+        { class: 'hv-sh-step' },
+        h('div', { class: 'hv-sh-step-name', style: `color:${color};` }, name),
+        h('div', { class: 'hv-sh-step-hint' }, hint),
+      ),
+    );
+  });
+  return h(
+    'div',
+    { class: 'hv-card hv-card-review hv-sh' },
+    h('div', { class: 'hv-sh-eyebrow' }, 'START HERE'),
+    h('div', { class: 'hv-sh-heading' }, 'This repo has a history. Veri can read it.'),
+    h('div', { class: 'hv-sh-path' }, ...steps),
+    h(
+      'div',
+      { class: 'hv-sh-actions' },
+      h('button', { class: 'btn-reset hv-sh-btn-primary', fkey: 'sh-import', onClick: () => ctx.openImport() }, 'Import project knowledge'),
+      h(
+        'button',
+        { class: 'btn-reset hv-sh-btn-ghost', fkey: 'sh-scratch', onClick: () => ctx.update({ importOfferDismissed: true }) },
+        'Start from scratch',
+      ),
+    ),
+    h(
+      'div',
+      { class: 'hv-sh-caption' },
+      'Your connected agent reads this repo and files proposals — nothing becomes binding until you approve it.',
+    ),
+  );
+}
+
 export function homeView(ctx: Ctx): HTMLElement {
   const open = (id: string | null) => (e: MouseEvent) => {
     if (id !== null) ctx.openDoc(id, { preview: true, background: e.metaKey || e.ctrlKey });
@@ -91,9 +133,50 @@ export function homeView(ctx: Ctx): HTMLElement {
   const empty = ctx.snap.documents.every((d) => d.type === 'workflow');
 
   // NEEDS REVIEW (SRC-006): full-width above the grid, hidden when empty.
+  // Imported documents group under their manifest (WO-075, SRC-039 surface
+  // 3): evidence sources lead as uncounted context, pending claims follow.
   const pending = pendingDocs(ctx.snap);
+  const pendingRow = (d: (typeof pending)[number]): HTMLElement =>
+    row(
+      d.id,
+      'hv-row',
+      h('span', { class: 'hv-id', style: `color:${TYPE_META[d.type].color};` }, d.id),
+      h('span', { class: 'hv-flight-title' }, d.title),
+      h('span', { class: 'gate-chip gate-chip-static' }, d.status),
+      h('span', { class: 'hv-time' }, `filed ${ctx.rel(d.created)}`),
+    );
+  const batches = importBatches(ctx.snap).filter((b) => b.claims.some(isPending));
+  const grouped = new Set(batches.flatMap((b) => b.claims.map((c) => c.id)));
+  const groupSections = batches.flatMap((b) => [
+    h(
+      'div',
+      { class: 'hv-imp-head' },
+      h('span', { class: 'hv-imp-swatch' }),
+      h('span', { class: 'hv-imp-label' }, `IMPORTED · ${importGroupLabel(b.manifest).toUpperCase()}`),
+      h('span', { class: 'hv-imp-prog' }, `${b.reviewed} of ${b.claims.length} reviewed`),
+    ),
+    // Evidence is context, not queue: src-tinted chip, no pending status,
+    // excluded from every count (SRC-039 — sources are never approvable).
+    ...b.evidence.map((d) =>
+      row(
+        d.id,
+        'hv-row',
+        h('span', { class: 'hv-id', style: `color:${TYPE_META[d.type].color};` }, d.id),
+        h('span', { class: 'hv-flight-title' }, d.title),
+        h('span', { class: 'hv-imp-evidence' }, 'evidence'),
+        h('span', { class: 'hv-time' }, `filed ${ctx.rel(d.created)}`),
+      ),
+    ),
+    ...b.claims
+      .filter(isPending)
+      .sort((a, c) => (a.type === c.type ? a.created.localeCompare(c.created) : a.type === 'requirement' ? -1 : 1))
+      .map(pendingRow),
+  ]);
+  const ungrouped = pending.filter((d) => !grouped.has(d.id));
   const reviewCard = empty
-    ? startHereCard(ctx)
+    ? ctx.snap.brownfield && !ctx.state.importOfferDismissed
+      ? brownfieldStartCard(ctx)
+      : startHereCard(ctx)
     : pending.length === 0
       ? null
       : h(
@@ -106,16 +189,8 @@ export function homeView(ctx: Ctx): HTMLElement {
             h('span', { class: 'hv-label', style: 'color:var(--amber);' }, 'NEEDS REVIEW'),
             h('span', { class: 'hv-meta' }, `${pending.length} pending`),
           ),
-          ...pending.map((d) =>
-            row(
-              d.id,
-              'hv-row',
-              h('span', { class: 'hv-id', style: `color:${TYPE_META[d.type].color};` }, d.id),
-              h('span', { class: 'hv-flight-title' }, d.title),
-              h('span', { class: 'gate-chip gate-chip-static' }, d.status),
-              h('span', { class: 'hv-time' }, `filed ${ctx.rel(d.created)}`),
-            ),
-          ),
+          ...groupSections,
+          ...ungrouped.map(pendingRow),
         );
 
   const issues = ctx.snap.issues;

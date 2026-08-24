@@ -40,7 +40,7 @@ DEC-004); published output targets Node >= 20.
 ### Packages
 
 - `@veri/core` — parse, validate, and graph a `veri/` directory
-- `@veri/cli` — the `veri` binary: `init`, `new`, `check`, `approve`, `migrate`, `list`, `open`
+- `@veri/cli` — the `veri` binary: `init`, `new`, `check`, `approve`, `migrate`, `import`, `list`, `open`
 - `@veri/mcp` — stdio MCP server: `get_context`, `search`, `file_decision`, `file_receipt`
 - `@veri/ui` — the Electron desktop app
 - `site/` — the website, hand-authored static files deployed by CI
@@ -74,7 +74,7 @@ Or add a project-scoped `.mcp.json` next to your `veri/` directory:
 
 (This repository's own [.mcp.json](.mcp.json) does exactly that.)
 
-The server exposes seven tools:
+The server exposes ten tools:
 
 - `get_context(id)` — context package for a work order: the project
   workflow first, then the work order, its linked requirements and
@@ -93,6 +93,13 @@ The server exposes seven tools:
   free DEC id, `status: proposed` (awaiting the user's approval)
 - `file_work_order(title, summary, …)` — propose a unit of work with the
   next free WO id, `status: backlog`
+- `file_requirement(title, body, …)` — draft a requirement with the next
+  free REQ id, `status: draft` (awaiting the user's acceptance)
+- `file_source(title, body, …)` — file a source document: imported
+  evidence with the paths, commit refs, and excerpts it rests on
 - `file_receipt(work_order_id, commit, files, summary)` — append a
-  work-session receipt to a work order; receipts accumulate, never
-  overwrite
+  work-session receipt to a work order — or to an import manifest as an
+  import's completion signal; receipts accumulate, never overwrite
+- `get_import_instructions()` — the brownfield import instruction
+  package: what to mine from an existing repo, the filing rules, and a
+  census of what the knowledge base already holds

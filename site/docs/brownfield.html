@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Import an existing project — Veri</title>
+<meta name="description" content="Seed a Veri knowledge base from a repo that already exists: your agent mines the code, git history, and docs into proposals you review and approve.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../assets/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<link rel="stylesheet" href="../site.css?v=2">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <a class="top-wordmark" href="../"><span class="v">V</span>eri</a>
+  <a class="nav" href="../#product">Product</a>
+  <a class="nav" href="workflow.html">Workflow</a>
+  <a class="nav here" href="quickstart.html">Docs</a>
+  <a class="nav" href="https://github.com/danielyayla/veri">GitHub</a>
+  <a class="top-dl" href="https://github.com/danielyayla/veri/releases/latest">Download</a>
+</header>
+
+<nav class="docs-strip" aria-label="Documentation pages">
+  <a href="quickstart.html">Quickstart</a>
+  <a href="workflow.html">Workflow</a>
+  <a href="connect-claude-code.html">Connect your agent</a>
+  <a href="brownfield.html" class="here">Import a repo</a>
+  <a href="reference.html">Reference</a>
+  <a href="troubleshooting.html">Troubleshooting</a>
+</nav>
+
+<article class="doc" id="main">
+<h1>Import an existing project</h1>
+<p class="doc-lead">Most projects aren't new. Veri seeds a knowledge base from the repo you already have: your connected agent reads the code, the git history, and the docs, and files what it finds as proposals — nothing binds until you approve it.</p>
+
+<p>The division of labor is strict. <b>Veri never reads your code</b> — it's local-first and makes no model calls. Your own coding agent does the mining, in your terminal, with its own model; Veri hands it precise instructions over MCP and gives everything it files back a review surface.</p>
+
+<h2>1. Open your repo in Veri</h2>
+<p>Install Veri and create a project <i>into your existing folder</i> — <b>New project…</b> in the app pointed at the repo, or from a terminal:</p>
+<pre><code>cd your-repo
+veri init</code></pre>
+<p>A repo with existing code is safe: <code>veri init</code> only adds a <code>veri/</code> directory (plus <code>AGENTS.md</code>/<code>CLAUDE.md</code> pointer files, each skipped if you have one). Nothing is overwritten, and your code is never touched. The app's Home screen recognizes the situation — <i>“This repo has a history. Veri can read it.”</i> — and offers <b>Import project knowledge</b> as the first step. Prefer starting by hand? <b>Start from scratch</b> puts you on the ordinary path; import stays available from the command palette.</p>
+
+<h2>2. Connect your agent</h2>
+<p>The import runs through your agent, so the MCP connection comes first — one click in Veri's agent panel writes <code>.mcp.json</code>, and <b>Verify connection</b> proves it end to end. The <a href="connect-claude-code.html">connection guide</a> covers Claude Code and <a href="connect-cursor.html">other agents</a>. The Import screen runs this preflight for you and links you to the panel if anything's missing.</p>
+
+<h2>3. Kick off the import</h2>
+<p>On the Import screen, <b>Copy import kickoff</b> puts a short prompt on your clipboard — paste it into your agent. From a terminal, the same prompt comes from:</p>
+<pre><code>veri import</code></pre>
+<p>The prompt tells the agent to call the <code>get_import_instructions</code> MCP tool. That returns the full instruction package: what to mine (code layout, git history, ADRs, READMEs, agent docs), how to file findings, and a census of documents already in your knowledge base so a re-run only adds what's missing.</p>
+
+<h2>4. Watch the documents land</h2>
+<p>The agent files, in order:</p>
+<ul>
+  <li>an <b>import manifest</b> — one source document describing the session,</li>
+  <li><b>evidence sources</b> — concrete file paths, commit refs, and excerpts,</li>
+  <li><b>requirements</b> (born <code>draft</code>) and <b>decisions</b> (born <code>proposed</code>), each linked to the evidence it derives from.</li>
+</ul>
+<p>Every file lands in <code>veri/</code> as plain markdown — the Import screen shows them arriving live, and a receipt on the manifest marks the run complete. There's no import database and no hidden state: quit mid-import and you simply have fewer files, all of them valid.</p>
+
+<h2>5. Review and approve</h2>
+<p>Home's <b>NEEDS REVIEW</b> card groups the imported documents under their manifest, evidence first, with progress as you work through them. Each document's review banner names the evidence it was derived from — one click puts the source beside the claim. Approve what survives scrutiny (<code>veri approve REQ-001</code> works too); edit or delete what doesn't. Until you stamp a document, agents see it labeled <i>pending — not binding</i> in every context package, and work orders that depend on it cannot start.</p>
+
+<p>That's the whole path: the repo's implicit knowledge, made explicit, with you as the gate. From here the <a href="workflow.html">workflow guide</a> covers how requirements, decisions, and work orders drive day-to-day agent sessions.</p>
+
+<div class="next">
+  <b>Where next:</b> the <a href="workflow.html">workflow guide</a> for what happens after approval, or the <a href="quickstart.html">quickstart</a> if you'd rather feel the loop on the sample project first.
+</div>
+</article>
+
+<footer class="foot">
+  <span>Veri — plain files, no telemetry.</span>
+  <span><a href="../">Home</a> · <a href="https://github.com/danielyayla/veri">Source</a> · <a href="https://github.com/danielyayla/veri/issues">Issues</a></span>
+</footer>
+
+</body>
+</html>

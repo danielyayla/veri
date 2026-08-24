@@ -2,7 +2,7 @@
 id: WO-075
 type: work-order
 title: "Brownfield import: seed a veri/ knowledge base from an existing project"
-status: backlog
+status: in-progress
 created: 2026-08-24
 updated: 2026-08-24
 links:
@@ -49,11 +49,11 @@ Give existing projects a guided on-ramp: an agent-assisted import pass that mine
 
 ## Acceptance tests
 
-- [ ] Running the import flow on a repo with no veri/ directory produces a valid knowledge base where every generated requirement is status: draft and every generated decision is status: proposed
-- [ ] Imported documents carry provenance links to SRC documents naming the files/commits they were derived from
-- [ ] `veri check` passes on the imported tree and still blocks any work order from going in-progress against unapproved imported documents
-- [ ] The desktop app surfaces the imported, unapproved documents as a reviewable group
-- [ ] The website documents the brownfield path from install to first stamped approval
+- [x] Running the import flow on a repo with no veri/ directory produces a valid knowledge base where every generated requirement is status: draft and every generated decision is status: proposed
+- [x] Imported documents carry provenance links to SRC documents naming the files/commits they were derived from
+- [x] `veri check` passes on the imported tree and still blocks any work order from going in-progress against unapproved imported documents
+- [ ] The desktop app surfaces the imported, unapproved documents as a reviewable group (implemented and unit-tested; live app walk pending)
+- [x] The website documents the brownfield path from install to first stamped approval
 
 ## Receipts
 

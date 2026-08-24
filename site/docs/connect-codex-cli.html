@@ -27,6 +27,7 @@
   <a href="quickstart.html">Quickstart</a>
   <a href="workflow.html">Workflow</a>
   <a href="connect-claude-code.html" class="here">Connect your agent</a>
+  <a href="brownfield.html">Import a repo</a>
   <a href="reference.html">Reference</a>
   <a href="troubleshooting.html">Troubleshooting</a>
 </nav>
@@ -57,7 +58,7 @@ args = ["/Applications/Veri.app/Contents/Resources/app/node_modules/@veri/mcp/di
 <p>Two sides to prove. The server side: Veri's connection screen (<b>Settings → Agent connection</b>) has <b>LIVE CHECK → Verify connection</b>, which launches the server with a real MCP handshake and a search call proving it serves <i>this</i> project — the same script and project root your Codex config points at. The agent side: in a Codex session, ask it to <i>search the veri knowledge base</i> — a working connection answers with your project's documents through the <code>veri</code> tools rather than by grepping files.</p>
 
 <h2>What the agent gets</h2>
-<p>The same seven tools every connected agent gets — <code>get_context</code>, <code>search</code>, <code>get_document</code>, <code>get_neighbors</code>, <code>file_decision</code>, <code>file_work_order</code>, <code>file_receipt</code> — detailed in the tool table on the <a href="connect-claude-code.html">Claude Code page</a>.</p>
+<p>The same ten tools every connected agent gets — <code>get_context</code>, <code>get_import_instructions</code>, <code>search</code>, <code>get_document</code>, <code>get_neighbors</code>, <code>file_decision</code>, <code>file_work_order</code>, <code>file_requirement</code>, <code>file_source</code>, <code>file_receipt</code> — detailed in the tool table on the <a href="connect-claude-code.html">Claude Code page</a>.</p>
 
 <div class="next">
   <b>Where next:</b> the <a href="quickstart.html">quickstart</a> to watch the agent pull its first context package, or <a href="troubleshooting.html">troubleshooting</a> if verification didn't come back green. Other agents: <a href="connect-claude-code.html">Claude Code</a> · <a href="connect-cursor.html">Cursor</a> · <a href="connect-gemini.html">Gemini CLI</a>.

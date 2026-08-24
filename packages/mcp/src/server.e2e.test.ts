@@ -72,9 +72,12 @@ test('the built server answers tools/list and get_context over stdio', { skip: !
   assert.deepEqual(toolNames, [
     'file_decision',
     'file_receipt',
+    'file_requirement',
+    'file_source',
     'file_work_order',
     'get_context',
     'get_document',
+    'get_import_instructions',
     'get_neighbors',
     'search',
   ]);

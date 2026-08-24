@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { approve, architecture, check, context, implemented, init, list, migrate, newDoc, open } from './commands.ts';
+import { approve, architecture, check, context, implemented, importPrompt, init, list, migrate, newDoc, open } from './commands.ts';
 import type { CmdResult } from './commands.ts';
 
 const USAGE = `usage: veri <command>
@@ -9,6 +9,7 @@ const USAGE = `usage: veri <command>
   veri check                 report knowledge-base issues (exit 1 if any)
   veri approve <id>          approve a pending document (stamps approved: today)
   veri migrate               bring veri/ to the current on-disk format
+  veri import                print the kickoff prompt for mining this repo into proposals
   veri context <WO-id>       print the context package an agent receives
   veri architecture          print the compiled intended architecture
   veri implemented <path>    work orders whose commits touched the path
@@ -35,6 +36,9 @@ switch (command) {
     break;
   case 'migrate':
     result = migrate(cwd);
+    break;
+  case 'import':
+    result = importPrompt(cwd);
     break;
   case 'context':
     result = await context(cwd, rest[0]);

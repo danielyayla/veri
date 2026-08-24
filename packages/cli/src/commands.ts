@@ -3,7 +3,7 @@ import { existsSync, realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, checkDrift, checkObservedArchitecture, checkProject, checkProvenance, classifyFormat, compareIds, createDocument, formatStatement, isOperableFormat, loadProject, migrateProject, moduleRegistry, renderArchitecture, scaffoldProject, workOrdersTouching } from '@veri/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, checkDrift, checkObservedArchitecture, checkProject, checkProvenance, classifyFormat, compareIds, createDocument, formatStatement, importKickoffPrompt, isBrownfieldRoot, isOperableFormat, loadProject, migrateProject, moduleRegistry, renderArchitecture, scaffoldProject, workOrdersTouching } from '@veri/core';
 import type { DocType, FormatClassification, Issue } from '@veri/core';
 import { collectGitFacts } from './git.ts';
 import { collectImportFacts } from './imports.ts';
@@ -37,7 +37,19 @@ export function init(cwd: string, opts: { demo: boolean }): CmdResult {
   for (const extra of result.filesWritten) lines.push(`Wrote ${extra}.`);
   for (const extra of result.filesSkipped) lines.push(`Skipped ${extra} — one already exists here.`);
   if (opts.demo) lines.push('veri check reports 2 deliberate issues here — the demo README explains them.');
+  // Brownfield on-ramp (REQ-024): a folder with existing code gets the offer.
+  if (!opts.demo && isBrownfieldRoot(cwd)) {
+    lines.push('This folder has existing code. Run "veri import" to have your agent mine it into proposals.');
+  }
   return { code: 0, lines };
+}
+
+/** Print the canonical import kickoff prompt (DEC-067) for terminal-first
+    users — the same text the app's "Copy import kickoff" button copies. */
+export function importPrompt(cwd: string): CmdResult {
+  const dir = requireVeriDir(cwd);
+  if (dir === null) return NO_VERI_DIR;
+  return { code: 0, lines: [importKickoffPrompt()] };
 }
 
 function requireVeriDir(cwd: string): string | null {

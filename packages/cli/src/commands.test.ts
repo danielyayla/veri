@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assembleContext } from '@veri/core';
-import { approve, architecture, check, context, init, list, migrate, newDoc, open } from './commands.ts';
+import { approve, architecture, check, context, importPrompt, init, list, migrate, newDoc, open } from './commands.ts';
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const FIVE_ISSUES = fileURLToPath(new URL('../fixtures/five-issues', import.meta.url));
@@ -385,4 +385,29 @@ test('a forbidden observed import is a check advisory and an architecture violat
   assert.match(text, /Violations — observed imports vs the intended architecture/);
   assert.match(text, /alpha → beta\s+packages\/alpha\/src\/main\.ts imports "@t\/beta"\s+\(forbidden by DEC-001\)/);
   assert.match(text, /\(architecture: skipped module ghost — packages\/ghost is not on disk\)/);
+});
+
+test('veri import prints the kickoff prompt; init hints on brownfield folders (REQ-024)', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+
+  // No veri/ yet: import refuses with the standard guidance.
+  assert.equal(importPrompt(cwd).code, 1);
+
+  // A greenfield folder gets no import hint from init.
+  const green = init(cwd, { demo: false });
+  assert.equal(green.code, 0);
+  assert.ok(!green.lines.some((line) => line.includes('veri import')), green.lines.join('\n'));
+
+  const result = importPrompt(cwd);
+  assert.equal(result.code, 0);
+  assert.match(result.lines.join('\n'), /get_import_instructions/);
+
+  // A folder with existing code gets the hint.
+  const brown = tempProject();
+  t.after(() => rmSync(brown, { recursive: true, force: true }));
+  writeFileSync(join(brown, 'main.ts'), 'export {};\n');
+  const hinted = init(brown, { demo: false });
+  assert.equal(hinted.code, 0);
+  assert.ok(hinted.lines.some((line) => line.includes('Run "veri import"')), hinted.lines.join('\n'));
 });

@@ -40,7 +40,8 @@ test('empty query lists views below docs and caps the list at 8', () => {
   assert.ok(rows.slice(0, -1).every((r) => r.kind === 'doc'), 'score-1 docs outrank score-0.5 views');
   assert.deepEqual(rows[PALETTE_MAX_ROWS - 1], { kind: 'overflow', count: 10 });
   const few = paletteRows(result({}, [hit('WO-001', 1)]));
-  assert.equal(few.length, 1 + Object.keys(VIEW_META).length); // 1 doc + every view
+  // 1 doc + every view except Import, which needs a brownfield root (WO-075).
+  assert.equal(few.length, 1 + Object.keys(VIEW_META).length - 1);
   assert.equal(few[0].kind, 'doc');
 });
 
@@ -118,4 +119,20 @@ test('the Settings view surfaces for its label and its section aliases (WO-036)'
   assert.ok(views(paletteRows(result({ text: 'templ' }, []))).includes('settings'));
   assert.ok(views(paletteRows(result({ text: 'updates' }, []))).includes('settings'));
   assert.ok(!views(paletteRows(result({ text: 'settings', type: 'decision' }, []))).includes('settings'));
+});
+
+// ---- brownfield import row (WO-075, SRC-039 entry 1c) ----
+
+test('the Import row surfaces only on brownfield roots, with its action label', () => {
+  const none = paletteRows(result({ text: 'import' }, []));
+  assert.equal(none.length, 0);
+  const rows = paletteRows(result({ text: 'import' }, []), { brownfield: true });
+  assert.deepEqual(
+    rows.map((r) => (r.kind === 'view' ? `${r.view}:${r.label}` : '')),
+    ['import:Import project knowledge…'],
+  );
+  const alias = paletteRows(result({ text: 'brownfield' }, []), { brownfield: true });
+  assert.deepEqual(alias.map((r) => (r.kind === 'view' ? r.view : '')), ['import']);
+  const empty = paletteRows(result({}, []), { brownfield: true });
+  assert.ok(empty.some((r) => r.kind === 'view' && r.view === 'import'), 'a destination, listed on the empty query');
 });

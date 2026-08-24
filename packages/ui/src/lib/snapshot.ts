@@ -10,6 +10,7 @@ import {
   checkProject,
   checkProvenance,
   classifyFormat,
+  isBrownfieldRoot,
   loadProject,
   parseDocument,
   parseGitLog,
@@ -33,6 +34,9 @@ export interface Snapshot {
   advisories: Advisory[];
   edges: Edge[];
   git: GitInfo | null;
+  /** The root holds files beyond what veri init writes (REQ-024): the
+      brownfield import offer's predicate, re-derived every build. */
+  brownfield: boolean;
 }
 
 async function gitInfo(root: string): Promise<GitInfo | null> {
@@ -98,6 +102,7 @@ export async function buildSnapshot(projectRoot: string): Promise<Snapshot> {
     advisories,
     edges: graph.edges,
     git: await gitInfo(projectRoot),
+    brownfield: isBrownfieldRoot(projectRoot),
   };
 }
 
@@ -198,6 +203,7 @@ export class SnapshotBuilder {
       advisories,
       edges: graph.edges,
       git: info,
+      brownfield: isBrownfieldRoot(projectRoot),
     };
     this.#current = snap;
     return snap;

@@ -33,11 +33,18 @@ const COMMAND_META: Record<CommandKey, { label: string; glyph: string; terms: st
     Settings view answers for the sections it hosts). */
 const VIEW_ALIASES: Partial<Record<ViewKey, string[]>> = {
   settings: ['templates', 'agent', 'connection', 'updates'],
+  import: ['import', 'brownfield', 'mine', 'knowledge'],
+};
+
+/** The Import row reads as the action it is (SRC-039 entry 1c), not the
+    tab's short label. */
+const VIEW_LABELS: Partial<Record<ViewKey, string>> = {
+  import: 'Import project knowledge…',
 };
 
 /** Views surface by label match, and are suppressed while a type/status
     filter is active (filters talk about documents, not views). */
-export function paletteRows(result: PaletteResult): PaletteRow[] {
+export function paletteRows(result: PaletteResult, opts: { brownfield?: boolean } = {}): PaletteRow[] {
   const { text, type, statuses, related } = result.query;
   const scored: Array<{ row: PaletteRow; score: number }> = result.hits.map((hit) => ({
     row: { kind: 'doc', hit },
@@ -45,10 +52,13 @@ export function paletteRows(result: PaletteResult): PaletteRow[] {
   }));
   if (type === null && statuses.length === 0 && related === null) {
     for (const [view, meta] of Object.entries(VIEW_META) as Array<[ViewKey, (typeof VIEW_META)[ViewKey]]>) {
-      const terms = [meta.label.toLowerCase(), ...(VIEW_ALIASES[view] ?? [])];
-      if (text === '') scored.push({ row: { kind: 'view', view, label: meta.label, glyph: meta.glyph }, score: 0.5 });
+      // Import is offered only where it applies (SRC-039: brownfield roots).
+      if (view === 'import' && opts.brownfield !== true) continue;
+      const label = VIEW_LABELS[view] ?? meta.label;
+      const terms = [label.toLowerCase(), ...(VIEW_ALIASES[view] ?? [])];
+      if (text === '') scored.push({ row: { kind: 'view', view, label, glyph: meta.glyph }, score: 0.5 });
       else if (terms.some((term) => term.includes(text)))
-        scored.push({ row: { kind: 'view', view, label: meta.label, glyph: meta.glyph }, score: 58 });
+        scored.push({ row: { kind: 'view', view, label, glyph: meta.glyph }, score: 58 });
     }
     for (const [command, meta] of Object.entries(COMMAND_META) as Array<
       [CommandKey, (typeof COMMAND_META)[CommandKey]]

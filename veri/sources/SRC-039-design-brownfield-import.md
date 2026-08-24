@@ -18,9 +18,11 @@ links:
     rel: builds-on
 ---
 
+Design approved by Daniel on 2026-08-24 (in-session review of the
+prototype), satisfying the [[DEC-012]] gate for [[WO-075]].
+
 Design handoff for [[WO-075]]'s UI surfaces, filed as the [[DEC-012]]
-gate artifact. Awaiting Daniel's design approval before implementation
-begins.
+gate artifact.
 
 Files live in `design/brownfield-import/`:
 

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { VeriDocument } from '@veri/core';
-import { PACKAGE_RULES, buildGraph } from '@veri/core';
+import { PACKAGE_RULES, buildGraph, importKickoffPrompt as coreImportKickoffPrompt } from '@veri/core';
 import type { Snapshot } from '../lib/snapshot.ts';
 import {
   advisoriesByDoc,
@@ -23,6 +23,12 @@ import {
   DEFAULT_REL,
   LOCAL_GRAPH_CAP,
   PACKAGE_RULES_TEXT,
+  importBatches,
+  importEvidenceOf,
+  importGroupLabel,
+  importKickoffPrompt,
+  importManifestOf,
+  latestImportBatch,
 } from './derive.ts';
 import type { Connection } from './derive.ts';
 
@@ -58,6 +64,7 @@ function snap(
     advisories,
     edges: buildGraph(documents).edges,
     git: null,
+    brownfield: false,
   };
 }
 
@@ -408,4 +415,65 @@ test('relsInUse derives exactly the rels in use, deduped and sorted', () => {
 
 test('the default rel for a new link is relates-to (SRC-028)', () => {
   assert.equal(DEFAULT_REL, 'relates-to');
+});
+
+// DEC-067: the renderer's mirrored import kickoff may never drift from the
+// canonical string core owns (same constraint as PACKAGE_RULES above).
+test('the import kickoff mirror equals core importKickoffPrompt', () => {
+  assert.equal(importKickoffPrompt(), coreImportKickoffPrompt());
+});
+
+test('import batches derive from imported-via links alone (DEC-068)', () => {
+  const manifest = doc({ id: 'SRC-001', type: 'source', title: 'Import manifest — repo mining', status: 'imported' });
+  const evidence = doc({
+    id: 'SRC-002',
+    type: 'source',
+    title: 'Repo evidence — src/db/',
+    status: 'imported',
+    links: [{ id: 'SRC-001', rel: 'imported-via' }],
+  });
+  const req = doc({
+    id: 'REQ-001',
+    type: 'requirement',
+    title: 'Invoices are immutable',
+    status: 'draft',
+    links: [
+      { id: 'SRC-002', rel: 'derived-from' },
+      { id: 'SRC-001', rel: 'imported-via' },
+    ],
+  });
+  const dec = doc({
+    id: 'DEC-001',
+    type: 'decision',
+    title: 'Postgres is primary',
+    status: 'active',
+    frontmatter: { approved: '2026-08-24' },
+    links: [
+      { id: 'SRC-002', rel: 'derived-from' },
+      { id: 'SRC-001', rel: 'imported-via' },
+    ],
+  });
+  const loose = doc({ id: 'DEC-002', type: 'decision', title: 'Unrelated proposal', status: 'proposed' });
+  const s = snap([manifest, evidence, req, dec, loose]);
+
+  const batches = importBatches(s);
+  assert.equal(batches.length, 1);
+  const batch = batches[0];
+  assert.equal(batch.manifest.id, 'SRC-001');
+  assert.deepEqual(batch.evidence.map((d) => d.id), ['SRC-002']);
+  assert.deepEqual(batch.claims.map((d) => d.id).sort(), ['DEC-001', 'REQ-001']);
+  assert.equal(batch.reviewed, 1); // the approved decision counts, the draft REQ does not
+  assert.equal(batch.complete, false); // no receipt on the manifest yet
+
+  const withReceipt = {
+    ...manifest,
+    body: '## Receipts\n\n- 2026-08-24 — abc1234 — src/ — import session\n',
+  };
+  assert.equal(latestImportBatch(snap([withReceipt, evidence, req, dec]))?.complete, true);
+
+  const byId = docsById(s);
+  assert.equal(importManifestOf(byId, req)?.id, 'SRC-001');
+  assert.equal(importManifestOf(byId, loose), null);
+  assert.deepEqual(importEvidenceOf(byId, req).map((d) => d.id), ['SRC-002']);
+  assert.equal(importGroupLabel(manifest), 'repo mining');
 });

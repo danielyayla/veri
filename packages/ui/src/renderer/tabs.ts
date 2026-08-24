@@ -13,7 +13,7 @@
     surface now. 'board' is retired (WO-053, SRC-025): its status columns
     fold into the Work Orders type panel as subgroups. Persisted graph and
     board tabs restore away via retainTabs. */
-export type ViewKey = 'homeview' | 'search' | 'settings';
+export type ViewKey = 'homeview' | 'search' | 'settings' | 'import';
 
 export const VIEW_META: Record<ViewKey, { label: string; glyph: string }> = {
   homeview: { label: 'Home', glyph: '⌂' },
@@ -21,6 +21,8 @@ export const VIEW_META: Record<ViewKey, { label: string; glyph: string }> = {
   search: { label: 'Search', glyph: '⌕' },
   // One Settings tab hosts Templates and Agent connection too (WO-036).
   settings: { label: 'Settings', glyph: '⚙' },
+  // Brownfield import (WO-075, SRC-039): kickoff, live filing, done.
+  import: { label: 'Import', glyph: '⇲' },
 };
 
 export function isViewKey(id: string): id is ViewKey {

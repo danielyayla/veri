@@ -14,9 +14,10 @@ import type { McpStatus } from '../lib/mcpconfig.ts';
 import type { RuntimeProbe } from '../lib/noderuntime.ts';
 import type { VerifyResult } from '../lib/verify.ts';
 import type { AgentInfo } from '../lib/agents.ts';
-import { kickoffPrompt } from './derive.ts';
+import { importKickoffPrompt, kickoffPrompt } from './derive.ts';
 import { readerView } from './views/reader.ts';
 import { homeView } from './views/home.ts';
+import { importView } from './views/import.ts';
 import { welcomeView } from './views/welcome.ts';
 import { workOrderView } from './views/workorder.ts';
 import { searchView } from './views/search.ts';
@@ -63,7 +64,7 @@ import { TPL_TYPES } from './views/templates.ts';
 import { settingsView } from './views/settings.ts';
 import { DEAD_LABEL, livingCount, livingGroups, panelList, pushRecent } from './sidebar.ts';
 
-export type View = 'home' | 'workorder' | 'homeview' | 'search' | 'settings';
+export type View = 'home' | 'workorder' | 'homeview' | 'search' | 'settings' | 'import';
 
 /** Sections of the Settings view (WO-036, SRC-014). */
 export type SettingsSection = 'templates' | 'agent' | 'project' | 'updates' | 'appearance';
@@ -165,6 +166,12 @@ export interface State {
   mcpPrecheck: RuntimeProbe | null;
   /** Welcome screen's inline notice (cold-start mode only). */
   welcomeNotice: { text: string } | null;
+  /** Import view (WO-075, SRC-039): copy flash and the prompt disclosure —
+      transient; every durable import state derives from files (DEC-068). */
+  importKickoffCopied: boolean;
+  importPromptOpen: boolean;
+  /** START HERE's "Start from scratch" collapse — session-only (SRC-039). */
+  importOfferDismissed: boolean;
   /** Find bar (WO-057, SRC-029): bound to the focused pane's active doc
       tab; query and cursor are transient — never persisted. Null = closed. */
   find: FindBarState | null;
@@ -236,6 +243,9 @@ export interface Ctx {
   toggleAgentPicker(): void;
   launchAgent(info: AgentInfo): void;
   copyKickoff(): void;
+  /** Import view (WO-075): open it, and copy the import kickoff (DEC-067). */
+  openImport(): void;
+  copyImportKickoff(): void;
   flashCopied(): void;
   /** Show a transient bottom-center toast (auto-dismissed). */
   flashToast(text: string): void;
@@ -391,6 +401,9 @@ class App implements Ctx {
     mcpVerifyCopied: false,
     mcpPrecheck: null,
     welcomeNotice: null,
+    importKickoffCopied: false,
+    importPromptOpen: false,
+    importOfferDismissed: false,
     find: null,
     connOpen: [false, false],
   };
@@ -1090,6 +1103,25 @@ class App implements Ctx {
       this.announce('Copied the kickoff prompt');
       this.update({ kickoffCopied: true, agentsOpen: false });
       this.kickoffTimer = setTimeout(() => this.update({ kickoffCopied: false }), 1800);
+    });
+  }
+
+  openImport(): void {
+    this.applyPanes(navigateFocused(this.paneState(), 'import', { surface: 'preview', previewTabs: this.state.previewTabs }), {
+      projectSwitcherOpen: false,
+      panel: null,
+      settingsPop: false,
+    });
+  }
+
+  private importKickoffTimer: ReturnType<typeof setTimeout> | undefined;
+
+  copyImportKickoff(): void {
+    void this.api.copyText(importKickoffPrompt()).then(() => {
+      this.announce('Import kickoff copied');
+      clearTimeout(this.importKickoffTimer);
+      this.update({ importKickoffCopied: true });
+      this.importKickoffTimer = setTimeout(() => this.update({ importKickoffCopied: false }), 1800);
     });
   }
 
@@ -2248,7 +2280,7 @@ class App implements Ctx {
       return null;
     }
     const result = this.state.paletteResult ?? { query: { text: '', type: null, statuses: [], related: null }, hits: [] };
-    const rows = paletteRows(result);
+    const rows = paletteRows(result, { brownfield: this.snap.brownfield });
     const sel = Math.min(this.state.paletteSel, Math.max(0, rows.length - 1));
     this.palRowActions = rows.map((row) => ({ open: (pinned: boolean) => this.openPaletteRow(row, pinned) }));
     const input = h('input', {
@@ -2856,6 +2888,7 @@ class App implements Ctx {
       else if (view === 'homeview') screen = homeView(this);
       else if (view === 'search') screen = searchView(this);
       else if (view === 'settings') screen = settingsView(this);
+      else if (view === 'import') screen = importView(this);
       else screen = readerView(this);
       this.state.view = saved.view;
       this.state.docId = saved.docId;

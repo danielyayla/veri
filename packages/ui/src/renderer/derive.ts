@@ -455,3 +455,95 @@ export function kickoffPrompt(id: string, title: string): string {
     `inside the work order's scope.`
   );
 }
+
+/**
+ * The import kickoff prompt (DEC-067). Renderer-local mirror of core's
+ * importKickoffPrompt — the browser can't import @veri/core at runtime
+ * (bare specifier, CSP 'self'); derive.test.ts holds this to core's truth.
+ */
+export function importKickoffPrompt(): string {
+  return [
+    'You are importing existing project knowledge into Veri.',
+    'Call the veri MCP tool get_import_instructions and follow it exactly:',
+    'read this repo — code layout, git history, ADRs, READMEs, agent docs —',
+    'and file what you find as an import manifest, evidence sources, draft',
+    'requirements, and proposed decisions. Nothing you file is binding',
+    'until the user approves it.',
+  ].join('\n');
+}
+
+// ---- Brownfield import derivations (WO-075, SRC-039, DEC-068) ------------
+
+/** One import batch: an ordinary source acting as manifest, defined solely
+    by inbound imported-via links — no registry, no marker (DEC-068). */
+export interface ImportBatch {
+  manifest: VeriDocument;
+  /** Sources linking the manifest — evidence rows, context not queue. */
+  evidence: VeriDocument[];
+  /** Requirements and decisions linking the manifest, filing order. */
+  claims: VeriDocument[];
+  /** Claims no longer draft/proposed — approved or superseded. */
+  reviewed: number;
+  /** The manifest carries a receipt: the agent's completion signal. */
+  complete: boolean;
+}
+
+/** Every import batch on disk, newest manifest first. */
+export function importBatches(snap: Snapshot): ImportBatch[] {
+  const byId = docsById(snap);
+  const members = new Map<string, VeriDocument[]>();
+  for (const doc of snap.documents) {
+    for (const link of doc.links) {
+      if (link.rel !== 'imported-via') continue;
+      const manifest = byId.get(link.id);
+      if (manifest === undefined || manifest.type !== 'source') continue;
+      const list = members.get(manifest.id) ?? [];
+      list.push(doc);
+      members.set(manifest.id, list);
+    }
+  }
+  return [...members.entries()]
+    .map(([id, docs]) => {
+      const manifest = byId.get(id)!;
+      const claims = docs.filter((d) => d.type === 'requirement' || d.type === 'decision');
+      return {
+        manifest,
+        evidence: docs.filter((d) => d.type === 'source'),
+        claims,
+        reviewed: claims.filter((d) => !isPending(d)).length,
+        complete: receipts(manifest).length > 0,
+      };
+    })
+    .sort((a, b) => b.manifest.created.localeCompare(a.manifest.created) || compareIds(b.manifest.id, a.manifest.id));
+}
+
+/** The batch the Import view renders: the newest one, or null pre-import. */
+export function latestImportBatch(snap: Snapshot): ImportBatch | null {
+  return importBatches(snap)[0] ?? null;
+}
+
+/** The manifest a document was imported through, or null for ordinary docs
+    — drives the review banner's provenance variant (SRC-039 surface 4). */
+export function importManifestOf(byId: DocsById, doc: VeriDocument): VeriDocument | null {
+  for (const link of doc.links) {
+    if (link.rel !== 'imported-via') continue;
+    const manifest = byId.get(link.id);
+    if (manifest !== undefined && manifest.type === 'source') return manifest;
+  }
+  return null;
+}
+
+/** The evidence sources a mined document derives from, for the banner's
+    clickable chips (REQ-024: the evidence is one click away). */
+export function importEvidenceOf(byId: DocsById, doc: VeriDocument): VeriDocument[] {
+  return doc.links
+    .filter((l) => l.rel === 'derived-from')
+    .map((l) => byId.get(l.id))
+    .filter((d): d is VeriDocument => d !== undefined && d.type === 'source');
+}
+
+/** Group label: the manifest title without its conventional prefix — prose,
+    display only, never mechanics (DEC-068 rejects title-based semantics). */
+export function importGroupLabel(manifest: VeriDocument): string {
+  return manifest.title.replace(/^import manifest\s*[—–-]\s*/i, '').trim() || manifest.title;
+}

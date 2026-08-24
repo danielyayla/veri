@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkProject, loadProject } from '@veri/core';
-import { fileDecision, fileReceipt, fileWorkOrder } from './writeback.ts';
+import { fileDecision, fileReceipt, fileRequirement, fileSource, fileWorkOrder } from './writeback.ts';
 import { searchDocs } from './search.ts';
 
 const FIXTURE = fileURLToPath(new URL('../fixtures/writeback', import.meta.url));
@@ -151,4 +151,63 @@ test('file_receipt rejects unknown and non-work-order ids', async (t) => {
   const receipt = { commit: 'a', files: 'b', summary: 'c' };
   await assert.rejects(() => fileReceipt(root, { work_order_id: 'WO-999', ...receipt }), /no document/);
   await assert.rejects(() => fileReceipt(root, { work_order_id: 'REQ-001', ...receipt }), /expects a work order/);
+});
+
+test('file_requirement is born draft with the next free REQ id', async (t) => {
+  const root = sandbox(t);
+  const result = await fileRequirement(root, {
+    title: 'Invoices are immutable',
+    body: 'Once issued, an invoice never changes.',
+    acceptance_criteria: '- [ ] Issued invoices reject edits',
+    links: [{ id: 'WO-001', rel: 'informed-by' }],
+  });
+  assert.equal(result.id, 'REQ-002'); // fixture already holds REQ-001
+  await assertClean(root);
+
+  const content = readFileSync(join(root, result.file), 'utf8');
+  assert.match(content, /^type: requirement$/m);
+  assert.match(content, /^status: draft$/m); // born unapproved — REQ-008
+  assert.doesNotMatch(content, /^approved:/m);
+  assert.match(content, /## Acceptance criteria/);
+  assert.match(readFileSync(join(root, 'veri', 'ids'), 'utf8'), /^REQ 2$/m); // id consumed — DEC-037
+});
+
+test('file_source is born imported and rejects unknown link targets', async (t) => {
+  const root = sandbox(t);
+  const result = await fileSource(root, {
+    title: 'Import manifest — repo mining',
+    body: 'Read src/, docs/adr/, git log to HEAD.',
+  });
+  assert.equal(result.id, 'SRC-001');
+  await assertClean(root);
+  const content = readFileSync(join(root, result.file), 'utf8');
+  assert.match(content, /^type: source$/m);
+  assert.match(content, /^status: imported$/m);
+
+  await assert.rejects(
+    () => fileSource(root, { title: 'Bad', body: 'x', links: [{ id: 'SRC-999', rel: 'imported-via' }] }),
+    /does not exist/,
+  );
+});
+
+test('file_receipt accepts an import manifest but no other source (DEC-068)', async (t) => {
+  const root = sandbox(t);
+  const manifest = await fileSource(root, { title: 'Import manifest — repo mining', body: 'What was read.' });
+  const receipt = { commit: 'abc1234', files: 'src/', summary: 'import session' };
+
+  // Not yet a manifest: nothing links it imported-via.
+  await assert.rejects(() => fileReceipt(root, { work_order_id: manifest.id, ...receipt }), /import manifest/);
+
+  const evidence = await fileSource(root, {
+    title: 'Repo evidence — src/db/',
+    body: 'Migrations under src/db/migrations.',
+    links: [{ id: manifest.id, rel: 'imported-via' }],
+  });
+  await fileReceipt(root, { work_order_id: manifest.id, ...receipt });
+  const content = readFileSync(join(root, manifest.file), 'utf8');
+  assert.match(content, /## Receipts\n\n- \d{4}-\d{2}-\d{2} — abc1234 — src\/ — import session/);
+  await assertClean(root);
+
+  // A plain evidence source still refuses receipts.
+  await assert.rejects(() => fileReceipt(root, { work_order_id: evidence.id, ...receipt }), /import manifest/);
 });

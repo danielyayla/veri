@@ -20,6 +20,19 @@ export interface FileWorkOrderInput {
   links?: Array<{ id: string; rel: string }>;
 }
 
+export interface FileRequirementInput {
+  title: string;
+  body: string;
+  acceptance_criteria?: string;
+  links?: Array<{ id: string; rel: string }>;
+}
+
+export interface FileSourceInput {
+  title: string;
+  body: string;
+  links?: Array<{ id: string; rel: string }>;
+}
+
 export interface FileReceiptInput {
   work_order_id: string;
   commit: string;
@@ -165,26 +178,138 @@ export async function fileWorkOrder(
 }
 
 /**
+ * File a requirement as a draft with the next free REQ id. Born `draft`
+ * (REQ-008: agent writes are never binding), used by the brownfield import
+ * filing surface (DEC-068) and any session proposing a requirement.
+ */
+export async function fileRequirement(
+  projectRoot: string,
+  input: FileRequirementInput,
+): Promise<{ id: string; file: string }> {
+  const veriDir = requireVeriDir(projectRoot);
+  const { documents } = await loadProject(veriDir);
+
+  const known = new Set(documents.map((doc) => doc.id));
+  for (const link of input.links ?? []) {
+    if (!known.has(link.id)) {
+      throw new Error(`link target ${link.id} does not exist — the requirement would fail veri check`);
+    }
+  }
+
+  const next = nextIdNumber(
+    veriDir,
+    'REQ',
+    documents.map((doc) => doc.id),
+  );
+  const id = `REQ-${String(next).padStart(3, '0')}`;
+
+  const date = today();
+  const frontmatter = [
+    '---',
+    `id: ${id}`,
+    'type: requirement',
+    `title: ${JSON.stringify(input.title)}`,
+    'status: draft', // agent-filed requirements are never born binding — REQ-008
+    `created: ${date}`,
+    `updated: ${date}`,
+    ...(input.links && input.links.length > 0
+      ? ['links:', ...input.links.flatMap((link) => [`  - id: ${link.id}`, `    rel: ${link.rel}`])]
+      : []),
+    '---',
+  ].join('\n');
+
+  const sections = [input.body.trim()];
+  if (input.acceptance_criteria !== undefined && input.acceptance_criteria.trim() !== '') {
+    sections.push(`## Acceptance criteria\n\n${input.acceptance_criteria.trim()}`);
+  }
+
+  const file = join('requirements', `${id}-${slugify(input.title)}.md`);
+  mkdirSync(join(veriDir, 'requirements'), { recursive: true });
+  writeFileSync(join(veriDir, file), `${frontmatter}\n\n${sections.join('\n\n')}\n`, { flag: 'wx' });
+  recordIssuedId(veriDir, 'REQ', next);
+  return { id, file: `veri/${file}` };
+}
+
+/**
+ * File a source document with the next free SRC id. Sources are born
+ * `imported` — their one, terminal status. The brownfield import files its
+ * manifest and evidence documents through here (DEC-068).
+ */
+export async function fileSource(
+  projectRoot: string,
+  input: FileSourceInput,
+): Promise<{ id: string; file: string }> {
+  const veriDir = requireVeriDir(projectRoot);
+  const { documents } = await loadProject(veriDir);
+
+  const known = new Set(documents.map((doc) => doc.id));
+  for (const link of input.links ?? []) {
+    if (!known.has(link.id)) {
+      throw new Error(`link target ${link.id} does not exist — the source would fail veri check`);
+    }
+  }
+
+  const next = nextIdNumber(
+    veriDir,
+    'SRC',
+    documents.map((doc) => doc.id),
+  );
+  const id = `SRC-${String(next).padStart(3, '0')}`;
+
+  const date = today();
+  const frontmatter = [
+    '---',
+    `id: ${id}`,
+    'type: source',
+    `title: ${JSON.stringify(input.title)}`,
+    'status: imported',
+    `created: ${date}`,
+    `updated: ${date}`,
+    ...(input.links && input.links.length > 0
+      ? ['links:', ...input.links.flatMap((link) => [`  - id: ${link.id}`, `    rel: ${link.rel}`])]
+      : []),
+    '---',
+  ].join('\n');
+
+  const file = join('sources', `${id}-${slugify(input.title)}.md`);
+  mkdirSync(join(veriDir, 'sources'), { recursive: true });
+  writeFileSync(join(veriDir, file), `${frontmatter}\n\n${input.body.trim()}\n`, { flag: 'wx' });
+  recordIssuedId(veriDir, 'SRC', next);
+  return { id, file: `veri/${file}` };
+}
+
+/**
  * Append one receipt to a work order's "## Receipts" section (see DEC-003:
- * receipts are per session, 0..n per work order, never clobbered).
+ * receipts are per session, 0..n per work order, never clobbered). Per
+ * DEC-068 an import manifest — a source with inbound `imported-via` links —
+ * also accepts receipts: the manifest receipt is the import's completion
+ * signal. Receipts on any other source remain an error.
  */
 export async function fileReceipt(projectRoot: string, input: FileReceiptInput): Promise<{ file: string }> {
   const veriDir = requireVeriDir(projectRoot);
   const { documents } = await loadProject(veriDir);
-  const workOrder = documents.find((doc) => doc.id === input.work_order_id);
-  if (workOrder === undefined) throw new Error(`no document with id ${input.work_order_id}`);
-  if (workOrder.type !== 'work-order') {
-    throw new Error(`${input.work_order_id} is a ${workOrder.type}; file_receipt expects a work order id`);
+  const target = documents.find((doc) => doc.id === input.work_order_id);
+  if (target === undefined) throw new Error(`no document with id ${input.work_order_id}`);
+  if (target.type !== 'work-order') {
+    const isManifest =
+      target.type === 'source' &&
+      documents.some((doc) => doc.links.some((link) => link.id === target.id && link.rel === 'imported-via'));
+    if (!isManifest) {
+      throw new Error(
+        `${input.work_order_id} is a ${target.type}; file_receipt expects a work order ` +
+          `or an import manifest (a source with inbound imported-via links)`,
+      );
+    }
   }
 
-  const path = join(veriDir, workOrder.file);
+  const path = join(veriDir, target.file);
   const raw = await readFile(path, 'utf8');
   const date = input.date ?? today();
   const line = `- ${date} — ${input.commit} — ${input.files} — ${input.summary}`;
   const withReceipt = appendReceipt(raw, line);
   const updated = withReceipt.replace(/^updated: .*$/m, `updated: ${today()}`);
   writeFileSync(path, updated);
-  return { file: `veri/${workOrder.file}` };
+  return { file: `veri/${target.file}` };
 }
 
 function appendReceipt(content: string, line: string): string {
