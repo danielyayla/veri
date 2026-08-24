@@ -101,6 +101,43 @@ test('approve validates the date format', async (t) => {
   await assert.rejects(() => approveDocument(dir, 'REQ-001', 'tomorrow'), /must be YYYY-MM-DD/);
 });
 
+// --- Multi-maintainer stamps (REQ-026, DEC-071) ---
+
+function declareMaintainers(dir: string): void {
+  const path = join(dir, 'workflow.md');
+  writeFileSync(path, readFileSync(path, 'utf8').replace(/^status: /m, 'maintainers:\n  - Ada\n  - Grace\nstatus: '));
+}
+
+test('a maintainers project requires the stamp to name a listed maintainer', async (t) => {
+  const dir = sandbox(t);
+  declareMaintainers(dir);
+  await assert.rejects(() => approveDocument(dir, 'REQ-001', '2026-08-24'), /must name one.*--as.*Ada, Grace/s);
+  await assert.rejects(() => approveDocument(dir, 'REQ-001', '2026-08-24', 'Mallory'), /"Mallory" is not in the workflow's maintainers list/);
+
+  const result = await approveDocument(dir, 'REQ-001', '2026-08-24', 'Grace');
+  assert.equal(result.approvedBy, 'Grace');
+  const after = readFileSync(join(dir, result.file), 'utf8');
+  // The name rides directly under the date, by the same line-targeted edit.
+  assert.match(after, /^approved: 2026-08-24\napproved_by: Grace$/m);
+
+  // Re-approval by another maintainer replaces the line, never duplicates it.
+  const again = await approveDocument(dir, 'REQ-001', '2026-08-25', 'Ada');
+  const restamped = readFileSync(join(dir, again.file), 'utf8');
+  assert.match(restamped, /^approved_by: Ada$/m);
+  assert.equal((restamped.match(/^approved_by: /gm) ?? []).length, 1);
+});
+
+test('a solo project records an explicitly named approver and never demands one', async (t) => {
+  const dir = sandbox(t);
+  const named = await approveDocument(dir, 'REQ-001', '2026-08-24', 'Ada');
+  assert.equal(named.approvedBy, 'Ada');
+  assert.match(readFileSync(join(dir, named.file), 'utf8'), /^approved_by: Ada$/m);
+  // No maintainers list: a nameless stamp stays exactly today's behavior.
+  const plain = await approveDocument(dir, 'DEC-001', '2026-08-24');
+  assert.equal(plain.approvedBy, undefined);
+  assert.doesNotMatch(readFileSync(join(dir, plain.file), 'utf8'), /^approved_by:/m);
+});
+
 test('re-approving an already-accepted document re-stamps in place (WO-045 drift remedy)', async (t) => {
   const dir = sandbox(t);
   await approveDocument(dir, 'REQ-001', '2026-08-10');

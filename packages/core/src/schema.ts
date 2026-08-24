@@ -20,6 +20,11 @@ const baseFields = {
   links: z.array(linkSchema).default([]),
 };
 
+// DEC-071: who stamped the approval — a maintainer's display name. Optional
+// everywhere; validated against the workflow's maintainers list by check,
+// never by the schema, so a solo project is untouched.
+const approvedByField = z.string().min(1).optional();
+
 // Unknown extra keys are preserved (passthrough), never rejected — see REQ-001.
 const requirementSchema = z
   .object({
@@ -27,6 +32,7 @@ const requirementSchema = z
     type: z.literal('requirement'),
     status: z.enum(['draft', 'accepted', 'retired']),
     approved: dateField.optional(),
+    approved_by: approvedByField,
   })
   .passthrough();
 
@@ -69,6 +75,7 @@ const decisionSchema = z
     type: z.literal('decision'),
     status: z.enum(['proposed', 'active', 'superseded']),
     approved: dateField.optional(),
+    approved_by: approvedByField,
     superseded_by: idField.optional(),
     architecture: architectureSchema.optional(),
   })
@@ -89,6 +96,10 @@ const workflowSchema = z
     type: z.literal('workflow'),
     status: z.enum(['draft', 'accepted', 'retired']),
     approved: dateField.optional(),
+    approved_by: approvedByField,
+    // DEC-071: who may stamp approvals — free-form display names. The list's
+    // presence is what activates team semantics; absent → solo, no new checks.
+    maintainers: z.array(z.string().min(1)).optional(),
     // DEC-039: the design gate's trigger paths are project-defined here, not
     // hardcoded in core. A started work order whose body mentions any of
     // these must link a designed-by design document. Absent → gate inert.

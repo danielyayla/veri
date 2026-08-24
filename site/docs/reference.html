@@ -29,6 +29,7 @@
   <a href="connect-claude-code.html">Connect your agent</a>
   <a href="brownfield.html">Import a repo</a>
   <a href="ci.html">CI gate</a>
+  <a href="team.html">Teams</a>
   <a href="reference.html" class="here">Reference</a>
   <a href="troubleshooting.html">Troubleshooting</a>
 </nav>
@@ -77,6 +78,7 @@ links:
 <ul>
   <li><b><code>id</code></b> — type prefix plus a number of three or more digits, zero-padded to three below 1000 (<code>REQ-001</code>, <code>REQ-1000</code>). The prefix must match <code>type</code>. Ids are assigned by the app/CLI as the next free number and never reused.</li>
   <li><b><code>created</code> / <code>updated</code> / <code>approved</code></b> — <code>YYYY-MM-DD</code> dates. <code>approved</code> appears only when the user promotes a document.</li>
+  <li><b><code>approved_by</code></b> — the display name of the maintainer who stamped the approval. Written by <code>veri approve --as</code>; required (and validated against the workflow's <code>maintainers:</code> list) only in projects that declare one — see the <a href="team.html">team workflow</a>.</li>
   <li><b><code>links</code></b> — outbound edges: a target <code>id</code> and a <code>rel</code>. Inbound links are derived, never stored.</li>
   <li><b>Unknown keys are preserved</b> — Veri round-trips frontmatter it doesn't recognize, so your own fields are safe.</li>
 </ul>
@@ -107,11 +109,12 @@ links:
 <p>Zero issues is the bar — the app surfaces these live, and <code>veri check</code> exits non-zero in CI when any fire:</p>
 <table>
   <tr><th>Rule</th><th>Fires when</th></tr>
-  <tr><td><code>duplicate-id</code></td><td>Two files claim the same id.</td></tr>
+  <tr><td><code>duplicate-id</code></td><td>Two files claim the same id — the merge-collision case; the error names every claimant and the <code>veri renumber</code> resolution (see <a href="team.html">teams</a>).</td></tr>
   <tr><td><code>broken-link</code></td><td>A frontmatter link, <code>superseded_by</code>, or inline <code>[[ref]]</code> targets an id no document has.</td></tr>
   <tr><td><code>wo-without-requirement</code></td><td>A work order links no requirement — unjustified work.</td></tr>
   <tr><td><code>gated-wo</code></td><td>A work order moved forward while depending on a document still awaiting approval — approve the dependency first.</td></tr>
   <tr><td><code>missing-approval</code></td><td>A document sits in a promoted status (<code>accepted</code>, <code>active</code>) without the user's <code>approved:</code> stamp.</td></tr>
+  <tr><td><code>unknown-approver</code></td><td>(Maintainers projects) <code>approved_by</code> names someone not on the workflow's <code>maintainers:</code> list. A promoted document <i>missing</i> <code>approved_by</code> only warns — pre-team stamps are grandfathered as an advisory.</td></tr>
   <tr><td><code>done-wo-violation</code></td><td>A work order is <code>done</code> with unchecked acceptance boxes or no receipt.</td></tr>
   <tr><td><code>ui-wo-without-design</code></td><td>(Design-gated projects) a UI work order has no resolvable <code>designed-by</code> link.</td></tr>
   <tr><td><code>missing-section</code></td><td>A document lost a <code>##</code> section its type's template expects.</td></tr>
@@ -123,7 +126,13 @@ links:
 <pre><code>veri init [--demo]         scaffold a veri/ directory (--demo: the sample project)
 veri new &lt;type&gt; "&lt;title&gt;"  create a document with the next free id
 veri check                 report knowledge-base issues (exit 1 if any)
-veri approve &lt;id&gt;          approve a pending document (stamps approved: today)
+veri approve &lt;id&gt; [--as &lt;maintainer&gt;]
+                           approve a pending document (stamps approved: today,
+                           and approved_by: in maintainers projects)
+veri renumber &lt;id&gt; [--to &lt;new-id&gt;] [--file &lt;path&gt;] [--refs &lt;path,path&gt;]
+                           move a document to a new id, rewriting the filename
+                           and inbound links in one atomic pass (collision
+                           resolution: see the team workflow page)
 veri migrate               bring veri/ to the current on-disk format
 veri import                print the kickoff prompt for mining this repo into proposals
 veri list [type]           list documents: id, status, title

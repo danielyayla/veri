@@ -17,7 +17,14 @@ export function checkDuplicateIds(documents: VeriDocument[]): Issue[] {
   const issues: Issue[] = [];
   for (const [id, files] of filesById) {
     if (files.length > 1) {
-      issues.push({ kind: 'duplicate-id', id, files, message: `duplicate id ${id}` });
+      // The team-merge case (REQ-026, DEC-070): name every claimant and the
+      // mechanical fix, so the error is its own resolution guide.
+      issues.push({
+        kind: 'duplicate-id',
+        id,
+        files,
+        message: `duplicate id ${id} — ${files.length} documents claim it; keep one and move the other with: veri renumber ${id} --file <path-to-move>`,
+      });
     }
   }
   return issues;
@@ -152,14 +159,76 @@ export function checkDesignGate(documents: VeriDocument[]): Issue[] {
   return issues;
 }
 
+/** A document whose status carries approval weight (REQ-008). */
+function isPromoted(doc: VeriDocument): boolean {
+  return (
+    (doc.type === 'requirement' && doc.status === 'accepted') ||
+    (doc.type === 'decision' && doc.status === 'active') ||
+    (doc.type === 'workflow' && doc.status === 'accepted')
+  );
+}
+
+/**
+ * The maintainer roster (DEC-071): free-form display names declared on the
+ * workflow document's frontmatter, the established home for project config
+ * (design_gate_paths, the DEC-059 module registry). Empty means solo — team
+ * semantics stay inert.
+ */
+export function maintainerRegistry(documents: VeriDocument[]): string[] {
+  return documents
+    .filter((doc) => doc.type === 'workflow' && doc.status !== 'retired')
+    .flatMap((doc) => (doc.frontmatter['maintainers'] as string[] | undefined) ?? []);
+}
+
+/**
+ * DEC-071's hard tier: in a project that declares maintainers, a stamp
+ * attributed to someone not on the list is an issue — misattribution fails
+ * where mere absence only warns (see checkMissingApprovers).
+ */
+export function checkApprovers(documents: VeriDocument[]): Issue[] {
+  const maintainers = maintainerRegistry(documents);
+  if (maintainers.length === 0) return [];
+  const issues: Issue[] = [];
+  for (const doc of documents) {
+    if (doc.approvedBy !== undefined && !maintainers.includes(doc.approvedBy)) {
+      issues.push({
+        kind: 'unknown-approver',
+        file: doc.file,
+        id: doc.id,
+        approver: doc.approvedBy,
+        message: `${doc.id} is approved by "${doc.approvedBy}", who is not in the workflow's maintainers list (${maintainers.join(', ')})`,
+      });
+    }
+  }
+  return issues;
+}
+
+/**
+ * DEC-071's soft tier: a promoted document with no approved_by in a
+ * maintainers project. Advisory by design — every stamp made before the
+ * team formed is grandfathered as a warning, never a failure (DEC-025).
+ */
+export function checkMissingApprovers(documents: VeriDocument[]): Advisory[] {
+  const maintainers = maintainerRegistry(documents);
+  if (maintainers.length === 0) return [];
+  const advisories: Advisory[] = [];
+  for (const doc of documents) {
+    if (isPromoted(doc) && doc.approved !== undefined && doc.approvedBy === undefined) {
+      advisories.push({
+        kind: 'missing-approver',
+        file: doc.file,
+        id: doc.id,
+        message: `${doc.id} is ${doc.status} but its stamp names no approver — this project declares maintainers; re-approve with veri approve ${doc.id} --as <name> to attribute it`,
+      });
+    }
+  }
+  return advisories;
+}
+
 export function checkApprovalStamps(documents: VeriDocument[]): Issue[] {
   const issues: Issue[] = [];
   for (const doc of documents) {
-    const promoted =
-      (doc.type === 'requirement' && doc.status === 'accepted') ||
-      (doc.type === 'decision' && doc.status === 'active') ||
-      (doc.type === 'workflow' && doc.status === 'accepted');
-    if (promoted && doc.approved === undefined) {
+    if (isPromoted(doc) && doc.approved === undefined) {
       issues.push({
         kind: 'missing-approval',
         file: doc.file,
@@ -299,6 +368,7 @@ export function checkProject(load: LoadResult): CheckResult {
       ...checkGatedWorkOrders(load.documents),
       ...checkDesignGate(load.documents),
       ...checkApprovalStamps(load.documents),
+      ...checkApprovers(load.documents),
       ...checkArchitecture(load.documents),
     ],
     // The pure advisory tier. Git-backed advisories (receipt verification,
@@ -307,6 +377,7 @@ export function checkProject(load: LoadResult): CheckResult {
     advisories: [
       ...checkStructure(load.dir, load.documents),
       ...checkSupersededLinks(load.documents),
+      ...checkMissingApprovers(load.documents),
     ],
   };
 }

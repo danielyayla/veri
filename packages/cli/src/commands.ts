@@ -3,9 +3,9 @@ import { existsSync, realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, checkDrift, checkObservedArchitecture, checkProject, checkProvenance, classifyFormat, compareIds, createDocument, formatStatement, importKickoffPrompt, isBrownfieldRoot, isOperableFormat, loadProject, migrateProject, moduleRegistry, renderArchitecture, scaffoldProject, workOrdersTouching } from '@veri/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, checkDrift, checkObservedArchitecture, checkProject, checkProvenance, classifyFormat, compareIds, createDocument, formatStatement, importKickoffPrompt, isBrownfieldRoot, isOperableFormat, loadProject, maintainerRegistry, migrateProject, moduleRegistry, renderArchitecture, renumberDocument, scaffoldProject, workOrdersTouching } from '@veri/core';
 import type { DocType, FormatClassification, Issue } from '@veri/core';
-import { collectGitFacts } from './git.ts';
+import { collectGitFacts, gitUserName } from './git.ts';
 import { collectImportFacts } from './imports.ts';
 import type { ImportFactsResult } from './imports.ts';
 
@@ -291,19 +291,61 @@ export function migrate(cwd: string): CmdResult {
   };
 }
 
-/** The user's approval act (REQ-008): draft → accepted / proposed → active, stamped with today. */
-export async function approve(cwd: string, idArg: string | undefined): Promise<CmdResult> {
+/** The user's approval act (REQ-008): draft → accepted / proposed → active, stamped with today.
+    In a maintainers project (DEC-071) the stamp names its maintainer: --as
+    explicitly, or defaulted from git user.name when that exactly matches a
+    listed maintainer — the host collects the identity, core validates it. */
+export async function approve(cwd: string, idArg: string | undefined, asName?: string): Promise<CmdResult> {
   if (idArg === undefined || idArg.trim() === '') {
-    return { code: 1, lines: ['usage: veri approve <id> (a draft requirement or proposed decision)'] };
+    return { code: 1, lines: ['usage: veri approve <id> [--as <maintainer>] (a draft requirement or proposed decision)'] };
   }
   const dir = requireVeriDir(cwd);
   if (dir === null) return NO_VERI_DIR;
   try {
-    const result = await approveDocument(dir, idArg.trim());
+    let approver = asName?.trim();
+    if (approver === undefined || approver === '') {
+      const maintainers = maintainerRegistry((await loadProject(dir)).documents);
+      const gitName = gitUserName(cwd);
+      if (maintainers.length > 0 && gitName !== null && maintainers.includes(gitName)) approver = gitName;
+    }
+    const result = await approveDocument(dir, idArg.trim(), undefined, approver);
+    const by = result.approvedBy === undefined ? '' : ` by ${result.approvedBy}`;
     return {
       code: 0,
-      lines: [`${result.id} ${result.from} → ${result.to} — approved: ${result.approved} (veri/${result.file})`],
+      lines: [`${result.id} ${result.from} → ${result.to} — approved: ${result.approved}${by} (veri/${result.file})`],
     };
+  } catch (err) {
+    return { code: 1, lines: (err as Error).message.split('\n') };
+  }
+}
+
+/** DEC-070's resolution tool: move a document to a new id, rewriting the id
+    line, filename, and inbound references in one atomic pass. Contested ids
+    (merge collisions) never have their references rewritten by guessing —
+    the remaining ones print for review, --refs follows the named files. */
+export async function renumber(
+  cwd: string,
+  idArg: string | undefined,
+  opts: { to?: string; file?: string; refs?: string[] },
+): Promise<CmdResult> {
+  if (idArg === undefined || idArg.trim() === '') {
+    return { code: 1, lines: ['usage: veri renumber <id> [--to <new-id>] [--file <path>] [--refs <path,path>]'] };
+  }
+  const dir = requireVeriDir(cwd);
+  if (dir === null) return NO_VERI_DIR;
+  try {
+    const result = await renumberDocument(dir, idArg.trim(), opts);
+    const lines = [
+      `${result.from} → ${result.to} (veri/${result.file} → veri/${result.renamedTo})`,
+      ...result.rewrittenFiles.map((file) => `rewrote references in veri/${file}`),
+    ];
+    if (result.remainingRefs.length > 0) {
+      lines.push(
+        `${result.remainingRefs.length} reference(s) to ${result.from} still point at the remaining claimant — review each; rerun with --refs <path> for any that meant the moved document:`,
+        ...result.remainingRefs.map((ref) => `  veri/${ref.file}:${ref.line}: ${ref.text.trim()}`),
+      );
+    }
+    return { code: 0, lines };
   } catch (err) {
     return { code: 1, lines: (err as Error).message.split('\n') };
   }

@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assembleContext } from '@veri/core';
-import { approve, architecture, check, checkReport, context, importPrompt, init, list, migrate, newDoc, open } from './commands.ts';
+import { approve, architecture, check, checkReport, context, importPrompt, init, list, migrate, newDoc, open, renumber } from './commands.ts';
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const FIVE_ISSUES = fileURLToPath(new URL('../fixtures/five-issues', import.meta.url));
@@ -437,4 +437,79 @@ test('veri import prints the kickoff prompt; init hints on brownfield folders (R
   const hinted = init(brown, { demo: false });
   assert.equal(hinted.code, 0);
   assert.ok(hinted.lines.some((line) => line.includes('Run "veri import"')), hinted.lines.join('\n'));
+});
+
+// --- Team semantics: collisions, renumber, maintainer approvals (WO-077) ---
+
+test('a merge collision fails check with the resolution path, and veri renumber resolves it', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  assert.equal(init(cwd, { demo: false }).code, 0);
+  await newDoc(cwd, 'decision', 'Ours');
+  // The other branch's allocation of the same id, arriving via merge.
+  const ours = readFileSync(join(cwd, 'veri/decisions/DEC-001-ours.md'), 'utf8');
+  writeFileSync(join(cwd, 'veri/decisions/DEC-001-theirs.md'), ours.replace('title: "Ours"', 'title: "Theirs"'));
+
+  const failed = await check(cwd);
+  assert.equal(failed.code, 1);
+  const report = failed.lines.join('\n');
+  // The error names both claimants and its own fix (REQ-026, DEC-070).
+  assert.match(report, /decisions\/DEC-001-ours\.md, decisions\/DEC-001-theirs\.md: duplicate id DEC-001/);
+  assert.match(report, /veri renumber DEC-001 --file/);
+
+  const resolved = await renumber(cwd, 'DEC-001', { file: 'veri/decisions/DEC-001-theirs.md' });
+  assert.equal(resolved.code, 0, resolved.lines.join('\n'));
+  assert.equal(resolved.lines[0], 'DEC-001 → DEC-002 (veri/decisions/DEC-001-theirs.md → veri/decisions/DEC-002-theirs.md)');
+  assert.match(readFileSync(join(cwd, 'veri/decisions/DEC-002-theirs.md'), 'utf8'), /^id: DEC-002$/m);
+
+  const clean = await check(cwd);
+  assert.equal(clean.code, 0, clean.lines.join('\n'));
+});
+
+test('veri approve --as stamps the maintainer and refuses names off the roster', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  assert.equal(init(cwd, { demo: false }).code, 0);
+  const wf = join(cwd, 'veri/workflow.md');
+  writeFileSync(wf, readFileSync(wf, 'utf8').replace(/^status: /m, 'maintainers:\n  - Ada\n  - Grace\nstatus: '));
+  await newDoc(cwd, 'decision', 'Team choice');
+
+  const unlisted = await approve(cwd, 'DEC-001', 'Mallory');
+  assert.equal(unlisted.code, 1);
+  assert.match(unlisted.lines.join('\n'), /"Mallory" is not in the workflow's maintainers list \(Ada, Grace\)/);
+
+  const stamped = await approve(cwd, 'DEC-001', 'Grace');
+  assert.equal(stamped.code, 0, stamped.lines.join('\n'));
+  assert.match(stamped.lines[0], /DEC-001 proposed → active — approved: \d{4}-\d{2}-\d{2} by Grace/);
+  assert.match(readFileSync(join(cwd, 'veri/decisions/DEC-001-team-choice.md'), 'utf8'), /^approved_by: Grace$/m);
+});
+
+test('veri approve defaults --as from git user.name when it matches a listed maintainer (DEC-071)', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  assert.equal(init(cwd, { demo: false }).code, 0);
+  const wf = join(cwd, 'veri/workflow.md');
+  writeFileSync(wf, readFileSync(wf, 'utf8').replace(/^status: /m, 'maintainers:\n  - Ada\nstatus: '));
+  await newDoc(cwd, 'decision', 'Team choice');
+
+  // The host identity comes from git config; pin it for the test.
+  const gitConfig = join(cwd, 'test-gitconfig');
+  writeFileSync(gitConfig, '[user]\n\tname = Ada\n');
+  const saved = process.env['GIT_CONFIG_GLOBAL'];
+  process.env['GIT_CONFIG_GLOBAL'] = gitConfig;
+  t.after(() => {
+    if (saved === undefined) delete process.env['GIT_CONFIG_GLOBAL'];
+    else process.env['GIT_CONFIG_GLOBAL'] = saved;
+  });
+
+  const stamped = await approve(cwd, 'DEC-001');
+  assert.equal(stamped.code, 0, stamped.lines.join('\n'));
+  assert.match(stamped.lines[0], / by Ada /);
+
+  // An identity off the roster never silently stamps — the CLI asks for --as.
+  writeFileSync(gitConfig, '[user]\n\tname = Mallory\n');
+  await newDoc(cwd, 'decision', 'Another choice');
+  const refused = await approve(cwd, 'DEC-002');
+  assert.equal(refused.code, 1);
+  assert.match(refused.lines.join('\n'), /--as <name>/);
 });

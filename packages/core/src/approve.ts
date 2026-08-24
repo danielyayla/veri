@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadProject } from './load.ts';
-import { checkProject } from './check.ts';
+import { checkProject, maintainerRegistry } from './check.ts';
 import { parseDocument } from './parse.ts';
 
 export interface ApproveResult {
@@ -12,6 +12,8 @@ export interface ApproveResult {
   from: string;
   to: string;
   approved: string;
+  /** Present when the stamp names its maintainer (DEC-071). */
+  approvedBy?: string;
 }
 
 const PROMOTION: Record<string, { from: string; to: string }> = {
@@ -30,6 +32,7 @@ export async function approveDocument(
   veriDir: string | URL,
   id: string,
   date: string = new Date().toISOString().slice(0, 10),
+  approvedBy?: string,
 ): Promise<ApproveResult> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error(`approval date must be YYYY-MM-DD, got "${date}"`);
   const root = typeof veriDir === 'string' ? veriDir : fileURLToPath(veriDir);
@@ -38,6 +41,22 @@ export async function approveDocument(
   const wanted = id.toUpperCase();
   const doc = load.documents.find((candidate) => candidate.id === wanted);
   if (doc === undefined) throw new Error(`no document with id ${wanted}`);
+
+  // DEC-071: a maintainers list on the workflow doc activates team
+  // semantics — the stamp must then name a listed maintainer. No list means
+  // solo, and a name (if given) is recorded without validation.
+  const maintainers = maintainerRegistry(load.documents);
+  const approver = approvedBy?.trim();
+  if (maintainers.length > 0) {
+    if (approver === undefined || approver === '') {
+      throw new Error(
+        `this project declares maintainers — the stamp must name one: veri approve ${wanted} --as <name> (maintainers: ${maintainers.join(', ')})`,
+      );
+    }
+    if (!maintainers.includes(approver)) {
+      throw new Error(`"${approver}" is not in the workflow's maintainers list (${maintainers.join(', ')})`);
+    }
+  }
 
   const promotion = PROMOTION[doc.type];
   if (promotion === undefined) {
@@ -70,6 +89,13 @@ export async function approveDocument(
   block = /^approved: /m.test(block)
     ? block.replace(/^approved: .*$/m, `approved: ${date}`)
     : block.replace(/^status: .*$/m, (line) => `${line}\napproved: ${date}`);
+  // DEC-071: the approver's name rides directly under the date, by the same
+  // line-targeted discipline — one added line, everything else untouched.
+  if (approver !== undefined && approver !== '') {
+    block = /^approved_by: /m.test(block)
+      ? block.replace(/^approved_by: .*$/m, `approved_by: ${approver}`)
+      : block.replace(/^approved: .*$/m, (line) => `${line}\napproved_by: ${approver}`);
+  }
   block = block.replace(/^updated: .*$/m, `updated: ${date}`);
 
   const next = block + raw.slice(fm[0].length);
@@ -78,5 +104,12 @@ export async function approveDocument(
     throw new Error(`internal error — the approval edit would corrupt ${doc.file}: ${outcome.issues[0]?.message}`);
   }
   await writeFile(path, next);
-  return { id: wanted, file: doc.file, from: doc.status, to: promotion.to, approved: date };
+  return {
+    id: wanted,
+    file: doc.file,
+    from: doc.status,
+    to: promotion.to,
+    approved: date,
+    ...(approver !== undefined && approver !== '' ? { approvedBy: approver } : {}),
+  };
 }

@@ -1,13 +1,22 @@
 #!/usr/bin/env node
-import { approve, architecture, check, context, implemented, importPrompt, init, list, migrate, newDoc, open } from './commands.ts';
+import { approve, architecture, check, context, implemented, importPrompt, init, list, migrate, newDoc, open, renumber } from './commands.ts';
 import type { CmdResult } from './commands.ts';
+
+/** The value following `--flag`, or undefined when the flag is absent. */
+function flagValue(args: string[], flag: string): string | undefined {
+  const at = args.indexOf(flag);
+  return at >= 0 ? args[at + 1] : undefined;
+}
 
 const USAGE = `usage: veri <command>
 
   veri init [--demo]         scaffold a veri/ directory
   veri new <type> "<title>"  create a document with the next free id
   veri check                 report knowledge-base issues (exit 1 if any)
-  veri approve <id>          approve a pending document (stamps approved: today)
+  veri approve <id> [--as <maintainer>]
+                             approve a pending document (stamps approved: today)
+  veri renumber <id> [--to <new-id>] [--file <path>] [--refs <path,path>]
+                             move a document to a new id, rewriting inbound links
   veri migrate               bring veri/ to the current on-disk format
   veri import                print the kickoff prompt for mining this repo into proposals
   veri context <WO-id>       print the context package an agent receives
@@ -32,7 +41,17 @@ switch (command) {
     result = await check(cwd);
     break;
   case 'approve':
-    result = await approve(cwd, rest[0]);
+    result = await approve(cwd, rest[0], flagValue(rest, '--as'));
+    break;
+  case 'renumber':
+    result = await renumber(cwd, rest[0], {
+      to: flagValue(rest, '--to'),
+      file: flagValue(rest, '--file'),
+      refs: flagValue(rest, '--refs')
+        ?.split(',')
+        .map((path) => path.trim())
+        .filter((path) => path !== ''),
+    });
     break;
   case 'migrate':
     result = migrate(cwd);

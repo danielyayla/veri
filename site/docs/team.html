@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Team workflow — Veri</title>
+<meta name="description" content="Sharing a veri/ knowledge base over git: branching, resolving id collisions with veri renumber, maintainer approvals, and the PR-review-as-approval baseline.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../assets/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<link rel="stylesheet" href="../site.css?v=2">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <a class="top-wordmark" href="../"><span class="v">V</span>eri</a>
+  <a class="nav" href="../#product">Product</a>
+  <a class="nav" href="workflow.html">Workflow</a>
+  <a class="nav here" href="quickstart.html">Docs</a>
+  <a class="nav" href="https://github.com/danielyayla/veri">GitHub</a>
+  <a class="top-dl" href="https://github.com/danielyayla/veri/releases/latest">Download</a>
+</header>
+
+<nav class="docs-strip" aria-label="Documentation pages">
+  <a href="quickstart.html">Quickstart</a>
+  <a href="workflow.html">Workflow</a>
+  <a href="connect-claude-code.html">Connect your agent</a>
+  <a href="brownfield.html">Import a repo</a>
+  <a href="ci.html">CI gate</a>
+  <a href="team.html" class="here">Teams</a>
+  <a href="reference.html">Reference</a>
+  <a href="troubleshooting.html">Troubleshooting</a>
+</nav>
+
+<article class="doc" id="main">
+<h1>Working as a team</h1>
+<p class="doc-lead">A <code>veri/</code> directory shares the way code shares: branches, merges, and pull requests, with git as the only sync layer. No server, no accounts. This page covers the three things a second committer changes — id allocation, approval rights, and where the approval act happens.</p>
+
+<p>Everything here is opt-in. A solo project behaves exactly as before — same ids, same stamps, zero new ceremony. Team semantics activate only when you declare maintainers, and collisions only exist once two branches allocate ids.</p>
+
+<h2>1. Branching: ids may collide, and that's handled</h2>
+<p>Ids are sequential per type, so two branches can each allocate the same next number — say both file a <code>DEC-041</code>. Git usually merges that <i>cleanly</i>: the filenames differ, so nothing conflicts. The merged tree is where the collision exists, and <code>veri check</code> — locally or as the <a href="ci.html">CI gate</a> on your pull request — refuses it:</p>
+<pre><code>decisions/DEC-041-ours.md, decisions/DEC-041-theirs.md: duplicate id DEC-041
+  — 2 documents claim it; keep one and move the other with:
+  veri renumber DEC-041 --file &lt;path-to-move&gt;</code></pre>
+<p>Resolve it on your branch, after merging the main branch in — that way the document that moves is <i>yours</i>, and you know which references meant it:</p>
+<pre><code>veri renumber DEC-041 --file veri/decisions/DEC-041-ours.md</code></pre>
+<p>One atomic pass moves your document to the next free id: the <code>id:</code> line, the filename, and the <code>veri/ids</code> floor all move together, so neither number is ever reissued. References to the contested id are <b>never rewritten by guessing</b> — they keep resolving to the remaining claimant, and the command lists every one for review. For references that meant <i>your</i> document, name their files and they follow:</p>
+<pre><code>veri renumber DEC-041 --file veri/decisions/DEC-041-ours.md \
+  --refs veri/work-orders/WO-052-our-feature.md</code></pre>
+<p>Outside collisions, <code>veri renumber &lt;id&gt;</code> also works as a plain renumber: when the id is uniquely held, every inbound link and <code>[[ref]]</code> is rewritten in the same pass — nothing dangles.</p>
+<p>If the merge does conflict on <code>veri/ids</code> (both branches raised the same counter to different values), keep the higher line — the file is a self-healing floor, and the next write repairs the rest.</p>
+
+<h2>2. Maintainers: who may stamp</h2>
+<p>Approval rights extend through one list on the workflow document's frontmatter (<code>veri/workflow.md</code>):</p>
+<pre><code>maintainers:
+  - Ada Lovelace
+  - Grace Hopper</code></pre>
+<p>The list's presence is the switch. Once it exists, every approval stamp names its maintainer:</p>
+<pre><code>veri approve DEC-041 --as "Ada Lovelace"</code></pre>
+<p>That writes <code>approved_by:</code> under the <code>approved:</code> date — the record lives in the file, like everything else. When your git <code>user.name</code> exactly matches a listed maintainer, <code>--as</code> defaults to it and you can omit the flag. The gate honors every maintainer's stamp identically; <code>approved_by</code> is provenance, not a permission hierarchy.</p>
+<p><code>veri check</code> enforces the roster in two tiers: a stamp naming someone <i>not</i> on the list is an error, while a promoted document with no <code>approved_by</code> at all — every stamp made before the team formed — only warns. Adopting a maintainers list mid-project breaks nothing; re-approve old documents with <code>--as</code> whenever you want the attribution.</p>
+
+<h2>3. Pull requests: the stamp rides the PR</h2>
+<p>The baseline model for promoting documents on a team:</p>
+<ol>
+  <li><b>Propose on a branch.</b> Agents and teammates file requirements and decisions freely — born <code>draft</code>/<code>proposed</code>, binding on nothing.</li>
+  <li><b>The reviewing maintainer stamps on the branch.</b> Approval is a deliberate act in the files: the reviewer runs <code>veri approve &lt;id&gt; --as &lt;name&gt;</code> and pushes that commit to the branch. The PR's diff now shows exactly what will bind — status, date, and approver.</li>
+  <li><b>Merge.</b> The main branch receives the document already approved, with provenance for free: the stamp commit is authored by the maintainer who reviewed it.</li>
+</ol>
+<p><b>Merging never approves.</b> A document merged without a stamp simply stays pending — visible in context packages, binding on nothing, exactly like on a single machine. No bot, action, or merge hook ever writes a stamp; the <a href="ci.html">CI gate</a> verifies the merged result, it doesn't promote anything.</p>
+
+<h2>What agents see</h2>
+<p>The workflow document — including your maintainers list and team rules — arrives as the first section of every context package, so agent sessions on different branches follow the same allocation and approval rules you do. New projects scaffold with a "Working as a team" section in <code>veri/workflow.md</code>; existing projects can copy its three rules from this page.</p>
+
+<div class="next">
+  <b>Where next:</b> the <a href="ci.html">CI gate</a> to make the merged tree's health mechanical, or <a href="reference.html">the reference</a> for the <code>veri renumber</code> flags and the maintainer check rules.
+</div>
+</article>
+
+<footer class="foot">
+  <span>Veri — plain files, no telemetry.</span>
+  <span><a href="../">Home</a> · <a href="https://github.com/danielyayla/veri">Source</a> · <a href="https://github.com/danielyayla/veri/issues">Issues</a></span>
+</footer>
+
+</body>
+</html>

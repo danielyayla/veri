@@ -11452,11 +11452,13 @@ var baseFields = {
   updated: dateField,
   links: external_exports.array(linkSchema).default([])
 };
+var approvedByField = external_exports.string().min(1).optional();
 var requirementSchema = external_exports.object({
   ...baseFields,
   type: external_exports.literal("requirement"),
   status: external_exports.enum(["draft", "accepted", "retired"]),
-  approved: dateField.optional()
+  approved: dateField.optional(),
+  approved_by: approvedByField
 }).passthrough();
 var moduleRef = external_exports.union([external_exports.string().min(1), external_exports.array(external_exports.string().min(1)).min(1)]);
 var architectureConstraintSchema = external_exports.object({
@@ -11475,6 +11477,7 @@ var decisionSchema = external_exports.object({
   type: external_exports.literal("decision"),
   status: external_exports.enum(["proposed", "active", "superseded"]),
   approved: dateField.optional(),
+  approved_by: approvedByField,
   superseded_by: idField.optional(),
   architecture: architectureSchema.optional()
 }).passthrough();
@@ -11485,6 +11488,10 @@ var workflowSchema = external_exports.object({
   type: external_exports.literal("workflow"),
   status: external_exports.enum(["draft", "accepted", "retired"]),
   approved: dateField.optional(),
+  approved_by: approvedByField,
+  // DEC-071: who may stamp approvals — free-form display names. The list's
+  // presence is what activates team semantics; absent → solo, no new checks.
+  maintainers: external_exports.array(external_exports.string().min(1)).optional(),
   // DEC-039: the design gate's trigger paths are project-defined here, not
   // hardcoded in core. A started work order whose body mentions any of
   // these must link a designed-by design document. Absent → gate inert.
@@ -11547,6 +11554,7 @@ function parseDocument(file, content) {
     links: fm.links.map(({ id, rel }) => ({ id, rel })),
     ...fm.type === "decision" && fm.superseded_by !== void 0 ? { supersededBy: fm.superseded_by } : {},
     ...(fm.type === "requirement" || fm.type === "decision" || fm.type === "workflow") && fm.approved !== void 0 ? { approved: fm.approved } : {},
+    ...(fm.type === "requirement" || fm.type === "decision" || fm.type === "workflow") && fm.approved_by !== void 0 ? { approvedBy: fm.approved_by } : {},
     frontmatter: fm,
     body,
     file,
@@ -12077,7 +12085,12 @@ function checkDuplicateIds(documents) {
   const issues = [];
   for (const [id, files] of filesById) {
     if (files.length > 1) {
-      issues.push({ kind: "duplicate-id", id, files, message: `duplicate id ${id}` });
+      issues.push({
+        kind: "duplicate-id",
+        id,
+        files,
+        message: `duplicate id ${id} \u2014 ${files.length} documents claim it; keep one and move the other with: veri renumber ${id} --file <path-to-move>`
+      });
     }
   }
   return issues;
@@ -12190,11 +12203,51 @@ function checkDesignGate(documents) {
   }
   return issues;
 }
+function isPromoted(doc) {
+  return doc.type === "requirement" && doc.status === "accepted" || doc.type === "decision" && doc.status === "active" || doc.type === "workflow" && doc.status === "accepted";
+}
+function maintainerRegistry(documents) {
+  return documents.filter((doc) => doc.type === "workflow" && doc.status !== "retired").flatMap((doc) => doc.frontmatter["maintainers"] ?? []);
+}
+function checkApprovers(documents) {
+  const maintainers = maintainerRegistry(documents);
+  if (maintainers.length === 0)
+    return [];
+  const issues = [];
+  for (const doc of documents) {
+    if (doc.approvedBy !== void 0 && !maintainers.includes(doc.approvedBy)) {
+      issues.push({
+        kind: "unknown-approver",
+        file: doc.file,
+        id: doc.id,
+        approver: doc.approvedBy,
+        message: `${doc.id} is approved by "${doc.approvedBy}", who is not in the workflow's maintainers list (${maintainers.join(", ")})`
+      });
+    }
+  }
+  return issues;
+}
+function checkMissingApprovers(documents) {
+  const maintainers = maintainerRegistry(documents);
+  if (maintainers.length === 0)
+    return [];
+  const advisories = [];
+  for (const doc of documents) {
+    if (isPromoted(doc) && doc.approved !== void 0 && doc.approvedBy === void 0) {
+      advisories.push({
+        kind: "missing-approver",
+        file: doc.file,
+        id: doc.id,
+        message: `${doc.id} is ${doc.status} but its stamp names no approver \u2014 this project declares maintainers; re-approve with veri approve ${doc.id} --as <name> to attribute it`
+      });
+    }
+  }
+  return advisories;
+}
 function checkApprovalStamps(documents) {
   const issues = [];
   for (const doc of documents) {
-    const promoted = doc.type === "requirement" && doc.status === "accepted" || doc.type === "decision" && doc.status === "active" || doc.type === "workflow" && doc.status === "accepted";
-    if (promoted && doc.approved === void 0) {
+    if (isPromoted(doc) && doc.approved === void 0) {
       issues.push({
         kind: "missing-approval",
         file: doc.file,
@@ -12295,6 +12348,7 @@ function checkProject(load) {
       ...checkGatedWorkOrders(load.documents),
       ...checkDesignGate(load.documents),
       ...checkApprovalStamps(load.documents),
+      ...checkApprovers(load.documents),
       ...checkArchitecture(load.documents)
     ],
     // The pure advisory tier. Git-backed advisories (receipt verification,
@@ -12302,7 +12356,8 @@ function checkProject(load) {
     // (DEC-040) — never here, so pure callers stay subprocess-free.
     advisories: [
       ...checkStructure(load.dir, load.documents),
-      ...checkSupersededLinks(load.documents)
+      ...checkSupersededLinks(load.documents),
+      ...checkMissingApprovers(load.documents)
     ]
   };
 }

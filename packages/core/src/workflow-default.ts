@@ -56,16 +56,38 @@ work orders become implementation with receipts.
    (library, algorithm, schema shape) as new decisions with the
    rejected alternatives, using the next free DEC id.
 5. Documents are born unapproved (\`draft\` / \`proposed\`). Promotion is
-   the project owner's act alone, recorded as an \`approved:\` date
-   stamp (\`veri approve <id>\`). Never promote a document yourself.
-   Unapproved documents are visible in context packages but never
-   binding.
+   a human act alone — the project owner's, or a listed maintainer's —
+   recorded as an \`approved:\` date stamp (\`veri approve <id>\`). Never
+   promote a document yourself. Unapproved documents are visible in
+   context packages but never binding.
 6. When you finish a work session, append a receipt to the work order
    under \`## Receipts\`: date, commit, files touched, one-line summary.
    A work order is done only when all acceptance criteria are checked
    and at least one receipt exists.
 7. Run \`veri check\` before declaring any work complete. Zero issues is
    the bar.
+
+## Working as a team
+
+Git is the only sync layer: branches, merges, and pull requests carry
+\`veri/\` exactly like code. Three rules keep a shared knowledge base
+coherent; a solo project can ignore this section entirely.
+
+1. **Ids may collide across branches.** Two branches can allocate the
+   same new id; the merged tree then fails \`veri check\` with both
+   files named. Resolve on your branch after merging the main branch:
+   \`veri renumber <id> --file <path-to-your-document>\` moves your
+   document to the next free id and reports every reference for
+   review. Never resolve a collision by hand-editing id lines.
+2. **Approvals name their maintainer.** When this document's
+   frontmatter declares a \`maintainers:\` list, every stamp records who
+   approved: \`veri approve <id> --as <name>\`. Only listed maintainers
+   may stamp; the gate honors each maintainer's stamp identically.
+3. **The stamp rides the pull request; merging never approves.**
+   Propose documents on a branch as \`draft\`/\`proposed\`. The reviewing
+   maintainer approves by running \`veri approve\` and pushing that
+   commit to the branch before merge. A document merged without a
+   stamp simply stays pending — no bot or merge hook ever promotes.
 `;
 }
 

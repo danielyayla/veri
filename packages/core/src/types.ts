@@ -17,6 +17,8 @@ export interface VeriDocument {
   supersededBy?: string;
   /** Date the user approved this document (requirements and decisions, REQ-008). */
   approved?: string;
+  /** Display name of the maintainer who stamped the approval (DEC-071). */
+  approvedBy?: string;
   /** Full validated frontmatter; unknown extra keys are preserved here. */
   frontmatter: Record<string, unknown>;
   body: string;
@@ -57,6 +59,10 @@ export type Advisory =
   // drift, and drift informs, never blocks (DEC-025). `file` is the
   // importing source file, project-root-relative; `id` anchors the finding
   // to its governing decision, the document that holds the rationale.
+  // Team semantics (DEC-071): a stamp with no approver name in a project
+  // that declares maintainers. Advisory — every stamp made before the team
+  // formed is grandfathered as a warning, never a failure.
+  | { kind: 'missing-approver'; file: string; id: string; message: string }
   | {
       kind: 'arch-violation';
       file: string;
@@ -95,6 +101,10 @@ export type Issue =
       message: string;
     }
   | { kind: 'missing-approval'; file: string; id: string; message: string }
+  // Team semantics (DEC-071): approved_by names someone the workflow's
+  // maintainers list does not — a misattributed stamp fails, unlike a
+  // merely missing one (see the missing-approver advisory).
+  | { kind: 'unknown-approver'; file: string; id: string; approver: string; message: string }
   | { kind: 'format-mismatch'; file: string; problem: 'newer' | 'invalid'; message: string }
   | { kind: 'ui-wo-without-design'; file: string; id: string; message: string }
   | {

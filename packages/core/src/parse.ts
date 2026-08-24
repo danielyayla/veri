@@ -53,6 +53,9 @@ export function parseDocument(file: string, content: string): ParseOutcome {
     ...((fm.type === 'requirement' || fm.type === 'decision' || fm.type === 'workflow') && fm.approved !== undefined
       ? { approved: fm.approved }
       : {}),
+    ...((fm.type === 'requirement' || fm.type === 'decision' || fm.type === 'workflow') && fm.approved_by !== undefined
+      ? { approvedBy: fm.approved_by }
+      : {}),
     frontmatter: fm as Record<string, unknown>,
     body,
     file,

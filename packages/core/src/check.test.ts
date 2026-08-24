@@ -158,6 +158,55 @@ test('a resolvable designed-by link satisfies the design gate; backlog is exempt
   assert.deepEqual(checkProject(await loadProject(dir)).issues, []);
 });
 
+// --- Multi-maintainer stamps (REQ-026, DEC-071) ---
+
+test('maintainer stamps: unlisted approver is an issue, missing approver an advisory, solo repos untouched', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-maintainers-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  mkdirSync(join(dir, 'decisions'), { recursive: true });
+  const workflow = (maintainers: string): string =>
+    `---\nid: WF-001\ntype: workflow\ntitle: W\nstatus: accepted\napproved: 2026-08-01\napproved_by: Ada\ncreated: 2026-08-01\nupdated: 2026-08-01\n${maintainers}---\nRules.\n`;
+  const dec = (stamp: string): string =>
+    `---\nid: DEC-001\ntype: decision\ntitle: T\nstatus: active\napproved: 2026-08-02\n${stamp}created: 2026-08-02\nupdated: 2026-08-02\n---\n## Choice\n\nx\n\n## Rejected alternatives\n\n- **y** — z\n\n## Rationale\n\nw\n`;
+  const decPath = join(dir, 'decisions', 'DEC-001-choice.md');
+
+  // A listed maintainer's stamp binds exactly like the owner's: clean.
+  writeFileSync(join(dir, 'workflow.md'), workflow('maintainers:\n  - Ada\n  - Grace\n'));
+  writeFileSync(decPath, dec('approved_by: Grace\n'));
+  // Bodies here are minimal, so structure advisories fire; only the
+  // maintainer tier is under test.
+  const approverAdvisories = (r: { advisories: Array<{ kind: string }> }): Array<{ kind: string }> =>
+    r.advisories.filter((advisory) => advisory.kind === 'missing-approver');
+  let result = checkProject(await loadProject(dir));
+  assert.deepEqual(result.issues, []);
+  assert.deepEqual(approverAdvisories(result), []);
+
+  // A stamp naming someone off the roster fails — misattribution is an issue.
+  writeFileSync(decPath, dec('approved_by: Mallory\n'));
+  result = checkProject(await loadProject(dir));
+  assert.partialDeepStrictEqual(result.issues, [
+    { kind: 'unknown-approver', id: 'DEC-001', file: 'decisions/DEC-001-choice.md', approver: 'Mallory' },
+  ]);
+  assert.equal(result.issues.length, 1);
+
+  // A pre-team stamp with no approver only warns (grandfathered, DEC-025).
+  writeFileSync(decPath, dec(''));
+  result = checkProject(await loadProject(dir));
+  assert.deepEqual(result.issues, []);
+  assert.partialDeepStrictEqual(approverAdvisories(result), [
+    { kind: 'missing-approver', id: 'DEC-001', file: 'decisions/DEC-001-choice.md' },
+  ]);
+  assert.equal(approverAdvisories(result).length, 1);
+
+  // No maintainers list: team semantics inert — even a stray approved_by
+  // passes, and nothing warns. The solo experience is untouched (REQ-026).
+  writeFileSync(join(dir, 'workflow.md'), workflow(''));
+  writeFileSync(decPath, dec('approved_by: Mallory\n'));
+  result = checkProject(await loadProject(dir));
+  assert.deepEqual(result.issues, []);
+  assert.deepEqual(approverAdvisories(result), []);
+});
+
 // --- Structure advisories (REQ-006 at DEC-025's advisory severity) ---
 
 function structureSandbox(t: TestContext): string {

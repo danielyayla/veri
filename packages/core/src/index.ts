@@ -8,6 +8,7 @@ export * from './graph.ts';
 export * from './check.ts';
 export * from './architecture.ts';
 export * from './approve.ts';
+export * from './renumber.ts';
 export * from './scaffold.ts';
 export * from './save.ts';
 export * from './links.ts';

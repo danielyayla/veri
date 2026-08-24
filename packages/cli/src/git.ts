@@ -19,6 +19,16 @@ function git(cwd: string, args: string[]): { status: number | null; stdout: stri
   return { status: run.status, stdout: run.stdout ?? '', failed: run.error !== undefined };
 }
 
+/** The committer identity git would stamp here (DEC-071): `veri approve`
+    defaults --as from it when it exactly matches a listed maintainer.
+    Null when git is absent, unconfigured, or this is not a repository. */
+export function gitUserName(cwd: string): string | null {
+  const run = git(cwd, ['config', 'user.name']);
+  if (run.failed || run.status !== 0) return null;
+  const name = run.stdout.trim();
+  return name === '' ? null : name;
+}
+
 export function collectGitFacts(cwd: string): GitFactsResult {
   const shallow = git(cwd, ['rev-parse', '--is-shallow-repository']);
   if (shallow.failed) return { kind: 'unavailable', reason: 'git is not installed' };
