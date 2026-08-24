@@ -40,12 +40,12 @@ Close the gaps that make the project legally and visibly not-open-source: choose
 
 ## Acceptance tests
 
-- [ ] A DEC recording the license choice is approved, LICENSE exists at the root, and GitHub's repo page renders the license chip
-- [ ] Every package.json declares the matching `license` field
-- [ ] Repo description, homepage, topics, and social-preview image are set (visible via `gh repo view` and the repo page)
-- [ ] README nowhere mentions Electron, shows a screenshot and badges, and states the platform scope
-- [ ] One place states the authoritative dev Node version; README, CONTRIBUTING (when it lands), and CI agree with it
+- [x] A DEC recording the license choice is approved, LICENSE exists at the root, and GitHub's repo page renders the license chip
+- [x] Every package.json declares the matching `license` field
+- [ ] Repo description, homepage, topics, and social-preview image are set (visible via `gh repo view` and the repo page) — description/homepage/topics verified live; the social-preview image has no API and awaits Daniel's manual upload of site/assets/og.png in Settings → General
+- [x] README nowhere mentions Electron, shows a screenshot and badges, and states the platform scope
+- [x] One place states the authoritative dev Node version; README, CONTRIBUTING (when it lands), and CI agree with it
 
 ## Receipts
 
-(none yet)
+- 2026-08-24 — 3222b02 — LICENSE, package.json, packages/{core,cli,mcp,action,ui}/package.json, README.md, site/index.html, site/docs/reference.html, veri/decisions/DEC-073, veri/decisions/DEC-074, veri/requirements/REQ-027, veri/work-orders/WO-078, veri/ids — Apache-2.0 licensed (DEC-074 approved by Daniel in-session; parallel MIT proposal DEC-073 superseded), license fields in all six manifests, repo description/homepage/topics set via gh, README badges/screenshot/who-for/Platforms landed (folding in a parallel session's edits per Daniel), MCP tool listing moved to the reference page. GitHub license detection verified live (apache-2.0). Social-preview upload remains a manual Settings step.
