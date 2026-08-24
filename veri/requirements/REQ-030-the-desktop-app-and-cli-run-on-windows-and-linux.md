@@ -2,7 +2,8 @@
 id: REQ-030
 type: requirement
 title: "The desktop app and CLI run on Windows and Linux"
-status: draft
+status: accepted
+approved: 2026-08-24
 created: 2026-08-24
 updated: 2026-08-24
 links:
