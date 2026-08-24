@@ -4,7 +4,7 @@ type: work-order
 title: Packaged releases and auto-update for the desktop app
 status: backlog
 created: 2026-08-17
-updated: 2026-08-17
+updated: 2026-08-24
 links:
   - id: SRC-011
     rel: designed-by
@@ -72,21 +72,52 @@ current, not a dev checkout.
 
 ## Acceptance tests
 
-- [ ] A dist script in `packages/ui` produces a signed, notarized
+- [x] A dist script in `packages/ui` produces a signed, notarized
       DMG and ZIP; the DMG installs and launches clean on a Mac that
-      never had a dev checkout (Gatekeeper passes, `spctl -a`).
-- [ ] With version N installed and N+1 published to the feed,
+      never had a dev checkout (Gatekeeper passes, `spctl -a`). —
+      verified live on the Electron line by [[WO-034]] (quarantined
+      v0.1.4 DMG assessed `accepted / source=Notarized Developer ID`
+      by spctl, staple valid, launched with no override); holds today
+      on the Tauri line: `dist` script in packages/ui/package.json,
+      CI-signed and notarized per-arch DMGs published in v0.2.0/v0.2.1
+      ([[WO-073]]). The ZIP (Squirrel.Mac) update artifact became
+      minisign-signed `.app.tar.gz` archives per [[DEC-065]].
+- [x] With version N installed and N+1 published to the feed,
       relaunching detects the update, downloads it in the
       background, and shows the native prompt; Restart Now relaunches
-      into N+1.
-- [ ] Choosing Later applies the update on next quit; the running
-      session is never force-restarted.
+      into N+1. — verified live by [[WO-034]] (0.1.4→0.1.5 applied
+      only on the Restart Now click) and again on the Tauri line by
+      [[WO-073]] (installed 0.2.0 found, downloaded, and staged
+      0.2.1 from the published feed; relaunch logged "app 0.2.1
+      launched"; [[DEC-065]] keeps the Restart Now / Later dialog).
+- [x] Choosing Later applies the update on next quit; the running
+      session is never force-restarted. — verified live by
+      [[WO-034]] (0.1.6→0.1.7 applied on quit with the consent
+      dialog untouched); on the Tauri line Later is install-on-quit
+      by construction ([[DEC-065]]): 0.2.1 staged on disk while
+      0.2.0 kept running ([[WO-073]]).
 - [x] Launching with no network (or an unreachable feed) starts
       normally with no error surfaced.
-- [ ] The N→N+1 download is differential (blockmap hit), not a full
-      artifact download.
-- [ ] Pushing a version tag runs CI to a published release with
-      update metadata; no manual steps besides the tag.
+- [x] The N→N+1 download is differential (blockmap hit), not a full
+      artifact download. — proven live on the Electron line by
+      [[WO-034]] (0.1.5→0.1.6 downloaded differentially, 88,384 KB
+      of 202,694 KB = 44%, and 0.1.6→0.1.7 likewise); deliberately
+      retired on the Tauri line by approved [[DEC-065]] — full-archive
+      updates accepted because the whole ~43 MB artifact costs less
+      than a typical differential against the 196 MB Electron
+      baseline.
+- [x] Pushing a version tag runs CI to a published release with
+      update metadata; no manual steps besides the tag. — proven
+      live across v0.1.3–v0.1.7 ([[WO-033]]/[[WO-034]] tag flow) and
+      on the Tauri line for v0.2.0/v0.2.1 (.github/workflows/
+      release.yml: tag → build, sign, notarize, upload artifacts +
+      latest.json, verify one complete release). Two deliberate
+      deviations from the literal wording, both on the record: CI
+      creates a draft the maintainer reviews and publishes
+      ([[DEC-032]], after the v0.1.1 duplicate-release race), and
+      carrying the Electron-bridge assets forward is a documented
+      manual step (RELEASING.md) until 0.1.x installs are extinct
+      ([[WO-073]] receipt).
 - [x] Packager and feed-host choices are filed as proposed DECs with
       rejected alternatives.
 - [x] `veri check` and `npm test` are clean.
@@ -99,6 +130,27 @@ current, not a dev checkout.
   lost their authority. [[WO-073]] carries the release/updater/signing
   scope forward on the Tauri line, including the bridge for installs
   this WO shipped. Receipts below record the work that did land.
+
+## Resolution
+
+2026-08-24 — Closed done: every substantive goal of this WO holds in
+shipped reality, though the delivery path ran Electron → Tauri rather
+than staying on the plan above. What this WO built directly (receipts
+a982fd4, 076d07f) — electron-builder packaging, electron-updater with
+the native Restart Now / Later dialog, the tag-triggered release CI,
+[[DEC-028]]/[[DEC-029]] — became the working Electron release line:
+[[WO-033]] fixed its duplicate-release race and [[WO-034]] verified
+signed, notarized install and consensual auto-update end to end on it
+(v0.1.4–v0.1.7), checking every [[REQ-011]] criterion. [[DEC-063]]
+then superseded [[DEC-008]] and [[WO-073]] migrated the shell to
+Tauri 2, replacing electron-updater with tauri-plugin-updater on the
+same GitHub Releases feed ([[DEC-065]], superseding DEC-028) with the
+[[DEC-064]] bridge so 0.1.x installs cross over; releases v0.2.0 and
+v0.2.1 are live, CI-signed and notarized, and the 0.2.0→0.2.1 update
+walk was verified against the published feed. The one capability
+proven here and not carried forward — differential blockmap downloads
+— was retired by approved [[DEC-065]], not lost by accident. The
+acceptance boxes above are checked against that evidence, per box.
 
 ## Receipts
 
