@@ -2,7 +2,8 @@
 id: DEC-080
 type: decision
 title: "Binding drift semantics — the derived active era, subject-claim precedence, and grep-level test facts"
-status: proposed
+status: active
+approved: 2026-08-24
 created: 2026-08-24
 updated: 2026-08-24
 links:
