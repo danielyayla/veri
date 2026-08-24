@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ProjectExistsError, VERI_SUBDIRS, scaffoldProject } from './scaffold.ts';
+import { localToday } from './dates.ts';
 
 function tmp(): string {
   return mkdtempSync(join(tmpdir(), 'veri-scaffold-'));
@@ -121,5 +122,71 @@ test("demo scaffold never clobbers the user's own root files", () => {
 test('demo scaffold without demoRoot is rejected before anything is written', () => {
   const root = tmp();
   assert.throws(() => scaffoldProject(root, { demo: true }), /demoRoot/);
+  assert.equal(readdirSync(root).length, 0);
+});
+
+/** A stand-in for packages/cli/starters/<name>: seed docs with placeholder dates. */
+function fakeStarter(): string {
+  const root = tmp();
+  mkdirSync(join(root, 'veri', 'requirements'), { recursive: true });
+  mkdirSync(join(root, 'veri', 'decisions'), { recursive: true });
+  writeFileSync(
+    join(root, 'veri', 'requirements', 'REQ-001-x.md'),
+    '---\nid: REQ-001\ncreated: 0001-01-01\nupdated: 0001-01-01\n---\n\ncreated: 0001-01-01 stays — it is body text\n',
+  );
+  writeFileSync(join(root, 'veri', 'decisions', 'DEC-002-y.md'), '---\nid: DEC-002\ncreated: 0001-01-01\nupdated: 0001-01-01\n---\n');
+  return root;
+}
+
+test('starter scaffold copies the seed docs, completes the layout, and stamps format and ids', () => {
+  const starterRoot = fakeStarter();
+  const root = tmp();
+
+  const result = scaffoldProject(root, { starterRoot });
+
+  // 2 seeded docs + the default workflow a bundle without one gets.
+  assert.equal(result.docCount, 3);
+  assert.deepEqual(result.filesWritten, ['AGENTS.md', 'CLAUDE.md']);
+  assert.deepEqual(readdirSync(result.veriDir).sort(), [...VERI_SUBDIRS, 'format', 'ids', 'templates', 'workflow.md'].sort());
+  // Directories the bundle did not seed still exist, held by .gitkeep (REQ-001).
+  assert.deepEqual(readdirSync(join(result.veriDir, 'work-orders')), ['.gitkeep']);
+  assert.deepEqual(readdirSync(join(result.veriDir, 'sources')), ['.gitkeep']);
+  // Seeded directories carry their documents, no .gitkeep noise.
+  assert.deepEqual(readdirSync(join(result.veriDir, 'requirements')), ['REQ-001-x.md']);
+  assert.equal(readFileSync(join(result.veriDir, 'format'), 'utf8'), '1\n');
+  assert.match(readFileSync(join(result.veriDir, 'workflow.md'), 'utf8'), /id: WF-001/);
+  // The ids high-water record covers every seeded id, so the next document
+  // filed after init allocates past the bundle (DEC-037, WO-091).
+  assert.equal(readFileSync(join(result.veriDir, 'ids'), 'utf8'), 'REQ 1\nDEC 2\nWF 1\n');
+});
+
+test('starter scaffold restamps seeded frontmatter dates to today, body text untouched (DEC-076)', () => {
+  const starterRoot = fakeStarter();
+  const root = tmp();
+  const today = localToday();
+
+  scaffoldProject(root, { starterRoot });
+
+  const seeded = readFileSync(join(root, 'veri', 'requirements', 'REQ-001-x.md'), 'utf8');
+  assert.match(seeded, new RegExp(`^created: ${today}$`, 'm'));
+  assert.match(seeded, new RegExp(`^updated: ${today}$`, 'm'));
+  assert.ok(seeded.includes('created: 0001-01-01 stays — it is body text'));
+});
+
+test("a starter's own workflow.md wins over the default", () => {
+  const starterRoot = fakeStarter();
+  writeFileSync(join(starterRoot, 'veri', 'workflow.md'), '---\nid: WF-001\ncreated: 0001-01-01\nupdated: 0001-01-01\n---\nSTARTER-WORKFLOW-MARKER\n');
+  const root = tmp();
+
+  scaffoldProject(root, { starterRoot });
+
+  const workflow = readFileSync(join(root, 'veri', 'workflow.md'), 'utf8');
+  assert.match(workflow, /STARTER-WORKFLOW-MARKER/);
+  assert.match(workflow, new RegExp(`^created: ${localToday()}$`, 'm'));
+});
+
+test('demo and starterRoot are mutually exclusive; nothing is written', () => {
+  const root = tmp();
+  assert.throws(() => scaffoldProject(root, { demo: true, starterRoot: fakeStarter() }), /mutually exclusive/);
   assert.equal(readdirSync(root).length, 0);
 });

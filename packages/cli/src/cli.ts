@@ -10,7 +10,9 @@ function flagValue(args: string[], flag: string): string | undefined {
 
 const USAGE = `usage: veri <command>
 
-  veri init [--demo]         scaffold a veri/ directory
+  veri init [--demo] [--starter <name>]
+                             scaffold a veri/ directory (--demo: the sample
+                             project; --starter: draft seed docs per project type)
   veri new <type> "<title>"  create a document with the next free id
   veri check                 report knowledge-base issues (exit 1 if any)
   veri approve <id> [--as <maintainer>]
@@ -32,7 +34,12 @@ const cwd = process.cwd();
 let result: CmdResult;
 switch (command) {
   case 'init':
-    result = init(cwd, { demo: rest.includes('--demo') });
+    // A bare `--starter` (no name) reaches init as '' so it can answer
+    // with the list of available starters instead of scaffolding plain.
+    result = init(cwd, {
+      demo: rest.includes('--demo'),
+      starter: rest.includes('--starter') ? (flagValue(rest, '--starter') ?? '') : undefined,
+    });
     break;
   case 'new':
     result = await newDoc(cwd, rest[0], rest[1]);

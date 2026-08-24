@@ -148,7 +148,12 @@ binds:
 <p>"Since the in-progress work began" is derived, never stored: a commit whose subject names the work order and a form of "start" anchors it, falling back to the work order's <code>created</code> date. Work orders without <code>binds</code> change nothing — the detectors are inert until a project opts in. Outside a git repository they skip with a note.</p>
 
 <h2>The CLI</h2>
-<pre><code>veri init [--demo]         scaffold a veri/ directory (--demo: the sample project)
+<pre><code>veri init [--demo] [--starter &lt;name&gt;]
+                           scaffold a veri/ directory (--demo: the sample
+                           project; --starter: seed draft requirements, proposed
+                           decisions, and a workflow tuned to a project type —
+                           cli-tool, library, or web-app — all pending your
+                           approval)
 veri new &lt;type&gt; "&lt;title&gt;"  create a document with the next free id
 veri check                 report knowledge-base issues (exit 1 if any)
 veri approve &lt;id&gt; [--as &lt;maintainer&gt;]

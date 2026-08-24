@@ -7367,7 +7367,7 @@ import { appendFileSync } from "node:fs";
 import { resolve as resolve3 } from "node:path";
 
 // ../cli/dist/commands.js
-import { existsSync as existsSync3, realpathSync } from "node:fs";
+import { existsSync as existsSync3, readdirSync as readdirSync2, realpathSync } from "node:fs";
 import { dirname as dirname2, join as join6, relative as relative2, resolve as resolve2, sep as sep2 } from "node:path";
 import { fileURLToPath as fileURLToPath4 } from "node:url";
 
@@ -12715,6 +12715,7 @@ function collectImportFacts(cwd, modules) {
 // ../cli/dist/commands.js
 var TYPE_LIST = DOC_TYPES.join(" | ");
 var DEMO_ROOT = fileURLToPath4(new URL("../demo/", import.meta.url));
+var STARTERS_ROOT = fileURLToPath4(new URL("../starters/", import.meta.url));
 function requireVeriDir(cwd) {
   const dir = join6(cwd, "veri");
   return existsSync3(dir) ? dir : null;

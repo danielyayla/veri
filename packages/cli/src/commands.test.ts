@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assembleContext } from '@veri/core';
-import { approve, architecture, check, checkReport, context, importPrompt, init, list, migrate, newDoc, open, renumber } from './commands.ts';
+import { approve, architecture, check, checkReport, context, importPrompt, init, list, listStarters, migrate, newDoc, open, renumber } from './commands.ts';
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const FIVE_ISSUES = fileURLToPath(new URL('../fixtures/five-issues', import.meta.url));
@@ -120,6 +120,72 @@ test('init --demo keeps an existing README.md and refuses an existing veri/', (t
   assert.equal(readFileSync(join(cwd, 'README.md'), 'utf8'), 'mine\n', 'must not clobber an existing README');
   assert.match(result.lines.join('\n'), /Skipped README\.md/);
   assert.equal(init(cwd, { demo: true }).code, 1, 'second --demo run must refuse');
+});
+
+test('init --starter seeds a check-clean corpus per bundle, every document pending, ids floor correct', async (t) => {
+  const starters = listStarters();
+  assert.deepEqual(starters, ['cli-tool', 'library', 'web-app'], 'the shipped bundle set (WO-091)');
+  for (const name of starters) {
+    const cwd = tempProject();
+    t.after(() => rmSync(cwd, { recursive: true, force: true }));
+
+    const result = init(cwd, { demo: false, starter: name });
+    assert.equal(result.code, 0, result.lines.join('\n'));
+    assert.match(result.lines[0] ?? '', new RegExp(`Installed the ${name} starter: 7 seed documents`));
+
+    // Zero issues AND zero advisories: the seed corpus is check-clean (WO-091).
+    const checked = await check(cwd);
+    assert.equal(checked.code, 0, `${name}: ${checked.lines.join('\n')}`);
+    assert.match(checked.lines.at(-1) ?? '', /ok — 7 documents, 0 issues · 0 advisories/, `${name}: ${checked.lines.join('\n')}`);
+
+    // Every seeded requirement draft, every decision proposed, the workflow
+    // draft — and no approved: stamp anywhere (REQ-008: promotion is the
+    // owner's act, never shipped).
+    const veriDir = join(cwd, 'veri');
+    const seeded = ['workflow.md']
+      .concat(['requirements', 'decisions'].flatMap((sub) => cpDirList(veriDir, sub)))
+      .map((file) => [file, readFileSync(join(veriDir, file), 'utf8')] as const);
+    assert.equal(seeded.length, 7, seeded.map(([file]) => file).join(', '));
+    for (const [file, content] of seeded) {
+      if (file.startsWith('requirements/')) assert.match(content, /^status: draft$/m, file);
+      if (file.startsWith('decisions/')) assert.match(content, /^status: proposed$/m, file);
+      if (file === 'workflow.md') assert.match(content, /^status: draft$/m, file);
+      assert.doesNotMatch(content, /^approved:/m, `${name}/${file} must ship unapproved`);
+    }
+
+    // The ids floor holds: the next filings allocate past the bundle.
+    assert.equal((await newDoc(cwd, 'requirement', 'My own first requirement')).code, 0);
+    assert.ok(existsSync(join(veriDir, 'requirements/REQ-005-my-own-first-requirement.md')), `${name}: next REQ id`);
+    assert.equal((await newDoc(cwd, 'decision', 'My own first decision')).code, 0);
+    assert.ok(existsSync(join(veriDir, 'decisions/DEC-003-my-own-first-decision.md')), `${name}: next DEC id`);
+    assert.equal((await check(cwd)).code, 0);
+  }
+});
+
+function cpDirList(veriDir: string, sub: string): string[] {
+  return readdirSync(join(veriDir, sub))
+    .filter((entry) => entry.endsWith('.md'))
+    .map((entry) => `${sub}/${entry}`);
+}
+
+test('init --starter rejects unknown or missing names with the available list, and --demo conflicts', (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+
+  const unknown = init(cwd, { demo: false, starter: 'mainframe' });
+  assert.equal(unknown.code, 1);
+  assert.match(unknown.lines[0] ?? '', /unknown starter "mainframe" — available starters: cli-tool, library, web-app/);
+
+  // `veri init --starter` with no name lists what is available (WO-091).
+  const bare = init(cwd, { demo: false, starter: '' });
+  assert.equal(bare.code, 1);
+  assert.match(bare.lines[0] ?? '', /usage: veri init --starter <name> — available starters: cli-tool, library, web-app/);
+
+  const both = init(cwd, { demo: true, starter: 'web-app' });
+  assert.equal(both.code, 1);
+  assert.match(both.lines[0] ?? '', /mutually exclusive/);
+
+  assert.ok(!existsSync(join(cwd, 'veri')), 'no rejected form may scaffold anything');
 });
 
 test('init refuses to run twice; commands refuse to run without veri/', async (t) => {

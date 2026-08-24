@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { existsSync, realpathSync } from 'node:fs';
+import { existsSync, readdirSync, realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,19 +21,55 @@ const TYPE_LIST = DOC_TYPES.join(' | ');
 // rather than carrying a second copy (WO-018, DEC-016).
 export const DEMO_ROOT = fileURLToPath(new URL('../demo/', import.meta.url));
 
-export function init(cwd: string, opts: { demo: boolean }): CmdResult {
+// Starter bundles ship as real markdown files beside the demo (WO-091):
+// per-project-type seed corpora, every document draft/proposed (REQ-008).
+// Core takes a starterRoot path; the names live here, read from disk, so
+// the list can never drift from the shipped content.
+const STARTERS_ROOT = fileURLToPath(new URL('../starters/', import.meta.url));
+
+export function listStarters(): string[] {
+  return readdirSync(STARTERS_ROOT, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+}
+
+/** `starter` semantics: undefined → no flag; '' or another flag's text →
+    the flag was given without a usable name (cli.ts passes it through). */
+export function init(cwd: string, opts: { demo: boolean; starter?: string }): CmdResult {
+  const starters = listStarters();
+  const starterList = `available starters: ${starters.join(', ')}`;
+  if (opts.starter !== undefined && opts.demo) {
+    return { code: 1, lines: ['--demo and --starter are mutually exclusive — pick one seed.'] };
+  }
+  if (opts.starter !== undefined && (opts.starter === '' || opts.starter.startsWith('--'))) {
+    return { code: 1, lines: [`usage: veri init --starter <name> — ${starterList}`] };
+  }
+  if (opts.starter !== undefined && !starters.includes(opts.starter)) {
+    return { code: 1, lines: [`unknown starter "${opts.starter}" — ${starterList}`] };
+  }
   let result;
   try {
-    result = scaffoldProject(cwd, { demo: opts.demo, demoRoot: DEMO_ROOT });
+    result = scaffoldProject(cwd, {
+      demo: opts.demo,
+      demoRoot: DEMO_ROOT,
+      starterRoot: opts.starter === undefined ? undefined : join(STARTERS_ROOT, opts.starter),
+    });
   } catch (err) {
     if (err instanceof ProjectExistsError) {
       return { code: 1, lines: ['veri/ already exists here — nothing to do.'] };
     }
     throw err;
   }
-  const lines = opts.demo
-    ? [`Installed the skiff demo project: ${result.docCount} documents in veri/.`]
-    : ['Initialized veri/ with requirements/, decisions/, work-orders/, sources/, and the default workflow (veri/workflow.md).'];
+  const lines =
+    opts.starter !== undefined
+      ? [
+          `Installed the ${opts.starter} starter: ${result.docCount} seed documents in veri/, every one draft/proposed.`,
+          'They bind nothing until you promote them — review each, then "veri approve <id>" or delete it.',
+        ]
+      : opts.demo
+        ? [`Installed the skiff demo project: ${result.docCount} documents in veri/.`]
+        : ['Initialized veri/ with requirements/, decisions/, work-orders/, sources/, and the default workflow (veri/workflow.md).'];
   for (const extra of result.filesWritten) lines.push(`Wrote ${extra}.`);
   for (const extra of result.filesSkipped) lines.push(`Skipped ${extra} — one already exists here.`);
   if (opts.demo) lines.push('veri check reports 2 deliberate issues here — the demo README explains them.');
