@@ -57,4 +57,4 @@ Give existing projects a guided on-ramp: an agent-assisted import pass that mine
 
 ## Receipts
 
-(none yet)
+- 2026-08-24 — 41b7a85 — packages/core/src/brownfield.ts, packages/mcp/src/writeback.ts, packages/mcp/src/server.ts, packages/cli/src/commands.ts, packages/ui/src/renderer/views/import.ts, packages/ui/src/renderer/views/home.ts, packages/ui/src/renderer/views/review.ts, packages/ui/src/renderer/derive.ts, packages/ui/src/lib/snapshot.ts, site/docs/brownfield.html, README.md — Implemented the full brownfield import loop per SRC-039: MCP filing surface + instruction package (DEC-067/068 proposed), veri import CLI, app Import view and review grouping, website guide; 530 tests green, live-app walk of the review surfaces still pending.
