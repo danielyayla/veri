@@ -2,7 +2,9 @@
 id: WO-099
 type: work-order
 title: "Claim semantics: work orders record which session holds them"
-status: ready
+status: in-progress
+claimed_by: claude-f0b156a1
+claimed_at: 2026-08-25
 approved: 2026-08-25
 created: 2026-08-25
 updated: 2026-08-25
