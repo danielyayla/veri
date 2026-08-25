@@ -15,7 +15,7 @@
     "build": "npm run build -w @verikb/core && npm run build -w @verikb/cli && npm run build -w @verikb/action && npm run build -w @verikb/mcp && npm run build -w @verikb/ui"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
+    "@types/node": "^26.2.0",
     "typescript": "^5.9.2"
   }
 }
