@@ -5,7 +5,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { AGENTS_MD, CLAUDE_MD_POINTER, defaultWorkflowMd } from '@veri/core';
+import { AGENTS_MD, CLAUDE_MD_POINTER, defaultWorkflowMd } from '@verikb/core';
 
 // REQ-019's drift test: every `veri <command>` a scaffolded file instructs is
 // run against the real CLI dispatch — not grepped against a list that could

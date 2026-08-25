@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { VeriDocument } from '@veri/core';
+import type { VeriDocument } from '@verikb/core';
 import { livingCount, livingGroups, panelList, pushRecent } from './sidebar.ts';
 
 function doc(id: string, type: VeriDocument['type'], status: string, title = id): VeriDocument {

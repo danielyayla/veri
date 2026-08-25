@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { CheckReport } from '@veri/cli';
+import type { CheckReport } from '@verikb/cli';
 import { noProject, readInputs, render } from './report.ts';
 
 const EMPTY: CheckReport = { formatLine: 'format 1 (current)', documentCount: 3, issues: [], advisories: [], skips: [] };

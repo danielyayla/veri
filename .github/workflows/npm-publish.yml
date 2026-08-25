@@ -1,5 +1,5 @@
 # WO-081 / DEC-077 (proposed): manual npm publish for the three public
-# packages — @veri/core, @veri/cli, @veri/mcp. Never tag-triggered: the
+# packages — @verikb/core, @verikb/cli, @verikb/mcp. Never tag-triggered: the
 # v* namespace is shared and guarded (DEC-075), and publishing stays a
 # deliberate maintainer act. Dry-run is the default; a real publish
 # requires flipping the input AND an NPM_TOKEN repository secret, which
@@ -41,7 +41,7 @@ jobs:
           mcp=$(node -p "require('./packages/mcp/package.json').version")
           echo "core=$core cli=$cli mcp=$mcp"
           if [ "$core" != "$cli" ] || [ "$core" != "$mcp" ]; then
-            echo "::error::@veri/core, @veri/cli, and @veri/mcp must share one version (DEC-077 lockstep)"
+            echo "::error::@verikb/core, @verikb/cli, and @verikb/mcp must share one version (DEC-077 lockstep)"
             exit 1
           fi
 
@@ -51,6 +51,6 @@ jobs:
         run: |
           flag=""
           if [ "${{ inputs.dry_run }}" = "true" ]; then flag="--dry-run"; fi
-          for w in @veri/core @veri/cli @veri/mcp; do
+          for w in @verikb/core @verikb/cli @verikb/mcp; do
             npm publish --workspace "$w" $flag
           done

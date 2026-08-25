@@ -1,8 +1,8 @@
 /** Search view (WO-048, SRC-022): a singleton view tab holding one query —
     the palette row, given room to breathe. Same filter syntax, the shared
     library's ranking unsliced, top 200 rendered. */
-import type { VeriDocument } from '@veri/core';
-import type { PaletteHit } from '@veri/mcp';
+import type { VeriDocument } from '@verikb/core';
+import type { PaletteHit } from '@verikb/mcp';
 import { h } from '../dom.ts';
 import { TYPE_META, statusColor, tint } from '../theme.ts';
 import { boldSegments, searchRows } from '../searchview.ts';

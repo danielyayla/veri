@@ -40,7 +40,7 @@ you build the desktop app.
 npm install
 npm test        # builds all packages, then runs every test suite
 npm run typecheck
-npm --workspace @veri/ui run start   # desktop app (needs Rust + Tauri 2)
+npm --workspace @verikb/ui run start   # desktop app (needs Rust + Tauri 2)
 ```
 
 What CI will run on your PR: `npm run typecheck`, `npm test`,

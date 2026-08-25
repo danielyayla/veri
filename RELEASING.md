@@ -65,15 +65,17 @@ on every push, so a green main is a releasable action.
    the GitHub Marketplace" → publish. GitHub has no API for this step.
    As of 2026-08-24 the listing is not yet published.
 
-## npm packages (proposed — DEC-077, not yet active)
+## npm packages (DEC-077)
 
-Nothing is published to npm today; the npm name `veri` belongs to an
-unrelated package. DEC-077 (proposed) settles the path: `@veri/core`,
-`@veri/cli`, and `@veri/mcp` publish under a scope Daniel controls
-(first choice `@veri`, fallback `@verikb`), bin name `veri`, the three
+`@verikb/core`, `@verikb/cli`, and `@verikb/mcp` publish under the
+`verikb` scope (the npm names `veri` and `@veri` belong to others;
+DEC-077 named `@verikb` as the fallback), bin name `veri`, the three
 versions moving in lockstep on their own 0.x line, independent of the
-app version. Once the DEC is approved, the scope claimed, and an
-`NPM_TOKEN` repository secret added:
+app version. Publishing needs the `NPM_TOKEN` repository secret — a
+granular npm token with read/write on the `@verikb` scope. Note the
+token does not bypass 2FA: if the npm account requires 2FA for writes,
+CI publishes fail with `EOTP`; the fix is npm trusted publishing
+(OIDC), not a bypass token.
 
 1. Bump all three package versions together (the workflow refuses a
    mismatched set).
@@ -81,9 +83,6 @@ app version. Once the DEC is approved, the scope claimed, and an
 3. Run the `npm-publish` workflow (Actions → npm-publish → Run
    workflow) with dry-run **on**; review the file lists it prints.
 4. Re-run with dry-run **off**.
-
-Until then the workflow exists but only dry-runs, and the README's
-"Installing the CLI" section states the not-on-npm status.
 
 ## Rules of thumb
 

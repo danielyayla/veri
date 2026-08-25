@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
-import type { GitFacts } from '@veri/core';
-import { GIT_LOG_FORMAT, parseGitLog } from '@veri/core';
+import type { GitFacts } from '@verikb/core';
+import { GIT_LOG_FORMAT, parseGitLog } from '@verikb/core';
 
 /**
  * The CLI's git-facts collector (DEC-040): core's provenance and drift

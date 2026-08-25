@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { assembleContext } from '@veri/core';
+import { assembleContext } from '@verikb/core';
 import { approve, architecture, check, checkReport, context, importPrompt, init, list, listStarters, migrate, newDoc, open, renumber } from './commands.ts';
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
@@ -356,7 +356,7 @@ test('open launches the desktop shell on the resolved project directory', (t) =>
   init(dir, { demo: false });
   const launches: string[][] = [];
   const result = open(dir, undefined, {
-    resolvePath: (spec) => join(REPO_ROOT, 'packages/ui', spec.replace('@veri/ui/', '')),
+    resolvePath: (spec) => join(REPO_ROOT, 'packages/ui', spec.replace('@verikb/ui/', '')),
     exists: (bin) => bin.startsWith(join(REPO_ROOT, 'packages/ui')),
     launch: (bin, args) => launches.push([bin, ...args]),
   });
@@ -383,7 +383,7 @@ test('open refuses a non-project directory and reports a missing desktop app', (
   init(dir, { demo: false });
   const noApp = open(dir, undefined, {
     resolvePath: () => {
-      throw new Error("Cannot find module '@veri/ui/package.json'");
+      throw new Error("Cannot find module '@verikb/ui/package.json'");
     },
     exists: () => false, // no installed Veri.app either
     launch: () => assert.fail('must not launch'),

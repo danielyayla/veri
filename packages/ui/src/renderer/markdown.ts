@@ -2,7 +2,7 @@
  * Parser for the markdown subset veri documents actually use (SRC-020): ##
  * headings, paragraphs, dash/ordered/checkbox lists, fenced code, pipe tables,
  * blockquotes, standalone images, and inline [[ID]] / `code` / **bold** /
- * *italic*. Presentation only — link *resolution* stays in @veri/core.
+ * *italic*. Presentation only — link *resolution* stays in @verikb/core.
  */
 
 export type Seg =

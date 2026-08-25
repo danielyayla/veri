@@ -1,5 +1,5 @@
 {
-  "name": "@veri/cli",
+  "name": "@verikb/cli",
   "version": "0.1.0",
   "license": "Apache-2.0",
   "description": "CLI for Veri knowledge bases over the veri/ directory",
@@ -37,6 +37,6 @@
     "test": "node --test \"src/**/*.test.ts\""
   },
   "dependencies": {
-    "@veri/core": "^0.1.0"
+    "@verikb/core": "^0.1.0"
   }
 }

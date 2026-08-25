@@ -41,7 +41,7 @@ DEC-033 — small inline vanilla JS only).
 - Type ramp kept from site.css: 12/14/16/18/21/28 + clamped display.
 
 ## Honest placeholders
-- `npm install -g @veri/cli` is the *treatment* for the hero command;
+- `npm install -g @verikb/cli` is the *treatment* for the hero command;
   the actual form waits on WO-081's distribution decision and must not
   ship before it works verbatim on a clean machine.
 - GitHub/docs links in the artboards are `#` stubs.

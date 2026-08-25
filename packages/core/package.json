@@ -1,5 +1,5 @@
 {
-  "name": "@veri/core",
+  "name": "@verikb/core",
   "version": "0.1.0",
   "license": "Apache-2.0",
   "description": "Parse, validate, and graph a veri/ knowledge directory",

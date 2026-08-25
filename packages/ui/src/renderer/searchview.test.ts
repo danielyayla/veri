@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { PaletteHit } from '@veri/mcp';
+import type { PaletteHit } from '@verikb/mcp';
 import { SEARCH_MAX_ROWS, boldSegments, searchRows } from './searchview.ts';
 
 function hit(id: string, snippet: string | null = null): PaletteHit {

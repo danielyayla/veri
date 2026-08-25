@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assembleContext } from './context.ts';
-import { ASSEMBLY_POLICY, INLINE_THRESHOLD_TOKENS, packingFor } from '@veri/core';
+import { ASSEMBLY_POLICY, INLINE_THRESHOLD_TOKENS, packingFor } from '@verikb/core';
 
 const FIXTURE = fileURLToPath(new URL('../fixtures/superseded-chain', import.meta.url));
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));

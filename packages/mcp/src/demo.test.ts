@@ -32,7 +32,7 @@ test('get_context("WO-002") on the demo matches the mockup context panel', async
 });
 
 test('the demo has exactly the two deliberate issues and no others', async () => {
-  const { loadProject, checkProject } = await import('@veri/core');
+  const { loadProject, checkProject } = await import('@verikb/core');
   const load = await loadProject(join(DEMO_ROOT, 'veri'));
   assert.equal(load.documents.length, 17);
   const issues = checkProject(load).issues;

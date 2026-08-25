@@ -2,7 +2,7 @@
 import { join, resolve } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { assembleImportInstructions, classifyFormat, formatStatement, isOperableFormat, loadProject } from '@veri/core';
+import { assembleImportInstructions, classifyFormat, formatStatement, isOperableFormat, loadProject } from '@verikb/core';
 import { z } from 'zod';
 import { runCheck } from './check.ts';
 import { assembleContext } from './context.ts';

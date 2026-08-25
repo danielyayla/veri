@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { compareIds, loadProject } from '@veri/core';
-import type { DocType, VeriDocument } from '@veri/core';
+import { compareIds, loadProject } from '@verikb/core';
+import type { DocType, VeriDocument } from '@verikb/core';
 
 export interface SearchHit {
   id: string;

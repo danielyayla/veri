@@ -43,7 +43,7 @@
 <p>Open a work order in Veri and click <b>Start agent session</b>. The roster lists every agent detected on your machine; if Codex CLI's row says <i>mcp config: veri entry missing</i>, click <b>Set up &amp; launch</b>. Veri appends one TOML block to <code>~/.codex/config.toml</code> (creating the file if needed):</p>
 <pre><code>[mcp_servers.veri]
 command = "node"
-args = ["/Applications/Veri.app/Contents/Resources/app/node_modules/@veri/mcp/dist/server.js", "/Users/you/code/your-project"]</code></pre>
+args = ["/Applications/Veri.app/Contents/Resources/app/node_modules/@verikb/mcp/dist/server.js", "/Users/you/code/your-project"]</code></pre>
 <ul>
   <li><b><code>command = "node"</code></b> — Codex launches the server with your own Node (version 20 or newer).</li>
   <li><b>First argument</b> — the MCP server script that ships inside the Veri app. The path contains no version segment, so it stays valid across app self-updates.</li>

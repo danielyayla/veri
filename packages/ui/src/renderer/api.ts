@@ -1,5 +1,5 @@
-import type { ApproveResult, CreateResult, DocType, SaveResult } from '@veri/core';
-import type { ContextPackage, PaletteResult } from '@veri/mcp';
+import type { ApproveResult, CreateResult, DocType, SaveResult } from '@verikb/core';
+import type { ContextPackage, PaletteResult } from '@verikb/mcp';
 import type { AgentId, AgentInfo } from '../lib/agents.ts';
 import type { McpStatus } from '../lib/mcpconfig.ts';
 import type { RuntimeProbe } from '../lib/noderuntime.ts';

@@ -1,5 +1,5 @@
 {
-  "name": "@veri/ui",
+  "name": "@verikb/ui",
   "version": "0.3.2",
   "license": "Apache-2.0",
   "description": "Local desktop UI for Veri knowledge bases: a desktop lens over the veri/ directory",
@@ -16,9 +16,9 @@
     "dist": "npm run build && node scripts/fetch-node.mjs && node scripts/stage-sidecar.mjs && tauri build"
   },
   "dependencies": {
-    "@veri/cli": "^0.1.0",
-    "@veri/core": "^0.1.0",
-    "@veri/mcp": "^0.1.0"
+    "@verikb/cli": "^0.1.0",
+    "@verikb/core": "^0.1.0",
+    "@verikb/mcp": "^0.1.0"
   },
   "devDependencies": {
     "@codemirror/autocomplete": "^6.20.3",

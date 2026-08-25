@@ -1,7 +1,7 @@
 /** The edit-mode screen (WO-022, SRC-008): crumb + toggle, conflict banners,
     the CodeMirror island, and the status row — same column geometry as the
     reader, Connections panel intact. */
-import type { DocType } from '@veri/core';
+import type { DocType } from '@verikb/core';
 import { h } from '../dom.ts';
 import { TYPE_META } from '../theme.ts';
 import { connections } from '../derive.ts';

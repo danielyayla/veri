@@ -79,7 +79,7 @@
     <p>You'll need: a coding agent that speaks MCP (the steps below use Claude Code) and <b>Node 20+</b> on your machine. The Veri app needs macOS 13 or later; the CLI, MCP server, and GitHub Action run anywhere Node 20+ does.</p>
 
     <h2>1. Install Veri</h2>
-    <div class="pre"><span style="color: var(--faint)">$</span> npm install -g @veri/cli<div class="copy-btn" onClick="{{ copyCmd }}">{{ copyLabel }}</div></div>
+    <div class="pre"><span style="color: var(--faint)">$</span> npm install -g @verikb/cli<div class="copy-btn" onClick="{{ copyCmd }}">{{ copyLabel }}</div></div>
     <p style="margin-top: 12px">Prefer the app? <a href="#">Download the DMG</a> for your Mac's chip — it's signed and notarized, so macOS opens it without warnings.</p>
 
     <h2>2. Open the sample project</h2>
@@ -109,7 +109,7 @@ class Component extends DCLogic {
       themeClass: theme === 'light' ? 'th-light' : 'th-dark',
       copyLabel: this.state.copied ? 'Copied' : 'Copy',
       copyCmd: function () {
-        try { navigator.clipboard.writeText('npm install -g @veri/cli'); } catch (e) {}
+        try { navigator.clipboard.writeText('npm install -g @verikb/cli'); } catch (e) {}
         self.setState({ copied: true });
         clearTimeout(self._copyTimer);
         self._copyTimer = setTimeout(function () { self.setState({ copied: false }); }, 1500);

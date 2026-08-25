@@ -1,6 +1,6 @@
 import { existsSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { VERI_SUBDIRS } from '@veri/core';
+import { VERI_SUBDIRS } from '@verikb/core';
 
 /**
  * A directory qualifies as a Veri project iff its `veri` entry is a directory
@@ -24,7 +24,7 @@ export function isVeriProject(dir: string): boolean {
 
 /**
  * The project root for a launch: an explicit argument wins; otherwise walk up
- * from cwd to the nearest Veri project (so `npm start -w @veri/ui` — whose cwd
+ * from cwd to the nearest Veri project (so `npm start -w @verikb/ui` — whose cwd
  * is packages/ui — finds the repo root by itself). The result is not
  * guaranteed to be a project — callers that record or open it must gate on
  * isVeriProject themselves.

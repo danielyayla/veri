@@ -1,7 +1,7 @@
 /** Pure mapping from the CLI's CheckReport to GitHub workflow commands
-    (WO-076, REQ-025). All checking lives in @veri/cli — this module only
+    (WO-076, REQ-025). All checking lives in @verikb/cli — this module only
     renders its verdict as annotations and decides the exit code. */
-import type { CheckReport } from '@veri/cli';
+import type { CheckReport } from '@verikb/cli';
 
 export interface ActionInputs {
   /** Project root relative to the workspace — the directory containing veri/. */

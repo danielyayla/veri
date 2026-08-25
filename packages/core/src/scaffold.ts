@@ -19,7 +19,7 @@ export interface ScaffoldOptions {
   demo?: boolean;
   /**
    * Directory holding the demo project root (a `veri/` directory plus
-   * `README.md` and `CLAUDE.md`). The demo ships inside `@veri/cli` per
+   * `README.md` and `CLAUDE.md`). The demo ships inside `@verikb/cli` per
    * DEC-007, so every caller supplies its own path rather than core
    * reaching across packages for it.
    */
@@ -28,7 +28,7 @@ export interface ScaffoldOptions {
    * Directory holding one starter bundle's project root (a `veri/`
    * directory of seed documents, all `draft`/`proposed` per REQ-008 —
    * a conversation starter the owner promotes or deletes, never silent
-   * canon). Starter bundles ship inside `@veri/cli` beside the demo
+   * canon). Starter bundles ship inside `@verikb/cli` beside the demo
    * (WO-091); like `demoRoot`, every caller supplies the path — core
    * resolves no bundle names. Mutually exclusive with `demo`.
    */

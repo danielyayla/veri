@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { boundTests, buildCheckReport, loadProject, localToday, moduleRegistry } from '@veri/core';
+import { boundTests, buildCheckReport, loadProject, localToday, moduleRegistry } from '@verikb/core';
 import { collectImportFacts, collectTestFacts } from './facts.ts';
 
 /**

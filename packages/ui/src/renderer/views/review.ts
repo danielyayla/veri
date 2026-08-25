@@ -1,8 +1,8 @@
 /** Review banner + approve flow (WO-017, SRC-006): shown on every pending
     document — provenance, "what approving means", request-changes composer,
     and the approve popover with the exact frontmatter diff. */
-import type { VeriDocument } from '@veri/core';
-import { localToday } from '@veri/core/dates';
+import type { VeriDocument } from '@verikb/core';
+import { localToday } from '@verikb/core/dates';
 import { h } from '../dom.ts';
 import { TYPE_META } from '../theme.ts';
 import { connections, importEvidenceOf, importManifestOf, isPending } from '../derive.ts';

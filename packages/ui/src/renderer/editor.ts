@@ -26,8 +26,8 @@ import {
   searchPanelOpen,
   setSearchQuery,
 } from '@codemirror/search';
-import type { DocType } from '@veri/core';
-import { compareIds } from '@veri/core/ids';
+import type { DocType } from '@verikb/core';
+import { compareIds } from '@verikb/core/ids';
 import { GUARD_NOTICE, frontmatterRegion, guardedRanges, touchedGuard } from './editlogic.ts';
 
 export interface EditorDocRef {

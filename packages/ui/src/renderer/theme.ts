@@ -1,4 +1,4 @@
-import type { DocType } from '@veri/core';
+import type { DocType } from '@verikb/core';
 
 /** Design tokens from design/README.md — type colors, status colors, tints.
     All values are CSS variables so the two palettes in styles.css (WO-060,

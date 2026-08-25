@@ -4,8 +4,8 @@
  * and the panel lists living docs with the dead remainder behind an
  * in-place expander, exactly as SRC-005 specified for the old tree.
  */
-import type { DocType, VeriDocument } from '@veri/core';
-import { compareIds } from '@veri/core/ids';
+import type { DocType, VeriDocument } from '@verikb/core';
+import { compareIds } from '@verikb/core/ids';
 
 /** Living statuses per type; null means no lifecycle (sources). */
 const LIVING: Record<DocType, string[] | null> = {

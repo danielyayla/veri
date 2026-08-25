@@ -4,7 +4,7 @@ import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { checkProject, loadProject } from '@veri/core';
+import { checkProject, loadProject } from '@verikb/core';
 import { fileDecision, fileReceipt, fileRequirement, fileSource, fileWorkOrder } from './writeback.ts';
 import { searchDocs } from './search.ts';
 

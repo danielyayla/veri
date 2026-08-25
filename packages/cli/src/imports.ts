@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
-import type { ImportEdge, ModuleEntry } from '@veri/core';
+import type { ImportEdge, ModuleEntry } from '@verikb/core';
 
 /**
  * The CLI's observed-imports collector (WO-067): the collectGitFacts shape

@@ -46,7 +46,7 @@ jobs:
             npm test
           else
             npm run build
-            npm test -w @veri/core -w @veri/cli -w @veri/mcp -w @veri/action
+            npm test -w @verikb/core -w @verikb/cli -w @verikb/mcp -w @verikb/action
           fi
 
       - name: veri check (this repo enforces its own rules)

@@ -2,7 +2,7 @@
     popover's content assembly — the pure halves of the widget. */
 import { deepStrictEqual, strictEqual } from 'node:assert';
 import { describe, it } from 'node:test';
-import type { VeriDocument } from '@veri/core';
+import type { VeriDocument } from '@verikb/core';
 import {
   PREVIEW_IDLE,
   PREVIEW_IN_MS,

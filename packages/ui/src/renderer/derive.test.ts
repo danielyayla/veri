@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import type { VeriDocument } from '@veri/core';
-import { PACKAGE_RULES, buildGraph, importKickoffPrompt as coreImportKickoffPrompt } from '@veri/core';
+import type { VeriDocument } from '@verikb/core';
+import { PACKAGE_RULES, buildGraph, importKickoffPrompt as coreImportKickoffPrompt } from '@verikb/core';
 import type { Snapshot } from '../lib/snapshot.ts';
 import {
   advisoriesByDoc,

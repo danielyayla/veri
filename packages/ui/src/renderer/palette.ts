@@ -3,8 +3,8 @@
  * ranked from the shared search library (DEC-009); this module only merges
  * in view rows and cuts the list to the top 8. Pure — no DOM.
  */
-import type { PaletteResult } from '@veri/mcp';
-import type { PaletteHit } from '@veri/mcp';
+import type { PaletteResult } from '@verikb/mcp';
+import type { PaletteHit } from '@verikb/mcp';
 import { VIEW_META } from './tabs.ts';
 import type { ViewKey } from './tabs.ts';
 

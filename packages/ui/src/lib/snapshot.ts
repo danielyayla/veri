@@ -16,7 +16,7 @@ import {
   loadProject,
   parseDocument,
   parseGitLog,
-} from '@veri/core';
+} from '@verikb/core';
 import type {
   Advisory,
   ArchProjection,
@@ -27,9 +27,9 @@ import type {
   LoadResult,
   ModuleEntry,
   VeriDocument,
-} from '@veri/core';
-import { collectExportFacts, collectImportFacts } from '@veri/cli';
-import type { ModuleFileFact } from '@veri/cli';
+} from '@verikb/core';
+import { collectExportFacts, collectImportFacts } from '@verikb/cli';
+import type { ModuleFileFact } from '@verikb/cli';
 
 const run = promisify(execFile);
 
@@ -54,7 +54,7 @@ export interface ArchObserved {
   exports: Record<string, string[]>;
 }
 
-/** Everything the renderer needs, as plain JSON. All derivation happens in @veri/core. */
+/** Everything the renderer needs, as plain JSON. All derivation happens in @verikb/core. */
 export interface Snapshot {
   projectName: string;
   root: string;

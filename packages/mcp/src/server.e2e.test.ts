@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { AGENTS_MD } from '@veri/core';
+import { AGENTS_MD } from '@verikb/core';
 
 const SERVER = fileURLToPath(new URL('../dist/server.js', import.meta.url));
 const FIXTURE = fileURLToPath(new URL('../fixtures/superseded-chain', import.meta.url));

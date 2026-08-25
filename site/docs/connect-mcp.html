@@ -44,7 +44,7 @@
 <table>
   <tr><th>Fact</th><th>Value</th></tr>
   <tr><td>Command</td><td><code>node</code> — your own Node, version 20 or newer</td></tr>
-  <tr><td>First argument</td><td>The server script that ships inside the Veri app:<br><code>/Applications/Veri.app/Contents/Resources/app/node_modules/@veri/mcp/dist/server.js</code><br>(no version segment — the path survives app self-updates). From a source checkout it's <code>packages/mcp/dist/server.js</code> after <code>npm install &amp;&amp; npm test</code>.</td></tr>
+  <tr><td>First argument</td><td>The server script that ships inside the Veri app:<br><code>/Applications/Veri.app/Contents/Resources/app/node_modules/@verikb/mcp/dist/server.js</code><br>(no version segment — the path survives app self-updates). From a source checkout it's <code>packages/mcp/dist/server.js</code> after <code>npm install &amp;&amp; npm test</code>.</td></tr>
   <tr><td>Second argument</td><td>The project root the server serves: the directory containing <code>veri/</code>. Relative paths resolve against it.</td></tr>
 </table>
 </div>
@@ -57,7 +57,7 @@
     "veri": {
       "command": "node",
       "args": [
-        "/Applications/Veri.app/Contents/Resources/app/node_modules/@veri/mcp/dist/server.js",
+        "/Applications/Veri.app/Contents/Resources/app/node_modules/@verikb/mcp/dist/server.js",
         "/Users/you/code/your-project"
       ]
     }

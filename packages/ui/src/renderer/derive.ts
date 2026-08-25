@@ -1,14 +1,14 @@
 /**
  * Pure view-model derivation from a Snapshot. No DOM, no IPC — everything here
- * is computed from what @veri/core already parsed and checked.
+ * is computed from what @verikb/core already parsed and checked.
  */
-import type { Advisory, Edge, Issue, VeriDocument } from '@veri/core';
-import { compareIds } from '@veri/core/ids';
+import type { Advisory, Edge, Issue, VeriDocument } from '@verikb/core';
+import { compareIds } from '@verikb/core/ids';
 import type { Snapshot } from '../lib/snapshot.ts';
 import { sections, parseBlocks, plainText } from './markdown.ts';
 
 /**
- * Mirrors @veri/core's PACKAGE_RULES for the package panel footer. The
+ * Mirrors @verikb/core's PACKAGE_RULES for the package panel footer. The
  * renderer bundle can't import core's node-flavored runtime, so the string is
  * mirrored here and a drift test asserts equality with the core export
  * (REQ-019) — edit both or the suite fails.
@@ -320,7 +320,7 @@ export function fileActivity(doc: VeriDocument, rel: (date: string) => string): 
 // ---- Home view derivations (WO-015, SRC-005 layer 4) ---------------------
 
 /** Awaiting the user's approval, so not binding (REQ-008). Renderer-local
-    mirror of core's isPending — the browser can't import @veri/core at
+    mirror of core's isPending — the browser can't import @verikb/core at
     runtime (bare specifier, CSP 'self'); core's self-tests keep them in sync. */
 export function isPending(doc: VeriDocument): boolean {
   return (
@@ -476,7 +476,7 @@ export function kickoffPrompt(id: string, title: string): string {
 
 /**
  * The import kickoff prompt (DEC-067). Renderer-local mirror of core's
- * importKickoffPrompt — the browser can't import @veri/core at runtime
+ * importKickoffPrompt — the browser can't import @verikb/core at runtime
  * (bare specifier, CSP 'self'); derive.test.ts holds this to core's truth.
  */
 export function importKickoffPrompt(): string {

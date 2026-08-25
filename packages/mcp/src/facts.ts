@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
-import type { ImportEdge, ModuleEntry, TestFact } from '@veri/core';
+import type { ImportEdge, ModuleEntry, TestFact } from '@verikb/core';
 
 /**
  * The MCP server's host-side fact collectors (WO-089): filesystem only,

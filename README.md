@@ -52,20 +52,24 @@ does.
 
 ## Installing the CLI
 
-There is no npm or Homebrew install path today. The npm name `veri`
-belongs to an unrelated package — **do not** `npx veri`; it installs
-someone else's software. Publishing `@veri/cli` under a controlled
-scope is proposed (see
-[DEC-077](veri/decisions/DEC-077-cli-packages-publish-under-a-controlled-npm-scope-bin-veri.md));
-until that lands, the CLI ships two ways:
+The CLI publishes to npm as `@verikb/cli` (see
+[DEC-077](veri/decisions/DEC-077-cli-packages-publish-under-a-controlled-npm-scope-bin-veri.md);
+the unscoped npm name `veri` belongs to an unrelated package — **do
+not** `npx veri`; it installs someone else's software):
+
+```bash
+npm install -g @verikb/cli   # installs the `veri` binary
+```
+
+The CLI also ships two other ways:
 
 - **Inside the app** — the [macOS app](https://github.com/danielyayla/veri/releases/latest)
-  bundles the same `@veri/cli` code it runs on, and CI runs it for you:
+  bundles the same `@verikb/cli` code it runs on, and CI runs it for you:
   the [Veri Check GitHub Action](https://danielyayla.github.io/veri/docs/ci.html)
   is the CLI's `check` in a workflow snippet.
 - **From source** — clone this repo, then `npm install && npm test`;
   the binary is `packages/cli/dist/cli.js` (`node packages/cli/dist/cli.js check`,
-  or `npm link -w @veri/cli` to get `veri` on your PATH).
+  or `npm link -w @verikb/cli` to get `veri` on your PATH).
 
 ## Development
 
@@ -81,11 +85,11 @@ DEC-004); published output targets Node >= 20.
 
 ### Packages
 
-- `@veri/core` — parse, validate, and graph a `veri/` directory
-- `@veri/cli` — the `veri` binary: `init`, `new`, `check`, `approve`, `renumber`, `migrate`, `import`, `list`, `open`
-- `@veri/mcp` — stdio MCP server: `get_context`, `search`, `file_decision`, `file_receipt`
-- `@veri/action` — the Veri Check GitHub Action runner, bundled to `action/dist/` (the root `action.yml` is the published surface)
-- `@veri/ui` — the Tauri 2 desktop app (Rust shell, Node sidecar)
+- `@verikb/core` — parse, validate, and graph a `veri/` directory
+- `@verikb/cli` — the `veri` binary: `init`, `new`, `check`, `approve`, `renumber`, `migrate`, `import`, `list`, `open`
+- `@verikb/mcp` — stdio MCP server: `get_context`, `search`, `file_decision`, `file_receipt`
+- `@verikb/action` — the Veri Check GitHub Action runner, bundled to `action/dist/` (the root `action.yml` is the published surface)
+- `@verikb/ui` — the Tauri 2 desktop app (Rust shell, Node sidecar)
 - `site/` — the website, hand-authored static files deployed by CI
 
 ### Configuring the MCP server from a checkout

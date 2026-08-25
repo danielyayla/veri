@@ -1,6 +1,6 @@
 import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import type { TestFact } from '@veri/core';
+import type { TestFact } from '@verikb/core';
 
 /**
  * The CLI's test-existence collector (WO-088, the DEC-040 split): core names

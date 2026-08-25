@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { localToday } from '@veri/core';
+import { localToday } from '@verikb/core';
 import { appendNote, appendReviewNote, approveDoc, setLinks, setStatus } from './write.ts';
 
 const WO_FILE = [

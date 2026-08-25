@@ -25,10 +25,10 @@ import {
   saveDocumentFile,
   scaffoldProject,
   templateFile,
-} from '@veri/core';
-import type { DocType } from '@veri/core';
-import { DEMO_ROOT } from '@veri/cli';
-import { assembleContext, paletteSearch } from '@veri/mcp';
+} from '@verikb/core';
+import type { DocType } from '@verikb/core';
+import { DEMO_ROOT } from '@verikb/cli';
+import { assembleContext, paletteSearch } from '@verikb/mcp';
 import { findProjectRoot, isVeriProject } from '../lib/root.ts';
 import { fixRootArg, mcpStatus, writeVeriEntry } from '../lib/mcpconfig.ts';
 import { probeNodeRuntime } from '../lib/noderuntime.ts';
@@ -113,10 +113,10 @@ export function createSidecar(options: SidecarOptions): Sidecar {
   let projectRoot = findProjectRoot(options.explicitRoot, options.cwd);
 
   // The MCP server executable setup writes into .mcp.json: server.js next to
-  // @veri/mcp's resolved entry point (dist/index.js). Inside the installed
+  // @verikb/mcp's resolved entry point (dist/index.js). Inside the installed
   // bundle both are real files under Resources/ — asar-free by construction,
   // where Electron needed asar disabled for the same reason (DEC-028).
-  const mcpServerJs = join(dirname(fileURLToPath(import.meta.resolve('@veri/mcp'))), 'server.js');
+  const mcpServerJs = join(dirname(fileURLToPath(import.meta.resolve('@verikb/mcp'))), 'server.js');
 
   // Writes the panel makes trip the same file watcher as external edits; the
   // timestamp lets the watcher tell the two apart (see watchProject).

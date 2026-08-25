@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { buildGraph, loadProject } from '@veri/core';
+import { buildGraph, loadProject } from '@verikb/core';
 
 /**
  * Read tools (REQ-017): an agent must be able to dereference any id it

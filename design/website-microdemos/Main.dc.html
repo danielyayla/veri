@@ -246,7 +246,7 @@
     <p style="font-size: 18px; line-height: 1.6; color: var(--secondary); max-width: 620px; margin: 0 auto 28px">Requirements, decisions, and work orders live as <strong style="color: var(--body-text); font-weight: 600">plain Markdown in your repo</strong>. Veri hands each coding task the context it needs — without rebuilding the project from chat history every session.</p>
     <div class="cmd-row">
       <div class="cmd-block">
-        <div class="cmd-text"><span class="cmd-dollar">$&nbsp;</span>npm install -g @veri/cli</div>
+        <div class="cmd-text"><span class="cmd-dollar">$&nbsp;</span>npm install -g @verikb/cli</div>
         <div class="cmd-copy" onClick="{{ copyCmd }}">{{ copyLabel }}</div>
       </div>
       <div class="btn-p">Download for macOS</div>
@@ -609,7 +609,7 @@ embedded in the Rust core.
           <p class="copy-p" style="margin-top: 18px; font-size: 13.5px; color: var(--muted)">Per-agent connection guides live in the docs.</p>
         </div>
         <div>
-          <div class="mcp-json">{<br>&nbsp;&nbsp;<span class="jk">"mcpServers"</span>: {<br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="jk">"veri"</span>: {<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="jk">"command"</span>: <span class="jv">"node"</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="jk">"args"</span>: [<span class="jv">"…/@veri/mcp/dist/server.js"</span>, <span class="jv">"."</span>]<br>&nbsp;&nbsp;&nbsp;&nbsp;}<br>&nbsp;&nbsp;}<br>}</div>
+          <div class="mcp-json">{<br>&nbsp;&nbsp;<span class="jk">"mcpServers"</span>: {<br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="jk">"veri"</span>: {<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="jk">"command"</span>: <span class="jv">"node"</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="jk">"args"</span>: [<span class="jv">"…/@verikb/mcp/dist/server.js"</span>, <span class="jv">"."</span>]<br>&nbsp;&nbsp;&nbsp;&nbsp;}<br>&nbsp;&nbsp;}<br>}</div>
           <div class="tool-grid">
             <span class="tool-chip">get_context</span>
             <span class="tool-chip">get_document</span>
@@ -637,7 +637,7 @@ embedded in the Rust core.
           <span class="qs-n">1</span>
           <div class="qs-h">Install Veri</div>
           <p class="qs-p">The macOS app, or the CLI anywhere Node 20+ runs.</p>
-          <div class="qs-cmd"><span style="color: var(--faint)">$ </span>npm install -g @veri/cli</div>
+          <div class="qs-cmd"><span style="color: var(--faint)">$ </span>npm install -g @verikb/cli</div>
         </div>
         <div class="qs-card">
           <span class="qs-n">2</span>
@@ -725,7 +725,7 @@ class Component extends DCLogic {
       /* hero + panel copy affordances (own timers — never flushed by the session's clearTimers) */
       copyLabel: s.copied ? 'Copied' : 'Copy',
       copyCmd: function () {
-        try { navigator.clipboard.writeText('npm install -g @veri/cli'); } catch (e) {}
+        try { navigator.clipboard.writeText('npm install -g @verikb/cli'); } catch (e) {}
         self.setState({ copied: true });
         clearTimeout(self._copyTimer);
         self._copyTimer = setTimeout(function () { self.setState({ copied: false }); }, 1500);

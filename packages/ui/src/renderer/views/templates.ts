@@ -5,8 +5,8 @@
  * the inline-confirm Reset to default. No guarded ranges: templates are
  * body-only markdown with no frontmatter to protect.
  */
-import type { DocType } from '@veri/core';
-import { localToday } from '@veri/core/dates';
+import type { DocType } from '@verikb/core';
+import { localToday } from '@verikb/core/dates';
 import { h } from '../dom.ts';
 import { TYPE_META } from '../theme.ts';
 import type { ActiveTpl, Ctx } from '../app.ts';

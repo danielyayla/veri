@@ -4,7 +4,7 @@
  * with a final "N more — refine the query" line; snippets bold the match.
  * No DOM — views/search.ts owns rendering.
  */
-import type { PaletteHit } from '@veri/mcp';
+import type { PaletteHit } from '@verikb/mcp';
 
 export const SEARCH_MAX_ROWS = 200;
 

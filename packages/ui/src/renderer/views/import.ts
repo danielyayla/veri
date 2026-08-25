@@ -5,11 +5,11 @@
  */
 import { h } from '../dom.ts';
 import { TYPE_META } from '../theme.ts';
-import { compareIds } from '@veri/core/ids';
+import { compareIds } from '@verikb/core/ids';
 import { importGroupLabel, importKickoffPrompt, latestImportBatch } from '../derive.ts';
 import type { ImportBatch } from '../derive.ts';
 import type { Ctx } from '../app.ts';
-import type { VeriDocument } from '@veri/core';
+import type { VeriDocument } from '@verikb/core';
 
 const SUBTITLE =
   'Your agent reads this repo — code, git history, ADRs, READMEs — and files what it finds as proposals. ' +

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { VeriDocument } from '@veri/core';
+import type { VeriDocument } from '@verikb/core';
 import type { Snapshot } from '../lib/snapshot.ts';
 import {
   aggregateEdges,

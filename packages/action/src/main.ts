@@ -3,7 +3,7 @@
     verdict logic is checkReport's alone — this file is inputs and I/O. */
 import { appendFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { checkReport } from '@veri/cli';
+import { checkReport } from '@verikb/cli';
 import { noProject, readInputs, render } from './report.ts';
 
 const inputs = readInputs(process.env);

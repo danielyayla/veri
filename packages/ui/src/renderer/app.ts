@@ -1,7 +1,7 @@
 /** App shell: state, topbar, sidebar, view switching, IPC wiring. */
-import type { Advisory, DocType, Issue, VeriDocument } from '@veri/core';
-import { compareIds } from '@veri/core/ids';
-import type { ContextPackage, PaletteResult } from '@veri/mcp';
+import type { Advisory, DocType, Issue, VeriDocument } from '@verikb/core';
+import { compareIds } from '@verikb/core/ids';
+import type { ContextPackage, PaletteResult } from '@verikb/mcp';
 import type { Snapshot } from '../lib/snapshot.ts';
 import { api } from './api.ts';
 import type { AppInfo, ProjectInfo, TemplateInfo, ThemePref, UpdateStatus, VeriApi } from './api.ts';

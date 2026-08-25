@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { approveDocument, loadProject, localToday, setDocumentLinks } from '@veri/core';
-import type { ApproveResult, Link, VeriDocument } from '@veri/core';
+import { approveDocument, loadProject, localToday, setDocumentLinks } from '@verikb/core';
+import type { ApproveResult, Link, VeriDocument } from '@verikb/core';
 
 /** Statuses the UI may write, per the vocabularies in CLAUDE.md / core's schema. */
 const WRITABLE_STATUSES: Record<string, readonly string[]> = {

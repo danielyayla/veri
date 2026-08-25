@@ -12,7 +12,7 @@
  * through this function so both sides of the comparison read the same
  * calendar.
  *
- * Pure and browser-safe — exported as the `@veri/core/dates` subpath so the
+ * Pure and browser-safe — exported as the `@verikb/core/dates` subpath so the
  * renderer bundle can share it.
  */
 export function localToday(now: Date = new Date()): string {

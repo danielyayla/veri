@@ -2,8 +2,8 @@
 // needs at Resources/sidecar inside the installed app — the compiled
 // sidecar + lib, and a real (symlink-free) node_modules closure of the
 // runtime dependencies. Real files, not an archive: the app writes the path
-// of @veri/mcp's server.js into .mcp.json for agent clients to run with the
-// user's plain `node`, and @veri/cli scaffolds from real demo files — the
+// of @verikb/mcp's server.js into .mcp.json for agent clients to run with the
+// user's plain `node`, and @verikb/cli scaffolds from real demo files — the
 // same constraint that kept asar disabled under Electron (DEC-028).
 //
 //   node scripts/stage-sidecar.mjs
@@ -24,7 +24,7 @@ const stage = join(pkgDir, 'src-tauri', 'sidecar-stage');
 
 // The sidecar's direct bare imports; the walk below adds everything they
 // declare, transitively, resolved exactly as Node would from this package.
-const ROOTS = ['@veri/core', '@veri/cli', '@veri/mcp'];
+const ROOTS = ['@verikb/core', '@verikb/cli', '@verikb/mcp'];
 
 /** Node's node_modules walk-up, minus exports-map interference: we want the
     package directory itself, not what its entry map exposes. */

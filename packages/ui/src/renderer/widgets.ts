@@ -1,5 +1,5 @@
 /** Shared view fragments: id chips, markdown block rendering, activity feed. */
-import type { VeriDocument } from '@veri/core';
+import type { VeriDocument } from '@verikb/core';
 import { h } from './dom.ts';
 import type { Child } from './dom.ts';
 import { TYPE_META, statusColor, tint } from './theme.ts';

@@ -6,9 +6,9 @@
  * facts come from `architecture` (decisions), discovered ones from
  * `archObserved` (the repository scan), and every row here says which.
  */
-import type { Advisory, ArchConflict, ArchRule, ModuleEntry, VeriDocument } from '@veri/core';
-import { compareIds } from '@veri/core/ids';
-import type { ModuleFileFact } from '@veri/cli';
+import type { Advisory, ArchConflict, ArchRule, ModuleEntry, VeriDocument } from '@verikb/core';
+import { compareIds } from '@verikb/core/ids';
+import type { ModuleFileFact } from '@verikb/cli';
 import type { Snapshot } from '../lib/snapshot.ts';
 import type { DocsById } from './derive.ts';
 

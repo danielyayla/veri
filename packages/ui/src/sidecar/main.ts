@@ -20,9 +20,9 @@ const packaged = process.env['VERI_PACKAGED'] === '1';
 
 // The Electron layout, kept verbatim so an updated install finds its own
 // MRU, workspace and theme state: userData was Application Support/Veri
-// packaged (productName) and Application Support/@veri/ui in dev (package
+// packaged (productName) and Application Support/@verikb/ui in dev (package
 // name), each with a config/ inside; logs were pinned to Logs/Veri (WO-031).
-const configDir = join(homedir(), 'Library', 'Application Support', packaged ? 'Veri' : '@veri/ui', 'config');
+const configDir = join(homedir(), 'Library', 'Application Support', packaged ? 'Veri' : '@verikb/ui', 'config');
 const logDir = join(homedir(), 'Library', 'Logs', 'Veri');
 
 const sidecar = createSidecar({

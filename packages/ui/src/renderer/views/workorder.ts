@@ -1,5 +1,5 @@
 /** Screen 2 — Work order detail with the Context Package panel. */
-import type { VeriDocument } from '@veri/core';
+import type { VeriDocument } from '@verikb/core';
 import { h } from '../dom.ts';
 import { TYPE_META, fmtTokens, statusColor, tint } from '../theme.ts';
 import { plainText, sections } from '../markdown.ts';

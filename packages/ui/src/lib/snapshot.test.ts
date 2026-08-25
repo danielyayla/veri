@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, renameSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { scaffoldProject } from '@veri/core';
+import { scaffoldProject } from '@verikb/core';
 import { SnapshotBuilder, buildSnapshot, countProjectDocs } from './snapshot.ts';
 
 function sandbox(t: { after(fn: () => void): void }): string {

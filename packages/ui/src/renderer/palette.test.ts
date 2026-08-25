@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { PaletteHit, PaletteQuery, PaletteResult } from '@veri/mcp';
+import type { PaletteHit, PaletteQuery, PaletteResult } from '@verikb/mcp';
 import { PALETTE_MAX_ROWS, paletteRows } from './palette.ts';
 import { VIEW_META } from './tabs.ts';
 

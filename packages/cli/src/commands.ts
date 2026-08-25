@@ -3,8 +3,8 @@ import { existsSync, readdirSync, realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, classifyFormat, compareIds, createDocument, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, maintainerRegistry, migrateProject, moduleRegistry, renderArchitecture, renumberDocument, scaffoldProject, workOrdersTouching } from '@veri/core';
-import type { CheckReport, DocType } from '@veri/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, classifyFormat, compareIds, createDocument, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, maintainerRegistry, migrateProject, moduleRegistry, renderArchitecture, renumberDocument, scaffoldProject, workOrdersTouching } from '@verikb/core';
+import type { CheckReport, DocType } from '@verikb/core';
 import { collectGitFacts, gitUserName } from './git.ts';
 import { collectTestFacts } from './testfacts.ts';
 import { collectImportFacts } from './imports.ts';
@@ -143,7 +143,7 @@ function veriPathInRepo(repoRoot: string, veriDir: string): string {
  * collects the host facts (DEC-040): git history, bound-test existence,
  * and observed imports. Returns null when cwd has no veri/ directory.
  */
-export type { CheckReport } from '@veri/core';
+export type { CheckReport } from '@verikb/core';
 
 export async function checkReport(cwd: string): Promise<CheckReport | null> {
   const dir = requireVeriDir(cwd);
@@ -399,11 +399,11 @@ export function open(cwd: string, dirArg: string | undefined, deps: OpenDeps = d
     return { code: 1, lines: [`no veri/ directory in ${target} — run "veri init" there first.`] };
   }
   // The desktop app is the Tauri shell (WO-073): in a dev checkout the
-  // bundled release build next to @veri/ui, otherwise an installed
+  // bundled release build next to @verikb/ui, otherwise an installed
   // Veri.app. The shell takes the project directory as its one argument.
   const candidates: string[] = [];
   try {
-    const uiDir = dirname(deps.resolvePath('@veri/ui/package.json'));
+    const uiDir = dirname(deps.resolvePath('@verikb/ui/package.json'));
     candidates.push(join(uiDir, 'src-tauri', 'target', 'release', 'bundle', 'macos', 'Veri.app', SHELL_IN_APP));
   } catch {
     // Standalone CLI install — only the installed app can serve.

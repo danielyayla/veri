@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { loadProject, localToday, nextIdNumber, recordIssuedId } from '@veri/core';
+import { loadProject, localToday, nextIdNumber, recordIssuedId } from '@verikb/core';
 
 export interface FileDecisionInput {
   title: string;

@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { assembleArchitecture, checkObservedArchitecture, loadProject, moduleRegistry } from '@veri/core';
+import { assembleArchitecture, checkObservedArchitecture, loadProject, moduleRegistry } from '@verikb/core';
 import { collectExportFacts, collectImportFacts } from './imports.ts';
 
 // Fixture source lines are assembled from pieces so the dogfood scan of this

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { VeriDocument } from '@veri/core';
+import type { VeriDocument } from '@verikb/core';
 import { parsePaletteQuery, rankDocs, relatedIds } from './search.ts';
 
 function doc(partial: Partial<VeriDocument> & Pick<VeriDocument, 'id' | 'type' | 'title' | 'status'>): VeriDocument {
@@ -284,7 +284,7 @@ test('is:active treats proposed decisions as living', () => {
 // ---- Dogfood: ranked search over this repository's own corpus (WO-090) ---
 
 test('a title-word query on the dogfood corpus ranks title hits first with full recall', async () => {
-  const { loadProject } = await import('@veri/core');
+  const { loadProject } = await import('@verikb/core');
   const { documents } = await loadProject(new URL('../../../veri', import.meta.url));
   const needle = 'brownfield';
   const hits = rankDocs(documents, parsePaletteQuery(needle));
