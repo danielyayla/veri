@@ -2,9 +2,9 @@
 id: WO-068
 type: work-order
 title: "Architecture in the app: the map, the rules view, and violation surfacing"
-status: backlog
+status: in-progress
 created: 2026-08-20
-updated: 2026-08-20
+updated: 2026-08-25
 links:
   - id: REQ-022
     rel: implements
