@@ -145,6 +145,40 @@ export function receipts(doc: VeriDocument): Receipt[] {
   return out;
 }
 
+// ---- Work Orders board (WO-103, SRC-047) ---------------------------------
+
+/** The DONE window: cards shown before the `▸ show all` expander opens. */
+export const BOARD_DONE_WINDOW = 5;
+
+export interface BoardColumn {
+  status: 'backlog' | 'ready' | 'in-progress' | 'done';
+  label: string;
+  /** Every work order in the column — the view windows DONE, not this. */
+  docs: VeriDocument[];
+}
+
+/** Most recently updated first; ids (numeric-aware, descending) tiebreak. */
+const recentFirst = (a: VeriDocument, b: VeriDocument): number =>
+  a.updated === b.updated ? compareIds(b.id, a.id) : b.updated.localeCompare(a.updated);
+
+/**
+ * The four kanban columns over the WO-098 lifecycle. Living columns order
+ * by ascending id — the DEC-097 dispatch order, so READY reads top-down as
+ * "what `veri next` hands out". DONE orders most-recently-updated first
+ * because its window shows recent completions; the view caps it at
+ * BOARD_DONE_WINDOW behind the expander (the SRC-025 scale answer).
+ */
+export function boardColumns(snap: Snapshot): BoardColumn[] {
+  const wos = snap.documents.filter((d) => d.type === 'work-order');
+  const of = (status: BoardColumn['status']): VeriDocument[] => wos.filter((d) => d.status === status);
+  return [
+    { status: 'backlog', label: 'BACKLOG', docs: of('backlog').sort((a, b) => compareIds(a.id, b.id)) },
+    { status: 'ready', label: 'READY', docs: of('ready').sort((a, b) => compareIds(a.id, b.id)) },
+    { status: 'in-progress', label: 'IN PROGRESS', docs: of('in-progress').sort((a, b) => compareIds(a.id, b.id)) },
+    { status: 'done', label: 'DONE', docs: of('done').sort(recentFirst) },
+  ];
+}
+
 // ---- Local graph on the document (WO-052, SRC-024) -----------------------
 
 /** At most this many neighbors render per side; the rest become `+K more`. */

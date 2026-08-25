@@ -27,6 +27,8 @@ import {
   importGroupLabel,
   importManifestOf,
   latestImportBatch,
+  boardColumns,
+  BOARD_DONE_WINDOW,
 } from './derive.ts';
 import type { Connection } from './derive.ts';
 
@@ -468,4 +470,38 @@ test('import batches derive from imported-via links alone (DEC-068)', () => {
   assert.equal(importManifestOf(byId, loose), null);
   assert.deepEqual(importEvidenceOf(byId, req).map((d) => d.id), ['SRC-002']);
   assert.equal(importGroupLabel(manifest), 'repo mining');
+});
+
+// ---- Work Orders board (WO-103, SRC-047) ----------------------------------
+
+test('boardColumns: four lifecycle columns, non-WOs excluded', () => {
+  const s = snap([
+    doc({ id: 'WO-001', type: 'work-order', title: 'a', status: 'done' }),
+    doc({ id: 'WO-002', type: 'work-order', title: 'b', status: 'ready' }),
+    doc({ id: 'WO-003', type: 'work-order', title: 'c', status: 'backlog' }),
+    doc({ id: 'WO-004', type: 'work-order', title: 'd', status: 'in-progress' }),
+    doc({ id: 'REQ-001', type: 'requirement', title: 'r', status: 'accepted' }),
+  ]);
+  const cols = boardColumns(s);
+  assert.deepEqual(cols.map((c) => c.status), ['backlog', 'ready', 'in-progress', 'done']);
+  assert.deepEqual(cols.map((c) => c.docs.map((d) => d.id)), [['WO-003'], ['WO-002'], ['WO-004'], ['WO-001']]);
+});
+
+test('boardColumns: living columns in dispatch order (ascending id), DONE most-recent first', () => {
+  const s = snap([
+    doc({ id: 'WO-010', type: 'work-order', title: 'a', status: 'ready' }),
+    doc({ id: 'WO-002', type: 'work-order', title: 'b', status: 'ready' }),
+    doc({ id: 'WO-001', type: 'work-order', title: 'c', status: 'done', updated: '2026-08-20' }),
+    doc({ id: 'WO-003', type: 'work-order', title: 'd', status: 'done', updated: '2026-08-25' }),
+    doc({ id: 'WO-004', type: 'work-order', title: 'e', status: 'done', updated: '2026-08-25' }),
+  ]);
+  const cols = boardColumns(s);
+  // DEC-097 order: WO-002 before WO-010 (numeric-aware, not lexicographic).
+  assert.deepEqual(cols[1].docs.map((d) => d.id), ['WO-002', 'WO-010']);
+  // Same-day completions tiebreak by descending id.
+  assert.deepEqual(cols[3].docs.map((d) => d.id), ['WO-004', 'WO-003', 'WO-001']);
+});
+
+test('the DONE window constant matches the SRC-047 spec', () => {
+  assert.equal(BOARD_DONE_WINDOW, 5);
 });

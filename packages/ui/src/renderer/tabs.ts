@@ -10,13 +10,17 @@
 
 /** View tabs alongside document tabs; targets are doc ids or these keys.
     'graph' is retired (WO-052, SRC-024): the graph lives on the document
-    surface now. 'board' is retired (WO-053, SRC-025): its status columns
-    fold into the Work Orders type panel as subgroups. Persisted graph and
-    board tabs restore away via retainTabs. */
-export type ViewKey = 'homeview' | 'search' | 'settings' | 'import' | 'architecture';
+    surface now. 'board' was retired (WO-053, SRC-025) and returns with
+    WO-103 (SRC-047) as the Work Orders board tab — a four-status kanban
+    over the WO-098 lifecycle. Persisted graph tabs restore away via
+    retainTabs. */
+export type ViewKey = 'homeview' | 'search' | 'settings' | 'import' | 'architecture' | 'board';
 
 export const VIEW_META: Record<ViewKey, { label: string; glyph: string }> = {
   homeview: { label: 'Home', glyph: '⌂' },
+  // The board's return (WO-103, SRC-047): the Work Orders collection's
+  // view tab — backlog · ready · in-progress · done at a glance.
+  board: { label: 'Work Orders', glyph: '▤' },
   // The palette's thorough sibling (WO-048, SRC-022): one query, every hit.
   search: { label: 'Search', glyph: '⌕' },
   // One Settings tab hosts Templates and Agent connection too (WO-036).
@@ -233,7 +237,7 @@ export function persistTabs(state: TabState): { tabs: PersistedTab[]; active: nu
 /**
  * The load-time twin of retainTabs (SRC-026): rebuild a TabState from
  * persisted targets. Unresolvable targets are dropped — byId misses and
- * retired ViewKeys ('graph', 'board', 'decisions' fail isViewKey now);
+ * retired ViewKeys ('graph', 'decisions' fail isViewKey now);
  * duplicate views collapse to their first tab (views are singletons); at
  * most one tab keeps the preview flag; every survivor starts with a
  * single-entry history; the active index moves to the nearest earlier

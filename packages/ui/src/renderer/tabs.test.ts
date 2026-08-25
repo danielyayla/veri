@@ -248,17 +248,14 @@ describe('retainTabs', () => {
     deepStrictEqual(targets(mixed.tabs[0]), ['WO-005']);
   });
 
-  // WO-053 (SRC-025): the Board view folds into the Work Orders panel —
-  // 'board' is no ViewKey anymore, so persisted board tabs restore away,
-  // no migration.
-  it("a persisted 'board' view tab from before the retirement restores away cleanly", () => {
-    ok(!isViewKey('board'));
+  // WO-103 (SRC-047): the board returns as the Work Orders view tab —
+  // 'board' is a ViewKey again, so it survives retention like any view
+  // (pre-retirement persisted board tabs simply come back, no migration).
+  it("a 'board' view tab survives retention — views always survive", () => {
+    ok(isViewKey('board'));
     const lone = retainTabs(s([{ t: ['board'] }, { t: ['search'] }], 0), () => false);
-    deepStrictEqual(lone.tabs.map((t) => targets(t)), [['search']]);
-    strictEqual(lone.activeKey, 't2');
-    // Mixed history: the board entry drops, the surviving doc entry remains.
-    const mixed = retainTabs(s([{ t: ['board', 'WO-005'], i: 0 }], 0), (id) => id === 'WO-005');
-    deepStrictEqual(targets(mixed.tabs[0]), ['WO-005']);
+    deepStrictEqual(lone.tabs.map((t) => targets(t)), [['board'], ['search']]);
+    strictEqual(lone.activeKey, 't1');
   });
 });
 
@@ -293,13 +290,13 @@ describe('persistTabs / restoreTabs', () => {
     const saved = [
       { target: 'graph', preview: false }, // retired WO-052
       { target: 'REQ-001', preview: false },
-      { target: 'board', preview: false }, // retired WO-053
+      { target: 'board', preview: false }, // retired WO-053, back with WO-103
       { target: 'decisions', preview: false }, // retired WO-049
       { target: 'GONE-001', preview: false }, // byId miss
       { target: 'search', preview: false },
     ];
     const restored = restoreTabs(saved, 1, (id) => id === 'REQ-001');
-    deepStrictEqual(restored.tabs.map((t) => targets(t)), [['REQ-001'], ['search']]);
+    deepStrictEqual(restored.tabs.map((t) => targets(t)), [['REQ-001'], ['board'], ['search']]);
     strictEqual(activeTarget(restored), 'REQ-001');
   });
 

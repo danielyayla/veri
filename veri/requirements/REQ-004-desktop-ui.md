@@ -28,10 +28,13 @@ status signals, and supersession pointers live on in the Decisions type
 panel, the documents themselves, and hover previews), [[SRC-024]]
 (the Graph screen is retired; the graph lives on the document surface
 instead — a local 1-hop neighborhood map at the top of the Connections
-panel, not a screen), and [[SRC-025]] (the Board screen is retired; its
-status columns live on as BACKLOG / IN PROGRESS subgroups in the Work
-Orders type panel's living list, with done behind the panel's expander,
-not a screen):
+panel, not a screen), [[SRC-025]] (the Board screen is retired; its
+status columns live on as status subgroups in the Work Orders type
+panel's living list, with done behind the panel's expander), and
+[[SRC-047]] (the board returns as the Work Orders view tab — a
+four-column kanban over the [[WO-098]] lifecycle, opened by the Work
+Orders collection row, DONE windowed behind an expander; the type panel
+and its subgroups are unchanged, reachable via the live type crumb):
 
 1. **Project home** — three panes: doc tree grouped by type; markdown
    reader with frontmatter rendered as a properties header; Connections

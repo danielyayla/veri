@@ -66,9 +66,10 @@ import { paletteRows } from './palette.ts';
 import type { PaletteRow } from './palette.ts';
 import { TPL_TYPES } from './views/templates.ts';
 import { settingsView } from './views/settings.ts';
+import { boardView } from './views/board.ts';
 import { DEAD_LABEL, livingCount, livingGroups, panelList, pushRecent } from './sidebar.ts';
 
-export type View = 'home' | 'workorder' | 'homeview' | 'search' | 'settings' | 'import' | 'architecture';
+export type View = 'home' | 'workorder' | 'homeview' | 'search' | 'settings' | 'import' | 'architecture' | 'board';
 
 /** Sections of the Settings view (WO-036, SRC-014). */
 export type SettingsSection = 'templates' | 'agent' | 'project' | 'updates' | 'appearance';
@@ -199,6 +200,9 @@ export interface State {
   archTab: 'map' | 'rules';
   archSel: string | null;
   archDrill: string[];
+  /** Board view (WO-103, SRC-047): the DONE column's expander — session
+      state, never persisted, like the Search view's query. */
+  boardDone: boolean;
 }
 
 /** The add-link inline row (WO-056): target + rel drafts, the inline error,
@@ -437,6 +441,7 @@ class App implements Ctx {
     archTab: 'map',
     archSel: null,
     archDrill: [],
+    boardDone: false,
   };
   renderPane = 0;
   appInfo: AppInfo | null = null;
@@ -2590,7 +2595,8 @@ class App implements Ctx {
   /** The labeled sidebar (WO-035, SRC-014): Home, the four collections,
       and the Settings gear at the foot. Replaces the icon rail and the
       working-set tree. Graph left the sidebar with WO-052 (SRC-024);
-      Board with WO-053 (SRC-025) — it folded into the Work Orders panel. */
+      Board folded into the Work Orders panel with WO-053 (SRC-025) and
+      returned with WO-103 (SRC-047) as the Work Orders row's view tab. */
   private sidebar(): HTMLElement {
     const target = activeTarget(this.tabState());
     const viewItem = (key: View, label: string, glyph: string): HTMLElement =>
@@ -2608,6 +2614,26 @@ class App implements Ctx {
     const collItem = (type: DocType): HTMLElement => {
       const meta = TYPE_META[type];
       const open = this.state.panel === type;
+      // The board's entry point (WO-103, SRC-047): the Work Orders row is a
+      // view row — clicking it opens the board tab, so it drops the panel
+      // caret. The Work Orders panel stays reachable via the live type
+      // crumb (openPanel), and every other collection keeps the toggle.
+      if (type === 'work-order') {
+        const active = target === 'board';
+        return h(
+          'button',
+          {
+            class: active ? 'btn-reset btn-block nav-item nav-item-active' : 'btn-reset btn-block nav-item',
+            label: `${meta.crumb} — ${livingCount(this.snap.documents, type)} living — opens the board`,
+            pressed: active,
+            fkey: `coll:${type}`,
+            onClick: () => this.setView('board'),
+          },
+          h('span', { class: 'nav-swatch' }, h('i', { style: `background:${meta.color};` })),
+          h('span', { class: 'nav-lbl' }, meta.crumb),
+          h('span', { class: 'nav-cnt' }, String(livingCount(this.snap.documents, type))),
+        );
+      }
       return h(
         'button',
         {
@@ -3055,7 +3081,7 @@ class App implements Ctx {
 
   /** The active view's scrollable regions, in document order — queried per
       pane container (WO-055), never per root. */
-  private static readonly SCROLL_SEL = '.reader, .panel-right, .screen-homeview, .screen-search, .screen-arch, .mcp-view, .set-scroll';
+  private static readonly SCROLL_SEL = '.reader, .panel-right, .screen-homeview, .screen-search, .screen-arch, .screen-board, .mcp-view, .set-scroll';
 
   /** A mousedown anywhere in an unfocused pane focuses it (WO-055): the
       state flips silently — no render, no preventDefault, so the click it
@@ -3104,6 +3130,7 @@ class App implements Ctx {
       else if (view === 'settings') screen = settingsView(this);
       else if (view === 'import') screen = importView(this);
       else if (view === 'architecture') screen = architectureView(this);
+      else if (view === 'board') screen = boardView(this);
       else screen = readerView(this);
       this.state.view = saved.view;
       this.state.docId = saved.docId;

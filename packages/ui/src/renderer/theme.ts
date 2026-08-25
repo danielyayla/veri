@@ -26,6 +26,9 @@ export const STATUS_COLORS: Record<string, string> = {
   draft: 'var(--amber)',
   proposed: 'var(--amber)',
   backlog: 'var(--secondary)',
+  // WO-103 (SRC-047): the WO-098 dispatch state. Info blue — amber reads
+  // as draft/warning, green collides with done.
+  ready: 'var(--t-req)',
   retired: 'var(--muted)',
   superseded: 'var(--amber)',
   'in-progress': 'var(--ember)',

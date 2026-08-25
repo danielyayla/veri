@@ -10,8 +10,12 @@ import { frontmatterCard } from './reader.ts';
 import { roveIndex, roveKey } from '../a11y.ts';
 import type { Ctx } from '../app.ts';
 
-const STATUS_SEGMENTS: Array<{ status: string; label: string }> = [
+/** `ready` renders but is never a click target (WO-103): it is entered
+    only by the user's stamp via `veri approve` (WO-098, DEC-096) — the UI
+    shows the state without offering a write path into it. */
+const STATUS_SEGMENTS: Array<{ status: string; label: string; stamped?: boolean }> = [
   { status: 'backlog', label: 'backlog' },
+  { status: 'ready', label: 'ready', stamped: true },
   { status: 'in-progress', label: 'in progress' },
   { status: 'done', label: 'done' },
 ];
@@ -38,20 +42,26 @@ function statusControl(ctx: Ctx, doc: VeriDocument): HTMLElement {
         segs[next].focus();
       },
     },
-    ...STATUS_SEGMENTS.map(({ status, label }) => {
+    ...STATUS_SEGMENTS.map(({ status, label, stamped }) => {
       const active = doc.status === status;
       const color = statusColor(status);
+      const gated = stamped === true && !active;
       const btn = h(
         'button',
         {
-          class: 'btn-reset seg-item',
+          class: gated ? 'btn-reset seg-item seg-item-gated' : 'btn-reset seg-item',
           role: 'radio',
           checked: active,
           tabindex: active ? 0 : -1,
           fkey: `status:${status}`,
           style: active ? `background:${tint(color, 0.14)};color:${color};` : '',
+          title: gated ? 'stamped via veri approve' : undefined,
           onClick: () => {
             if (active) return;
+            if (gated) {
+              ctx.announce('ready is entered via veri approve — the stamp is the only path');
+              return;
+            }
             // WO-061: the write is instant; recovery is too — the undo toast
             // reverts through the same setStatus path.
             const prev = doc.status;
