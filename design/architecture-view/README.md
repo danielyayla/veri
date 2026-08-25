@@ -45,15 +45,18 @@ illustrative (the prototype hand-places four modules); the
 implementing work order chooses a deterministic auto-layout (layered
 by dependency depth) and files it as a decision if non-trivial.
 
-## Placement — deliberately provisional
-The current proposal: the view opens as a **tab**, reached from a Home
-ARCHITECTURE card, a ⌘K palette entry, and `architecture ↗`
-affordances. The sidebar stays untouched. **This is a starting point,
-not a settled ruling** — per Daniel's direction, Architecture may
-eventually deserve primary navigation; nothing in this design may
-depend on the entry point, and promoting it later must cost only a
-sidebar item. The Home card renders only when the module registry is
-non-empty.
+## Placement
+**Resolution proposed 2026-08-25** (SRC-049, DEC-108, WO-107 — pending
+Daniel's stamp): Architecture takes the promotion this section priced
+at "only a sidebar item" — an always-rendered `⌗ Architecture` view
+row below the four collections, opening the same one-instance tab.
+The Home ARCHITECTURE card, ⌘K entry, and `architecture ↗` affordances
+remain; the Decisions row stays a plain panel toggle (the WO-103
+board-row pattern does not mirror here — the board is a projection of
+work orders, while Architecture is a system view, not a projection of
+decisions). The original provisional entry — Home card + ⌘K only,
+sidebar untouched, Home card only when the module registry is
+non-empty — remains the shipped behavior until WO-107 lands.
 
 ## The Map tab — primary
 ### System map card
