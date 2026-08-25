@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#0F0F11; --side:#101013; --panel:#131316; --card:#151519; --card-2:#18181D;
+      --overlay:#17171B; --chip-bg:#1F1F25; --hair:#1E1E24; --card-border:#1F1F24;
+      --int-border:#26262C; --pop-border:#2B2B32; --text:#E7E4DE; --body-text:#C9C6CF;
+      --secondary:#A09DA6; --muted:#8B8893; --faint:#86838F; --ghost:#55525E;
+      --ember:#E8703A; --ember-light:#F0A87E; --green:#7FAF8A; --amber:#D9A03F;
+      --t-req:#7EA6C4; --t-dec:#CFA83D; --t-wo:#E8703A; --t-src:#908BA8;
+      --ember-tint:rgba(232,112,58,0.09); --ember-tint-faint:rgba(232,112,58,0.05);
+      --mono:'JetBrains Mono',monospace; --sans:'Source Sans 3',sans-serif;
+    }
+    body { margin:0; background:var(--bg); font-family:var(--sans); color:var(--body-text); }
+    a { color:#E8703A; text-decoration:none; } a:hover { color:#F49463; }
+    .topbar { height:44px; background:var(--panel); border-bottom:1px solid var(--hair); display:flex; align-items:center; padding:0 14px; gap:10px; box-sizing:border-box; }
+    .logo { width:18px; height:18px; border-radius:4px; background:var(--ember); color:#141414; font-family:var(--mono); font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; }
+    .wordmark { font-size:13px; font-weight:600; color:var(--text); }
+    .crumb-sep { color:var(--ghost); font-size:12px; }
+    .proj { font-family:var(--mono); font-size:12px; color:var(--secondary); }
+    .search { width:340px; height:26px; margin:0 auto; border:1px solid var(--int-border); background:var(--bg); border-radius:6px; display:flex; align-items:center; padding:0 8px; gap:8px; box-sizing:border-box; }
+    .search-hint { font-size:12px; color:var(--ghost); flex:1; }
+    .kbd { font-family:var(--mono); font-size:10px; color:var(--muted); background:var(--chip-bg); border:1px solid var(--int-border); border-radius:4px; padding:1px 5px; }
+    .chip { font-family:var(--mono); font-size:11px; border-radius:6px; padding:3px 9px; display:flex; align-items:center; gap:6px; }
+    .chip-green { color:var(--green); background:rgba(127,175,138,0.06); border:1px solid #24382B; }
+    .chip-git { color:var(--muted); border:1px solid var(--int-border); }
+    .shell { display:flex; height:696px; }
+    .sidebar { width:216px; box-sizing:border-box; background:var(--side); border-right:1px solid var(--hair); padding:10px 8px; display:flex; flex-direction:column; }
+    .nav-row { height:28px; border-radius:6px; display:flex; align-items:center; padding:0 8px; gap:8px; font-size:13px; color:var(--body-text); }
+    .nav-row:hover { background:#1B1B20; }
+    .nav-row.active { background:var(--ember-tint); color:var(--ember-light); }
+    .glyph { font-family:var(--mono); font-size:13px; color:var(--muted); width:16px; text-align:center; }
+    .nav-row.active .glyph { color:var(--ember-light); }
+    .swatch { width:7px; height:7px; border-radius:2px; }
+    .swatch-wrap { width:16px; display:flex; justify-content:center; }
+    .count { margin-left:auto; font-family:var(--mono); font-size:10.5px; color:var(--ghost); }
+    .divider { height:1px; background:var(--hair); margin:8px 4px; }
+    .side-foot { margin-top:auto; display:flex; align-items:center; gap:7px; padding:8px; font-family:var(--mono); font-size:10px; color:var(--muted); }
+    .dot-green { width:6px; height:6px; border-radius:50%; background:var(--green); }
+    .typepanel { width:280px; box-sizing:border-box; background:var(--side); border-right:1px solid var(--hair); padding:12px 10px; display:flex; flex-direction:column; gap:2px; }
+    .tp-head { display:flex; align-items:center; padding:0 6px 8px 6px; gap:8px; }
+    .tp-label { font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+    .tp-import { margin-left:auto; display:flex; align-items:center; gap:6px; height:24px; padding:0 9px; border:1px solid var(--int-border); border-radius:6px; font-size:12px; color:var(--body-text); }
+    .tp-import:hover { border-color:#2E2E36; color:var(--text); }
+    .doc-row { height:26px; border-radius:6px; display:flex; align-items:center; gap:8px; padding:0 8px; }
+    .doc-row:hover { background:#1B1B20; }
+    .doc-id { font-family:var(--mono); font-size:11px; color:var(--t-src); flex-shrink:0; }
+    .doc-title { font-size:12.5px; color:var(--body-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .main { flex:1; display:flex; flex-direction:column; position:relative; background:var(--bg); }
+    .tabstrip { height:37px; border-bottom:1px solid var(--hair); display:flex; align-items:flex-end; padding:0 10px; gap:2px; box-sizing:border-box; }
+    .tab { height:30px; display:flex; align-items:center; gap:7px; padding:0 12px; border:1px solid var(--hair); border-bottom:none; border-radius:7px 7px 0 0; background:var(--panel); font-size:12px; color:var(--body-text); }
+    .tab .tab-id { font-family:var(--mono); font-size:10.5px; color:var(--t-src); }
+    .reader { flex:1; overflow:hidden; padding:30px 40px; box-sizing:border-box; }
+    .reader-col { max-width:720px; }
+    .bc { font-family:var(--mono); font-size:11px; color:var(--t-src); margin-bottom:10px; }
+    .doc-h1 { font-size:24px; font-weight:600; color:var(--text); margin:0 0 18px 0; }
+    .body-p { font-size:14.5px; line-height:1.65; color:var(--body-text); margin:0 0 14px 0; }
+  </style>
+</helmet>
+
+<div style="width:1180px; height:740px; overflow:hidden; background:#0F0F11; display:flex; flex-direction:column">
+
+  <div class="topbar">
+    <div class="logo">v</div><div class="wordmark">Veri</div>
+    <span class="crumb-sep">/</span><span class="proj">veri</span>
+    <div class="search"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#55525E" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5 L14 14"></path></svg><span class="search-hint">Search docs…</span><span class="kbd">⌘K</span></div>
+    <div class="chip chip-green">veri check · clean</div>
+    <div class="chip chip-git">⎇ main · clean</div>
+  </div>
+
+  <div class="shell">
+    <div class="sidebar">
+      <div class="nav-row"><span class="glyph">⌂</span>Home</div>
+      <div class="divider"></div>
+      <div class="nav-row"><span class="swatch-wrap"><span class="swatch" style="background:#7EA6C4"></span></span>Requirements<span class="count">31</span></div>
+      <div class="nav-row"><span class="swatch-wrap"><span class="swatch" style="background:#CFA83D"></span></span>Decisions<span class="count">91</span></div>
+      <div class="nav-row active"><span class="swatch-wrap"><span class="swatch" style="background:#908BA8"></span></span>Sources<span class="count">44</span></div>
+      <div class="nav-row"><span class="swatch-wrap"><span class="swatch" style="background:#E8703A"></span></span>Work Orders<span class="count">95</span></div>
+      <div class="divider"></div>
+      <div class="nav-row"><span class="glyph">▤</span>Board</div>
+      <div class="nav-row"><span class="glyph">◉</span>Graph</div>
+      <div class="side-foot"><span class="dot-green"></span>mcp · serving on :7423</div>
+    </div>
+
+    <div class="typepanel">
+      <div class="tp-head">
+        <span class="tp-label">Sources · 44</span>
+        <div class="tp-import"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#A8A5AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11 V3"></path><path d="M4.5 6.5 L8 3 L11.5 6.5"></path><path d="M3 13 H13"></path></svg>Import files…</div>
+      </div>
+      <div class="doc-row"><span class="doc-id">SRC-044</span><span class="doc-title">Software Factory video transcript</span></div>
+      <div class="doc-row"><span class="doc-id">SRC-043</span><span class="doc-title">Vellum spec — delta analysis</span></div>
+      <div class="doc-row"><span class="doc-id">SRC-042</span><span class="doc-title">Design — Website v2: micro-demos</span></div>
+      <div class="doc-row"><span class="doc-id">SRC-041</span><span class="doc-title">Design critique of the Veri website</span></div>
+      <div class="doc-row"><span class="doc-id">SRC-040</span><span class="doc-title">Open-source readiness audit</span></div>
+      <div class="doc-row"><span class="doc-id">SRC-039</span><span class="doc-title">Design handoff — Brownfield import</span></div>
+      <div class="doc-row"><span class="doc-id">SRC-038</span><span class="doc-title">Design note — Tauri shell migration</span></div>
+      <div class="doc-row"><span class="doc-id">SRC-037</span><span class="doc-title">Spike report — Tauri 2 feasibility</span></div>
+      <div class="doc-row"><span class="doc-id">SRC-036</span><span class="doc-title">Architecture in the app</span></div>
+      <div class="doc-row"><span class="doc-id">SRC-035</span><span class="doc-title">Design brief — Website redesign</span></div>
+    </div>
+
+    <div class="main">
+      <div class="tabstrip">
+        <div class="tab"><span class="tab-id">SRC-044</span>Software Factory video transcript</div>
+      </div>
+      <div class="reader" style="opacity:.35">
+        <div class="reader-col">
+          <div class="bc">SRC-044 · source</div>
+          <h1 class="doc-h1">Software Factory video transcript</h1>
+          <p class="body-p">Transcript excerpt from a Software Factory YouTube video, plus a delta analysis against Veri. Two context channels, both retrieval-oriented: artifacts and an indexed codebase.</p>
+          <p class="body-p">The underlying model is retrieval over everything: dump context in, index it, let agents search.</p>
+        </div>
+      </div>
+
+      <div style="position:absolute; inset:0; background:rgba(8,8,10,0.55); display:flex; align-items:center; justify-content:center">
+        <div style="position:absolute; inset:14px; border:1.5px dashed #E8703A; border-radius:12px; background:rgba(232,112,58,0.05)"></div>
+        <div style="position:relative; display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="#F0A87E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 27 V9"></path><path d="M12 17 L20 9 L28 17"></path><path d="M8 31 H32"></path></svg>
+          <div style="font-size:20px; font-weight:600; color:#E7E4DE">Drop to import</div>
+          <div style="font-size:13.5px; color:#A09DA6; max-width:380px; line-height:1.55">2 files become source documents — ready to link, pack, and distill. Originals are preserved.</div>
+          <div style="display:flex; gap:8px">
+            <div style="display:flex; align-items:center; gap:7px; background:#17171B; border:1px solid #2B2B32; border-radius:6px; padding:6px 11px"><span style="width:7px; height:7px; border-radius:2px; background:#908BA8"></span><span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#C9C6CF">meridian-onboarding-interview.pdf</span></div>
+            <div style="display:flex; align-items:center; gap:7px; background:#17171B; border:1px solid #2B2B32; border-radius:6px; padding:6px 11px"><span style="width:7px; height:7px; border-radius:2px; background:#908BA8"></span><span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#C9C6CF">pricing-thread.eml</span></div>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#8B8893">md · txt · pdf · eml · docx</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
