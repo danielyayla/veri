@@ -2,7 +2,8 @@
 id: DEC-096
 type: decision
 title: "Work orders promote to ready through veri approve — dispatch clearance is the fourth stamped promotion"
-status: proposed
+status: active
+approved: 2026-08-25
 created: 2026-08-25
 updated: 2026-08-25
 links:
