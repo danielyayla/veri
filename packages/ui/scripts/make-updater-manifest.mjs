@@ -7,8 +7,9 @@
 //     src-tauri/release-assets/ (renaming where two files would collide),
 //     record a manifest fragment (manifest-<platform>.json — updater
 //     platform entries + artifact sizes + asset names), and fail loudly if
-//     an installer crosses REQ-023's 50 MB ceiling, so a size regression
-//     stops the platform job in minutes, not the publish step.
+//     an installer crosses its per-platform ceiling (REQ-023 via DEC-090),
+//     so a size regression stops the platform job in minutes, not the
+//     publish step.
 //
 //   node scripts/make-updater-manifest.mjs --merge
 //     On the publish runner, after every fragment is downloaded into
@@ -22,7 +23,15 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const REPO = 'danielyayla/veri';
-const MAX_INSTALLER_BYTES = 50 * 1024 * 1024; // REQ-023
+
+// Per-platform ceilings (DEC-090, proposed, under REQ-023): 50 MB binds
+// where the OS provides the WebView (macOS, Windows). Linux carries what
+// those platforms get from the OS — the AppImage bundles the WebKitGTK
+// stack and both formats the mandatory Node sidecar (REQ-023 forbids
+// depending on system Node) — so its ceilings sit just above the measured
+// v0.3.1 floor (119.4 / 50.7 MB), tight enough that regressions still fail.
+const MB = 1024 * 1024;
+const CEILING = { dmg: 50 * MB, nsis: 50 * MB, appimage: 150 * MB, deb: 60 * MB };
 
 const pkgDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 const version = JSON.parse(readFileSync(join(pkgDir, 'package.json'), 'utf8')).version;
@@ -41,7 +50,8 @@ function bundled(dir, pattern) {
 
 // Each collector copies its artifacts into `out` and returns the fragment:
 //   platforms — latest.json entries (updater url + minisign signature)
-//   sizes     — [{name, bytes, cap}]; cap: subject to the 50 MB gate
+//   sizes     — [{name, bytes, cap}]; cap: the artifact's byte ceiling
+//               (null for updater archives, which no user downloads whole)
 //   assets    — release asset names, exactly as uploaded
 const COLLECTORS = {
   // Two explicit --target builds: the arm64 runner cross-builds x64. The
@@ -65,8 +75,8 @@ const COLLECTORS = {
       copyFileSync(`${archive}.sig`, join(out, `${archiveOut}.sig`));
 
       platforms[arch.platform] = { signature: readFileSync(`${archive}.sig`, 'utf8').trim(), url: url(archiveOut) };
-      sizes.push({ name: dmgOut, bytes: statSync(dmg).size, cap: true });
-      sizes.push({ name: archiveOut, bytes: statSync(archive).size, cap: false });
+      sizes.push({ name: dmgOut, bytes: statSync(dmg).size, cap: CEILING.dmg });
+      sizes.push({ name: archiveOut, bytes: statSync(archive).size, cap: null });
       assets.push(dmgOut, archiveOut, `${archiveOut}.sig`);
     }
     return { platforms, sizes, assets };
@@ -88,8 +98,8 @@ const COLLECTORS = {
     return {
       platforms: { 'linux-x86_64': { signature: readFileSync(sig, 'utf8').trim(), url: url(names[0]) } },
       sizes: [
-        { name: names[0], bytes: statSync(appimage).size, cap: true },
-        { name: names[2], bytes: statSync(deb).size, cap: true },
+        { name: names[0], bytes: statSync(appimage).size, cap: CEILING.appimage },
+        { name: names[2], bytes: statSync(deb).size, cap: CEILING.deb },
       ],
       assets: names,
     };
@@ -108,7 +118,7 @@ const COLLECTORS = {
     copyFileSync(sig, join(out, names[1]));
     return {
       platforms: { 'windows-x86_64': { signature: readFileSync(sig, 'utf8').trim(), url: url(names[0]) } },
-      sizes: [{ name: names[0], bytes: statSync(setup).size, cap: true }],
+      sizes: [{ name: names[0], bytes: statSync(setup).size, cap: CEILING.nsis }],
       assets: names,
     };
   },
@@ -116,18 +126,19 @@ const COLLECTORS = {
 
 const mb = (bytes) => `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
-/** Render sizes and enforce REQ-023's ceiling; returns the markdown lines. */
+/** Render sizes and enforce each artifact's ceiling; returns the markdown lines. */
 function gate(sizes) {
-  const lines = ['## Artifact sizes (REQ-023: installers stay under 50 MB)', ''];
+  const lines = ['## Artifact sizes (per-platform ceilings: REQ-023 via DEC-090)', ''];
   let failed = false;
   for (const { name, bytes, cap } of sizes) {
-    const over = cap && bytes >= MAX_INSTALLER_BYTES;
-    lines.push(`- ${name}: ${mb(bytes)}${over ? ' — OVER THE 50 MB CEILING' : ''}`);
+    const over = cap != null && bytes >= cap;
+    const ceiling = cap != null ? ` (ceiling ${mb(cap)})` : '';
+    lines.push(`- ${name}: ${mb(bytes)}${ceiling}${over ? ' — OVER ITS CEILING' : ''}`);
     if (over) failed = true;
   }
   console.log(lines.join('\n'));
   if (failed) {
-    console.error('make-updater-manifest: an installer crossed the REQ-023 ceiling');
+    console.error('make-updater-manifest: an installer crossed its size ceiling (REQ-023/DEC-090)');
     process.exit(1);
   }
   return lines;
@@ -173,7 +184,7 @@ if (platformArg !== '') {
     '',
     '- macOS (DMG) and Linux (AppImage): the installed app auto-updates via its built-in updater.',
     '- Linux (.deb): no auto-update — install each release’s .deb manually (tracked under REQ-030).',
-    '- Windows (NSIS): the installed app auto-updates; the installer is not Authenticode-signed, so SmartScreen warns on first install (DEC-082, proposed).',
+    '- Windows (NSIS): the installed app auto-updates; the installer is not Authenticode-signed, so SmartScreen warns on first install (DEC-082).',
   );
   writeFileSync(join(out, 'SIZES.md'), lines.join('\n') + '\n');
   writeFileSync(join(out, 'ASSETS.txt'), [...assets, 'latest.json'].join('\n') + '\n');
