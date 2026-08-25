@@ -2,7 +2,8 @@
 id: DEC-087
 type: decision
 title: "Entry-point exports discover from manifest leaves and index conventions, unioned, with relative re-export chains followed"
-status: proposed
+status: active
+approved: 2026-08-25
 created: 2026-08-25
 updated: 2026-08-25
 links:

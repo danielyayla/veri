@@ -2,7 +2,8 @@
 id: DEC-089
 type: decision
 title: "Registry entries may declare responsibilities — an additive, validated list feeding the module detail panel"
-status: proposed
+status: active
+approved: 2026-08-25
 created: 2026-08-25
 updated: 2026-08-25
 links:

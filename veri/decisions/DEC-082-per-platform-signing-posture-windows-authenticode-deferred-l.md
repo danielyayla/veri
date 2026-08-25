@@ -2,9 +2,10 @@
 id: DEC-082
 type: decision
 title: "Per-platform signing posture: Windows Authenticode deferred with a stated SmartScreen caveat; Linux ships unsigned per platform norm; minisign covers the updater everywhere"
-status: proposed
+status: active
+approved: 2026-08-25
 created: 2026-08-24
-updated: 2026-08-24
+updated: 2026-08-25
 links:
   - id: WO-092
     rel: constrains

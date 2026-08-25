@@ -2,7 +2,8 @@
 id: DEC-088
 type: decision
 title: "Map layout is layered by observed dependency depth; cycles cut at the back-edge; registry order within a row"
-status: proposed
+status: active
+approved: 2026-08-25
 created: 2026-08-25
 updated: 2026-08-25
 links:

@@ -2,7 +2,8 @@
 id: DEC-086
 type: decision
 title: "A multiply-forbidden edge takes its strictest declared severity; severity-free corpora render byte-identical"
-status: proposed
+status: active
+approved: 2026-08-25
 created: 2026-08-25
 updated: 2026-08-25
 links:
