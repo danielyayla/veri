@@ -2,9 +2,10 @@
 id: DEC-085
 type: decision
 title: "Starter bundles: shipped set, seeding mechanics, and pending-only posture"
-status: proposed
+status: active
+approved: 2026-08-25
 created: 2026-08-24
-updated: 2026-08-24
+updated: 2026-08-25
 links:
   - id: WO-091
     rel: constrains

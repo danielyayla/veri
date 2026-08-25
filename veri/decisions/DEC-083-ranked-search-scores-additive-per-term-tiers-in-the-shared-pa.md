@@ -2,9 +2,10 @@
 id: DEC-083
 type: decision
 title: "Ranked search scores — additive per-term tiers in the shared palette core, capped at the MCP surface"
-status: proposed
+status: active
+approved: 2026-08-25
 created: 2026-08-24
-updated: 2026-08-24
+updated: 2026-08-25
 links:
   - id: WO-090
     rel: constrains

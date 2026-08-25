@@ -3,9 +3,9 @@ id: DEC-081
 type: decision
 title: "run_check facts — the git tier stays out of reach over MCP; the report derivation moves to core"
 status: active
-approved: 2026-08-24
+approved: 2026-08-25
 created: 2026-08-24
-updated: 2026-08-24
+updated: 2026-08-25
 links:
   - id: WO-089
     rel: constrains

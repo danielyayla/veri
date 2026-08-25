@@ -2,9 +2,10 @@
 id: DEC-062
 type: decision
 title: "Architecture constraints declare their severity; error-severity violations are check issues"
-status: proposed
+status: active
+approved: 2026-08-25
 created: 2026-08-20
-updated: 2026-08-20
+updated: 2026-08-25
 links:
   - id: DEC-058
     rel: extends

@@ -2,9 +2,10 @@
 id: DEC-084
 type: decision
 title: "Hero install surface leads with the DMG until the npm publish executes; the copyable command block ships with the publish"
-status: proposed
+status: active
+approved: 2026-08-25
 created: 2026-08-24
-updated: 2026-08-24
+updated: 2026-08-25
 links:
   - id: WO-084
     rel: constrains
