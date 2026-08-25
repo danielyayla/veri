@@ -2,7 +2,9 @@
 id: WO-103
 type: work-order
 title: "Work Orders board tab: a Kanban over the four-status lifecycle"
-status: ready
+status: in-progress
+claimed_by: claude-6f8627ae
+claimed_at: 2026-08-25
 approved: 2026-08-25
 created: 2026-08-25
 updated: 2026-08-25
