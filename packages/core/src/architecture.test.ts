@@ -212,7 +212,8 @@ const OBSERVED_CORE_UI: ImportEdge[] = [
 test('an observed edge a decision forbids is a violation citing file, specifier, and DEC id', async (t) => {
   const dir = project(t, { 'decisions/DEC-001-arch.md': decision('DEC-001', 'active', WELL_FORMED) });
   const load = await loadProject(dir);
-  const violations = checkObservedArchitecture(load.documents, OBSERVED_CORE_UI);
+  const { issues, violations } = checkObservedArchitecture(load.documents, OBSERVED_CORE_UI);
+  assert.deepEqual(issues, []);
   assert.partialDeepStrictEqual(violations, [
     {
       kind: 'arch-violation',
@@ -236,13 +237,13 @@ test('allowed and unconstrained observed edges produce no findings', async (t) =
     { from: 'ui', to: 'core', file: 'packages/ui/src/app.ts', specifier: '@x/core' }, // allowed
     { from: 'cli', to: 'core', file: 'packages/cli/src/run.ts', specifier: '@x/core' }, // unconstrained
   ];
-  assert.deepEqual(checkObservedArchitecture(load.documents, edges), []);
+  assert.deepEqual(checkObservedArchitecture(load.documents, edges), { issues: [], violations: [] });
 });
 
 test('a proposed decision forbidding an edge fires no violation until approved', async (t) => {
   const dir = project(t, { 'decisions/DEC-001-arch.md': decision('DEC-001', 'proposed', WELL_FORMED) });
   const load = await loadProject(dir);
-  assert.deepEqual(checkObservedArchitecture(load.documents, OBSERVED_CORE_UI), []);
+  assert.deepEqual(checkObservedArchitecture(load.documents, OBSERVED_CORE_UI), { issues: [], violations: [] });
 });
 
 test('a conflicted edge is an issue, not a violation — silent until one decision is retired', async (t) => {
@@ -254,7 +255,7 @@ test('a conflicted edge is an issue, not a violation — silent until one decisi
   });
   const load = await loadProject(dir);
   assert.equal(checkArchitecture(load.documents).length, 1); // the arch-conflict issue owns this edge
-  assert.deepEqual(checkObservedArchitecture(load.documents, OBSERVED_CORE_UI), []);
+  assert.deepEqual(checkObservedArchitecture(load.documents, OBSERVED_CORE_UI), { issues: [], violations: [] });
 });
 
 test('the printout gains a violations section only when observed facts are supplied', async (t) => {
@@ -268,6 +269,151 @@ test('the printout gains a violations section only when observed facts are suppl
   assert.match(withViolation, /core → ui\s+packages\/core\/src\/render\.ts imports "@x\/ui"\s+\(forbidden by DEC-001\)/);
   const clean = renderArchitecture(load.documents, []);
   assert.match(clean, /\(none — observed imports respect every active constraint\)/);
+});
+
+// --- Constraint severity (DEC-062, WO-069) ---
+
+const ERROR_SEVERITY = `architecture:
+  constraints:
+    - from: core
+      to: [ui, cli]
+      allowed: false
+      severity: error
+`;
+
+test('severity compiles into the projection; rules without the field carry no severity key', async (t) => {
+  const dir = project(t, {
+    'decisions/DEC-001-hard.md': decision('DEC-001', 'active', ERROR_SEVERITY),
+    'decisions/DEC-002-soft.md': decision('DEC-002', 'active', 'architecture:\n  constraints:\n    - from: ui\n      to: core\n      allowed: true\n'),
+  });
+  const load = await loadProject(dir);
+  assert.deepEqual(checkProject(load).issues, []);
+  assert.deepEqual(assembleArchitecture(load.documents).rules, [
+    { from: 'core', to: 'ui', allowed: false, decisionId: 'DEC-001', severity: 'error' },
+    { from: 'core', to: 'cli', allowed: false, decisionId: 'DEC-001', severity: 'error' },
+    { from: 'ui', to: 'core', allowed: true, decisionId: 'DEC-002' },
+  ]);
+});
+
+test('an observed edge forbidden at severity error is a check issue naming file, specifier, and DEC', async (t) => {
+  const dir = project(t, { 'decisions/DEC-001-hard.md': decision('DEC-001', 'active', ERROR_SEVERITY) });
+  const load = await loadProject(dir);
+  const { issues, violations } = checkObservedArchitecture(load.documents, OBSERVED_CORE_UI);
+  assert.deepEqual(violations, []);
+  assert.partialDeepStrictEqual(issues, [
+    {
+      kind: 'arch-violation',
+      file: 'packages/core/src/render.ts',
+      id: 'DEC-001',
+      from: 'core',
+      to: 'ui',
+      specifier: '@x/ui',
+      forbiddenBy: ['DEC-001'],
+    },
+  ]);
+  assert.match(issues[0].message, /imports "@x\/ui"/);
+  assert.match(issues[0].message, /forbidden by DEC-001/);
+  assert.match(issues[0].message, /severity: error/);
+});
+
+test('an explicit severity: advisory behaves exactly like the absent default (WO-067 byte-identical)', async (t) => {
+  const explicit = WELL_FORMED.replace('allowed: false\n', 'allowed: false\n      severity: advisory\n');
+  const explicitLoad = await loadProject(
+    project(t, { 'decisions/DEC-001-arch.md': decision('DEC-001', 'active', explicit) }),
+  );
+  const defaulted = await loadProject(
+    project(t, { 'decisions/DEC-001-arch.md': decision('DEC-001', 'active', WELL_FORMED) }),
+  );
+  const explicitFindings = checkObservedArchitecture(explicitLoad.documents, OBSERVED_CORE_UI);
+  const defaultFindings = checkObservedArchitecture(defaulted.documents, OBSERVED_CORE_UI);
+  assert.deepEqual(explicitFindings.issues, []);
+  assert.deepEqual(explicitFindings.violations, defaultFindings.violations);
+  assert.equal(
+    defaultFindings.violations[0].message,
+    'imports "@x/ui" — the core → ui edge is forbidden by DEC-001',
+  );
+});
+
+test('an invalid severity value is an invalid-frontmatter issue naming the document', async (t) => {
+  const bad = WELL_FORMED.replace('allowed: false\n', 'allowed: false\n      severity: blocking\n');
+  const dir = project(t, { 'decisions/DEC-001-arch.md': decision('DEC-001', 'active', bad) });
+  const load = await loadProject(dir);
+  const issues = checkProject(load).issues;
+  assert.ok(issues.length > 0, 'expected an issue');
+  assert.ok(
+    issues.every((issue) => issue.kind === 'invalid-frontmatter' && issue.file === 'decisions/DEC-001-arch.md'),
+    JSON.stringify(issues, null, 2),
+  );
+});
+
+test('a conflicted edge produces no violation at either severity — the conflict issue stands alone', async (t) => {
+  const allow = 'architecture:\n  constraints:\n    - from: core\n      to: ui\n      allowed: true\n';
+  for (const forbid of [WELL_FORMED, ERROR_SEVERITY]) {
+    const dir = project(t, {
+      'decisions/DEC-001-allow.md': decision('DEC-001', 'active', allow),
+      'decisions/DEC-002-forbid.md': decision('DEC-002', 'active', forbid),
+    });
+    const load = await loadProject(dir);
+    assert.equal(checkArchitecture(load.documents).length, 1); // arch-conflict owns the edge
+    assert.deepEqual(checkObservedArchitecture(load.documents, OBSERVED_CORE_UI), { issues: [], violations: [] });
+  }
+});
+
+test('a multiply-forbidden edge with mixed severities reports once, as an issue (DEC-086)', async (t) => {
+  const soft = 'architecture:\n  constraints:\n    - from: core\n      to: ui\n      allowed: false\n';
+  const hard = 'architecture:\n  constraints:\n    - from: core\n      to: ui\n      allowed: false\n      severity: error\n';
+  const dir = project(t, {
+    'decisions/DEC-001-soft.md': decision('DEC-001', 'active', soft),
+    'decisions/DEC-002-hard.md': decision('DEC-002', 'active', hard),
+  });
+  const load = await loadProject(dir);
+  const { issues, violations } = checkObservedArchitecture(load.documents, OBSERVED_CORE_UI);
+  assert.deepEqual(violations, []);
+  assert.equal(issues.length, 1);
+  assert.equal(issues[0].id, 'DEC-001'); // still anchored on the oldest forbidding decision (DEC-061)
+  assert.deepEqual(issues[0].forbiddenBy, ['DEC-001', 'DEC-002']);
+});
+
+test('the printout gains a severity column only when a rule declares one, and splits violations by tier', async (t) => {
+  // Severity-free corpus: no column — the WO-066/067 printout byte-for-byte.
+  const plain = await loadProject(
+    project(t, { 'decisions/DEC-001-arch.md': decision('DEC-001', 'active', WELL_FORMED) }),
+  );
+  assert.ok(!renderArchitecture(plain.documents).includes('advisory'));
+
+  const dir = project(t, {
+    'decisions/DEC-001-hard.md': decision('DEC-001', 'active', ERROR_SEVERITY),
+    'decisions/DEC-002-soft.md': decision('DEC-002', 'active', 'architecture:\n  constraints:\n    - from: cli\n      to: core\n      allowed: false\n'),
+  });
+  const load = await loadProject(dir);
+  const text = renderArchitecture(load.documents, [
+    ...OBSERVED_CORE_UI,
+    { from: 'cli', to: 'core', file: 'packages/cli/src/run.ts', specifier: '@x/core' },
+  ]);
+  // Severity column: declared value, or the advisory default.
+  assert.match(text, /core → ui\s+forbidden\s+error\s+\(DEC-001\)/);
+  assert.match(text, /cli → core\s+forbidden\s+advisory\s+\(DEC-002\)/);
+  // Error violations take the issues position, ahead of the violations section.
+  assert.match(text, /Issues — error-severity violations \(these fail veri check\)/);
+  assert.ok(
+    text.indexOf('Issues — error-severity violations') < text.indexOf('Violations — observed imports'),
+    text,
+  );
+  assert.match(text, /core → ui\s+packages\/core\/src\/render\.ts imports "@x\/ui"\s+\(forbidden by DEC-001\)/);
+  assert.match(text, /cli → core\s+packages\/cli\/src\/run\.ts imports "@x\/core"\s+\(forbidden by DEC-002\)/);
+  // Deterministic across runs.
+  assert.equal(
+    text,
+    renderArchitecture((await loadProject(dir)).documents, [
+      ...OBSERVED_CORE_UI,
+      { from: 'cli', to: 'core', file: 'packages/cli/src/run.ts', specifier: '@x/core' },
+    ]),
+  );
+
+  // Only error violations observed: the violations section says so honestly.
+  const onlyError = renderArchitecture(load.documents, OBSERVED_CORE_UI);
+  assert.match(onlyError, /\(none at advisory severity\)/);
+  assert.ok(!onlyError.includes('(none — observed imports respect every active constraint)'));
 });
 
 test('agreeing decisions on the same edge are not a conflict', async (t) => {

@@ -42,11 +42,19 @@ const requirementSchema = z
 // passthrough per REQ-001. `from`/`to` accept one module name or a list.
 const moduleRef = z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]);
 
+// DEC-062: a constraint may declare its enforcement severity. `advisory`
+// (the default when absent — WO-067's shipped behavior) keeps violations in
+// the grey tier; `error` promotes a violation of this constraint to a check
+// issue. A malformed value is an invalid-frontmatter issue like any other
+// field — never a silently ignored no-op.
+const severityField = z.enum(['advisory', 'error']).optional();
+
 const architectureConstraintSchema = z
   .object({
     from: moduleRef,
     to: moduleRef,
     allowed: z.boolean(),
+    severity: severityField,
   })
   .passthrough();
 

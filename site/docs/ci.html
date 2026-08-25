@@ -63,8 +63,8 @@ jobs:
 <h2>2. What fails, what warns</h2>
 <p>The action keeps the CLI's two tiers exactly:</p>
 <ul>
-  <li><b>Gate violations fail the pull request</b> — broken links, invalid frontmatter, duplicate IDs, a work order started against an unapproved requirement, a work order marked done with unchecked criteria or no receipts. Each violation is an error annotation on the document that carries it.</li>
-  <li><b>Advisories annotate but pass</b> — stamp drift (an approved document edited after its stamp), receipt provenance (a cited commit that's missing, mis-prefixed, or names files it never touched), and architecture findings appear as warning annotations on the affected documents, and the run stays green.</li>
+  <li><b>Gate violations fail the pull request</b> — broken links, invalid frontmatter, duplicate IDs, a work order started against an unapproved requirement, a work order marked done with unchecked criteria or no receipts, and an import that crosses a boundary an approved decision forbids at <code>severity: error</code>. Each violation is an error annotation on the document that carries it.</li>
+  <li><b>Advisories annotate but pass</b> — stamp drift (an approved document edited after its stamp), receipt provenance (a cited commit that's missing, mis-prefixed, or names files it never touched), and architecture violations of default-severity constraints appear as warning annotations on the affected documents, and the run stays green.</li>
 </ul>
 <p>To make advisories block too:</p>
 <pre><code>      - uses: danielyayla/veri@v1

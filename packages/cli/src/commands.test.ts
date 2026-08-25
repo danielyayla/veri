@@ -480,6 +480,65 @@ test('a forbidden observed import is a check advisory and an architecture violat
   assert.match(text, /\(architecture: skipped module ghost — packages\/ghost is not on disk\)/);
 });
 
+test('an observed import forbidden at severity: error is a check issue and exit 1 (DEC-062)', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  init(cwd, { demo: false });
+
+  const wf = join(cwd, 'veri/workflow.md');
+  writeFileSync(
+    wf,
+    readFileSync(wf, 'utf8').replace(
+      '---\n',
+      '---\nmodules:\n  - name: alpha\n    path: packages/alpha\n    purpose: Foundation\n  - name: beta\n    path: packages/beta\n    purpose: Surface\n',
+    ),
+  );
+  writeFileSync(
+    join(cwd, 'veri/decisions/DEC-001-boundary.md'),
+    '---\nid: DEC-001\ntype: decision\ntitle: Boundary\nstatus: active\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\narchitecture:\n  constraints:\n    - from: alpha\n      to: beta\n      allowed: false\n      severity: error\n---\n## Choice\n\nAlpha stays pure — hard.\n',
+  );
+  mkdirSync(join(cwd, 'packages/alpha/src'), { recursive: true });
+  mkdirSync(join(cwd, 'packages/beta'), { recursive: true });
+  writeFileSync(join(cwd, 'packages/alpha/package.json'), JSON.stringify({ name: '@t/alpha' }));
+  writeFileSync(join(cwd, 'packages/beta/package.json'), JSON.stringify({ name: '@t/beta' }));
+  writeFileSync(join(cwd, 'packages/alpha/src/main.ts'), "import thing from '@t/beta';\n");
+
+  // The violation is a counted issue: exit 1 through the issue pipeline.
+  const checked = await check(cwd);
+  assert.equal(checked.code, 1, checked.lines.join('\n'));
+  assert.match(checked.lines.at(-1) ?? '', /1 issue\(s\)/);
+  assert.ok(
+    checked.lines.includes(
+      'packages/alpha/src/main.ts: imports "@t/beta" — the alpha → beta edge is forbidden by DEC-001 (severity: error)',
+    ),
+    checked.lines.join('\n'),
+  );
+  assert.ok(!checked.lines.some((line) => line.startsWith('(advisory)') && line.includes('@t/beta')));
+
+  // veri architecture prints the severity and renders the violation with the issues.
+  const arch = await architecture(cwd);
+  assert.equal(arch.code, 0);
+  const text = arch.lines.join('\n');
+  assert.match(text, /alpha → beta\s+forbidden\s+error\s+\(DEC-001\)/);
+  assert.match(text, /Issues — error-severity violations \(these fail veri check\)/);
+  assert.match(text, /alpha → beta\s+packages\/alpha\/src\/main\.ts imports "@t\/beta"\s+\(forbidden by DEC-001\)/);
+  assert.match(text, /\(none at advisory severity\)/);
+
+  // Demoting the constraint restores WO-067's advisory posture, byte-identical.
+  writeFileSync(
+    join(cwd, 'veri/decisions/DEC-001-boundary.md'),
+    '---\nid: DEC-001\ntype: decision\ntitle: Boundary\nstatus: active\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\narchitecture:\n  constraints:\n    - from: alpha\n      to: beta\n      allowed: false\n---\n## Choice\n\nAlpha stays pure — hard.\n',
+  );
+  const demoted = await check(cwd);
+  assert.equal(demoted.code, 0, demoted.lines.join('\n'));
+  assert.ok(
+    demoted.lines.includes(
+      '(advisory) packages/alpha/src/main.ts: imports "@t/beta" — the alpha → beta edge is forbidden by DEC-001',
+    ),
+    demoted.lines.join('\n'),
+  );
+});
+
 test('veri import prints the kickoff prompt; init hints on brownfield folders (REQ-024)', async (t) => {
   const cwd = tempProject();
   t.after(() => rmSync(cwd, { recursive: true, force: true }));

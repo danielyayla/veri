@@ -80,5 +80,5 @@ test('dogfood: this repository reports zero violations against its own intended 
   const { edges, skipped } = collectImportFacts(repoRoot, modules);
   assert.deepEqual(skipped, []);
   assert.ok(edges.length > 0, 'the scan should see real edges (cli → core at least)');
-  assert.deepEqual(checkObservedArchitecture(load.documents, edges), []);
+  assert.deepEqual(checkObservedArchitecture(load.documents, edges), { issues: [], violations: [] });
 });

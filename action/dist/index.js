@@ -11469,10 +11469,12 @@ var requirementSchema = external_exports.object({
   approved_by: approvedByField
 }).passthrough();
 var moduleRef = external_exports.union([external_exports.string().min(1), external_exports.array(external_exports.string().min(1)).min(1)]);
+var severityField = external_exports.enum(["advisory", "error"]).optional();
 var architectureConstraintSchema = external_exports.object({
   from: moduleRef,
   to: moduleRef,
-  allowed: external_exports.boolean()
+  allowed: external_exports.boolean(),
+  severity: severityField
 }).passthrough();
 var architectureSchema = external_exports.object({ constraints: external_exports.array(architectureConstraintSchema).default([]) }).passthrough();
 var moduleEntrySchema = external_exports.object({
@@ -11920,7 +11922,15 @@ function assembleArchitecture(documents) {
     for (const constraint of architectureOf(doc).constraints) {
       for (const from of asList(constraint.from)) {
         for (const to of asList(constraint.to)) {
-          rules.push({ from, to, allowed: constraint.allowed, decisionId: doc.id });
+          rules.push({
+            from,
+            to,
+            allowed: constraint.allowed,
+            decisionId: doc.id,
+            // Only a declared severity rides the projection (DEC-062):
+            // rules without the field stay shaped exactly as before.
+            ...constraint.severity === void 0 ? {} : { severity: constraint.severity }
+          });
         }
       }
     }
@@ -11985,15 +11995,17 @@ function checkObservedArchitecture(documents, edges) {
     const key = `${rule.from} ${rule.to}`;
     byEdge.set(key, [...byEdge.get(key) ?? [], rule]);
   }
-  const violations = [];
+  const observed = { issues: [], violations: [] };
   for (const edge of edges) {
     const edgeRules = byEdge.get(`${edge.from} ${edge.to}`) ?? [];
     if (edgeRules.some((rule) => rule.allowed))
       continue;
-    const forbiddenBy = [...new Set(edgeRules.filter((rule) => !rule.allowed).map((rule) => rule.decisionId))];
+    const forbidding = edgeRules.filter((rule) => !rule.allowed);
+    const forbiddenBy = [...new Set(forbidding.map((rule) => rule.decisionId))];
     if (forbiddenBy.length === 0)
       continue;
-    violations.push({
+    const isError = forbidding.some((rule) => rule.severity === "error");
+    const finding = {
       kind: "arch-violation",
       file: edge.file,
       // Anchored on the oldest forbidding decision — the original ruling.
@@ -12002,10 +12014,14 @@ function checkObservedArchitecture(documents, edges) {
       to: edge.to,
       specifier: edge.specifier,
       forbiddenBy,
-      message: `imports "${edge.specifier}" \u2014 the ${edge.from} \u2192 ${edge.to} edge is forbidden by ${forbiddenBy.join(", ")}`
-    });
+      message: `imports "${edge.specifier}" \u2014 the ${edge.from} \u2192 ${edge.to} edge is forbidden by ${forbiddenBy.join(", ")}` + (isError ? " (severity: error)" : "")
+    };
+    if (isError)
+      observed.issues.push(finding);
+    else
+      observed.violations.push(finding);
   }
-  return violations;
+  return observed;
 }
 
 // ../core/dist/templates.js
@@ -12558,7 +12574,9 @@ function buildCheckReport(load, host) {
   }
   advisories.push(...checkBoundTests(load.documents, host.testFacts));
   if (host.importFacts !== void 0) {
-    advisories.push(...checkObservedArchitecture(load.documents, host.importFacts.edges));
+    const observed = checkObservedArchitecture(load.documents, host.importFacts.edges);
+    issues.push(...observed.issues);
+    advisories.push(...observed.violations);
   }
   return {
     formatLine: formatLine(load.format),

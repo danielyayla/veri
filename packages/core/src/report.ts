@@ -92,9 +92,14 @@ export function buildCheckReport(load: LoadResult, host: HostFacts): CheckReport
   }
   // Bound tests (WO-088) need the filesystem, not git — they run either way.
   advisories.push(...checkBoundTests(load.documents, host.testFacts));
-  // Observed architecture (WO-067): import edges vs the intended architecture.
+  // Observed architecture (WO-067): import edges vs the intended
+  // architecture, split by declared constraint severity (DEC-062) — error
+  // violations join the issues (counted, exit 1); advisory violations stay
+  // in the grey tier.
   if (host.importFacts !== undefined) {
-    advisories.push(...checkObservedArchitecture(load.documents, host.importFacts.edges));
+    const observed = checkObservedArchitecture(load.documents, host.importFacts.edges);
+    issues.push(...observed.issues);
+    advisories.push(...observed.violations);
   }
   return {
     formatLine: formatLine(load.format),

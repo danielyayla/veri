@@ -138,4 +138,19 @@ export type Issue =
       allowedBy: string[];
       forbiddenBy: string[];
       message: string;
+    }
+  // Constraint severity (DEC-062, WO-069): a violation of an error-severity
+  // constraint is a check issue — counted, exit 1 — with the same shape as
+  // the advisory-tier arch-violation. `file` is the importing source file;
+  // `id` anchors the oldest forbidding decision (DEC-061). Blocking power
+  // arrives only through the user's approval stamp on the governing decision.
+  | {
+      kind: 'arch-violation';
+      file: string;
+      id: string;
+      from: string;
+      to: string;
+      specifier: string;
+      forbiddenBy: string[];
+      message: string;
     };
