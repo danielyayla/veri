@@ -1,0 +1,586 @@
+<meta charset="utf-8">
+<title>Work Orders Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+  /* ===== Veri tokens (verbatim from packages/ui/renderer/styles.css) ===== */
+  /* Dark-first, matching the app: :root is the dark palette. */
+  :root {
+    --bg: #0F0F11;
+    --side: #101013;
+    --panel: #131316;
+    --card-2: #18181D;
+    --card-3: #17171B;
+    --chip-bg: #1F1F25;
+    --hair: #1E1E24;
+    --hair-4: #1A1A1F;
+    --card-border: #1F1F24;
+    --card-border-2: #24242B;
+    --int-border: #26262C;
+    --hover-border: #2E2E36;
+    --hover-border-2: #3A3A44;
+    --row-hover: #1B1B20;
+    --text: #E7E4DE;
+    --body-text: #C9C6CF;
+    --body-text-2: #A8A5AF;
+    --secondary: #A09DA6;
+    --muted: #8B8893;
+    --faint: #86838F;
+    --ghost: #55525E;
+    --ghost-2: #4A4852;
+    --ghost-3: #3F3D47;
+    --on-accent: #141414;
+    --ember: #E8703A;
+    --ember-light: #F0A87E;
+    --green: #7FAF8A;
+    --amber: #D9A03F;
+    --t-req: #7EA6C4;
+    --t-dec: #CFA83D;
+    --t-wo: #E8703A;
+    --t-src: #908BA8;
+    --ember-tint: rgba(232,112,58,0.09);
+    --amber-tint-8: rgba(217,160,63,0.08);
+    --amber-border: #3A3020;
+    --green-tint-6: rgba(127,175,138,0.06);
+    --green-border: #24382B;
+    --focus-ring: rgba(232,112,58,0.4);
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'Source Sans 3', -apple-system, 'Segoe UI', sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #F2F1ED;
+      --side: #EFEDE8;
+      --panel: #EDEBE6;
+      --card-2: #FBFAF8;
+      --card-3: #F5F4F0;
+      --chip-bg: #E9E7E1;
+      --hair: #E5E3DD;
+      --hair-4: #E8E6E0;
+      --card-border: #E0DED7;
+      --card-border-2: #D8D5CD;
+      --int-border: #D0CDC4;
+      --hover-border: #BEBBB1;
+      --hover-border-2: #A8A59A;
+      --row-hover: #E9E7E1;
+      --text: #232128;
+      --body-text: #3B3941;
+      --body-text-2: #4A4851;
+      --secondary: #5F5C67;
+      --muted: #6B6873;
+      --faint: #6B6873;
+      --ghost: #A3A0AB;
+      --ghost-2: #AFACB5;
+      --ghost-3: #B8B5BD;
+      --on-accent: #FFFFFF;
+      --ember: #B54A18;
+      --ember-light: #9E3F12;
+      --green: #3E7350;
+      --amber: #82630C;
+      --t-req: #3E6E93;
+      --t-dec: #82630C;
+      --t-wo: #B54A18;
+      --t-src: #655F80;
+      --ember-tint: rgba(181,74,24,0.10);
+      --amber-tint-8: rgba(130,99,12,0.09);
+      --amber-border: #D0C6A9;
+      --green-tint-6: rgba(62,115,80,0.07);
+      --green-border: #BCCBBE;
+      --focus-ring: rgba(181,74,24,0.45);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #F2F1ED;
+    --side: #EFEDE8;
+    --panel: #EDEBE6;
+    --card-2: #FBFAF8;
+    --card-3: #F5F4F0;
+    --chip-bg: #E9E7E1;
+    --hair: #E5E3DD;
+    --hair-4: #E8E6E0;
+    --card-border: #E0DED7;
+    --card-border-2: #D8D5CD;
+    --int-border: #D0CDC4;
+    --hover-border: #BEBBB1;
+    --hover-border-2: #A8A59A;
+    --row-hover: #E9E7E1;
+    --text: #232128;
+    --body-text: #3B3941;
+    --body-text-2: #4A4851;
+    --secondary: #5F5C67;
+    --muted: #6B6873;
+    --faint: #6B6873;
+    --ghost: #A3A0AB;
+    --ghost-2: #AFACB5;
+    --ghost-3: #B8B5BD;
+    --on-accent: #FFFFFF;
+    --ember: #B54A18;
+    --ember-light: #9E3F12;
+    --green: #3E7350;
+    --amber: #82630C;
+    --t-req: #3E6E93;
+    --t-dec: #82630C;
+    --t-wo: #B54A18;
+    --t-src: #655F80;
+    --ember-tint: rgba(181,74,24,0.10);
+    --amber-tint-8: rgba(130,99,12,0.09);
+    --amber-border: #D0C6A9;
+    --green-tint-6: rgba(62,115,80,0.07);
+    --green-border: #BCCBBE;
+    --focus-ring: rgba(181,74,24,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--body-text);
+    font-family: var(--sans);
+    font-size: 14px;
+  }
+  :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+
+  .page { max-width: 1240px; margin: 0 auto; padding: 40px 24px 72px; }
+
+  .micro-label {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--faint);
+  }
+  .page-head h1 {
+    margin: 8px 0 6px; font-size: 24px; font-weight: 600;
+    letter-spacing: -.01em; line-height: 1.25; color: var(--text);
+    text-wrap: balance;
+  }
+  .page-head p { margin: 0; max-width: 62ch; font-size: 14.5px; line-height: 1.65; }
+  .page-head .mid { font-family: var(--mono); font-size: 12.5px; }
+
+  /* ===== The app frame ===== */
+  .frame-scroll { overflow-x: auto; margin-top: 26px; }
+  .app {
+    min-width: 1280px; height: 700px;
+    display: flex; flex-direction: column;
+    background: var(--bg);
+    border: 1px solid var(--card-border-2);
+    border-radius: 10px; overflow: hidden;
+  }
+
+  /* Topbar */
+  .topbar {
+    height: 44px; flex: none; display: flex; align-items: center; gap: 16px;
+    padding: 0 14px; border-bottom: 1px solid var(--hair); background: var(--panel);
+  }
+  .tb-logo {
+    width: 18px; height: 18px; border-radius: 4px; background: var(--ember);
+    color: var(--on-accent); font-family: var(--mono); font-size: 11px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tb-brand { display: flex; align-items: center; gap: 8px; }
+  .tb-wordmark { font-size: 13px; font-weight: 600; letter-spacing: .2px; color: var(--text); }
+  .tb-slash { color: var(--ghost-2); }
+  .tb-proj { font-family: var(--mono); font-size: 12px; color: var(--secondary); }
+  .tb-caret { font-size: 9px; color: var(--ghost-2); margin-left: 4px; }
+  .tb-search {
+    width: 340px; height: 26px; margin: 0 auto;
+    display: flex; align-items: center; gap: 8px; padding: 0 8px;
+    border: 1px solid var(--int-border); border-radius: 6px; background: var(--bg);
+    color: var(--faint); font-size: 12px;
+  }
+  .tb-kbd {
+    margin-left: auto; font-family: var(--mono); font-size: 10px;
+    border: 1px solid var(--int-border); border-radius: 4px; padding: 1px 5px;
+    color: var(--ghost);
+  }
+  .tb-right { display: flex; align-items: center; gap: 8px; }
+  .tb-health {
+    height: 24px; display: flex; align-items: center; gap: 6px; padding: 0 8px;
+    border: 1px solid var(--amber-border); border-radius: 6px;
+    background: var(--amber-tint-8); color: var(--amber);
+    font-family: var(--mono); font-size: 11px;
+  }
+  .tb-health i { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); }
+  .tb-git {
+    height: 24px; display: flex; align-items: center; padding: 0 8px;
+    border: 1px solid var(--int-border); border-radius: 6px;
+    color: var(--secondary); font-family: var(--mono); font-size: 11px;
+  }
+
+  .app-body { flex: 1; min-height: 0; display: flex; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 216px; flex: none; display: flex; flex-direction: column;
+    background: var(--side); border-right: 1px solid var(--hair);
+    padding: 10px 8px 8px;
+  }
+  .nav-item {
+    height: 28px; flex: none; display: flex; align-items: center; gap: 9px;
+    padding: 0 9px; border-radius: 6px; color: var(--body-text);
+    font-size: 13px; cursor: pointer;
+  }
+  .nav-item:hover { background: var(--row-hover); }
+  .nav-item-active { background: var(--ember-tint); color: var(--ember-light); }
+  .nav-glyph {
+    width: 16px; text-align: center; font-family: var(--mono);
+    font-size: 13px; color: var(--muted);
+  }
+  .nav-item-active .nav-glyph { color: var(--ember-light); }
+  .nav-swatch { width: 16px; display: flex; justify-content: center; }
+  .nav-swatch i { width: 7px; height: 7px; border-radius: 2px; }
+  .nav-lbl { flex: 1; }
+  .nav-cnt { font-family: var(--mono); font-size: 10.5px; color: var(--ghost); }
+  .nav-caret { font-size: 9px; color: var(--ghost); width: 10px; text-align: center; }
+  .side-div { height: 1px; flex: none; background: var(--hair); margin: 8px 6px; }
+  .side-label {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .08em;
+    color: var(--ghost); padding: 4px 9px 5px;
+  }
+  .sb-recent {
+    height: 28px; flex: none; display: flex; align-items: center; gap: 8px;
+    padding: 0 9px; border-radius: 6px; cursor: pointer;
+  }
+  .sb-recent:hover { background: var(--row-hover); }
+  .sb-rid { font-family: var(--mono); font-size: 10px; }
+  .sb-rttl {
+    flex: 1; font-size: 12.5px; color: var(--body-text-2);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .side-fill { flex: 1; }
+  .settings-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+    box-shadow: 0 0 0 1px var(--side); margin-left: auto;
+  }
+
+  /* Editor area: tab strip + view */
+  .editor-area { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .tabstrip {
+    height: 37px; flex: none; display: flex; align-items: stretch;
+    background: var(--panel);
+  }
+  .nav-hist {
+    display: flex; align-items: center; gap: 2px; padding: 0 6px;
+    border-bottom: 1px solid var(--hair);
+  }
+  .nav-hist span {
+    width: 24px; height: 24px; border-radius: 5px; display: flex;
+    align-items: center; justify-content: center; font-family: var(--mono);
+    font-size: 12px; color: var(--ghost-2); cursor: pointer;
+  }
+  .nav-hist span:hover { background: var(--row-hover); color: var(--body-text); }
+  .tab {
+    display: flex; align-items: center; gap: 8px; padding: 0 8px 0 13px;
+    max-width: 220px; cursor: pointer; user-select: none;
+    border-right: 1px solid var(--hair-4); border-bottom: 1px solid var(--hair);
+  }
+  .tab-active {
+    background: var(--bg); border-bottom-color: transparent;
+    box-shadow: inset 0 2px 0 var(--ember);
+  }
+  .tab-id { font-family: var(--mono); font-size: 10px; }
+  .tab-glyph { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .tab-title {
+    font-size: 12.5px; color: var(--muted); max-width: 130px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .tab-active .tab-title { color: var(--text); }
+  .tab-preview .tab-title { font-style: italic; }
+  .tab-close {
+    width: 16px; height: 16px; border-radius: 4px; display: flex;
+    align-items: center; justify-content: center; font-size: 12px;
+    color: var(--ghost-3);
+  }
+  .tab:hover .tab-close, .tab-close:hover { background: var(--int-border); color: var(--text); }
+  .tabstrip-fill { flex: 1; min-width: 24px; border-bottom: 1px solid var(--hair); }
+
+  /* ===== The board ===== */
+  .screen-board { flex: 1; overflow: auto; min-width: 0; padding: 26px 28px; }
+  .board-head { display: flex; align-items: baseline; gap: 12px; }
+  .screen-title { margin: 0; font-size: 20px; font-weight: 600; color: var(--text); }
+  .board-count { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  .board-grid {
+    display: grid; grid-template-columns: repeat(4, minmax(228px, 300px));
+    gap: 14px; margin-top: 20px; align-items: start;
+  }
+  .board-col {
+    border: 1px solid var(--hair); border-radius: 10px;
+    background: var(--panel); padding: 10px;
+  }
+  .board-col-head { display: flex; align-items: center; gap: 8px; padding: 2px 4px 10px; }
+  .board-col-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .board-col-label {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .09em;
+    color: var(--secondary);
+  }
+  .board-col-count { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--ghost-2); }
+  .board-cards { display: flex; flex-direction: column; gap: 8px; }
+  .board-card {
+    display: block; width: 100%; text-align: left;
+    font-family: inherit; margin: 0;
+    border: 1px solid var(--card-border-2); border-radius: 8px;
+    background: var(--card-2); padding: 10px 12px; cursor: pointer;
+  }
+  .board-card:hover { border-color: var(--hover-border-2); }
+  .board-card-head { display: flex; align-items: center; gap: 8px; }
+  .board-card-id { font-family: var(--mono); font-size: 10.5px; color: var(--ember); }
+  .board-health-dot {
+    margin-left: auto; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--amber);
+  }
+  .board-card-title {
+    display: block; font-size: 13.5px; font-weight: 500;
+    color: var(--text); margin-top: 5px; line-height: 1.35;
+  }
+  .board-card-meta {
+    display: block; margin-top: 7px; font-family: var(--mono);
+    font-size: 10.5px; color: var(--faint);
+  }
+  .board-card-meta .rcpt { color: var(--green); }
+  .board-card-done .board-card-title { color: var(--body-text-2); font-weight: 400; }
+  .board-more {
+    display: block; width: 100%; text-align: left; cursor: pointer;
+    border: none; background: none; margin: 2px 0 0; padding: 6px 8px;
+    border-radius: 6px; font-family: var(--mono); font-size: 10.5px; color: var(--ghost);
+  }
+  .board-more:hover { background: var(--row-hover); color: var(--muted); }
+
+  /* ===== Annotations ===== */
+  .notes { margin-top: 40px; }
+  .notes-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+  .notes-head h2 { margin: 0; font-size: 15px; font-weight: 600; color: var(--text); }
+  .notes-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+  .note-card {
+    border: 1px solid var(--card-border); border-radius: 8px;
+    background: var(--card-3); padding: 12px 14px;
+  }
+  .note-card .micro-label { display: block; margin-bottom: 6px; }
+  .note-card p { margin: 0; font-size: 13px; line-height: 1.55; }
+  .note-card code {
+    font-family: var(--mono); font-size: 11.5px; color: var(--body-text-2);
+    background: var(--chip-bg); border-radius: 4px; padding: 1px 4px;
+  }
+  .note-card .idref { font-family: var(--mono); font-size: 11.5px; }
+  .id-src { color: var(--t-src); }
+  .id-wo { color: var(--t-wo); }
+</style>
+
+<div class="page">
+  <header class="page-head">
+    <span class="micro-label">Design mockup · candidate SRC</span>
+    <h1>Work Orders opens as a board tab</h1>
+    <p>Clicking the <span class="mid">Work Orders</span> collection in the sidebar opens a
+    <span class="mid">▤ Work Orders</span> view tab — a four-column Kanban over the shipped status enum
+    (<span class="mid">backlog · ready · in-progress · done</span>, per WO-098's dispatch state).
+    This revisits the board retired in <span class="mid">WO-053</span>, with each SRC-025
+    objection answered below — and it gives the new <span class="mid">ready</span> lane the
+    UI surface WO-098 deferred.</p>
+  </header>
+
+  <div class="frame-scroll">
+    <div class="app" role="img" aria-label="Mockup of the Veri desktop app showing a Work Orders Kanban board tab">
+
+      <div class="topbar">
+        <div class="tb-brand">
+          <div class="tb-logo">v</div>
+          <span class="tb-wordmark">Veri</span>
+          <span class="tb-slash">/</span>
+          <span class="tb-proj">veri</span>
+          <span class="tb-caret">▾</span>
+        </div>
+        <div class="tb-search"><span>⌕</span><span>Search documents…</span><span class="tb-kbd">⌘K</span></div>
+        <div class="tb-right">
+          <div class="tb-health"><i></i>2 issues</div>
+          <div class="tb-git">⎇ main · clean</div>
+        </div>
+      </div>
+
+      <div class="app-body">
+        <nav class="sidebar">
+          <div class="nav-item"><span class="nav-glyph">⌂</span><span class="nav-lbl">Home</span></div>
+          <div class="side-div"></div>
+          <div class="nav-item"><span class="nav-swatch"><i style="background:var(--t-req)"></i></span><span class="nav-lbl">Requirements</span><span class="nav-cnt">25</span><span class="nav-caret">▸</span></div>
+          <div class="nav-item"><span class="nav-swatch"><i style="background:var(--t-dec)"></i></span><span class="nav-lbl">Decisions</span><span class="nav-cnt">84</span><span class="nav-caret">▸</span></div>
+          <div class="nav-item"><span class="nav-swatch"><i style="background:var(--t-src)"></i></span><span class="nav-lbl">Sources</span><span class="nav-cnt">43</span><span class="nav-caret">▸</span></div>
+          <div class="nav-item nav-item-active"><span class="nav-swatch"><i style="background:var(--t-wo)"></i></span><span class="nav-lbl">Work Orders</span><span class="nav-cnt">5</span><span class="nav-caret">◂</span></div>
+          <div class="side-div"></div>
+          <div class="side-label">RECENT</div>
+          <div class="sb-recent"><span class="sb-rid" style="color:var(--t-wo)">WO-098</span><span class="sb-rttl">Dispatch state: ready + next</span></div>
+          <div class="sb-recent"><span class="sb-rid" style="color:var(--t-src)">SRC-025</span><span class="sb-rttl">Fold Board into the panel</span></div>
+          <div class="sb-recent"><span class="sb-rid" style="color:var(--t-req)">REQ-021</span><span class="sb-rttl">Spec-to-code bindings</span></div>
+          <div class="side-fill"></div>
+          <div class="nav-item"><span class="nav-glyph">⚙︎</span><span class="nav-lbl">Settings</span><span class="settings-dot"></span></div>
+        </nav>
+
+        <div class="editor-area">
+          <div class="tabstrip">
+            <div class="nav-hist"><span>⟨</span><span>⟩</span></div>
+            <div class="tab tab-active">
+              <span class="tab-glyph">▤</span>
+              <span class="tab-title">Work Orders</span>
+              <span class="tab-close">×</span>
+            </div>
+            <div class="tab tab-preview">
+              <span class="tab-id" style="color:var(--t-wo)">WO-100</span>
+              <span class="tab-title">MCP writeback can amend</span>
+              <span class="tab-close">×</span>
+            </div>
+            <div class="tab">
+              <span class="tab-id" style="color:var(--t-dec)">DEC-077</span>
+              <span class="tab-title">Fallback npm scope</span>
+              <span class="tab-close">×</span>
+            </div>
+            <div class="tabstrip-fill"></div>
+          </div>
+
+          <div class="screen-board">
+            <div class="board-head">
+              <h1 class="screen-title">Work orders</h1>
+              <span class="board-count">96 total · 1 backlog · 3 ready · 1 in progress · 91 done</span>
+            </div>
+
+            <div class="board-grid">
+
+              <section class="board-col" aria-label="Backlog, 1 work order">
+                <div class="board-col-head">
+                  <span class="board-col-dot" style="background:var(--secondary)"></span>
+                  <span class="board-col-label">BACKLOG</span>
+                  <span class="board-col-count">1</span>
+                </div>
+                <div class="board-cards">
+                  <button class="board-card">
+                    <span class="board-card-head"><span class="board-card-id">WO-103</span></span>
+                    <span class="board-card-title">Work Orders board tab: a Kanban over the four-status lifecycle</span>
+                    <span class="board-card-meta">updated just now</span>
+                  </button>
+                </div>
+              </section>
+
+              <section class="board-col" aria-label="Ready, 3 work orders">
+                <div class="board-col-head">
+                  <span class="board-col-dot" style="background:var(--t-req)"></span>
+                  <span class="board-col-label">READY</span>
+                  <span class="board-col-count">3</span>
+                </div>
+                <div class="board-cards">
+                  <button class="board-card">
+                    <span class="board-card-head"><span class="board-card-id">WO-100</span></span>
+                    <span class="board-card-title">MCP writeback can amend: update a proposed document after review feedback</span>
+                    <span class="board-card-meta">stamped · next up</span>
+                  </button>
+                  <button class="board-card">
+                    <span class="board-card-head"><span class="board-card-id">WO-101</span></span>
+                    <span class="board-card-title">The dispatcher: a documented CI recipe that runs an agent on ready work</span>
+                    <span class="board-card-meta">stamped</span>
+                  </button>
+                  <button class="board-card">
+                    <span class="board-card-head"><span class="board-card-id">WO-102</span></span>
+                    <span class="board-card-title">MCP filing collapses onto core's createDocument&nbsp;— one creation implementation behind the file_* tools</span>
+                    <span class="board-card-meta">stamped</span>
+                  </button>
+                </div>
+              </section>
+
+              <section class="board-col" aria-label="In progress, 1 work order">
+                <div class="board-col-head">
+                  <span class="board-col-dot" style="background:var(--ember)"></span>
+                  <span class="board-col-label">IN PROGRESS</span>
+                  <span class="board-col-count">1</span>
+                </div>
+                <div class="board-cards">
+                  <button class="board-card">
+                    <span class="board-card-head">
+                      <span class="board-card-id">WO-099</span>
+                      <span class="board-health-dot" title="veri check: 1 issue"></span>
+                    </span>
+                    <span class="board-card-title">Claim semantics: work orders record which session holds them</span>
+                    <span class="board-card-meta">updated 2h ago</span>
+                  </button>
+                </div>
+              </section>
+
+              <section class="board-col" aria-label="Done, 90 work orders, showing latest 5">
+                <div class="board-col-head">
+                  <span class="board-col-dot" style="background:var(--green)"></span>
+                  <span class="board-col-label">DONE</span>
+                  <span class="board-col-count">91</span>
+                </div>
+                <div class="board-cards">
+                  <button class="board-card board-card-done">
+                    <span class="board-card-head"><span class="board-card-id">WO-098</span></span>
+                    <span class="board-card-title">Dispatch state: a ready status on work orders and veri next</span>
+                    <span class="board-card-meta"><span class="rcpt">✓ 16345bd</span> · 3h ago</span>
+                  </button>
+                  <button class="board-card board-card-done">
+                    <span class="board-card-head"><span class="board-card-id">WO-084</span></span>
+                    <span class="board-card-title">Hero install command block names @verikb</span>
+                    <span class="board-card-meta"><span class="rcpt">✓ 4b9009e</span> · 22h ago</span>
+                  </button>
+                  <button class="board-card board-card-done">
+                    <span class="board-card-head"><span class="board-card-id">WO-092</span></span>
+                    <span class="board-card-title">Windows and Linux builds: cross-platform release pipeline and CI test matrix</span>
+                    <span class="board-card-meta"><span class="rcpt">✓ 9cdbd8f</span> · 1d ago</span>
+                  </button>
+                  <button class="board-card board-card-done">
+                    <span class="board-card-head"><span class="board-card-id">WO-091</span></span>
+                    <span class="board-card-title">Starter template bundles: veri init gives an opinionated start per project type</span>
+                    <span class="board-card-meta"><span class="rcpt">✓ 3f61a2c</span> · 2d ago</span>
+                  </button>
+                  <button class="board-card board-card-done">
+                    <span class="board-card-head"><span class="board-card-id">WO-090</span></span>
+                    <span class="board-card-title">Ranked search: the MCP search tool outgrows substring matching</span>
+                    <span class="board-card-meta"><span class="rcpt">✓ b7d90e4</span> · 2d ago</span>
+                  </button>
+                  <button class="board-more">▸ show all 91 done</button>
+                </div>
+              </section>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="notes">
+    <div class="notes-head">
+      <h2>Design notes</h2>
+      <span class="micro-label">answers to SRC-025</span>
+    </div>
+    <div class="notes-grid">
+      <div class="note-card">
+        <span class="micro-label">Entry point</span>
+        <p>The Work Orders collection opens a <code>▤ Work Orders</code> view tab, the same
+        way Home and Search open as tabs. The type panel and its
+        <code>Backlog / In progress</code> groups stay untouched — the board is a second
+        door, not a replacement.</p>
+      </div>
+      <div class="note-card">
+        <span class="micro-label">Scale</span>
+        <p><span class="idref id-src">SRC-025</span> killed the old board because DONE was
+        uncapped. Here the done column is windowed to the five most recently updated, with a
+        <code>▸ show all</code> expander. Living columns render in full — they're small by
+        the lifecycle's nature.</p>
+      </div>
+      <div class="note-card">
+        <span class="micro-label">The ready lane</span>
+        <p>The column WO-098 deferred to the app: <code>ready</code> is entered only by the
+        user's stamp (<code>veri approve</code>), and <code>veri next</code> dispatches from
+        it — so the lane reads "cleared, awaiting an agent." Proposed color: the info blue
+        (<code>--t-req</code> hue); amber rejected (reads as draft/health warning), green
+        rejected (collides with done).</p>
+      </div>
+      <div class="note-card">
+        <span class="micro-label">Card anatomy</span>
+        <p>Cards earn each element: mono type-colored ID, title, and a recency line the type
+        panel can't show — <code>updated Nd ago</code> answers "is this stale?" at a glance.
+        Done cards swap it for the receipt SHA. The amber dot marks a <code>veri check</code>
+        issue (filled = issue, per SRC-010).</p>
+      </div>
+      <div class="note-card">
+        <span class="micro-label">Out of scope</span>
+        <p>No drag-and-drop. Status changes stay on the work-order detail's segmented
+        control, per <span class="idref id-wo">WO-053</span>'s ruling — and
+        <code>backlog → ready</code> is a stamped promotion no UI control may perform.
+        Cards are buttons: click for a preview tab, double-click to pin.</p>
+      </div>
+    </div>
+  </section>
+</div>

@@ -2,7 +2,9 @@
 id: WO-102
 type: work-order
 title: "MCP filing collapses onto core's createDocument — one creation implementation behind the file_* tools"
-status: in-progress
+status: done
+claimed_by: claude-wo-102-session
+claimed_at: 2026-08-25
 approved: 2026-08-25
 created: 2026-08-25
 updated: 2026-08-25
@@ -46,12 +48,12 @@ The four MCP filing tools (file_decision, file_work_order, file_requirement, fil
 
 ## Acceptance tests
 
-- [ ] grep finds exactly one slugify implementation, one frontmatter assembler, and one id-allocation call path for document creation across packages/ (writeback.ts's copies gone)
-- [ ] An MCP-filed work order carries the commented `binds:` block identical to a `veri new` work order — the WO-088 divergence is regression-tested
-- [ ] createDocument with links: valid links render into frontmatter and the file passes checkProject; an unknown link target throws before any file is written or id consumed
-- [ ] All existing writeback.test.ts tests pass unchanged (born-unapproved statuses, id consumption via veri/ids, link rejection messages still match)
-- [ ] Full suite and typecheck green across workspaces; veri check green
+- [x] grep finds exactly one slugify implementation, one frontmatter assembler, and one id-allocation call path for document creation across packages/ (writeback.ts's copies gone) — one `function slugify` (core create.ts); writeback.ts has zero allocator calls
+- [x] An MCP-filed work order carries the commented `binds:` block identical to a `veri new` work order — the WO-088 divergence is regression-tested — writeback.test.ts "an MCP-filed work order carries the commented binds: block"
+- [x] createDocument with links: valid links render into frontmatter and the file passes checkProject; an unknown link target throws before any file is written or id consumed — create.test.ts links/unknown-target/body-override/bare-subdir tests
+- [x] All existing writeback.test.ts tests pass unchanged (born-unapproved statuses, id consumption via veri/ids, link rejection messages still match) — 12/12 green, zero expectation edits
+- [x] Full suite and typecheck green across workspaces; veri check green — core 220, cli 52, mcp 69, ui 326; typecheck clean; check 0 issues (standing WO-034 advisory only)
 
 ## Receipts
 
-(none yet)
+- 2026-08-25 · ce7f9a7 · packages/core/src/{create.ts,create.test.ts,idstore.test.ts,templates.test.ts}, packages/mcp/src/{writeback.ts,writeback.test.ts} — createDocument gains the {date, body, links} options seam; the four MCP filers become section composers over one core call; binds: divergence regression-tested. action/dist rebuild deferred: the shared tree carries WO-095's uncommitted core edits, so bundling now would sweep them — the next action rebuild picks up this commit's core changes.
