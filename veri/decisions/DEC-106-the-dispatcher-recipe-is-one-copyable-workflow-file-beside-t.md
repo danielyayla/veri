@@ -2,7 +2,8 @@
 id: DEC-106
 type: decision
 title: "The dispatcher recipe is one copyable workflow file beside the check action — manual here, scheduled by adopters"
-status: proposed
+status: active
+approved: 2026-08-25
 created: 2026-08-25
 updated: 2026-08-25
 links:
