@@ -2,9 +2,20 @@
 id: WO-068
 type: work-order
 title: "Architecture in the app: the map, the rules view, and violation surfacing"
-status: in-progress
+status: done
 created: 2026-08-20
 updated: 2026-08-25
+binds:
+  paths:
+    - packages/ui/src/renderer/archderive.ts
+    - packages/ui/src/renderer/views/architecture.ts
+    - packages/ui/src/lib/snapshot.ts
+    - packages/cli/src/imports.ts
+  tests:
+    - packages/ui/src/renderer/archderive.test.ts
+    - packages/ui/src/renderer/views/architecture.test.ts
+    - packages/ui/src/lib/snapshot.test.ts
+    - packages/cli/src/imports.test.ts
 links:
   - id: REQ-022
     rel: implements
@@ -64,17 +75,17 @@ Brings the architecture feature ([[REQ-022]]) into the desktop app per the desig
 
 ## Acceptance tests
 
-- [ ] The snapshot carries the projection, per-file observed edges, and severity-routed violations, collected by the main process and refreshed on rebuild — no renderer filesystem access
-- [ ] The Map is the view's default tab: modules with purposes, provenance-encoded edges with the persistent legend, and every relationship visibly declared, discovered, or both — never ambiguous
-- [ ] Selecting a module reveals responsibilities, public interface, governing decisions, related requirements, dependencies, and dependents, each section labeled with its provenance; the contents drill-down walks module → directory → file → imports
-- [ ] The Rules tab renders the lattice with all six cell states; rule cells navigate to their governing decision
-- [ ] Advisory-severity violations render grey and hollow everywhere and never alter the chip, health colors, or issue counts; error-severity violations and conflicts render amber and reach the HEALTH card and chip through the existing issue pipeline
-- [ ] A conflicted edge shows no violation rows at any severity (DEC-061)
-- [ ] The Home ARCHITECTURE card appears only when the registry is non-empty and opens the Map; entry points match SRC-036 and are documented as provisional
-- [ ] A decision carrying an `architecture:` block shows the reader constraints card with severity and observed status; its advisory violations appear as strip lines opening the Architecture view
-- [ ] Empty states match the design: no registry → declare-modules hint; missing module path → ghosted card / skip note, never an error; clean scan → the explicit checked-and-clean line
-- [ ] `veri check` reports zero issues across the corpus and all tests pass
+- [x] The snapshot carries the projection, per-file observed edges, and severity-routed violations, collected by the main process and refreshed on rebuild — no renderer filesystem access (the sidecar — DEC-063's main-process role — collects in lib/snapshot.ts's collectArchitecture on both buildSnapshot and the incremental builder; snapshot.test.ts "carries the projection and per-file observed facts" and the error/advisory routing tests; the renderer reads only `architecture`/`archObserved`)
+- [x] The Map is the view's default tab: modules with purposes, provenance-encoded edges with the persistent legend, and every relationship visibly declared, discovered, or both — never ambiguous (archTab defaults to 'map'; solid-grey observed vs dashed-gold declared strokes with the always-rendered legend row naming each source; dep rows carry observed / declared + observed chips — archderive.test.ts "moduleDeps carries provenance chips")
+- [x] Selecting a module reveals responsibilities, public interface, governing decisions, related requirements, dependencies, and dependents, each section labeled with its provenance; the contents drill-down walks module → directory → file → imports (detailPanel's five dt-sec sections with declared·registry / discovered·exports / declared·decisions / discovered·imports / discovered·file-tree tags; listDir walk tested in archderive.test.ts "listDir walks module → directory → file → imports")
+- [x] The Rules tab renders the lattice with all six cell states; rule cells navigate to their governing decision (latticeCell + cellRender cover self, unconstrained, allowed, forbidden, violated-advisory, violated-error, conflicted — archderive.test.ts "all six states" and architecture.test.ts; rule cells are buttons opening cell.decisionId)
+- [x] Advisory-severity violations render grey and hollow everywhere and never alter the chip, health colors, or issue counts; error-severity violations and conflicts render amber and reach the HEALTH card and chip through the existing issue pipeline (routing lands advisory findings in snapshot.advisories only — snapshot.test.ts asserts issues stay empty; error findings join snapshot.issues, which the existing chip/HEALTH counts already read; adv-ring vs arch-errdot throughout; archderive.test.ts "never alter the issue count")
+- [x] A conflicted edge shows no violation rows at any severity (DEC-061) (core suppresses before the split — WO-069 — and the view re-derives nothing: the conflict cell carries no count, the CONSTRAINTS card replaces the pair with an ISSUES pointer; archderive.test.ts "a conflicted edge shows no violation rows")
+- [x] The Home ARCHITECTURE card appears only when the registry is non-empty and opens the Map; entry points match SRC-036 and are documented as provisional (home.ts renders the card only when archSummary.modules > 0, onClick openArchitecture('map'); ⌘K row via VIEW_META, architecture ↗ affordances in the reader; provisional placement documented at every entry point — tabs.ts, app.ts openArchitecture, the view header)
+- [x] A decision carrying an `architecture:` block shows the reader constraints card with severity and observed status; its advisory violations appear as strip lines opening the Architecture view (reader.ts cs-card from decisionRules — frontmatter-derived, so proposed decisions show too; severity badge + ring/dot/✓ observed status; arch-violation strip lines swap template ↗ for architecture ↗; archderive.test.ts decisionRules tests, and derive.ts anchors arch-violation issues to the governing decision for the amber banner)
+- [x] Empty states match the design: no registry → declare-modules hint; missing module path → ghosted card / skip note, never an error; clean scan → the explicit checked-and-clean line (the DEC-059 hint card when modules is empty; skipped modules render arch-mod-ghost with "not on disk — skipped" from archObserved.skipped — snapshot.test.ts skip test; the ✓ clean lines on the Home card and the VIOLATIONS card)
+- [x] `veri check` reports zero issues across the corpus and all tests pass (253 documents, 0 issues, 1 known WO-034 receipt-prefix advisory; npm test green across all five workspaces — 621 tests: action 10, cli 45, core 188, mcp 64, ui 314)
 
 ## Receipts
 
-(none yet)
+- 2026-08-25 — 00eac83 — packages/cli/src (imports.ts, imports.test.ts, index.ts), packages/core/src (schema.ts, architecture.test.ts), packages/ui/src/lib (snapshot.ts, snapshot.test.ts), packages/ui/src/renderer (archderive.ts, archderive.test.ts, app.ts, derive.ts, derive.test.ts, tabs.ts, palette.ts, views/architecture.ts, views/architecture.test.ts, views/home.ts, views/reader.ts), packages/ui/renderer/styles.css, action/dist/index.js, veri/decisions (DEC-087, DEC-088, DEC-089), veri/ids — the sidecar collects the projection, per-file import facts, and entry-point exports on every debounced rebuild and routes violations by declared severity into the snapshot's issues/advisories; the Architecture tab ships the depth-layered Map with the module detail panel and contents drill-down, the Rules lattice with its four cards, the registry-gated Home card, the ⌘K entry, and the reader constraints card with architecture ↗ strip lines; DEC-087 (export discovery), DEC-088 (map layout), DEC-089 (registry responsibilities) filed as proposed.
