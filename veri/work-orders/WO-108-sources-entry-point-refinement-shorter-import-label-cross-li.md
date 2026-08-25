@@ -2,7 +2,7 @@
 id: WO-108
 type: work-order
 title: "Sources entry-point refinement — shorter Import label, cross-linked create/import flows"
-status: in-progress
+status: done
 claimed_by: claude-import-entry
 claimed_at: 2026-08-25
 approved: 2026-08-25
@@ -46,12 +46,12 @@ Implements DEC-109 on the file-import surface (SRC-045): the Sources panel's imp
 
 ## Acceptance tests
 
-- [ ] Sources panel header shows "Import…" and its accessible name remains "Import files".
-- [ ] New Source popover shows an "or import files…" link that opens the native picker into the review sheet; popovers for other types show no such link.
-- [ ] Sources empty state offers both "New Source…" and an import entry; empty states of other types are unchanged.
-- [ ] All entries converge on the existing review sheet — no new import flow.
-- [ ] UI test suite passes; `veri check` reports zero violations.
+- [x] Sources panel header shows "Import…" and its accessible name remains "Import files".
+- [x] New Source popover shows an "or import files…" link that opens the native picker into the review sheet; popovers for other types show no such link.
+- [x] Sources empty state offers both "New Source…" and an import entry; empty states of other types are unchanged.
+- [x] All entries converge on the existing review sheet — no new import flow.
+- [x] UI test suite passes; `veri check` reports zero violations.
 
 ## Receipts
 
-(none yet)
+- 2026-08-25 — cd25385 — packages/ui/src/renderer/app.ts, packages/ui/renderer/styles.css, design/file-import/README.md, veri/sources/SRC-045-design-file-import-drag-and-drop-intake-into-source-document.md — Import… header label (accessible name kept), or-import-files… cross-link in the Source popover, import ghost row in the empty Sources panel; design bundle README + SRC-045 amended per DEC-109. 331 UI tests pass, tsc clean, veri check 0 issues.
