@@ -257,6 +257,16 @@ describe('retainTabs', () => {
     deepStrictEqual(lone.tabs.map((t) => targets(t)), [['board'], ['search']]);
     strictEqual(lone.activeKey, 't1');
   });
+
+  // WO-107 (SRC-049, DEC-108): Architecture is promoted to a sidebar view
+  // row. The row routes through the same 'architecture' ViewKey the Home
+  // card and ⌘K already use, so its tab must survive retention like any view.
+  it("the 'architecture' view tab behind the sidebar row survives retention", () => {
+    ok(isViewKey('architecture'));
+    const lone = retainTabs(s([{ t: ['architecture'] }, { t: ['search'] }], 0), () => false);
+    deepStrictEqual(lone.tabs.map((t) => targets(t)), [['architecture'], ['search']]);
+    strictEqual(lone.activeKey, 't1');
+  });
 });
 
 // WO-054 (SRC-026): the open set persists across a project switch — one

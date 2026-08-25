@@ -35,7 +35,13 @@ panel's living list, with done behind the panel's expander), and
 four-column kanban over the [[WO-098]] lifecycle, opened from a
 `▤ Board` row atop the Work Orders type panel, DONE windowed behind an
 expander; the collection row stays a panel toggle like every other
-collection, and the panel's subgroups are unchanged):
+collection, and the panel's subgroups are unchanged), and [[SRC-049]]
+(Architecture is promoted to primary navigation — an always-rendered
+`⌗ Architecture` sidebar view row below the four collections opens the
+existing one-instance Architecture tab, the view's empty-state card
+serving projects with no module registry; the Home ARCHITECTURE card,
+⌘K entry, and `architecture ↗` affordances remain, and no collection
+panel gains a promoted row for it, per [[DEC-108]]):
 
 1. **Project home** — three panes: doc tree grouped by type; markdown
    reader with frontmatter rendered as a properties header; Connections

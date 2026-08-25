@@ -2704,6 +2704,13 @@ class App implements Ctx {
       viewItem('homeview', 'Home', '⌂'),
       h('div', { class: 'side-div' }),
       ...App.COLLECTIONS.map(collItem),
+      // Architecture's promotion (WO-107, SRC-049, DEC-108): a persistent
+      // view row where Board and Graph once sat — always rendered; with no
+      // module registry the view's own empty-state card is the teaching
+      // surface. The Home card, ⌘K entry, and `architecture ↗` affordances
+      // all remain.
+      h('div', { class: 'side-div' }),
+      viewItem('architecture', 'Architecture', '⌗'),
       ...(recents.length > 0
         ? [h('div', { class: 'side-div' }), h('div', { class: 'side-label' }, 'RECENT'), ...recentRows]
         : []),
