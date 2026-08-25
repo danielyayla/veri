@@ -2,7 +2,7 @@
 id: WO-098
 type: work-order
 title: "Dispatch state: a ready status on work orders and veri next"
-status: backlog
+status: in-progress
 created: 2026-08-25
 updated: 2026-08-25
 links:
