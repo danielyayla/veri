@@ -2,7 +2,7 @@
 id: WO-093
 type: work-order
 title: "The app adopts the shared check derivation — snapshot pipeline on core's typed findings stage"
-status: in-progress
+status: done
 created: 2026-08-25
 updated: 2026-08-25
 links:
@@ -48,13 +48,13 @@ The desktop app's snapshot pipeline stops hand-orchestrating the check tier and 
 
 ## Acceptance tests
 
-- [ ] Over a fixture corpus with binds declarations, the app snapshot contains binding-drift and bound-test advisories identical to buildCheckReport's
-- [ ] Snapshot.skips matches CheckReport.skips over the same corpus and host facts (including the shallow-clone and no-git degradations)
-- [ ] buildCheckReport output is byte-identical to before the split (existing CLI/MCP/Action tests green, parity test green)
-- [ ] The snapshot equivalence test (WO-051) still holds SnapshotBuilder to buildSnapshot's shape, now including skips
-- [ ] RunCheckResult no longer exists in @verikb/mcp's exports; the run_check tool output is unchanged or its change is stated in the tool description
-- [ ] veri check green
+- [x] Over a fixture corpus with binds declarations, the app snapshot contains binding-drift and bound-test advisories identical to buildCheckReport's — snapshot.test.ts "snapshot findings equal the CLI report over one bound corpus" deep-equals findings against the CLI's checkReport and asserts drift-missing-test and drift-unclaimed-change are present
+- [x] Snapshot.skips matches CheckReport.skips over the same corpus and host facts (including the shallow-clone and no-git degradations) — the two WO-093 skip-parity tests cover the not-a-repository and shallow-clone cases against the CLI report
+- [x] buildCheckReport output is byte-identical to before the split (existing CLI/MCP/Action tests green, parity test green) — full suite 316+16 pass; the WO-089 parity test passes unchanged in mechanism
+- [x] The snapshot equivalence test (WO-051) still holds SnapshotBuilder to buildSnapshot's shape, now including skips — deepEqual covers the new field; suite green
+- [x] RunCheckResult no longer exists in @verikb/mcp's exports; the run_check tool output is unchanged or its change is stated in the tool description — runCheck returns core's CheckReport; the tool's pass/violations/skipped keys are serialized at the server edge, output byte-identical
+- [x] veri check green — 0 issues over 260 documents (one pre-existing WO-034 receipt-wording advisory, unrelated)
 
 ## Receipts
 
-(none yet)
+- 2026-08-25 · c0ea50e (+ 2db14e3 shallow-clone test) · packages/core/src/report.ts, packages/cli/src/index.ts, packages/ui/src/lib/snapshot.ts, packages/ui/src/lib/snapshot.test.ts, packages/ui/src/renderer/{archderive,derive}.test.ts, packages/mcp/src/{check.ts,server.ts,check.test.ts}, action/dist/index.js — deriveFindings lands in core, both snapshot paths adopt it (binding drift + bound tests + skips reach the app), RunCheckResult retired.
