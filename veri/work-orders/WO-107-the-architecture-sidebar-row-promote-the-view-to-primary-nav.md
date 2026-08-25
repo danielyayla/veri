@@ -2,7 +2,8 @@
 id: WO-107
 type: work-order
 title: "The Architecture sidebar row — promote the view to primary navigation per SRC-049"
-status: backlog
+status: ready
+approved: 2026-08-25
 created: 2026-08-25
 updated: 2026-08-25
 links:
