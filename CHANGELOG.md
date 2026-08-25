@@ -9,7 +9,7 @@ git and the `veri/` knowledge base rather than backfilled here.
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-08-25
+## [0.3.1] - 2026-08-25
 
 ### Added
 
