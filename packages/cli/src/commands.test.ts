@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assembleContext } from '@verikb/core';
-import { approve, architecture, check, checkReport, context, importPrompt, init, list, listStarters, migrate, newDoc, open, renumber } from './commands.ts';
+import { approve, architecture, check, checkReport, context, importFile, importPrompt, init, list, listStarters, migrate, newDoc, open, renumber } from './commands.ts';
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const FIVE_ISSUES = fileURLToPath(new URL('../fixtures/five-issues', import.meta.url));
@@ -668,4 +668,63 @@ test('binding drift skips with a note outside git, while bound-test facts still 
   const missing = report.advisories.filter((a) => a.kind === 'drift-missing-test');
   assert.equal(missing.length, 1);
   assert.match(missing[0].message, /tests\/gone\.test\.ts/);
+});
+
+test('veri import <file> files a source with the original preserved, and check passes (WO-094)', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  assert.equal(init(cwd, { demo: false }).code, 0);
+
+  writeFileSync(join(cwd, 'meridian-onboarding-interview.md'), '# Meridian onboarding interview\n\nTranscript body.\n');
+  const imported = await importFile(cwd, 'meridian-onboarding-interview.md');
+  assert.equal(imported.code, 0, imported.lines.join('\n'));
+  assert.match(imported.lines[0], /Imported meridian-onboarding-interview\.md → veri\/sources\/SRC-001-meridian-onboarding-interview\.md \(SRC-001\)/);
+
+  const doc = readFileSync(join(cwd, 'veri/sources/SRC-001-meridian-onboarding-interview.md'), 'utf8');
+  assert.match(doc, /^title: "Meridian onboarding interview"$/m);
+  assert.match(doc, /^status: imported$/m);
+  assert.match(doc, /^original: "originals\/SRC-001-meridian-onboarding-interview\.md"$/m);
+  assert.match(doc, /Transcript body\./);
+  const original = readFileSync(join(cwd, 'veri/originals/SRC-001-meridian-onboarding-interview.md'), 'utf8');
+  assert.match(original, /^# Meridian onboarding interview$/m);
+
+  // The preserved .md original must never parse as a document (DEC-094):
+  // exactly WF-001 + SRC-001, zero issues.
+  const checked = await check(cwd);
+  assert.equal(checked.code, 0, checked.lines.join('\n'));
+  assert.match(checked.lines.at(-1) ?? '', /ok — 2 documents, 0 issues/);
+});
+
+test('veri import refuses unsupported and unreadable files without filing anything', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  assert.equal(init(cwd, { demo: false }).code, 0);
+
+  writeFileSync(join(cwd, 'scan.pdf'), Buffer.from([0x25, 0x50, 0x44, 0x46]));
+  const refused = await importFile(cwd, 'scan.pdf');
+  assert.equal(refused.code, 1);
+  assert.match(refused.lines[0], /supported formats: \.md \.txt \.eml/);
+
+  const missing = await importFile(cwd, 'no-such-file.txt');
+  assert.equal(missing.code, 1);
+  assert.match(missing.lines[0], /cannot read no-such-file\.txt/);
+
+  const filed = readdirSync(join(cwd, 'veri/sources')).filter((f) => f.endsWith('.md'));
+  assert.equal(filed.length, 0, 'nothing may be filed on refusal');
+  assert.ok(!existsSync(join(cwd, 'veri/originals')), 'no originals dir on refusal');
+});
+
+test('veri import allocates past existing sources and records the issued id', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  assert.equal(init(cwd, { demo: false }).code, 0);
+  assert.equal((await newDoc(cwd, 'source', 'Hand-authored evidence')).code, 0);
+
+  writeFileSync(join(cwd, 'pricing-thread.eml'), ['From: ops@example.com', 'Subject: Renewal pricing', '', 'Body.'].join('\r\n'));
+  const imported = await importFile(cwd, 'pricing-thread.eml');
+  assert.equal(imported.code, 0, imported.lines.join('\n'));
+  assert.match(imported.lines[0], /\(SRC-002\)/);
+  const doc = readFileSync(join(cwd, 'veri/sources/SRC-002-renewal-pricing.md'), 'utf8');
+  assert.match(doc, /^title: "Renewal pricing"$/m);
+  assert.match(doc, /- Subject: Renewal pricing/);
 });

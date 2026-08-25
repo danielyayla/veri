@@ -28,6 +28,9 @@ export async function loadProject(veriDir: string | URL): Promise<LoadResult> {
     .map((entry) => entry.replaceAll('\\', '/'))
     // veri/templates/ holds body-only creation templates, not documents (DEC-023).
     .filter((file) => !file.startsWith('templates/'))
+    // veri/originals/ holds preserved intake files, not documents (DEC-094):
+    // an imported .md original must never parse as a knowledge-base document.
+    .filter((file) => !file.startsWith('originals/'))
     .sort();
 
   const documents: VeriDocument[] = [];

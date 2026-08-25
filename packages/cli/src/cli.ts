@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { approve, architecture, check, context, implemented, importPrompt, init, list, migrate, newDoc, open, renumber } from './commands.ts';
+import { approve, architecture, check, context, implemented, importFile, importPrompt, init, list, migrate, newDoc, open, renumber } from './commands.ts';
 import type { CmdResult } from './commands.ts';
 
 /** The value following `--flag`, or undefined when the flag is absent. */
@@ -20,7 +20,9 @@ const USAGE = `usage: veri <command>
   veri renumber <id> [--to <new-id>] [--file <path>] [--refs <path,path>]
                              move a document to a new id, rewriting inbound links
   veri migrate               bring veri/ to the current on-disk format
-  veri import                print the kickoff prompt for mining this repo into proposals
+  veri import [file]         with a file: import it as a source document, original
+                             preserved (.md .txt .eml); bare: print the kickoff
+                             prompt for mining this repo into proposals
   veri context <WO-id>       print the context package an agent receives
   veri architecture          print the compiled intended architecture
   veri implemented <path>    work orders whose commits touched the path
@@ -64,7 +66,9 @@ switch (command) {
     result = migrate(cwd);
     break;
   case 'import':
-    result = importPrompt(cwd);
+    // With a file argument: intake (WO-094). Bare: the brownfield kickoff
+    // prompt (REQ-024) — one verb, split on the argument (DEC-093).
+    result = rest[0] === undefined ? importPrompt(cwd) : await importFile(cwd, rest[0]);
     break;
   case 'context':
     result = await context(cwd, rest[0]);

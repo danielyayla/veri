@@ -1,9 +1,9 @@
 import { spawn } from 'node:child_process';
-import { existsSync, readdirSync, realpathSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { dirname, join, relative, resolve, sep } from 'node:path';
+import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, classifyFormat, compareIds, createDocument, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, maintainerRegistry, migrateProject, moduleRegistry, renderArchitecture, renumberDocument, scaffoldProject, workOrdersTouching } from '@verikb/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, maintainerRegistry, migrateProject, moduleRegistry, nextIdNumber, originalStoragePath, recordIssuedId, renderArchitecture, renumberDocument, scaffoldProject, slugifyTitle, workOrdersTouching } from '@verikb/core';
 import type { CheckReport, DocType } from '@verikb/core';
 import { collectGitFacts, gitUserName } from './git.ts';
 import { collectTestFacts } from './testfacts.ts';
@@ -86,6 +86,58 @@ export function importPrompt(cwd: string): CmdResult {
   const dir = requireVeriDir(cwd);
   if (dir === null) return NO_VERI_DIR;
   return { code: 0, lines: [importKickoffPrompt()] };
+}
+
+/**
+ * `veri import <file>` (WO-094, REQ-031): one evidence file becomes a source
+ * document with its original preserved under veri/originals/. This adapter
+ * owns all file access — reading the evidence, writing the document and the
+ * original copy; every derivation (extraction, refusal, title, paths, the
+ * document text) is core's pure intake module (DEC-060, DEC-093, DEC-094).
+ */
+export async function importFile(cwd: string, fileArg: string): Promise<CmdResult> {
+  const dir = requireVeriDir(cwd);
+  if (dir === null) return NO_VERI_DIR;
+
+  const sourcePath = resolve(cwd, fileArg);
+  let bytes: Buffer;
+  try {
+    bytes = readFileSync(sourcePath);
+  } catch (err) {
+    return { code: 1, lines: [`cannot read ${fileArg}: ${err instanceof Error ? err.message : String(err)}`] };
+  }
+
+  const name = basename(sourcePath);
+  const extraction = extractIntake(name, bytes);
+  if (!extraction.ok) return { code: 1, lines: [extraction.message] };
+
+  const { documents } = await loadProject(dir);
+  const next = nextIdNumber(
+    dir,
+    'SRC',
+    documents.map((doc) => doc.id),
+  );
+  const id = `SRC-${String(next).padStart(3, '0')}`;
+  const title = deriveIntakeTitle(name, extraction);
+  const original = originalStoragePath(id, name);
+  const docFile = `sources/${id}-${slugifyTitle(title)}.md`;
+  const text = buildImportedSource({ id, title, date: localToday(), original, text: extraction.text });
+
+  // Original first, document second, id record last: a failure partway
+  // leaves at worst an unreferenced original, never a document whose
+  // `original:` points at nothing. Both writes are `wx` — never overwrite.
+  try {
+    mkdirSync(join(dir, 'originals'), { recursive: true });
+    writeFileSync(join(dir, original), bytes, { flag: 'wx' });
+    writeFileSync(join(dir, docFile), text, { flag: 'wx' });
+  } catch (err) {
+    return { code: 1, lines: [`import failed: ${err instanceof Error ? err.message : String(err)}`] };
+  }
+  recordIssuedId(dir, 'SRC', next);
+  return {
+    code: 0,
+    lines: [`Imported ${name} → veri/${docFile} (${id})`, `original preserved at veri/${original}`],
+  };
 }
 
 function requireVeriDir(cwd: string): string | null {

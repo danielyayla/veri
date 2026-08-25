@@ -117,8 +117,17 @@ const workOrderSchema = z
   })
   .passthrough();
 
+// WO-094: an imported source may reference its preserved original — the
+// veri/-relative path under originals/ (DEC-094). Optional: hand-authored
+// sources have no original. Validated so a malformed reference is an
+// invalid-frontmatter issue, never a silently dead pointer.
 const sourceSchema = z
-  .object({ ...baseFields, type: z.literal('source'), status: z.literal('imported') })
+  .object({
+    ...baseFields,
+    type: z.literal('source'),
+    status: z.literal('imported'),
+    original: z.string().min(1).optional(),
+  })
   .passthrough();
 
 // The project workflow document (DEC-018): same lifecycle as a requirement.
@@ -210,11 +219,5 @@ export function packingFor(type: DocType, status: string): Packing {
  */
 export const INLINE_THRESHOLD_TOKENS = 15_000;
 
-/**
- * The assembly contract in one human-readable line, for any surface that
- * summarizes a package (REQ-019: one description, owned next to the policy
- * it describes, so summaries cannot drift from what assembly emits).
- */
-export const PACKAGE_RULES =
-  'Workflow always first · linked requirements and decisions in full · sources as excerpts · ' +
-  'superseded decisions named only · oversized neighborhoods enumerated as a context map';
+// PACKAGE_RULES moved to prompts.ts (DEC-092): the renderer needs it from a
+// browser-bundleable subpath, and this module carries zod.
