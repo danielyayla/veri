@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="preload" href="assets/fonts/source-sans-3-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="site.css?v=8">
+<link rel="stylesheet" href="site.css?v=9">
 </head>
 <body>
 
@@ -36,6 +36,13 @@
 <section class="hero">
   <h1>A knowledge base your coding agents read</h1>
   <p class="oneliner">Requirements, decisions, evidence, and work orders live as <strong>plain Markdown in your repo</strong>. Veri hands each coding task the context it needs — without rebuilding the project from chat history every session.</p>
+  <!-- WO-084/DEC-084: this command block ships in the same change that
+       executes the DEC-077 npm publish, so the command and the registry
+       state can never disagree. Do not merge ahead of the publish. -->
+  <div class="hero-cmd">
+    <code><span class="cmd-ps" aria-hidden="true">$ </span>npm install -g @veri/cli</code>
+    <button type="button" class="cmd-copy js-only" id="cmd-copy">Copy</button>
+  </div>
   <div class="cta-row">
     <a class="btn btn-primary" id="dl" href="https://github.com/danielyayla/veri/releases/latest">Download for macOS</a>
     <a class="btn btn-secondary" href="https://github.com/danielyayla/veri">View on GitHub</a>
@@ -44,9 +51,9 @@
   <div class="dl-sub"><span id="dl-version"></span>macOS 13+ · <a id="dl-arm" href="https://github.com/danielyayla/veri/releases/latest">Apple silicon</a> &amp; <a id="dl-intel" href="https://github.com/danielyayla/veri/releases/latest">Intel</a> · free &amp; open source</div>
   <!-- WO-084/WO-092: installers exist for all three platforms; caveats are
        stated where the artifact is offered (DEC-082 signing posture, DEC-090
-       sizes). A command-line install lands here the moment the npm publish
-       (DEC-077) actually ships — no install claim ahead of reality. -->
-  <p class="dl-platforms">Also for <a id="dl-win" href="https://github.com/danielyayla/veri/releases/latest">Windows 10+</a> and Linux (<a id="dl-appimage" href="https://github.com/danielyayla/veri/releases/latest">AppImage</a> · <a id="dl-deb" href="https://github.com/danielyayla/veri/releases/latest">.deb</a>) — the Windows installer is unsigned for now, so SmartScreen warns on first install; the ~120 MB AppImage auto-updates and bundles its own WebKit; the .deb is smaller but doesn't auto-update. The CLI and MCP server run anywhere Node 20+ does, <a href="https://github.com/danielyayla/veri#installing-the-cli">from a source checkout</a> today (not yet on npm).</p>
+       sizes). The CLI/MCP npm claim below is true only once the DEC-077
+       publish has executed — this file merges with that publish. -->
+  <p class="dl-platforms">Also for <a id="dl-win" href="https://github.com/danielyayla/veri/releases/latest">Windows 10+</a> and Linux (<a id="dl-appimage" href="https://github.com/danielyayla/veri/releases/latest">AppImage</a> · <a id="dl-deb" href="https://github.com/danielyayla/veri/releases/latest">.deb</a>) — the Windows installer is unsigned for now, so SmartScreen warns on first install; the ~120 MB AppImage auto-updates and bundles its own WebKit; the .deb is smaller but doesn't auto-update. The CLI and MCP server are <a href="https://github.com/danielyayla/veri#installing-the-cli">on npm</a> and run anywhere Node 20+ does — <code>npm install -g @veri/cli</code> on any platform.</p>
 </section>
 
 <div class="hero-shot demo demo-hero" id="product">
@@ -431,7 +438,7 @@ embedded in the Rust core.
     <a class="cta-quickstart" href="docs/quickstart.html">or start with the quickstart</a>
   </div>
   <div class="dl-sub"><a id="dl2-arm" href="https://github.com/danielyayla/veri/releases/latest">Apple silicon</a> &amp; <a id="dl2-intel" href="https://github.com/danielyayla/veri/releases/latest">Intel</a></div>
-  <div class="dl-sub">The app runs on macOS 13+, Windows 10+, and Linux (<a id="dl2-appimage" href="https://github.com/danielyayla/veri/releases/latest">AppImage</a> or <a id="dl2-deb" href="https://github.com/danielyayla/veri/releases/latest">.deb</a>). The <a href="docs/ci.html">CI gate</a>, CLI, and MCP server are plain Node and run anywhere Node 20+ does — the CLI and MCP <a href="https://github.com/danielyayla/veri#installing-the-cli">from a source checkout</a>, not yet on npm.</div>
+  <div class="dl-sub">The app runs on macOS 13+, Windows 10+, and Linux (<a id="dl2-appimage" href="https://github.com/danielyayla/veri/releases/latest">AppImage</a> or <a id="dl2-deb" href="https://github.com/danielyayla/veri/releases/latest">.deb</a>). The <a href="docs/ci.html">CI gate</a>, CLI, and MCP server are plain Node and run anywhere Node 20+ does — the CLI and MCP <a href="https://github.com/danielyayla/veri#installing-the-cli">from npm</a>: <code>npm install -g @veri/cli</code>.</div>
   <div class="dl-sub fin-oss"><a href="https://github.com/danielyayla/veri/blob/main/LICENSE">Apache-2.0</a> · <a href="https://github.com/danielyayla/veri/tree/main/packages/cli/demo/veri">browse the sample knowledge base on GitHub</a> · <a href="https://github.com/danielyayla/veri/releases">changelog</a></div>
 </section>
 
@@ -576,6 +583,18 @@ fetch('https://api.github.com/repos/danielyayla/veri/releases/latest')
     setPhase(0);
     startBtn.focus();
   });
+  /* WO-084/DEC-084 — hero install command copy affordance. The button
+     carries .js-only, so with scripts disabled no dead control renders. */
+  var cmdBtn = $('cmd-copy'), cmdTimer = null;
+  cmdBtn.addEventListener('click', function () {
+    try {
+      navigator.clipboard.writeText('npm install -g @veri/cli').catch(function () {});
+    } catch (e) { return; /* clipboard unavailable — don't claim Copied */ }
+    cmdBtn.textContent = 'Copied';
+    clearTimeout(cmdTimer);
+    cmdTimer = setTimeout(function () { cmdBtn.textContent = 'Copy'; }, 1500);
+  });
+
   var copyBtn = $('sess-copy'), copyTimer = null;
   copyBtn.addEventListener('click', function () {
     try {
