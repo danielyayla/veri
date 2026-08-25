@@ -14,6 +14,7 @@ export * from './approve.ts';
 export * from './renumber.ts';
 export * from './scaffold.ts';
 export * from './save.ts';
+export * from './sections.ts';
 export * from './links.ts';
 export * from './create.ts';
 export * from './idstore.ts';

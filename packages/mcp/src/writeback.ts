@@ -1,7 +1,7 @@
 import { existsSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { createDocument, loadProject, localToday } from '@verikb/core';
+import { appendToSection, bumpUpdated, createDocument, loadProject, localToday } from '@verikb/core';
 import type { DocType, Link } from '@verikb/core';
 
 export interface FileDecisionInput {
@@ -171,28 +171,7 @@ export async function fileReceipt(projectRoot: string, input: FileReceiptInput):
   const raw = await readFile(path, 'utf8');
   const date = input.date ?? today();
   const line = `- ${date} — ${input.commit} — ${input.files} — ${input.summary}`;
-  const withReceipt = appendReceipt(raw, line);
-  const updated = withReceipt.replace(/^updated: .*$/m, `updated: ${today()}`);
-  writeFileSync(path, updated);
+  const withReceipt = appendToSection(raw, 'Receipts', line, { placeholder: '(none yet)' });
+  writeFileSync(path, bumpUpdated(withReceipt, today()));
   return { file: `veri/${target.file}` };
-}
-
-function appendReceipt(content: string, line: string): string {
-  const heading = /^## Receipts[ \t]*$/m.exec(content);
-  if (heading === null) {
-    return `${content.trimEnd()}\n\n## Receipts\n\n${line}\n`;
-  }
-  const afterHeading = heading.index + heading[0].length;
-  const rest = content.slice(afterHeading);
-  const nextHeading = rest.search(/^##\s/m);
-  const sectionEnd = nextHeading >= 0 ? afterHeading + nextHeading : content.length;
-
-  const existing = content
-    .slice(afterHeading, sectionEnd)
-    .replace(/^\(none yet\)[ \t]*$/m, '')
-    .trim();
-  const before = content.slice(0, afterHeading);
-  const after = content.slice(sectionEnd);
-  const section = `\n\n${existing === '' ? '' : `${existing}\n`}${line}\n`;
-  return `${before}${section}${after === '' ? '' : `\n${after}`}`;
 }

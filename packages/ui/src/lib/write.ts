@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { approveDocument, isPending, loadProject, localToday, setDocumentLinks } from '@verikb/core';
+import { appendToSection, approveDocument, bumpUpdated, isPending, loadProject, localToday, setDocumentLinks } from '@verikb/core';
 import type { ApproveResult, Link, VeriDocument } from '@verikb/core';
 
 /** Statuses the UI may write, per the vocabularies in CLAUDE.md / core's schema. */
@@ -34,7 +34,7 @@ export async function setStatus(projectRoot: string, id: string, status: string)
     throw new Error(`"${status}" is not a valid ${doc.type} status (expected ${allowed.join(' | ')})`);
   }
   const raw = await readFile(path, 'utf8');
-  const updated = raw.replace(/^status: .*$/m, `status: ${status}`).replace(/^updated: .*$/m, `updated: ${today()}`);
+  const updated = bumpUpdated(raw.replace(/^status: .*$/m, `status: ${status}`), today());
   await writeFile(path, updated);
 }
 
@@ -57,8 +57,6 @@ export async function setLinks(projectRoot: string, id: string, links: Link[]): 
   await setDocumentLinks(veriDir, doc.file, links);
 }
 
-const NOTES_HEADING_RE = /^## Notes[ \t]*$/m;
-
 /**
  * Append a dated note under the document's "## Notes" section (created at the
  * end of the body when missing). Notes may carry [[ID]] wiki-links; core picks
@@ -69,24 +67,8 @@ export async function appendNote(projectRoot: string, id: string, note: string):
   if (text === '') throw new Error('note is empty');
   const { path } = await findDoc(projectRoot, id);
   const raw = await readFile(path, 'utf8');
-  const line = `- ${today()} — ${text}`;
-
-  let withNote: string;
-  const heading = NOTES_HEADING_RE.exec(raw);
-  if (heading === null) {
-    withNote = `${raw.trimEnd()}\n\n## Notes\n\n${line}\n`;
-  } else {
-    const afterHeading = heading.index + heading[0].length;
-    const rest = raw.slice(afterHeading);
-    const nextHeading = rest.search(/^##\s/m);
-    const sectionEnd = nextHeading >= 0 ? afterHeading + nextHeading : raw.length;
-    const existing = raw.slice(afterHeading, sectionEnd).trim();
-    const before = raw.slice(0, afterHeading);
-    const after = raw.slice(sectionEnd);
-    const section = `\n\n${existing === '' ? '' : `${existing}\n`}${line}\n`;
-    withNote = `${before}${section}${after === '' ? '' : `\n${after}`}`;
-  }
-  await writeFile(path, withNote.replace(/^updated: .*$/m, `updated: ${today()}`));
+  const withNote = appendToSection(raw, 'Notes', `- ${today()} — ${text}`);
+  await writeFile(path, bumpUpdated(withNote, today()));
 }
 
 /**
@@ -97,8 +79,6 @@ export async function appendNote(projectRoot: string, id: string, note: string):
 export async function approveDoc(projectRoot: string, id: string): Promise<ApproveResult> {
   return approveDocument(join(projectRoot, 'veri'), id);
 }
-
-const REVIEW_HEADING_RE = /^## Review notes[ \t]*$/m;
 
 /**
  * Return a pending document with review feedback (REQ-008): a dated entry
@@ -111,22 +91,6 @@ export async function appendReviewNote(projectRoot: string, id: string, note: st
   const { doc, path } = await findDoc(projectRoot, id);
   if (!isPending(doc)) throw new Error(`${id} is ${doc.status} — review notes are for pending documents`);
   const raw = await readFile(path, 'utf8');
-  const line = `- ${today()} (review): ${text}`;
-
-  let withNote: string;
-  const heading = REVIEW_HEADING_RE.exec(raw);
-  if (heading === null) {
-    withNote = `${raw.trimEnd()}\n\n## Review notes\n\n${line}\n`;
-  } else {
-    const afterHeading = heading.index + heading[0].length;
-    const rest = raw.slice(afterHeading);
-    const nextHeading = rest.search(/^##\s/m);
-    const sectionEnd = nextHeading >= 0 ? afterHeading + nextHeading : raw.length;
-    const existing = raw.slice(afterHeading, sectionEnd).trim();
-    const before = raw.slice(0, afterHeading);
-    const after = raw.slice(sectionEnd);
-    const section = `\n\n${existing === '' ? '' : `${existing}\n`}${line}\n`;
-    withNote = `${before}${section}${after === '' ? '' : `\n${after}`}`;
-  }
-  await writeFile(path, withNote.replace(/^updated: .*$/m, `updated: ${today()}`));
+  const withNote = appendToSection(raw, 'Review notes', `- ${today()} (review): ${text}`);
+  await writeFile(path, bumpUpdated(withNote, today()));
 }
