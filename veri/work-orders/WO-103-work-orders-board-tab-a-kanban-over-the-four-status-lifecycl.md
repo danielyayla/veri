@@ -48,13 +48,13 @@ Clicking the Work Orders collection opens a ▤ Work Orders view tab — a four-
 ## Acceptance tests
 
 - [ ] Clicking the Work Orders collection opens the ▤ Work Orders board tab; the type panel behavior for other collections is unchanged
-- [ ] Board shows four columns with token status colors; `ready` renders info blue everywhere a status renders
-- [ ] DONE column shows at most 5 cards until expanded; expander toggles in place
-- [ ] The work-order detail's segmented control offers no path into `ready`; `veri approve` remains the only write path
-- [ ] Done cards show their latest receipt SHA; cards with check issues show the filled amber dot
+- [x] Board shows four columns with token status colors; `ready` renders info blue everywhere a status renders
+- [x] DONE column shows at most 5 cards until expanded; expander toggles in place
+- [x] The work-order detail's segmented control offers no path into `ready`; `veri approve` remains the only write path
+- [x] Done cards show their latest receipt SHA; cards with check issues show the filled amber dot
 - [ ] Board survives a 320px split pane via the stacked fallback
-- [ ] `veri check` green
+- [x] `veri check` green
 
 ## Receipts
 
-(none yet)
+- 2026-08-25 — 0ae6fef — packages/ui/src/renderer/{tabs,theme,sidebar,derive,app}.ts, packages/ui/src/renderer/views/{board,workorder}.ts, packages/ui/renderer/styles.css (+ tabs/derive/sidebar tests), veri/requirements/REQ-004-desktop-ui.md, veri/decisions/DEC-105 — claude-6f8627ae session: the board view tab, the ready lane across the UI, the stamp-gated segment; 330/330 UI tests, typecheck and bundle green. Two boxes await a visual pass in the running app (collection-click entry, 320px pane fallback) — the dev shell is left running for it.
