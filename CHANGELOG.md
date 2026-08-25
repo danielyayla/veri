@@ -9,7 +9,7 @@ git and the `veri/` knowledge base rather than backfilled here.
 
 ## [Unreleased]
 
-## [0.3.1] - 2026-08-25
+## [0.3.2] - 2026-08-25
 
 ### Added
 
@@ -43,6 +43,10 @@ git and the `veri/` knowledge base rather than backfilled here.
 
 - CI runs the full test suite on macOS, Linux, and Windows on every
   push.
+- Installer size ceilings are per-platform: macOS and Windows stay at
+  50 MB; the Linux AppImage (which must carry its own WebView engine)
+  gets 150 MB and the `.deb` 60 MB. Release notes list each artifact
+  against its ceiling.
 - The release pipeline recognizes non-app tags (such as the action's
   `v1`) and passes them through green instead of failing.
 - Release notes now open with a "What's new" section drawn from this
