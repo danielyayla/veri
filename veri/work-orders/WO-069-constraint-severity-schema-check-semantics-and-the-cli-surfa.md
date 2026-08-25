@@ -2,9 +2,9 @@
 id: WO-069
 type: work-order
 title: "Constraint severity: schema, check semantics, and the CLI surfaces"
-status: backlog
+status: in-progress
 created: 2026-08-20
-updated: 2026-08-20
+updated: 2026-08-25
 links:
   - id: REQ-022
     rel: implements
