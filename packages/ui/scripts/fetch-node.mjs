@@ -27,9 +27,10 @@ export const NODE_VERSION = '22.18.0';
 // dist: nodejs.org archive name segment; archive: its format; inner: the
 // node binary's path inside the extracted tree; triple + exe: the output
 // name externalBin resolves (`binaries/node` → node-<triple><exe>).
-// The .zip is extracted with bsdtar, which ships as `tar` on the Windows
-// runners (and macOS); the win-x64 target is never fetched on Linux, whose
-// GNU tar cannot read zip.
+// The .zip is extracted with bsdtar — macOS's `tar`, and on Windows the
+// system one at %SystemRoot%\System32 (pinned by path: Git bash shadows it
+// with GNU tar); the win-x64 target is never fetched on Linux, whose GNU
+// tar cannot read zip.
 const TARGETS = {
   arm64: { dist: 'darwin-arm64', archive: 'tar.gz', inner: 'bin/node', triple: 'aarch64-apple-darwin', exe: '' },
   x64: { dist: 'darwin-x64', archive: 'tar.gz', inner: 'bin/node', triple: 'x86_64-apple-darwin', exe: '' },
@@ -80,9 +81,14 @@ for (const key of wanted) {
   rmSync(work, { recursive: true, force: true });
   mkdirSync(work, { recursive: true });
   writeFileSync(join(work, archive), bytes);
-  // bsdtar (macOS, Windows runners) auto-detects tar.gz and zip alike; GNU
-  // tar (Linux) auto-detects tar.gz, the only format fetched there.
-  execFileSync('tar', ['-xf', archive, `${dist}/${target.inner}`], { cwd: work });
+  // bsdtar auto-detects tar.gz and zip alike; GNU tar reads only tar.gz
+  // (fine on Linux, which never fetches the zip). On Windows PATH order is
+  // shell-dependent — GitHub's bash steps put Git's GNU tar first, which
+  // chokes on the zip — so pin the system bsdtar by absolute path there.
+  const tar = process.platform === 'win32'
+    ? join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe')
+    : 'tar';
+  execFileSync(tar, ['-xf', archive, `${dist}/${target.inner}`], { cwd: work });
 
   mkdirSync(binDir, { recursive: true });
   rmSync(out, { force: true });
