@@ -2,7 +2,8 @@
 id: REQ-031
 type: requirement
 title: "Evidence enters as files — low-friction intake into source documents"
-status: draft
+status: accepted
+approved: 2026-08-25
 created: 2026-08-25
 updated: 2026-08-25
 links:
