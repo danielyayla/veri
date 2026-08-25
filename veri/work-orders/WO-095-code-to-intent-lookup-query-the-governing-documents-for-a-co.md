@@ -2,7 +2,7 @@
 id: WO-095
 type: work-order
 title: "Code-to-intent lookup: query the governing documents for a code path"
-status: in-progress
+status: done
 created: 2026-08-25
 updated: 2026-08-25
 claimed_by: claude-a9785818
@@ -44,12 +44,12 @@ Give agents the reverse lookup Veri already has the data for: from a code path t
 
 ## Acceptance tests
 
-- [ ] Given a path touched by past receipts, the lookup returns those work orders and their linked requirements and decisions, ranked as specified.
-- [ ] Given a path covered only by the module registry, the lookup returns the module entry and says no document-level matches exist.
-- [ ] The MCP tool and CLI surface print the same derivation from core.
-- [ ] Tool description makes clear the results are grounded in receipts and bindings, not a code index.
-- [ ] Non-trivial choices (tool name, ranking, result shape) are filed as proposed decisions.
-- [ ] `veri check` passes; tests colocated per repo convention.
+- [x] Given a path touched by past receipts, the lookup returns those work orders and their linked requirements and decisions, ranked as specified.
+- [x] Given a path covered only by the module registry, the lookup returns the module entry and says no document-level matches exist.
+- [x] The MCP tool and CLI surface print the same derivation from core.
+- [x] Tool description makes clear the results are grounded in receipts and bindings, not a code index.
+- [x] Non-trivial choices (tool name, ranking, result shape) are filed as proposed decisions.
+- [x] `veri check` passes; tests colocated per repo convention.
 
 ## Requirements
 
@@ -62,4 +62,4 @@ Give agents the reverse lookup Veri already has the data for: from a code path t
 
 ## Receipts
 
-(none yet)
+- 2026-08-25 — 7c6ad00 — packages/core/src/{intent.ts,intent.test.ts,index.ts}, packages/cli/src/{commands.ts,cli.ts,intent.test.ts}, packages/mcp/src/{intent.ts,intent.test.ts,server.ts}, veri/decisions/DEC-099 — code-to-intent lookup shipped: lookupIntent/renderIntent pure over the corpus (no git facts, DEC-081-safe), `veri intent <path>` and MCP `get_intent` printing the identical render (parity-tested), choices filed as DEC-099 (proposed); 16 tests across the three packages, veri check 0 issues.
