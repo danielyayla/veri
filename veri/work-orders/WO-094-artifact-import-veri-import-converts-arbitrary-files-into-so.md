@@ -2,7 +2,7 @@
 id: WO-094
 type: work-order
 title: "Artifact import: veri import converts arbitrary files into source documents"
-status: in-progress
+status: done
 created: 2026-08-25
 updated: 2026-08-25
 links:
@@ -39,11 +39,11 @@ Lower the intake bar for evidence. Today a source document is authored by hand (
 
 ## Acceptance tests
 
-- [ ] `veri import <file>` on a text or markdown file files a well-formed SRC document with the extracted content and a reference to the preserved original.
-- [ ] The command refuses unsupported formats with a clear message naming what is supported.
-- [ ] Import logic lives in core with no fs access; the CLI adapter owns reading the file.
-- [ ] `veri check` passes on a knowledge base after an import.
-- [ ] Non-trivial choices (original-file storage location, supported-format set) are filed as proposed decisions.
+- [x] `veri import <file>` on a text or markdown file files a well-formed SRC document with the extracted content and a reference to the preserved original.
+- [x] The command refuses unsupported formats with a clear message naming what is supported.
+- [x] Import logic lives in core with no fs access; the CLI adapter owns reading the file.
+- [x] `veri check` passes on a knowledge base after an import.
+- [x] Non-trivial choices (original-file storage location, supported-format set) are filed as proposed decisions ([[DEC-093]], [[DEC-094]]).
 
 ## Requirements
 
@@ -54,4 +54,11 @@ Lower the intake bar for evidence. Today a source document is authored by hand (
 
 ## Receipts
 
-(none yet)
+- 2026-08-25 · commit 9e172e7 · packages/core/src/intake.ts (new),
+  intake.test.ts (new), schema.ts, load.ts, index.ts;
+  packages/cli/src/commands.ts, cli.ts, commands.test.ts — `veri import
+  <file>` lands: pure core intake (md/txt/eml extraction, refusals,
+  title, originals path, document builder), validated `original:` field,
+  originals/ loader skip, CLI adapter owning all file access; DEC-093
+  and DEC-094 filed proposed; 317 monorepo tests green, smoke-tested
+  end to end.
