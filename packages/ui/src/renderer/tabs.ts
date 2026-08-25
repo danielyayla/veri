@@ -13,7 +13,7 @@
     surface now. 'board' is retired (WO-053, SRC-025): its status columns
     fold into the Work Orders type panel as subgroups. Persisted graph and
     board tabs restore away via retainTabs. */
-export type ViewKey = 'homeview' | 'search' | 'settings' | 'import';
+export type ViewKey = 'homeview' | 'search' | 'settings' | 'import' | 'architecture';
 
 export const VIEW_META: Record<ViewKey, { label: string; glyph: string }> = {
   homeview: { label: 'Home', glyph: '⌂' },
@@ -23,6 +23,10 @@ export const VIEW_META: Record<ViewKey, { label: string; glyph: string }> = {
   settings: { label: 'Settings', glyph: '⚙' },
   // Brownfield import (WO-075, SRC-039): kickoff, live filing, done.
   import: { label: 'Import', glyph: '⇲' },
+  // Architecture (WO-068, SRC-036): the map and the rules lattice. Reached
+  // via the Home card, ⌘K, and `architecture ↗` — the provisional placement;
+  // promoting it to primary navigation later costs only a sidebar item.
+  architecture: { label: 'Architecture', glyph: '⌗' },
 };
 
 export function isViewKey(id: string): id is ViewKey {

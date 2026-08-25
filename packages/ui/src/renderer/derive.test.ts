@@ -65,6 +65,8 @@ function snap(
     edges: buildGraph(documents).edges,
     git: null,
     brownfield: false,
+    architecture: { modules: [], rules: [], conflicts: [] },
+    archObserved: { edges: [], skipped: [], files: [], exports: {} },
   };
 }
 

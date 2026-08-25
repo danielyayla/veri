@@ -34,6 +34,7 @@ const COMMAND_META: Record<CommandKey, { label: string; glyph: string; terms: st
 const VIEW_ALIASES: Partial<Record<ViewKey, string[]>> = {
   settings: ['templates', 'agent', 'connection', 'updates'],
   import: ['import', 'brownfield', 'mine', 'knowledge'],
+  architecture: ['map', 'rules', 'modules', 'lattice', 'dependencies', 'violations'],
 };
 
 /** The Import row reads as the action it is (SRC-039 entry 1c), not the

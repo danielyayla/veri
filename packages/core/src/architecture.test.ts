@@ -426,3 +426,57 @@ test('agreeing decisions on the same edge are not a conflict', async (t) => {
   assert.deepEqual(checkProject(load).issues, []);
   assert.ok(!renderArchitecture(load.documents).includes('Conflicts'));
 });
+
+// ---- Registry responsibilities (WO-068, DEC-089 proposed) -----------------
+
+test('a registry entry may declare responsibilities; the list rides moduleRegistry typed', async (t) => {
+  const workflow = `---
+id: WF-001
+type: workflow
+title: W
+status: accepted
+approved: 2026-08-01
+created: 2026-08-01
+updated: 2026-08-01
+modules:
+  - name: core
+    path: packages/core
+    purpose: Pure domain logic
+    responsibilities:
+      - Owns every business rule
+      - Pure functions only
+---
+Rules.
+`;
+  const dir = project(t, { 'workflow.md': workflow });
+  const load = await loadProject(dir);
+  assert.deepEqual(load.issues, []);
+  assert.deepEqual(moduleRegistry(load.documents)[0].responsibilities, [
+    'Owns every business rule',
+    'Pure functions only',
+  ]);
+});
+
+test('a malformed responsibilities list is an invalid-frontmatter issue, never a silent no-op', async (t) => {
+  const workflow = `---
+id: WF-001
+type: workflow
+title: W
+status: accepted
+approved: 2026-08-01
+created: 2026-08-01
+updated: 2026-08-01
+modules:
+  - name: core
+    path: packages/core
+    purpose: Pure domain logic
+    responsibilities: everything
+---
+Rules.
+`;
+  const dir = project(t, { 'workflow.md': workflow });
+  const load = await loadProject(dir);
+  assert.equal(load.issues.length, 1);
+  assert.equal(load.issues[0].kind, 'invalid-frontmatter');
+  assert.match(load.issues[0].message, /responsibilities/);
+});

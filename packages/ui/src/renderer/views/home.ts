@@ -3,6 +3,7 @@
 import { h } from '../dom.ts';
 import { TYPE_META, statusColor } from '../theme.ts';
 import { importBatches, importGroupLabel, inFlight, isPending, issueDocId, pendingDocs, projectActivity, recentlyChanged } from '../derive.ts';
+import { archSummary } from '../archderive.ts';
 import { isLiving } from '../sidebar.ts';
 import type { Ctx } from '../app.ts';
 
@@ -247,6 +248,46 @@ export function homeView(ctx: Ctx): HTMLElement {
     'No issues — veri check is clean',
   );
 
+  // ARCHITECTURE (WO-068, SRC-036): between HEALTH and IN FLIGHT, only when
+  // the module registry is non-empty — the provisional entry point to the
+  // Map. One highest-tier line: an issue, else the advisory aggregate, else
+  // the explicit checked-and-clean statement. The whole card opens the Map.
+  const arch = archSummary(ctx.snap);
+  const archCard =
+    arch.modules === 0
+      ? null
+      : h(
+          'button',
+          {
+            class: 'btn-reset btn-block hv-card hv-card-arch',
+            label: 'Architecture — open the map',
+            fkey: 'hv-arch',
+            onClick: () => ctx.openArchitecture('map'),
+          },
+          h(
+            'div',
+            { class: 'hv-card-head' },
+            dot(arch.top.kind === 'issue' ? 'var(--amber)' : 'var(--faint)'),
+            label('ARCHITECTURE'),
+            h(
+              'span',
+              { class: 'hv-meta' },
+              `${arch.modules} modules · ${arch.constraints} constraints`,
+              arch.advisoryViolations > 0 ? h('span', { class: 'hv-adv-count' }, ` · ${arch.advisoryViolations} violations`) : null,
+            ),
+          ),
+          arch.top.kind === 'issue'
+            ? h(
+                'div',
+                { class: 'hv-row hv-row-top' },
+                h('span', { class: 'hv-kind' }, arch.top.issueKind),
+                h('span', { class: 'hv-issue' }, h('span', { class: 'hv-issue-msg' }, arch.top.text)),
+              )
+            : arch.top.kind === 'advisory'
+              ? h('div', { class: 'adv-row hv-arch-line' }, h('span', { class: 'adv-ring' }), h('span', { class: 'adv-msg' }, arch.top.text))
+              : h('div', { class: 'hv-empty' }, h('span', { style: 'color:var(--green);' }, '✓'), ' observed imports respect every active constraint'),
+        );
+
   const flight = inFlight(ctx.snap);
   const inFlightCard = card(
     [
@@ -323,7 +364,7 @@ export function homeView(ctx: Ctx): HTMLElement {
         h('span', { class: 'hv-count' }, `${docs.length} docs · ${living} living`),
       ),
       reviewCard,
-      h('div', { class: 'hv-grid' }, health, inFlightCard, activityCard, changedCard),
+      h('div', { class: 'hv-grid' }, health, ...(archCard !== null ? [archCard] : []), inFlightCard, activityCard, changedCard),
     ),
   );
 }

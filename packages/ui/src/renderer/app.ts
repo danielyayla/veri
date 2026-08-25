@@ -16,6 +16,7 @@ import type { VerifyResult } from '../lib/verify.ts';
 import type { AgentInfo } from '../lib/agents.ts';
 import { importKickoffPrompt, kickoffPrompt } from './derive.ts';
 import { readerView } from './views/reader.ts';
+import { architectureView } from './views/architecture.ts';
 import { homeView } from './views/home.ts';
 import { importView } from './views/import.ts';
 import { welcomeView } from './views/welcome.ts';
@@ -64,7 +65,7 @@ import { TPL_TYPES } from './views/templates.ts';
 import { settingsView } from './views/settings.ts';
 import { DEAD_LABEL, livingCount, livingGroups, panelList, pushRecent } from './sidebar.ts';
 
-export type View = 'home' | 'workorder' | 'homeview' | 'search' | 'settings' | 'import';
+export type View = 'home' | 'workorder' | 'homeview' | 'search' | 'settings' | 'import' | 'architecture';
 
 /** Sections of the Settings view (WO-036, SRC-014). */
 export type SettingsSection = 'templates' | 'agent' | 'project' | 'updates' | 'appearance';
@@ -179,6 +180,12 @@ export interface State {
       user's expand choice in a narrow pane — session state, never persisted.
       Meaningless while the pane is wide (the rail is inline there). */
   connOpen: boolean[];
+  /** Architecture view (WO-068, SRC-036): the internal Map|Rules tab, the
+      selected module, and the contents drill-down path — session state,
+      never persisted, like the Search view's query. */
+  archTab: 'map' | 'rules';
+  archSel: string | null;
+  archDrill: string[];
 }
 
 /** The add-link inline row (WO-056): target + rel drafts, the inline error,
@@ -245,6 +252,10 @@ export interface Ctx {
   copyKickoff(): void;
   /** Import view (WO-075): open it, and copy the import kickoff (DEC-067). */
   openImport(): void;
+  /** Architecture view (WO-068): the Home card, ⌘K, and every
+      `architecture ↗` affordance land here — provisional entry points per
+      SRC-036; nothing else may depend on how the view was reached. */
+  openArchitecture(tab?: 'map' | 'rules'): void;
   copyImportKickoff(): void;
   flashCopied(): void;
   /** Show a transient bottom-center toast (auto-dismissed). */
@@ -406,6 +417,9 @@ class App implements Ctx {
     importOfferDismissed: false,
     find: null,
     connOpen: [false, false],
+    archTab: 'map',
+    archSel: null,
+    archDrill: [],
   };
   renderPane = 0;
   appInfo: AppInfo | null = null;
@@ -1112,6 +1126,15 @@ class App implements Ctx {
       panel: null,
       settingsPop: false,
     });
+  }
+
+  /** Architecture (WO-068): one tab, preview semantics like Settings; the
+      caller may pick the internal tab (the Home card opens the Map). */
+  openArchitecture(tab: 'map' | 'rules' = 'map'): void {
+    this.applyPanes(
+      navigateFocused(this.paneState(), 'architecture', { surface: 'preview', previewTabs: this.state.previewTabs }),
+      { archTab: tab, projectSwitcherOpen: false, panel: null, settingsPop: false },
+    );
   }
 
   private importKickoffTimer: ReturnType<typeof setTimeout> | undefined;
@@ -2841,7 +2864,7 @@ class App implements Ctx {
 
   /** The active view's scrollable regions, in document order — queried per
       pane container (WO-055), never per root. */
-  private static readonly SCROLL_SEL = '.reader, .panel-right, .screen-homeview, .screen-search, .mcp-view, .set-scroll';
+  private static readonly SCROLL_SEL = '.reader, .panel-right, .screen-homeview, .screen-search, .screen-arch, .mcp-view, .set-scroll';
 
   /** A mousedown anywhere in an unfocused pane focuses it (WO-055): the
       state flips silently — no render, no preventDefault, so the click it
@@ -2889,6 +2912,7 @@ class App implements Ctx {
       else if (view === 'search') screen = searchView(this);
       else if (view === 'settings') screen = settingsView(this);
       else if (view === 'import') screen = importView(this);
+      else if (view === 'architecture') screen = architectureView(this);
       else screen = readerView(this);
       this.state.view = saved.view;
       this.state.docId = saved.docId;

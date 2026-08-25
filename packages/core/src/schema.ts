@@ -66,12 +66,16 @@ export type ArchitectureConstraint = z.infer<typeof architectureConstraintSchema
 export type ArchitectureBlock = z.infer<typeof architectureSchema>;
 
 // DEC-059: one registry entry — a module name constraints may reference,
-// where it lives, and why it exists.
+// where it lives, and why it exists. `responsibilities` (WO-068, DEC-089,
+// proposed) is an optional declared list feeding the desktop app's module
+// detail panel; absent, surfaces fall back to `purpose`. Validated so a
+// malformed list is an invalid-frontmatter issue, never a silent no-op.
 const moduleEntrySchema = z
   .object({
     name: z.string().min(1),
     path: z.string().min(1),
     purpose: z.string().min(1),
+    responsibilities: z.array(z.string().min(1)).optional(),
   })
   .passthrough();
 

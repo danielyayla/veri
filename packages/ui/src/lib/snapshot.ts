@@ -5,8 +5,10 @@ import { basename, join, relative, sep } from 'node:path';
 import { promisify } from 'node:util';
 import {
   GIT_LOG_FORMAT,
+  assembleArchitecture,
   buildGraph,
   checkDrift,
+  checkObservedArchitecture,
   checkProject,
   checkProvenance,
   classifyFormat,
@@ -15,7 +17,19 @@ import {
   parseDocument,
   parseGitLog,
 } from '@veri/core';
-import type { Advisory, Edge, GitFacts, Issue, LoadResult, VeriDocument } from '@veri/core';
+import type {
+  Advisory,
+  ArchProjection,
+  Edge,
+  GitFacts,
+  ImportEdge,
+  Issue,
+  LoadResult,
+  ModuleEntry,
+  VeriDocument,
+} from '@veri/core';
+import { collectExportFacts, collectImportFacts } from '@veri/cli';
+import type { ModuleFileFact } from '@veri/cli';
 
 const run = promisify(execFile);
 
@@ -23,6 +37,21 @@ export interface GitInfo {
   branch: string;
   dirty: boolean;
   sha: string;
+}
+
+/** The observed side of the architecture (WO-068): what this host collected
+    from the codebase with the CLI's collectors (the allowed ui → cli edge,
+    DEC-060/DEC-016). Everything the Map, the detail panel, and the contents
+    drill-down render — the renderer never touches the filesystem. */
+export interface ArchObserved {
+  /** Cross-module import edges, per file and specifier (WO-067 shape). */
+  edges: ImportEdge[];
+  /** Registry modules whose path is not on disk — ghosted cards, never errors. */
+  skipped: ModuleEntry[];
+  /** Every scanned source file with its import specifiers (the drill-down). */
+  files: ModuleFileFact[];
+  /** Entry-point exports per module (discovered · exports, DEC-087). */
+  exports: Record<string, string[]>;
 }
 
 /** Everything the renderer needs, as plain JSON. All derivation happens in @veri/core. */
@@ -37,6 +66,44 @@ export interface Snapshot {
   /** The root holds files beyond what veri init writes (REQ-024): the
       brownfield import offer's predicate, re-derived every build. */
   brownfield: boolean;
+  /** The compiled intended architecture (DEC-058) — deterministic over documents. */
+  architecture: ArchProjection;
+  /** Host-collected observed structure; empty shapes when no registry exists. */
+  archObserved: ArchObserved;
+}
+
+/**
+ * Architecture on the snapshot pipeline (WO-068): compile the projection,
+ * scan the registry's module paths with the CLI collectors, and route
+ * observed violations by declared severity (DEC-062) — error-severity
+ * violations join `issues` (amber, counted, the HEALTH pipeline), advisory
+ * ones join the grey tier, and a conflicted edge produces neither
+ * (DEC-061). No registry → no scan, empty observed shapes, and the
+ * projection still compiles (its emptiness is the view's declare-modules
+ * hint). Collection re-runs on every (debounced, SRC-031) rebuild — the
+ * scan is the CLI's own per-check cost, uncached like every other fact.
+ */
+function collectArchitecture(
+  projectRoot: string,
+  documents: VeriDocument[],
+): { architecture: ArchProjection; archObserved: ArchObserved; issues: Issue[]; advisories: Advisory[] } {
+  const architecture = assembleArchitecture(documents);
+  if (architecture.modules.length === 0) {
+    return {
+      architecture,
+      archObserved: { edges: [], skipped: [], files: [], exports: {} },
+      issues: [],
+      advisories: [],
+    };
+  }
+  const { edges, skipped, files } = collectImportFacts(projectRoot, architecture.modules);
+  const observed = checkObservedArchitecture(documents, edges);
+  return {
+    architecture,
+    archObserved: { edges, skipped, files, exports: collectExportFacts(projectRoot, architecture.modules) },
+    issues: observed.issues,
+    advisories: observed.violations,
+  };
 }
 
 async function gitInfo(root: string): Promise<GitInfo | null> {
@@ -94,6 +161,11 @@ export async function buildSnapshot(projectRoot: string): Promise<Snapshot> {
     advisories.push(...checkProvenance(load.documents, git.facts));
     advisories.push(...checkDrift(load.documents, git.facts, git.veriPath));
   }
+  // Observed architecture (WO-068): error-severity violations are check
+  // issues after the pure tier's, matching buildCheckReport's ordering.
+  const arch = collectArchitecture(projectRoot, load.documents);
+  issues.push(...arch.issues);
+  advisories.push(...arch.advisories);
   return {
     projectName: basename(projectRoot),
     root: projectRoot,
@@ -103,6 +175,8 @@ export async function buildSnapshot(projectRoot: string): Promise<Snapshot> {
     edges: graph.edges,
     git: await gitInfo(projectRoot),
     brownfield: isBrownfieldRoot(projectRoot),
+    architecture: arch.architecture,
+    archObserved: arch.archObserved,
   };
 }
 
@@ -195,6 +269,13 @@ export class SnapshotBuilder {
       advisories.push(...checkProvenance(load.documents, git.facts));
       advisories.push(...checkDrift(load.documents, git.facts, git.veriPath));
     }
+    // Same collection as buildSnapshot (WO-068): the scan re-runs per
+    // debounced rebuild — module source trees are outside the doc cache's
+    // mtime horizon, and guessing staleness would trade correctness for
+    // milliseconds the debounce already absorbs.
+    const arch = collectArchitecture(projectRoot, load.documents);
+    issues.push(...arch.issues);
+    advisories.push(...arch.advisories);
     const snap: Snapshot = {
       projectName: basename(projectRoot),
       root: projectRoot,
@@ -204,6 +285,8 @@ export class SnapshotBuilder {
       edges: graph.edges,
       git: info,
       brownfield: isBrownfieldRoot(projectRoot),
+      architecture: arch.architecture,
+      archObserved: arch.archObserved,
     };
     this.#current = snap;
     return snap;

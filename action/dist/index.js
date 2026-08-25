@@ -11480,7 +11480,8 @@ var architectureSchema = external_exports.object({ constraints: external_exports
 var moduleEntrySchema = external_exports.object({
   name: external_exports.string().min(1),
   path: external_exports.string().min(1),
-  purpose: external_exports.string().min(1)
+  purpose: external_exports.string().min(1),
+  responsibilities: external_exports.array(external_exports.string().min(1)).optional()
 }).passthrough();
 var decisionSchema = external_exports.object({
   ...baseFields,
@@ -12703,20 +12704,27 @@ function collectImportFacts(cwd, modules) {
   };
   const edges = [];
   const seen = /* @__PURE__ */ new Set();
+  const fileFacts = [];
+  const seenFiles = /* @__PURE__ */ new Set();
   for (const { root: root2 } of roots) {
     const files = [];
     walk(root2, files);
     for (const file of files) {
       const from = moduleOf(file);
+      const relFile = relative(cwd, file).split(sep).join("/");
+      const firstVisit = !seenFiles.has(relFile);
+      seenFiles.add(relFile);
+      const specifiers = [];
       const text = readFileSync4(file, "utf8");
       for (const line of text.split("\n")) {
         for (const re of SPECIFIER_RES) {
           for (const match of line.matchAll(re)) {
             const specifier = match[1];
+            if (firstVisit && !specifiers.includes(specifier))
+              specifiers.push(specifier);
             const to = resolveSpecifier(specifier, file);
             if (to === void 0 || to === from)
               continue;
-            const relFile = relative(cwd, file).split(sep).join("/");
             const key = `${from}\0${to}\0${relFile}\0${specifier}`;
             if (seen.has(key))
               continue;
@@ -12725,9 +12733,11 @@ function collectImportFacts(cwd, modules) {
           }
         }
       }
+      if (firstVisit)
+        fileFacts.push({ module: from, file: relFile, imports: specifiers });
     }
   }
-  return { edges, skipped };
+  return { edges, skipped, files: fileFacts };
 }
 
 // ../cli/dist/commands.js

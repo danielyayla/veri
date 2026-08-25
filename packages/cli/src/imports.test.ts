@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assembleArchitecture, checkObservedArchitecture, loadProject, moduleRegistry } from '@veri/core';
-import { collectImportFacts } from './imports.ts';
+import { collectExportFacts, collectImportFacts } from './imports.ts';
 
 // Fixture source lines are assembled from pieces so the dogfood scan of this
 // very file (it lives under a registry module path) can never read them as
@@ -81,4 +81,74 @@ test('dogfood: this repository reports zero violations against its own intended 
   assert.deepEqual(skipped, []);
   assert.ok(edges.length > 0, 'the scan should see real edges (cli → core at least)');
   assert.deepEqual(checkObservedArchitecture(load.documents, edges), { issues: [], violations: [] });
+});
+
+// ---- Per-file detail and entry-point exports (WO-068, DEC-087) ------------
+
+test('the scan keeps per-file detail: every source file with its specifiers, deduped, in walk order', (t) => {
+  const dir = fixture(t);
+  writeFileSync(join(dir, 'packages/one/src/a.ts'), imp('@x/two') + imp('node:fs') + imp('@x/two') + imp('./b.ts'));
+  writeFileSync(join(dir, 'packages/one/src/b.ts'), 'export const b = 1;\n');
+  const { files } = collectImportFacts(dir, MODULES);
+  assert.deepEqual(files, [
+    { module: 'one', file: 'packages/one/src/a.ts', imports: ['@x/two', 'node:fs', './b.ts'] },
+    { module: 'one', file: 'packages/one/src/b.ts', imports: [] },
+    { module: 'two', file: 'packages/two/src/lib.ts', imports: [] },
+  ]);
+});
+
+test('a file under a nested module path appears once, attributed to the innermost module', (t) => {
+  const dir = fixture(t);
+  mkdirSync(join(dir, 'packages/one/plugins/pay'), { recursive: true });
+  writeFileSync(join(dir, 'packages/one/plugins/pay/index.ts'), imp('@x/two'));
+  writeFileSync(join(dir, 'packages/one/src/a.ts'), 'export const a = 1;\n');
+  const nested = { name: 'pay', path: 'packages/one/plugins/pay', purpose: 'P' };
+  const { files } = collectImportFacts(dir, [...MODULES, nested]);
+  const payFiles = files.filter((f) => f.file === 'packages/one/plugins/pay/index.ts');
+  assert.equal(payFiles.length, 1);
+  assert.equal(payFiles[0].module, 'pay');
+});
+
+test('export discovery reads manifest entries and index conventions, follows relative re-exports, and sorts', (t) => {
+  const dir = fixture(t);
+  // two: src/index.ts convention with an export-star chain and every form.
+  writeFileSync(
+    join(dir, 'packages/two/src/index.ts'),
+    'export function alpha() {}\n' +
+      'export const beta = 1;\n' +
+      'export type Gamma = string;\n' +
+      'export { delta as epsilon,\n  zeta } from ' + q('./lib.ts') + ';\n' +
+      'export * from ' + q('./more.ts') + ';\n' +
+      'export * as ns from ' + q('./lib.ts') + ';\n',
+  );
+  writeFileSync(join(dir, 'packages/two/src/more.ts'), 'export class Eta {}\nexport * from ' + q('./index.ts') + ';\n');
+  // one: manifest main pointing at a file (no src/index).
+  writeFileSync(join(dir, 'packages/one/package.json'), JSON.stringify({ name: '@x/one', main: 'entry.js' }));
+  writeFileSync(join(dir, 'packages/one/entry.js'), 'export default 1;\nexport const solo = 2;\n');
+  const facts = collectExportFacts(dir, MODULES);
+  assert.deepEqual(facts['one'], ['default', 'solo']);
+  // Cycle-guarded: more.ts's export * back into index.ts terminates.
+  assert.deepEqual(facts['two'], ['Eta', 'Gamma', 'alpha', 'beta', 'epsilon', 'ns', 'zeta']);
+});
+
+test('a module with no manifest and no index has no discoverable entry point — an empty list, never a failure', (t) => {
+  const dir = fixture(t);
+  const bare = { name: 'bare', path: 'packages/bare', purpose: 'P' };
+  mkdirSync(join(dir, 'packages/bare/lib'), { recursive: true });
+  writeFileSync(join(dir, 'packages/bare/lib/thing.ts'), 'export const hidden = 1;\n');
+  const facts = collectExportFacts(dir, [bare]);
+  assert.deepEqual(facts['bare'], []);
+});
+
+test('export discovery walks manifest exports-map leaves', (t) => {
+  const dir = fixture(t);
+  writeFileSync(
+    join(dir, 'packages/one/package.json'),
+    JSON.stringify({ name: '@x/one', exports: { '.': { default: './lib/main.js' }, './extra': './lib/extra.js' } }),
+  );
+  mkdirSync(join(dir, 'packages/one/lib'), { recursive: true });
+  writeFileSync(join(dir, 'packages/one/lib/main.js'), 'export const fromMain = 1;\n');
+  writeFileSync(join(dir, 'packages/one/lib/extra.js'), 'export const fromExtra = 2;\n');
+  const facts = collectExportFacts(dir, MODULES);
+  assert.deepEqual(facts['one'], ['fromExtra', 'fromMain']);
 });
