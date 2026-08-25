@@ -2,7 +2,8 @@
 id: DEC-103
 type: decision
 title: "MCP amendment is one dedicated tool — whole-document revise, born-pending statuses only"
-status: proposed
+status: active
+approved: 2026-08-25
 created: 2026-08-25
 updated: 2026-08-25
 links:
