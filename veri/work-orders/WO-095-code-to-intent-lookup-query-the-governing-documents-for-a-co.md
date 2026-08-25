@@ -2,9 +2,11 @@
 id: WO-095
 type: work-order
 title: "Code-to-intent lookup: query the governing documents for a code path"
-status: backlog
+status: in-progress
 created: 2026-08-25
 updated: 2026-08-25
+claimed_by: claude-a9785818
+claimed_at: 2026-08-25
 links:
   - id: REQ-021
     rel: implements
