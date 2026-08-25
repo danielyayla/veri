@@ -2,7 +2,7 @@
 id: WO-099
 type: work-order
 title: "Claim semantics: work orders record which session holds them"
-status: in-progress
+status: done
 claimed_by: claude-f0b156a1
 claimed_at: 2026-08-25
 approved: 2026-08-25
@@ -52,13 +52,13 @@ Frontmatter claim fields (`claimed_by`, `claimed_at`) set when a work order ente
 
 ## Acceptance tests
 
-- [ ] Moving a work order to in-progress without claim fields is a check violation; with them, check passes.
-- [ ] A second claim on an already-claimed work order surfaces as a violation or advisory per the filed decision.
-- [ ] A stale claim (older than the decided threshold with no receipt activity) surfaces as an advisory.
-- [ ] The MCP write path records the claim; the CLI path accepts it equivalently.
-- [ ] Claim lifecycle and staleness threshold are filed as proposed decisions with rejected alternatives.
-- [ ] `veri check` passes; tests colocated per repo convention.
+- [x] Moving a work order to in-progress without claim fields is a check violation; with them, check passes.
+- [x] A second claim on an already-claimed work order surfaces as a violation or advisory per the filed decision.
+- [x] A stale claim (older than the decided threshold with no receipt activity) surfaces as an advisory.
+- [x] The MCP write path records the claim; the CLI path accepts it equivalently.
+- [x] Claim lifecycle and staleness threshold are filed as proposed decisions with rejected alternatives.
+- [x] `veri check` passes; tests colocated per repo convention.
 
 ## Receipts
 
-(none yet)
+- 2026-08-25 — 77f4cc6 — packages/core/src/{schema,types,parse,check,binds,report,start,index}.ts, packages/cli/src/{cli,commands}.ts, packages/mcp/src/server.ts, veri/workflow.md, AGENTS.md, site/docs/reference.html, tests and fixtures — Claim semantics shipped: claimed_by/claimed_at written by veri start / start_work_order (ready-only, collision-refusing), unclaimed-wo violation, shared-claim and stale-claim advisories on the shared stale_after_days window; choices filed as [[DEC-101]] and [[DEC-102]], WF-001 rule 8 proposed. All workspace tests pass (326 core-side after additions); veri check green — 285 documents, 0 issues.
