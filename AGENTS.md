@@ -36,7 +36,9 @@ links:
 Statuses:
 - requirement: draft → accepted → retired
 - decision: proposed → active → superseded (add `superseded_by: DEC-XXX`)
-- work-order: backlog → in-progress → done
+- work-order: backlog → ready → in-progress → done (`ready` — cleared for
+  dispatch — is entered only via the user's `veri approve` stamp; `veri next`
+  prints the queue's head)
 - source: imported
 
 Promotion (draft → accepted, proposed → active) requires an

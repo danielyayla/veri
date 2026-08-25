@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { approve, architecture, check, context, implemented, importFile, importPrompt, init, list, migrate, newDoc, open, renumber } from './commands.ts';
+import { approve, architecture, check, context, implemented, importFile, importPrompt, init, list, migrate, newDoc, next, open, renumber } from './commands.ts';
 import type { CmdResult } from './commands.ts';
 
 /** The value following `--flag`, or undefined when the flag is absent. */
@@ -16,7 +16,11 @@ const USAGE = `usage: veri <command>
   veri new <type> "<title>"  create a document with the next free id
   veri check                 report knowledge-base issues (exit 1 if any)
   veri approve <id> [--as <maintainer>]
-                             approve a pending document (stamps approved: today)
+                             approve a pending document (stamps approved: today);
+                             a backlog work order promotes to ready — cleared
+                             for dispatch
+  veri next                  print the next ready work order (id, title, path,
+                             tab-separated); exit 1 when nothing is ready
   veri renumber <id> [--to <new-id>] [--file <path>] [--refs <path,path>]
                              move a document to a new id, rewriting inbound links
   veri migrate               bring veri/ to the current on-disk format
@@ -51,6 +55,9 @@ switch (command) {
     break;
   case 'approve':
     result = await approve(cwd, rest[0], flagValue(rest, '--as'));
+    break;
+  case 'next':
+    result = await next(cwd);
     break;
   case 'renumber':
     result = await renumber(cwd, rest[0], {

@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFi
 import { createRequire } from 'node:module';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, maintainerRegistry, migrateProject, moduleRegistry, nextIdNumber, originalStoragePath, recordIssuedId, renderArchitecture, renumberDocument, scaffoldProject, slugifyTitle, workOrdersTouching } from '@verikb/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, maintainerRegistry, migrateProject, moduleRegistry, nextDispatchable, nextIdNumber, originalStoragePath, recordIssuedId, renderArchitecture, renumberDocument, scaffoldProject, slugifyTitle, workOrdersTouching } from '@verikb/core';
 import type { CheckReport, DocType } from '@verikb/core';
 import { collectGitFacts, gitUserName } from './git.ts';
 import { collectTestFacts } from './testfacts.ts';
@@ -348,13 +348,17 @@ export function migrate(cwd: string): CmdResult {
   };
 }
 
-/** The user's approval act (REQ-008): draft → accepted / proposed → active, stamped with today.
+/** The user's approval act (REQ-008): draft → accepted / proposed → active /
+    backlog → ready (WO-098), stamped with today.
     In a maintainers project (DEC-071) the stamp names its maintainer: --as
     explicitly, or defaulted from git user.name when that exactly matches a
     listed maintainer — the host collects the identity, core validates it. */
 export async function approve(cwd: string, idArg: string | undefined, asName?: string): Promise<CmdResult> {
   if (idArg === undefined || idArg.trim() === '') {
-    return { code: 1, lines: ['usage: veri approve <id> [--as <maintainer>] (a draft requirement or proposed decision)'] };
+    return {
+      code: 1,
+      lines: ['usage: veri approve <id> [--as <maintainer>] (a draft requirement, proposed decision, or backlog work order)'],
+    };
   }
   const dir = requireVeriDir(cwd);
   if (dir === null) return NO_VERI_DIR;
@@ -374,6 +378,21 @@ export async function approve(cwd: string, idArg: string | undefined, asName?: s
   } catch (err) {
     return { code: 1, lines: (err as Error).message.split('\n') };
   }
+}
+
+/** The dispatch queue's head (WO-098): one tab-separated line — id, title,
+    repo-relative path — for the lowest-id ready work order, so a script can
+    `read -r id title path`. Exit 1 with a human hint when nothing is ready:
+    pollers branch on the code, not the text. */
+export async function next(cwd: string): Promise<CmdResult> {
+  const dir = requireVeriDir(cwd);
+  if (dir === null) return NO_VERI_DIR;
+  const load = await loadProject(dir);
+  const head = nextDispatchable(load.documents);
+  if (head === undefined) {
+    return { code: 1, lines: ['nothing is ready — stamp a backlog work order with veri approve <WO-id>'] };
+  }
+  return { code: 0, lines: [`${head.id}\t${head.title}\tveri/${head.file}`] };
 }
 
 /** DEC-070's resolution tool: move a document to a new id, rewriting the id

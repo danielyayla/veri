@@ -1,8 +1,8 @@
 ---
 id: WO-001
 type: work-order
-title: A dispatchable work order
-status: backlog
+title: Ready without the stamp
+status: ready
 created: 2026-08-01
 updated: 2026-08-01
 links:
@@ -12,4 +12,4 @@ links:
 
 ## Summary
 
-Exists to prove the backlog → ready promotion and its prospective link gate.
+Ready reached without the user's approval stamp.

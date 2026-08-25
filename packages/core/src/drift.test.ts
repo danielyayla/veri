@@ -150,6 +150,30 @@ test('the approve flow\'s own guarded-line write is not drift', () => {
   assert.deepEqual(checkDrift(documents, facts, 'veri'), []);
 });
 
+test('a stamped work order past ready is exempt — execution edits are progress, not drift (WO-098)', () => {
+  const started = [
+    doc({ id: 'WO-001', type: 'work-order', status: 'done', approved: '2026-08-10', file: 'work-orders/WO-001.md' }),
+  ];
+  const facts: GitFacts = {
+    commits: [
+      commit('a', '2026-08-12', 'WO-001: done — receipt filed', ['veri/work-orders/WO-001.md']),
+      commit('b', '2026-08-10', 'WO-001: approved', ['veri/work-orders/WO-001.md']),
+    ],
+  };
+  assert.deepEqual(checkDrift(started, facts, 'veri'), []);
+  // While still ready, the stamp covers the text like any other promotion.
+  const ready = [
+    doc({ id: 'WO-001', type: 'work-order', status: 'ready', approved: '2026-08-10', file: 'work-orders/WO-001.md' }),
+  ];
+  const edited: GitFacts = {
+    commits: [commit('a', '2026-08-12', 'widen the scope', ['veri/work-orders/WO-001.md']), ...facts.commits.slice(1)],
+  };
+  assert.deepEqual(
+    checkDrift(ready, edited, 'veri').map((a) => a.kind),
+    ['drift-approved-edited'],
+  );
+});
+
 test('without a recognizable stamp commit, committer dates after the stamp date decide', () => {
   const documents = [
     doc({ id: 'REQ-001', type: 'requirement', status: 'accepted', approved: '2026-08-10', file: 'requirements/REQ-001.md' }),

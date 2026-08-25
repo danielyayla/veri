@@ -108,11 +108,16 @@ const bindsSchema = z
 
 export type BindsBlock = z.infer<typeof bindsSchema>;
 
+// WO-098: `ready` sits between backlog and in-progress — the user's dispatch
+// clearance, entered only via the approve stamp, so `approved`/`approved_by`
+// ride work orders exactly as they ride the other promotable types.
 const workOrderSchema = z
   .object({
     ...baseFields,
     type: z.literal('work-order'),
-    status: z.enum(['backlog', 'in-progress', 'done']),
+    status: z.enum(['backlog', 'ready', 'in-progress', 'done']),
+    approved: dateField.optional(),
+    approved_by: approvedByField,
     binds: bindsSchema.optional(),
   })
   .passthrough();

@@ -53,10 +53,12 @@ export function parseDocument(file: string, content: string): ParseOutcome {
     ...(fm.type === 'work-order' && fm.binds !== undefined
       ? { binds: { paths: fm.binds.paths, tests: fm.binds.tests } }
       : {}),
-    ...((fm.type === 'requirement' || fm.type === 'decision' || fm.type === 'workflow') && fm.approved !== undefined
+    ...((fm.type === 'requirement' || fm.type === 'decision' || fm.type === 'workflow' || fm.type === 'work-order') &&
+    fm.approved !== undefined
       ? { approved: fm.approved }
       : {}),
-    ...((fm.type === 'requirement' || fm.type === 'decision' || fm.type === 'workflow') && fm.approved_by !== undefined
+    ...((fm.type === 'requirement' || fm.type === 'decision' || fm.type === 'workflow' || fm.type === 'work-order') &&
+    fm.approved_by !== undefined
       ? { approvedBy: fm.approved_by }
       : {}),
     frontmatter: fm as Record<string, unknown>,

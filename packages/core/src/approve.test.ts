@@ -67,8 +67,65 @@ test('approve refuses documents in a non-approvable status', async (t) => {
 
 test('approve refuses non-approvable types and unknown ids', async (t) => {
   const dir = sandbox(t);
-  await assert.rejects(() => approveDocument(dir, 'WO-001'), /is a work-order — only requirements, decisions and workflows/);
+  await assert.rejects(() => approveDocument(dir, 'SRC-001'), /is a source — only requirements, decisions, workflows and work orders/);
   await assert.rejects(() => approveDocument(dir, 'REQ-999'), /no document with id REQ-999/);
+});
+
+// --- Work-order dispatch clearance (WO-098) ---
+
+test('approving a backlog work order with pending links is refused prospectively', async (t) => {
+  // REQ-001 is still draft — ready would be dispatch clearance over
+  // unratified spec, the exact hole the gate exists to close.
+  const dir = sandbox(t);
+  await assert.rejects(
+    () => approveDocument(dir, 'WO-001', '2026-08-25'),
+    /refusing to ready WO-001 — it depends on REQ-001, which is still draft/,
+  );
+  const raw = readFileSync(join(dir, 'work-orders/WO-001-not-approvable.md'), 'utf8');
+  assert.match(raw, /^status: backlog$/m); // untouched
+});
+
+test('approving a backlog work order promotes it to ready with the stamp', async (t) => {
+  const dir = sandbox(t);
+  await approveDocument(dir, 'REQ-001', '2026-08-25');
+  const result = await approveDocument(dir, 'WO-001', '2026-08-25');
+  assert.deepEqual(result, {
+    id: 'WO-001',
+    file: 'work-orders/WO-001-not-approvable.md',
+    from: 'backlog',
+    to: 'ready',
+    approved: '2026-08-25',
+  });
+  const after = readFileSync(join(dir, result.file), 'utf8');
+  assert.match(after, /^status: ready$/m);
+  assert.match(after, /^approved: 2026-08-25$/m);
+
+  const load = await loadProject(dir);
+  const doc = load.documents.find((d) => d.id === 'WO-001');
+  assert.equal(doc?.status, 'ready');
+  assert.equal(doc?.approved, '2026-08-25');
+  // The ready state is check-clean: the stamp satisfies the promoted-without-stamp rule.
+  const issues = checkProject(load).issues.filter((issue) => 'file' in issue && issue.file === result.file);
+  assert.deepEqual(issues, []);
+});
+
+test('approving a work order with no requirement link is refused', async (t) => {
+  // Ready must be born check-clean — a link-less ready work order would fail
+  // wo-without-requirement the moment the stamp landed.
+  const dir = sandbox(t);
+  const file = join(dir, 'work-orders/WO-001-not-approvable.md');
+  writeFileSync(
+    file,
+    readFileSync(file, 'utf8').replace(/links:\n(?:  .*\n)+/, ''),
+  );
+  await assert.rejects(() => approveDocument(dir, 'WO-001'), /refusing to ready WO-001 — it links no requirement/);
+});
+
+test('a started work order is past approving', async (t) => {
+  const dir = sandbox(t);
+  const file = join(dir, 'work-orders/WO-001-not-approvable.md');
+  writeFileSync(file, readFileSync(file, 'utf8').replace('status: backlog', 'status: in-progress'));
+  await assert.rejects(() => approveDocument(dir, 'WO-001'), /nothing to approve — WO-001 is in-progress/);
 });
 
 test('approving a draft workflow makes it accepted (DEC-018)', async (t) => {

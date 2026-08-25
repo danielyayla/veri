@@ -151,12 +151,18 @@ export function checkDesignGate(documents: VeriDocument[]): Issue[] {
   return issues;
 }
 
-/** A document whose status carries approval weight (REQ-008). */
+/**
+ * A document whose status carries approval weight (REQ-008). A ready work
+ * order is promoted — the status only exists via the stamp (WO-098) — but a
+ * started one is not: execution spends the clearance, and historical work
+ * orders that never passed through ready stay valid without a stamp.
+ */
 function isPromoted(doc: VeriDocument): boolean {
   return (
     (doc.type === 'requirement' && doc.status === 'accepted') ||
     (doc.type === 'decision' && doc.status === 'active') ||
-    (doc.type === 'workflow' && doc.status === 'accepted')
+    (doc.type === 'workflow' && doc.status === 'accepted') ||
+    (doc.type === 'work-order' && doc.status === 'ready')
   );
 }
 

@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadProject } from './load.ts';
 import { checkProject, maintainerRegistry } from './check.ts';
+import { isPending } from './pending.ts';
 import { parseDocument } from './parse.ts';
 import { localToday } from './dates.ts';
 
@@ -21,6 +22,9 @@ const PROMOTION: Record<string, { from: string; to: string }> = {
   requirement: { from: 'draft', to: 'accepted' },
   decision: { from: 'proposed', to: 'active' },
   workflow: { from: 'draft', to: 'accepted' },
+  // WO-098: the fourth stamped promotion — dispatch clearance. A started
+  // work order (in-progress/done) is past approving, same as superseded.
+  'work-order': { from: 'backlog', to: 'ready' },
 };
 
 /**
@@ -61,7 +65,7 @@ export async function approveDocument(
 
   const promotion = PROMOTION[doc.type];
   if (promotion === undefined) {
-    throw new Error(`${wanted} is a ${doc.type} — only requirements, decisions and workflows are approved`);
+    throw new Error(`${wanted} is a ${doc.type} — only requirements, decisions, workflows and work orders are approved`);
   }
   // Already-promoted documents may be approved again: a re-approval
   // re-stamps `approved:` in place, ratifying the current text — the remedy
@@ -78,6 +82,25 @@ export async function approveDocument(
     throw new Error(
       `refusing to approve ${wanted} — fix its check issue(s) first:\n${blocking.map((issue) => `  ${issue.message}`).join('\n')}`,
     );
+  }
+
+  // WO-098: the started-work checks exempt backlog, so a backlog work order
+  // carries no issue for the filter above to catch — but ready means
+  // dispatchable, and it must be born check-clean: a requirement link exists
+  // and nothing it depends on is still pending. Check prospectively.
+  if (doc.type === 'work-order') {
+    if (!doc.links.some((link) => link.id.startsWith('REQ-'))) {
+      throw new Error(`refusing to ready ${wanted} — it links no requirement; a dispatchable work order names what it implements`);
+    }
+    const byId = new Map(load.documents.map((candidate) => [candidate.id, candidate]));
+    for (const link of doc.links) {
+      const target = byId.get(link.id);
+      if (target !== undefined && isPending(target)) {
+        throw new Error(
+          `refusing to ready ${wanted} — it depends on ${target.id}, which is still ${target.status} — approve it first (veri approve ${target.id})`,
+        );
+      }
+    }
   }
 
   const path = join(root, doc.file);

@@ -144,6 +144,9 @@ export function checkDrift(documents: VeriDocument[], facts: GitFacts, veriPath:
   for (const doc of documents) {
     if (doc.approved === undefined) continue;
     if (doc.status === 'superseded' || doc.status === 'retired') continue; // history, not drift
+    // WO-098: a work order's stamp is dispatch clearance, spent once
+    // execution begins — receipts and checked boxes are progress, not drift.
+    if (doc.type === 'work-order' && doc.status !== 'ready') continue;
     const touching = commitsTouching(facts, repoPath(veriPath, doc));
     const stamp = newestLifecycleIndex(facts, doc.id);
     const offending = (

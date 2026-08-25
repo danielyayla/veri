@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assembleContext } from '@verikb/core';
-import { approve, architecture, check, checkReport, context, importFile, importPrompt, init, list, listStarters, migrate, newDoc, open, renumber } from './commands.ts';
+import { approve, architecture, check, checkReport, context, importFile, importPrompt, init, list, listStarters, migrate, newDoc, next, open, renumber } from './commands.ts';
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const FIVE_ISSUES = fileURLToPath(new URL('../fixtures/five-issues', import.meta.url));
@@ -59,6 +59,44 @@ test('new documents are born unapproved and veri approve promotes them with a st
   assert.equal(again.code, 0, again.lines.join('\n'));
   assert.match(again.lines[0] ?? '', /^DEC-001 active → active — approved: \d{4}-\d{2}-\d{2}/);
   assert.equal((await approve(cwd, undefined)).code, 1);
+});
+
+test('a work order promotes to ready and veri next serves the queue head (WO-098)', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+
+  init(cwd, { demo: false });
+  await newDoc(cwd, 'requirement', 'User authentication');
+  await newDoc(cwd, 'work-order', 'Build the login flow');
+  const woFile = join(cwd, 'veri/work-orders/WO-001-build-the-login-flow.md');
+  writeFileSync(
+    woFile,
+    readFileSync(woFile, 'utf8').replace(/^updated: (.*)$/m, 'updated: $1\nlinks:\n  - id: REQ-001\n    rel: implements'),
+  );
+
+  // Empty queue: exit 1, a hint, nothing dispatchable.
+  assert.equal((await next(cwd)).code, 1);
+
+  // The stamp path is gated: the linked requirement is still draft.
+  const refused = await approve(cwd, 'WO-001');
+  assert.equal(refused.code, 1);
+  assert.match(refused.lines.join('\n'), /depends on REQ-001, which is still draft/);
+
+  await approve(cwd, 'REQ-001');
+  const readied = await approve(cwd, 'WO-001');
+  assert.equal(readied.code, 0, readied.lines.join('\n'));
+  assert.match(readied.lines[0] ?? '', /^WO-001 backlog → ready — approved: \d{4}-\d{2}-\d{2}/);
+  assert.match(readFileSync(woFile, 'utf8'), /^status: ready$/m);
+  assert.equal((await check(cwd)).code, 0);
+
+  // The queue head is one tab-separated machine-readable line.
+  const head = await next(cwd);
+  assert.equal(head.code, 0);
+  assert.equal(head.lines[0], `WO-001\tBuild the login flow\tveri/work-orders/WO-001-build-the-login-flow.md`);
+
+  // Execution spends the clearance: in-progress leaves the queue.
+  writeFileSync(woFile, readFileSync(woFile, 'utf8').replace('status: ready', 'status: in-progress'));
+  assert.equal((await next(cwd)).code, 1);
 });
 
 test('ids allocate sequentially per type', async (t) => {

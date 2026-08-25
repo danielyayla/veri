@@ -84,6 +84,17 @@ const CASES: BrokenCase[] = [
     expected: [{ kind: 'gated-wo', id: 'WO-001', targetId: 'WF-001', targetStatus: 'draft' }],
   },
   {
+    // WO-098: ready is a promotion — reached without the stamp it fails.
+    dir: 'ready-wo-unstamped',
+    expected: [{ kind: 'missing-approval', id: 'WO-001', file: 'work-orders/WO-001-ready-unstamped.md' }],
+  },
+  {
+    // WO-098: the gate covers ready like any started status — dispatch
+    // clearance over a pending link is a violation.
+    dir: 'gated-wo-ready',
+    expected: [{ kind: 'gated-wo', id: 'WO-001', targetId: 'REQ-001', targetStatus: 'draft' }],
+  },
+  {
     dir: 'ui-wo-without-design',
     expected: [{ kind: 'ui-wo-without-design', id: 'WO-001', file: 'work-orders/WO-001-ui-no-design.md' }],
   },

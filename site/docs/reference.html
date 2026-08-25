@@ -58,7 +58,7 @@
   <tr><th>Type</th><th>Id prefix</th><th>Statuses</th><th>Notes</th></tr>
   <tr><td><span class="type-req">requirement</span></td><td><code>REQ-</code></td><td><code>draft</code> → <code>accepted</code> → <code>retired</code></td><td><code>accepted</code> requires an <code>approved:</code> date — the user's stamp.</td></tr>
   <tr><td><span class="type-dec">decision</span></td><td><code>DEC-</code></td><td><code>proposed</code> → <code>active</code> → <code>superseded</code></td><td><code>active</code> requires <code>approved:</code>; <code>superseded</code> must name its successor in <code>superseded_by:</code>.</td></tr>
-  <tr><td><span class="type-wo">work-order</span></td><td><code>WO-</code></td><td><code>backlog</code> → <code>in-progress</code> → <code>done</code></td><td><code>done</code> requires every acceptance box checked and at least one receipt.</td></tr>
+  <tr><td><span class="type-wo">work-order</span></td><td><code>WO-</code></td><td><code>backlog</code> → <code>ready</code> → <code>in-progress</code> → <code>done</code></td><td><code>ready</code> — cleared for dispatch — is entered only via <code>veri approve</code> and requires <code>approved:</code>; <code>done</code> requires every acceptance box checked and at least one receipt.</td></tr>
   <tr><td><span class="type-src">source</span></td><td><code>SRC-</code></td><td><code>imported</code></td><td>External evidence; one status, no lifecycle.</td></tr>
   <tr><td><span class="type-wf">workflow</span></td><td><code>WF-</code></td><td><code>draft</code> → <code>accepted</code> → <code>retired</code></td><td>One per project; scaffolded projects ship theirs pre-accepted.</td></tr>
 </table>
@@ -158,7 +158,10 @@ veri new &lt;type&gt; "&lt;title&gt;"  create a document with the next free id
 veri check                 report knowledge-base issues (exit 1 if any)
 veri approve &lt;id&gt; [--as &lt;maintainer&gt;]
                            approve a pending document (stamps approved: today,
-                           and approved_by: in maintainers projects)
+                           and approved_by: in maintainers projects); a backlog
+                           work order promotes to ready — cleared for dispatch
+veri next                  print the next ready work order (id, title, path,
+                           tab-separated); exit 1 when nothing is ready
 veri renumber &lt;id&gt; [--to &lt;new-id&gt;] [--file &lt;path&gt;] [--refs &lt;path,path&gt;]
                            move a document to a new id, rewriting the filename
                            and inbound links in one atomic pass (collision
