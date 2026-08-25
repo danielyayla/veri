@@ -2,7 +2,8 @@
 id: DEC-093
 type: decision
 title: "Intake formats and the import verb — a no-dependency text-bearing set behind an overloaded veri import"
-status: proposed
+status: active
+approved: 2026-08-25
 created: 2026-08-25
 updated: 2026-08-25
 links:

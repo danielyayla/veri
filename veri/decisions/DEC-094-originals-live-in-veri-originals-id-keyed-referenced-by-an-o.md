@@ -2,7 +2,8 @@
 id: DEC-094
 type: decision
 title: "Originals live in veri/originals, id-keyed, referenced by an original frontmatter field the loader never parses"
-status: proposed
+status: active
+approved: 2026-08-25
 created: 2026-08-25
 updated: 2026-08-25
 links:
