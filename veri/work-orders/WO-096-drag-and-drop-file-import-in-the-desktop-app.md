@@ -2,7 +2,7 @@
 id: WO-096
 type: work-order
 title: "Drag-and-drop file import in the desktop app"
-status: backlog
+status: in-progress
 created: 2026-08-25
 updated: 2026-08-25
 links:
