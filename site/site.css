@@ -395,6 +395,51 @@ section.band { margin: 64px auto 0; }
 
 .cta-quickstart { font-size: 16px; text-decoration: underline; text-underline-offset: 3px; padding: 12px 4px; }
 
+/* WO-084/DEC-084: the copyable hero install command — merged in the same
+   change that executes the DEC-077 npm publish, so the command and the
+   registry never disagree. --text on --card clears AA in both palettes
+   (14.4:1 dark, 14.9:1 light); the decorative $ and the Copy button use
+   --muted, which also clears 4.5:1 on --card/--card-2 in both (5.1–5.2:1). */
+.hero-cmd {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 100%;
+  margin: 0 0 24px;
+  padding: 10px 12px 10px 18px;
+  background: var(--card);
+  border: 1px solid var(--card-border-2);
+  border-radius: 8px;
+}
+
+.hero-cmd code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 15px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.hero-cmd .cmd-ps { color: var(--muted); user-select: none; }
+
+.hero-cmd .cmd-copy {
+  height: 26px;
+  padding: 0 12px;
+  border: 1px solid var(--int-border);
+  border-radius: 6px;
+  background: var(--card-2);
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.hero-cmd .cmd-copy:hover { color: var(--text); border-color: var(--hover-border); }
+
 .dl-sub {
   margin-top: 14px;
   font-size: 14px;
