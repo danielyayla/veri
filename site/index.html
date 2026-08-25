@@ -42,10 +42,11 @@
     <a class="cta-quickstart" href="docs/quickstart.html">10-minute quickstart</a>
   </div>
   <div class="dl-sub"><span id="dl-version"></span>macOS 13+ · <a id="dl-arm" href="https://github.com/danielyayla/veri/releases/latest">Apple silicon</a> &amp; <a id="dl-intel" href="https://github.com/danielyayla/veri/releases/latest">Intel</a> · free &amp; open source</div>
-  <!-- WO-084: the signed DMG is the one install path that exists today; a
-       command-line install lands here the moment the npm publish (DEC-077)
-       actually ships — no install claim ahead of reality. -->
-  <p class="dl-platforms">On Windows or Linux? The desktop app is macOS-only for now — but the <a href="docs/ci.html"><code>veri check</code> CI gate</a> runs on any platform, and the CLI and MCP server run anywhere Node 20+ does, <a href="https://github.com/danielyayla/veri#installing-the-cli">from a source checkout</a> today (not yet on npm).</p>
+  <!-- WO-084/WO-092: installers exist for all three platforms; caveats are
+       stated where the artifact is offered (DEC-082 signing posture, DEC-090
+       sizes). A command-line install lands here the moment the npm publish
+       (DEC-077) actually ships — no install claim ahead of reality. -->
+  <p class="dl-platforms">Also for <a id="dl-win" href="https://github.com/danielyayla/veri/releases/latest">Windows 10+</a> and Linux (<a id="dl-appimage" href="https://github.com/danielyayla/veri/releases/latest">AppImage</a> · <a id="dl-deb" href="https://github.com/danielyayla/veri/releases/latest">.deb</a>) — the Windows installer is unsigned for now, so SmartScreen warns on first install; the ~120 MB AppImage auto-updates and bundles its own WebKit; the .deb is smaller but doesn't auto-update. The CLI and MCP server run anywhere Node 20+ does, <a href="https://github.com/danielyayla/veri#installing-the-cli">from a source checkout</a> today (not yet on npm).</p>
 </section>
 
 <div class="hero-shot demo demo-hero" id="product">
@@ -430,7 +431,7 @@ embedded in the Rust core.
     <a class="cta-quickstart" href="docs/quickstart.html">or start with the quickstart</a>
   </div>
   <div class="dl-sub"><a id="dl2-arm" href="https://github.com/danielyayla/veri/releases/latest">Apple silicon</a> &amp; <a id="dl2-intel" href="https://github.com/danielyayla/veri/releases/latest">Intel</a></div>
-  <div class="dl-sub">The app is macOS 13+ today — no Windows or Linux build yet. The <a href="docs/ci.html">CI gate</a>, CLI, and MCP server are plain Node and run anywhere Node 20+ does — the CLI and MCP <a href="https://github.com/danielyayla/veri#installing-the-cli">from a source checkout</a>, not yet on npm.</div>
+  <div class="dl-sub">The app runs on macOS 13+, Windows 10+, and Linux (<a id="dl2-appimage" href="https://github.com/danielyayla/veri/releases/latest">AppImage</a> or <a id="dl2-deb" href="https://github.com/danielyayla/veri/releases/latest">.deb</a>). The <a href="docs/ci.html">CI gate</a>, CLI, and MCP server are plain Node and run anywhere Node 20+ does — the CLI and MCP <a href="https://github.com/danielyayla/veri#installing-the-cli">from a source checkout</a>, not yet on npm.</div>
   <div class="dl-sub fin-oss"><a href="https://github.com/danielyayla/veri/blob/main/LICENSE">Apache-2.0</a> · <a href="https://github.com/danielyayla/veri/tree/main/packages/cli/demo/veri">browse the sample knowledge base on GitHub</a> · <a href="https://github.com/danielyayla/veri/releases">changelog</a></div>
 </section>
 
@@ -481,6 +482,14 @@ fetch('https://api.github.com/repos/danielyayla/veri/releases/latest')
     });
     [['dl-arm', arm], ['dl-intel', intel], ['dl2-arm', arm], ['dl2-intel', intel]].forEach(function (pair) {
       document.getElementById(pair[0]).href = pair[1].browser_download_url;
+    });
+    // Windows/Linux installers (WO-092): link the exact assets when the
+    // latest release carries them; the releases-page fallback stands otherwise.
+    [['dl-win', '-setup.exe'], ['dl-appimage', '.AppImage'], ['dl-deb', '.deb'],
+     ['dl2-appimage', '.AppImage'], ['dl2-deb', '.deb']].forEach(function (pair) {
+      var el = document.getElementById(pair[0]);
+      var asset = rel.assets.find(function (a) { return a.name.endsWith(pair[1]); });
+      if (el && asset) el.href = asset.browser_download_url;
     });
     document.getElementById('dl-version').textContent = rel.tag_name + ' · ';
   })
