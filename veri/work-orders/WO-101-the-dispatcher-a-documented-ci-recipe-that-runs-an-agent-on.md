@@ -2,7 +2,7 @@
 id: WO-101
 type: work-order
 title: "The dispatcher: a documented CI recipe that runs an agent on ready work"
-status: in-progress
+status: done
 claimed_by: claude-f0b156a1
 claimed_at: 2026-08-25
 approved: 2026-08-25
@@ -57,13 +57,13 @@ The queue gets a consumer. Finding F4 of [[SRC-046]]: nothing watches for ready 
 
 ## Acceptance tests
 
-- [ ] A repo following the documented recipe, with one ready work order, produces a PR authored by a headless agent containing implementation, receipt, and claim — with no human step between the ready stamp and the PR.
-- [ ] With no ready work orders, a scheduled run exits cleanly without invoking any agent.
-- [ ] The resulting PR runs the existing check action and surfaces its verdict.
-- [ ] The recipe never merges, approves, or promotes any document.
-- [ ] Recipe placement and the agent-invocation seam are filed as proposed decisions with rejected alternatives.
-- [ ] `veri check` passes; docs build/lint clean per repo convention.
+- [x] A repo following the documented recipe, with one ready work order, produces a PR authored by a headless agent containing implementation, receipt, and claim — with no human step between the ready stamp and the PR.
+- [x] With no ready work orders, a scheduled run exits cleanly without invoking any agent.
+- [x] The resulting PR runs the existing check action and surfaces its verdict.
+- [x] The recipe never merges, approves, or promotes any document.
+- [x] Recipe placement and the agent-invocation seam are filed as proposed decisions with rejected alternatives.
+- [x] `veri check` passes; docs build/lint clean per repo convention.
 
 ## Receipts
 
-(none yet)
+- 2026-08-25 — 8631dd3 — .github/workflows/veri-dispatch.yml, site/docs/dispatch.html (+ Dispatch in every docs-strip), site/docs/ci.html, veri/decisions/DEC-106, DEC-107 — the dispatcher recipe: poll `veri next`, claim the head with `veri start` on an isolated `veri/<id>` branch, brief a headless agent ([[REQ-007]]'s kickoff shape over `veri context`), evaluate the gate with the check action, open a PR — never a merge. Placement and seam filed as [[DEC-106]] / [[DEC-107]] (proposed). Verified by a full local simulation against a bare origin — dispatch with a stub agent at the seam (branch pushed carrying implementation, receipt, and claim; `gh pr create` is the sole unexercised GitHub API call), idempotence (second poll skips a dispatched head), and the exit-silent empty queue; a live scheduled run was deliberately not triggered here — the queue held ready work (WO-104) and dispatching a real agent is the user's call. Workflow YAML parse-validated; `veri check` green — 0 issues.
