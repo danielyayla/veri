@@ -210,6 +210,9 @@ function listDocFiles(entries: string[]): string[] {
     .filter((entry) => entry.endsWith('.md'))
     .map((entry) => entry.replaceAll('\\', '/'))
     .filter((file) => !file.startsWith('templates/'))
+    // originals/ holds preserved intake files, not documents (DEC-094) —
+    // an imported .md original must never surface as a doc or an issue.
+    .filter((file) => !file.startsWith('originals/'))
     .sort();
 }
 

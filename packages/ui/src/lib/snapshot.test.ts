@@ -523,3 +523,15 @@ test('a registry module missing from disk lands in skipped — the ghosted card,
   const snap = await buildSnapshot(dir);
   assert.deepEqual(snap.archObserved.skipped.map((m) => m.name), ['beta']);
 });
+
+test('originals/ never surfaces as documents or issues in a snapshot (WO-096, DEC-094)', async (t) => {
+  const dir = sandbox(t);
+  mkdirSync(join(dir, 'veri/originals'), { recursive: true });
+  // A preserved .md original has no frontmatter — parsed as a document it
+  // would be an invalid-frontmatter issue (the WO-096 shot regression).
+  writeFileSync(join(dir, 'veri/originals/SRC-001-notes.md'), '# Just evidence\n');
+  const snap = await buildSnapshot(dir);
+  assert.deepEqual(snap.issues, []);
+  assert.ok(!snap.documents.some((d) => d.file.startsWith('originals/')));
+  assert.equal(await countProjectDocs(dir), snap.documents.length);
+});
