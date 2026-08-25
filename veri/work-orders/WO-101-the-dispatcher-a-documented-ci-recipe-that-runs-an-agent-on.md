@@ -2,7 +2,9 @@
 id: WO-101
 type: work-order
 title: "The dispatcher: a documented CI recipe that runs an agent on ready work"
-status: ready
+status: in-progress
+claimed_by: claude-f0b156a1
+claimed_at: 2026-08-25
 approved: 2026-08-25
 created: 2026-08-25
 updated: 2026-08-25
