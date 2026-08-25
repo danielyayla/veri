@@ -10,7 +10,7 @@ import type { LoadResult } from './load.ts';
 import { checkProvenance } from './provenance.ts';
 import type { GitFacts } from './provenance.ts';
 import type { ModuleEntry } from './schema.ts';
-import type { Issue } from './types.ts';
+import type { Advisory, Issue } from './types.ts';
 
 /**
  * The one health-check derivation every surface shares (WO-076, WO-089,
@@ -40,6 +40,16 @@ export interface HostFacts {
   /** Collected import edges and skipped modules, when the host scanned the
       registry's module paths (WO-067). Absent when there is no registry. */
   importFacts?: { edges: ImportEdge[]; skipped: ModuleEntry[] };
+}
+
+/** The typed stage of the derivation (DEC-091): the same orchestration as
+    buildCheckReport with the Issue/Advisory unions intact, for surfaces
+    that render findings rather than print lines (the app's snapshot
+    pipeline). `skips` is shared verbatim with the presentation view. */
+export interface CheckFindings {
+  issues: Issue[];
+  advisories: Advisory[];
+  skips: string[];
 }
 
 export interface CheckReport {
@@ -75,7 +85,7 @@ export function importSkipNotes(skipped: ModuleEntry[]): string[] {
   return skipped.map((entry) => `(architecture: skipped module ${entry.name} — ${entry.path} is not on disk)`);
 }
 
-export function buildCheckReport(load: LoadResult, host: HostFacts): CheckReport {
+export function deriveFindings(load: LoadResult, host: HostFacts): CheckFindings {
   const { issues, advisories } = checkProject(load);
   // Receipt verification (WO-044) and git drift (WO-045, WO-088): pure
   // checks over host facts. No facts means a note, never a failure.
@@ -102,6 +112,24 @@ export function buildCheckReport(load: LoadResult, host: HostFacts): CheckReport
     advisories.push(...observed.violations);
   }
   return {
+    issues,
+    advisories,
+    skips: [
+      ...(host.git.kind === 'ok' ? [] : [`(provenance: skipped — ${host.git.reason})`]),
+      ...(host.git.kind !== 'ok' && bindingClaimants(load.documents).length > 0
+        ? [`(binding drift: skipped — ${host.git.reason})`]
+        : []),
+      ...importSkipNotes(host.importFacts?.skipped ?? []),
+    ],
+  };
+}
+
+/** The presentation view over deriveFindings (DEC-091): flattens the typed
+    unions into the print records the CLI, the Action, and the MCP run_check
+    tool share. Shape and output unchanged since WO-089. */
+export function buildCheckReport(load: LoadResult, host: HostFacts): CheckReport {
+  const { issues, advisories, skips } = deriveFindings(load, host);
+  return {
     formatLine: formatLine(load.format),
     documentCount: load.documents.length,
     issues: issues.map((issue) => ({ kind: issue.kind, id: idOf(issue), file: fileOf(issue), message: issue.message })),
@@ -111,12 +139,6 @@ export function buildCheckReport(load: LoadResult, host: HostFacts): CheckReport
       file: advisory.file,
       message: advisory.message,
     })),
-    skips: [
-      ...(host.git.kind === 'ok' ? [] : [`(provenance: skipped — ${host.git.reason})`]),
-      ...(host.git.kind !== 'ok' && bindingClaimants(load.documents).length > 0
-        ? [`(binding drift: skipped — ${host.git.reason})`]
-        : []),
-      ...importSkipNotes(host.importFacts?.skipped ?? []),
-    ],
+    skips,
   };
 }

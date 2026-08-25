@@ -50,6 +50,7 @@ function snap(partial: Partial<Snapshot> = {}): Snapshot {
     brownfield: false,
     architecture: { modules: MODULES, rules: [], conflicts: [] },
     archObserved: { edges: [], skipped: [], files: [], exports: {} },
+    skips: [],
     ...partial,
   };
 }

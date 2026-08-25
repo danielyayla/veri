@@ -158,18 +158,18 @@ test('run_check agrees with the CLI surface on one corpus (WO-089)', async () =>
     assert.equal(cli.error, undefined, String(cli.error));
     const out = cli.stdout;
 
-    // Exit semantics: pass mirrors the CLI's exit code exactly.
-    assert.equal(result.pass, result.violations.length === 0);
-    assert.equal(cli.status, result.pass ? 0 : 1, out + cli.stderr);
+    // Exit semantics: an empty issues array mirrors the CLI's exit 0 exactly
+    // (the tool's `pass` key is this derivation, serialized at the server edge).
+    assert.equal(cli.status, result.issues.length === 0 ? 0 : 1, out + cli.stderr);
 
     // Every violation and advisory the CLI prints, run_check returns — and
     // the counts in the CLI's summary line match the structured arrays.
     const summary = out.trim().split('\n').at(-1) ?? '';
     const counts = summary.match(/^(\d+) issue\(s\) · (\d+) advisories$/);
     assert.ok(counts, `unexpected summary line: ${summary}`);
-    assert.equal(result.violations.length, Number(counts[1]));
+    assert.equal(result.issues.length, Number(counts[1]));
     assert.equal(result.advisories.length, Number(counts[2]));
-    for (const violation of result.violations) {
+    for (const violation of result.issues) {
       assert.ok(out.includes(`${violation.file}: ${violation.message}`), `CLI missing violation: ${violation.message}`);
     }
     for (const advisory of result.advisories) {
@@ -179,9 +179,9 @@ test('run_check agrees with the CLI surface on one corpus (WO-089)', async () =>
     // The corpus exercised every tier: a gate violation with machine-readable
     // kind and id, a drift-missing-test advisory through this package's own
     // collector, and the format line on both surfaces.
-    assert.ok(result.violations.some((violation) => violation.kind === 'broken-link' && violation.file === 'work-orders/WO-002-broken.md'));
+    assert.ok(result.issues.some((violation) => violation.kind === 'broken-link' && violation.file === 'work-orders/WO-002-broken.md'));
     assert.ok(result.advisories.some((advisory) => advisory.kind === 'drift-missing-test' && advisory.id === 'WO-001'));
-    assert.equal(out.trim().split('\n')[0], result.format);
+    assert.equal(out.trim().split('\n')[0], result.formatLine);
 
     // Nothing vanishes silently (REQ-021): both surfaces name the checks
     // they could not run. The reasons differ by posture — the CLI is outside
@@ -189,9 +189,9 @@ test('run_check agrees with the CLI surface on one corpus (WO-089)', async () =>
     // server's reason cites the posture.
     for (const prefix of ['(provenance: skipped', '(binding drift: skipped', '(architecture: skipped module ghost']) {
       assert.ok(out.includes(prefix), `CLI missing skip note ${prefix}`);
-      assert.ok(result.skipped.some((note) => note.startsWith(prefix)), `run_check missing skip note ${prefix}`);
+      assert.ok(result.skips.some((note) => note.startsWith(prefix)), `run_check missing skip note ${prefix}`);
     }
-    assert.ok(result.skipped.some((note) => note.includes(GIT_SKIP_REASON)));
+    assert.ok(result.skips.some((note) => note.includes(GIT_SKIP_REASON)));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

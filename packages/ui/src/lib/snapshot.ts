@@ -6,14 +6,13 @@ import { promisify } from 'node:util';
 import {
   GIT_LOG_FORMAT,
   assembleArchitecture,
+  boundTests,
   buildGraph,
-  checkDrift,
-  checkObservedArchitecture,
-  checkProject,
-  checkProvenance,
   classifyFormat,
+  deriveFindings,
   isBrownfieldRoot,
   loadProject,
+  localToday,
   parseDocument,
   parseGitLog,
 } from '@verikb/core';
@@ -21,14 +20,15 @@ import type {
   Advisory,
   ArchProjection,
   Edge,
-  GitFacts,
+  GitFactsInput,
+  HostFacts,
   ImportEdge,
   Issue,
   LoadResult,
   ModuleEntry,
   VeriDocument,
 } from '@verikb/core';
-import { collectExportFacts, collectImportFacts } from '@verikb/cli';
+import { collectExportFacts, collectImportFacts, collectTestFacts } from '@verikb/cli';
 import type { ModuleFileFact } from '@verikb/cli';
 
 const run = promisify(execFile);
@@ -70,39 +70,35 @@ export interface Snapshot {
   architecture: ArchProjection;
   /** Host-collected observed structure; empty shapes when no registry exists. */
   archObserved: ArchObserved;
+  /** Checks this host could not run, worded by core (WO-093, REQ-021).
+      Carried for parity with buildCheckReport; no view renders it yet. */
+  skips: string[];
 }
 
 /**
- * Architecture on the snapshot pipeline (WO-068): compile the projection,
- * scan the registry's module paths with the CLI collectors, and route
- * observed violations by declared severity (DEC-062) — error-severity
- * violations join `issues` (amber, counted, the HEALTH pipeline), advisory
- * ones join the grey tier, and a conflicted edge produces neither
- * (DEC-061). No registry → no scan, empty observed shapes, and the
- * projection still compiles (its emptiness is the view's declare-modules
- * hint). Collection re-runs on every (debounced, SRC-031) rebuild — the
- * scan is the CLI's own per-check cost, uncached like every other fact.
+ * Architecture on the snapshot pipeline (WO-068): compile the projection and
+ * scan the registry's module paths with the CLI collectors. Severity routing
+ * of observed violations (DEC-061/DEC-062) happens in core's deriveFindings,
+ * which takes `edges`/`skipped` as this host's importFacts (WO-093); the
+ * extra `files`/`exports` feed the Map's drill-down only. No registry → no
+ * scan, empty observed shapes, and the projection still compiles (its
+ * emptiness is the view's declare-modules hint). Collection re-runs on every
+ * (debounced, SRC-031) rebuild — the scan is the CLI's own per-check cost,
+ * uncached like every other fact.
  */
 function collectArchitecture(
   projectRoot: string,
   documents: VeriDocument[],
-): { architecture: ArchProjection; archObserved: ArchObserved; issues: Issue[]; advisories: Advisory[] } {
+): { architecture: ArchProjection; archObserved: ArchObserved; importFacts?: { edges: ImportEdge[]; skipped: ModuleEntry[] } } {
   const architecture = assembleArchitecture(documents);
   if (architecture.modules.length === 0) {
-    return {
-      architecture,
-      archObserved: { edges: [], skipped: [], files: [], exports: {} },
-      issues: [],
-      advisories: [],
-    };
+    return { architecture, archObserved: { edges: [], skipped: [], files: [], exports: {} } };
   }
   const { edges, skipped, files } = collectImportFacts(projectRoot, architecture.modules);
-  const observed = checkObservedArchitecture(documents, edges);
   return {
     architecture,
     archObserved: { edges, skipped, files, exports: collectExportFacts(projectRoot, architecture.modules) },
-    issues: observed.issues,
-    advisories: observed.violations,
+    importFacts: { edges, skipped },
   };
 }
 
@@ -124,26 +120,55 @@ async function gitInfo(root: string): Promise<GitInfo | null> {
   }
 }
 
+/** What this host's git shelling produced: core's GitFactsInput plus the
+    repository toplevel — the anchor bound-test paths resolve against
+    (WO-088's repo-root-relative ids). Outside a repository the anchor
+    degrades to the project root, matching the CLI. */
+interface GitCollected {
+  input: GitFactsInput;
+  root: string;
+}
+
 /**
- * The Electron host's git-facts collector (DEC-040): the same core checks the
- * CLI runs, fed by this host's own git shelling. Any failure — no git, no
- * repository, shallow clone — degrades to null and the git-backed advisories
- * simply don't appear; the pure tier always does.
+ * The app host's git-facts collector (DEC-040): the same core checks the
+ * CLI runs, fed by this host's own git shelling. Unavailability is a state
+ * with a reason (WO-093) — worded like the CLI's collector — so core's skip
+ * notes carry real text; the pure tier always runs.
  */
-async function gitFactsFor(projectRoot: string, veriDir: string): Promise<{ facts: GitFacts; veriPath: string } | null> {
+async function gitFactsFor(projectRoot: string, veriDir: string): Promise<GitCollected> {
+  const opts = { cwd: projectRoot, maxBuffer: 64 * 1024 * 1024 };
+  let shallow;
   try {
-    const opts = { cwd: projectRoot, maxBuffer: 64 * 1024 * 1024 };
-    const shallow = await run('git', ['rev-parse', '--is-shallow-repository'], opts);
-    if (shallow.stdout.trim() === 'true') return null;
+    shallow = await run('git', ['rev-parse', '--is-shallow-repository'], opts);
+  } catch (err) {
+    const reason = (err as NodeJS.ErrnoException).code === 'ENOENT' ? 'git is not installed' : 'not a git repository';
+    return { input: { kind: 'unavailable', reason }, root: projectRoot };
+  }
+  if (shallow.stdout.trim() === 'true') {
+    return { input: { kind: 'unavailable', reason: 'shallow clone — full history is not available' }, root: projectRoot };
+  }
+  try {
     const toplevel = await run('git', ['rev-parse', '--show-toplevel'], opts);
     const log = await run('git', ['log', '--name-only', `--format=${GIT_LOG_FORMAT}`], opts);
     // realpath both sides: git resolves symlinks in the toplevel (macOS
     // /var vs /private/var); the project path may arrive unresolved.
-    const veriPath = relative(realpathSync(toplevel.stdout.trim()), realpathSync(veriDir)).split(sep).join('/');
-    return { facts: parseGitLog(log.stdout), veriPath };
+    const root = toplevel.stdout.trim();
+    const veriPath = relative(realpathSync(root), realpathSync(veriDir)).split(sep).join('/');
+    return { input: { kind: 'ok', facts: parseGitLog(log.stdout), veriPath }, root };
   } catch {
-    return null;
+    return { input: { kind: 'unavailable', reason: 'no commits yet' }, root: projectRoot };
   }
+}
+
+/** This host's facts, assembled for core's deriveFindings (WO-093) — the
+    same fields the CLI and MCP hosts hand it, from this host's collectors. */
+function hostFacts(git: GitCollected, load: LoadResult, importFacts?: { edges: ImportEdge[]; skipped: ModuleEntry[] }): HostFacts {
+  return {
+    git: git.input,
+    today: localToday(),
+    testFacts: collectTestFacts(git.root, boundTests(load.documents)),
+    importFacts,
+  };
 }
 
 export async function buildSnapshot(projectRoot: string): Promise<Snapshot> {
@@ -151,32 +176,26 @@ export async function buildSnapshot(projectRoot: string): Promise<Snapshot> {
   if (!existsSync(veriDir)) throw new Error(`no veri/ directory under ${projectRoot}`);
   const load = await loadProject(veriDir);
   const graph = buildGraph(load.documents);
-  // Both tiers ship (WO-026, SRC-010), but every health count and color in
-  // the renderer stays driven by `issues` alone (DEC-025).
-  const { issues, advisories } = checkProject(load);
-  // Git-backed advisories — receipt verification (WO-044) and drift
-  // (WO-045) — join the same tier when this host can collect facts.
   const git = await gitFactsFor(projectRoot, veriDir);
-  if (git !== null) {
-    advisories.push(...checkProvenance(load.documents, git.facts));
-    advisories.push(...checkDrift(load.documents, git.facts, git.veriPath));
-  }
-  // Observed architecture (WO-068): error-severity violations are check
-  // issues after the pure tier's, matching buildCheckReport's ordering.
   const arch = collectArchitecture(projectRoot, load.documents);
-  issues.push(...arch.issues);
-  advisories.push(...arch.advisories);
+  // The shared derivation (WO-093, DEC-091): pure tier, git-backed tier,
+  // bound tests, and observed-architecture severity routing all happen in
+  // core — this host only collected the facts. Both tiers ship (WO-026,
+  // SRC-010), but every health count and color in the renderer stays driven
+  // by `issues` alone (DEC-025).
+  const findings = deriveFindings(load, hostFacts(git, load, arch.importFacts));
   return {
     projectName: basename(projectRoot),
     root: projectRoot,
     documents: load.documents,
-    issues,
-    advisories,
+    issues: findings.issues,
+    advisories: findings.advisories,
     edges: graph.edges,
     git: await gitInfo(projectRoot),
     brownfield: isBrownfieldRoot(projectRoot),
     architecture: arch.architecture,
     archObserved: arch.archObserved,
+    skips: findings.skips,
   };
 }
 
@@ -228,7 +247,7 @@ interface DocCacheEntry {
 export class SnapshotBuilder {
   #root: string | null = null;
   #docs = new Map<string, DocCacheEntry>();
-  #gitFacts: { sha: string; result: { facts: GitFacts; veriPath: string } } | null = null;
+  #gitFacts: { sha: string; result: GitCollected } | null = null;
   #current: Snapshot | null = null;
 
   /** Test instrumentation: how many files have been read+parsed. */
@@ -262,31 +281,26 @@ export class SnapshotBuilder {
     if (!existsSync(veriDir)) throw new Error(`no veri/ directory under ${projectRoot}`);
     const load = await this.#loadIncremental(veriDir);
     const graph = buildGraph(load.documents);
-    const { issues, advisories } = checkProject(load);
     const info = await gitInfo(projectRoot);
     const git = await this.#gitFactsCached(projectRoot, veriDir, info);
-    if (git !== null) {
-      advisories.push(...checkProvenance(load.documents, git.facts));
-      advisories.push(...checkDrift(load.documents, git.facts, git.veriPath));
-    }
     // Same collection as buildSnapshot (WO-068): the scan re-runs per
     // debounced rebuild — module source trees are outside the doc cache's
     // mtime horizon, and guessing staleness would trade correctness for
     // milliseconds the debounce already absorbs.
     const arch = collectArchitecture(projectRoot, load.documents);
-    issues.push(...arch.issues);
-    advisories.push(...arch.advisories);
+    const findings = deriveFindings(load, hostFacts(git, load, arch.importFacts));
     const snap: Snapshot = {
       projectName: basename(projectRoot),
       root: projectRoot,
       documents: load.documents,
-      issues,
-      advisories,
+      issues: findings.issues,
+      advisories: findings.advisories,
       edges: graph.edges,
       git: info,
       brownfield: isBrownfieldRoot(projectRoot),
       architecture: arch.architecture,
       archObserved: arch.archObserved,
+      skips: findings.skips,
     };
     this.#current = snap;
     return snap;
@@ -342,22 +356,18 @@ export class SnapshotBuilder {
   /**
    * Git facts keyed by HEAD (SRC-031): the expensive full-history log
    * re-runs only when HEAD moves; a dirty-flag flip alone re-runs nothing —
-   * drift and provenance derive from commits, not the worktree. Null
+   * drift and provenance derive from commits, not the worktree. Unavailable
    * results (no git, shallow clone) are never cached: those probes fail
    * fast and cheap, and staying live means an unshallowed repo is noticed
    * without a HEAD move.
    */
-  async #gitFactsCached(
-    projectRoot: string,
-    veriDir: string,
-    info: GitInfo | null,
-  ): Promise<{ facts: GitFacts; veriPath: string } | null> {
+  async #gitFactsCached(projectRoot: string, veriDir: string, info: GitInfo | null): Promise<GitCollected> {
     if (info !== null && this.#gitFacts !== null && this.#gitFacts.sha === info.sha) {
       return this.#gitFacts.result;
     }
     this.gitFactsCount++;
     const result = await gitFactsFor(projectRoot, veriDir);
-    this.#gitFacts = info !== null && result !== null ? { sha: info.sha, result } : null;
+    this.#gitFacts = info !== null && result.input.kind === 'ok' ? { sha: info.sha, result } : null;
     return result;
   }
 }

@@ -125,6 +125,128 @@ test('a fresh scaffold committed while the local date differs from UTC shows no 
 });
 
 // ---------------------------------------------------------------------------
+// WO-093 — the app consumes core's deriveFindings: the snapshot's findings
+// and skips must be exactly what the CLI's checkReport derives over the same
+// corpus, because both are the same core derivation over each host's facts.
+// ---------------------------------------------------------------------------
+
+const REQ_001 = `---
+id: REQ-001
+type: requirement
+title: Fixture requirement
+status: accepted
+approved: 2026-08-01
+created: 2026-08-01
+updated: 2026-08-01
+links: []
+---
+
+It must work.
+
+## Acceptance criteria
+
+- [ ] It works
+`;
+
+const WO_BOUND = `---
+id: WO-001
+type: work-order
+title: Bound fixture work order
+status: in-progress
+created: 2026-08-01
+updated: 2026-08-01
+links:
+  - id: REQ-001
+    rel: implements
+binds:
+  paths:
+    - src/**
+  tests:
+    - tests/gone.test.ts
+---
+
+## Summary
+
+Fixture work.
+
+## In scope
+
+- Everything
+
+## Out of scope
+
+- Nothing
+
+## Requirements
+
+- [[REQ-001]] — implements
+
+## Acceptance tests
+
+- [ ] Passes
+
+## Receipts
+
+(none yet)
+`;
+
+function flat(entry: { kind?: string; id?: string; file?: string; message: string }): {
+  kind?: string;
+  id?: string;
+  file?: string;
+  message: string;
+} {
+  return { kind: entry.kind, id: entry.id, file: entry.file, message: entry.message };
+}
+
+test('snapshot findings equal the CLI report over one bound corpus (WO-093)', async (t) => {
+  const { checkReport } = await import('@verikb/cli');
+  const dir = sandbox(t);
+  writeFileSync(join(dir, 'veri/requirements/REQ-001-fixture.md'), REQ_001);
+  writeFileSync(join(dir, 'veri/work-orders/WO-001-bound.md'), WO_BOUND);
+  mkdirSync(join(dir, 'src'));
+  writeFileSync(join(dir, 'src/main.ts'), 'export const answer = 42;\n');
+  const git = (...args: string[]) => {
+    const run = spawnSync('git', args, { cwd: dir, encoding: 'utf8' });
+    assert.equal(run.status, 0, run.stderr);
+  };
+  git('init', '-q');
+  git('config', 'user.email', 'test@example.com');
+  git('config', 'user.name', 'Test');
+  git('add', '.');
+  // The subject names no work order: with WO-001's binds claiming src/**,
+  // this commit is an unclaimed change (DEC-080).
+  git('commit', '-q', '-m', 'initial scaffold');
+
+  const snap = await buildSnapshot(dir);
+  const report = await checkReport(dir);
+  assert.ok(report !== null);
+  assert.deepEqual(snap.issues.map(flat), report.issues.map(flat));
+  assert.deepEqual(snap.advisories.map(flat), report.advisories.map(flat));
+  assert.deepEqual(snap.skips, report.skips);
+  // The two detector families the hand-rolled tier missed are now present.
+  assert.ok(snap.advisories.some((advisory) => advisory.kind === 'drift-missing-test'));
+  assert.ok(snap.advisories.some((advisory) => advisory.kind === 'drift-unclaimed-change'));
+});
+
+test('snapshot skips match the CLI report outside a repository (WO-093, REQ-021)', async (t) => {
+  const { checkReport } = await import('@verikb/cli');
+  const dir = sandbox(t);
+  writeFileSync(join(dir, 'veri/requirements/REQ-001-fixture.md'), REQ_001);
+  writeFileSync(join(dir, 'veri/work-orders/WO-001-bound.md'), WO_BOUND);
+
+  const snap = await buildSnapshot(dir);
+  const report = await checkReport(dir);
+  assert.ok(report !== null);
+  assert.deepEqual(snap.skips, report.skips);
+  assert.ok(snap.skips.some((note) => note === '(provenance: skipped — not a git repository)'));
+  // WO-001 is a binding claimant, so the git-less degradation names the
+  // binding-drift tier too — never a silent omission.
+  assert.ok(snap.skips.some((note) => note === '(binding drift: skipped — not a git repository)'));
+  assert.deepEqual(snap.advisories.map(flat), report.advisories.map(flat));
+});
+
+// ---------------------------------------------------------------------------
 // WO-051 — incremental snapshots. The invariant: an incremental build after
 // any sequence of file events deep-equals a from-scratch buildSnapshot.
 // ---------------------------------------------------------------------------

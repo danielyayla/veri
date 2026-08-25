@@ -12562,7 +12562,7 @@ function idOf(value) {
 function importSkipNotes(skipped) {
   return skipped.map((entry) => `(architecture: skipped module ${entry.name} \u2014 ${entry.path} is not on disk)`);
 }
-function buildCheckReport(load, host) {
+function deriveFindings(load, host) {
   const { issues, advisories } = checkProject(load);
   if (host.git.kind === "ok") {
     advisories.push(...checkProvenance(load.documents, host.git.facts));
@@ -12580,6 +12580,18 @@ function buildCheckReport(load, host) {
     advisories.push(...observed.violations);
   }
   return {
+    issues,
+    advisories,
+    skips: [
+      ...host.git.kind === "ok" ? [] : [`(provenance: skipped \u2014 ${host.git.reason})`],
+      ...host.git.kind !== "ok" && bindingClaimants(load.documents).length > 0 ? [`(binding drift: skipped \u2014 ${host.git.reason})`] : [],
+      ...importSkipNotes(host.importFacts?.skipped ?? [])
+    ]
+  };
+}
+function buildCheckReport(load, host) {
+  const { issues, advisories, skips } = deriveFindings(load, host);
+  return {
     formatLine: formatLine(load.format),
     documentCount: load.documents.length,
     issues: issues.map((issue) => ({ kind: issue.kind, id: idOf(issue), file: fileOf(issue), message: issue.message })),
@@ -12589,11 +12601,7 @@ function buildCheckReport(load, host) {
       file: advisory.file,
       message: advisory.message
     })),
-    skips: [
-      ...host.git.kind === "ok" ? [] : [`(provenance: skipped \u2014 ${host.git.reason})`],
-      ...host.git.kind !== "ok" && bindingClaimants(load.documents).length > 0 ? [`(binding drift: skipped \u2014 ${host.git.reason})`] : [],
-      ...importSkipNotes(host.importFacts?.skipped ?? [])
-    ]
+    skips
   };
 }
 

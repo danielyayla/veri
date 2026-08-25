@@ -67,6 +67,7 @@ function snap(
     brownfield: false,
     architecture: { modules: [], rules: [], conflicts: [] },
     archObserved: { edges: [], skipped: [], files: [], exports: {} },
+    skips: [],
   };
 }
 

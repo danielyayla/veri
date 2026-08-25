@@ -299,9 +299,25 @@ server.registerTool(
   async () => {
     try {
       guardFormat();
-      const result = await runCheck(projectRoot);
-      if (result === null) throw new Error('no veri/ directory here');
-      return ok(JSON.stringify(result, null, 2));
+      const report = await runCheck(projectRoot);
+      if (report === null) throw new Error('no veri/ directory here');
+      // The tool's wire keys (pass/violations/skipped, per the description
+      // above) are this surface's serialization of core's CheckReport —
+      // presentation at the edge, not a second report shape (WO-093).
+      return ok(
+        JSON.stringify(
+          {
+            pass: report.issues.length === 0,
+            format: report.formatLine,
+            documents: report.documentCount,
+            violations: report.issues,
+            advisories: report.advisories,
+            skipped: report.skips,
+          },
+          null,
+          2,
+        ),
+      );
     } catch (err) {
       return fail(err);
     }
