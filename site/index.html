@@ -40,7 +40,7 @@
        executes the DEC-077 npm publish, so the command and the registry
        state can never disagree. Do not merge ahead of the publish. -->
   <div class="hero-cmd">
-    <code><span class="cmd-ps" aria-hidden="true">$ </span>npm install -g @veri/cli</code>
+    <code><span class="cmd-ps" aria-hidden="true">$ </span>npm install -g @verikb/cli</code>
     <button type="button" class="cmd-copy js-only" id="cmd-copy">Copy</button>
   </div>
   <div class="cta-row">
@@ -53,7 +53,7 @@
        stated where the artifact is offered (DEC-082 signing posture, DEC-090
        sizes). The CLI/MCP npm claim below is true only once the DEC-077
        publish has executed — this file merges with that publish. -->
-  <p class="dl-platforms">Also for <a id="dl-win" href="https://github.com/danielyayla/veri/releases/latest">Windows 10+</a> and Linux (<a id="dl-appimage" href="https://github.com/danielyayla/veri/releases/latest">AppImage</a> · <a id="dl-deb" href="https://github.com/danielyayla/veri/releases/latest">.deb</a>) — the Windows installer is unsigned for now, so SmartScreen warns on first install; the ~120 MB AppImage auto-updates and bundles its own WebKit; the .deb is smaller but doesn't auto-update. The CLI and MCP server are <a href="https://github.com/danielyayla/veri#installing-the-cli">on npm</a> and run anywhere Node 20+ does — <code>npm install -g @veri/cli</code> on any platform.</p>
+  <p class="dl-platforms">Also for <a id="dl-win" href="https://github.com/danielyayla/veri/releases/latest">Windows 10+</a> and Linux (<a id="dl-appimage" href="https://github.com/danielyayla/veri/releases/latest">AppImage</a> · <a id="dl-deb" href="https://github.com/danielyayla/veri/releases/latest">.deb</a>) — the Windows installer is unsigned for now, so SmartScreen warns on first install; the ~120 MB AppImage auto-updates and bundles its own WebKit; the .deb is smaller but doesn't auto-update. The CLI and MCP server are <a href="https://github.com/danielyayla/veri#installing-the-cli">on npm</a> and run anywhere Node 20+ does — <code>npm install -g @verikb/cli</code> on any platform.</p>
 </section>
 
 <div class="hero-shot demo demo-hero" id="product">
@@ -438,7 +438,7 @@ embedded in the Rust core.
     <a class="cta-quickstart" href="docs/quickstart.html">or start with the quickstart</a>
   </div>
   <div class="dl-sub"><a id="dl2-arm" href="https://github.com/danielyayla/veri/releases/latest">Apple silicon</a> &amp; <a id="dl2-intel" href="https://github.com/danielyayla/veri/releases/latest">Intel</a></div>
-  <div class="dl-sub">The app runs on macOS 13+, Windows 10+, and Linux (<a id="dl2-appimage" href="https://github.com/danielyayla/veri/releases/latest">AppImage</a> or <a id="dl2-deb" href="https://github.com/danielyayla/veri/releases/latest">.deb</a>). The <a href="docs/ci.html">CI gate</a>, CLI, and MCP server are plain Node and run anywhere Node 20+ does — the CLI and MCP <a href="https://github.com/danielyayla/veri#installing-the-cli">from npm</a>: <code>npm install -g @veri/cli</code>.</div>
+  <div class="dl-sub">The app runs on macOS 13+, Windows 10+, and Linux (<a id="dl2-appimage" href="https://github.com/danielyayla/veri/releases/latest">AppImage</a> or <a id="dl2-deb" href="https://github.com/danielyayla/veri/releases/latest">.deb</a>). The <a href="docs/ci.html">CI gate</a>, CLI, and MCP server are plain Node and run anywhere Node 20+ does — the CLI and MCP <a href="https://github.com/danielyayla/veri#installing-the-cli">from npm</a>: <code>npm install -g @verikb/cli</code>.</div>
   <div class="dl-sub fin-oss"><a href="https://github.com/danielyayla/veri/blob/main/LICENSE">Apache-2.0</a> · <a href="https://github.com/danielyayla/veri/tree/main/packages/cli/demo/veri">browse the sample knowledge base on GitHub</a> · <a href="https://github.com/danielyayla/veri/releases">changelog</a></div>
 </section>
 
@@ -588,7 +588,7 @@ fetch('https://api.github.com/repos/danielyayla/veri/releases/latest')
   var cmdBtn = $('cmd-copy'), cmdTimer = null;
   cmdBtn.addEventListener('click', function () {
     try {
-      navigator.clipboard.writeText('npm install -g @veri/cli').catch(function () {});
+      navigator.clipboard.writeText('npm install -g @verikb/cli').catch(function () {});
     } catch (e) { return; /* clipboard unavailable — don't claim Copied */ }
     cmdBtn.textContent = 'Copied';
     clearTimeout(cmdTimer);

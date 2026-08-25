@@ -40,12 +40,12 @@
 <p class="doc-lead">From download to an agent that reads your project's knowledge base — about ten minutes, using the bundled sample project as the worked example.</p>
 
 <p>You'll need: a Mac running macOS 13 or later, a coding agent that speaks MCP (the steps below use <a href="https://claude.com/claude-code">Claude Code</a>), and <a href="https://nodejs.org">Node 20+</a> on your machine — your agent uses it to launch Veri's local MCP server. Veri checks for it and tells you if it's missing.</p>
-<p>On Windows or Linux? The app ships for both — grab the <a href="https://github.com/danielyayla/veri/releases/latest">Windows installer</a> (unsigned for now; SmartScreen warns on first install) or the Linux <a href="https://github.com/danielyayla/veri/releases/latest">AppImage or .deb</a> (the AppImage auto-updates; the .deb doesn't). The <a href="ci.html"><code>veri check</code> CI gate</a> runs on any platform, and the CLI and MCP server are <a href="https://github.com/danielyayla/veri#installing-the-cli">on npm</a> and run anywhere Node 20+ does — <code>npm install -g @veri/cli</code>.</p>
+<p>On Windows or Linux? The app ships for both — grab the <a href="https://github.com/danielyayla/veri/releases/latest">Windows installer</a> (unsigned for now; SmartScreen warns on first install) or the Linux <a href="https://github.com/danielyayla/veri/releases/latest">AppImage or .deb</a> (the AppImage auto-updates; the .deb doesn't). The <a href="ci.html"><code>veri check</code> CI gate</a> runs on any platform, and the CLI and MCP server are <a href="https://github.com/danielyayla/veri#installing-the-cli">on npm</a> and run anywhere Node 20+ does — <code>npm install -g @verikb/cli</code>.</p>
 
 <h2>1. Install Veri</h2>
 <p>The command-line install works on any platform with <a href="https://nodejs.org">Node 20+</a> and gives you the <code>veri</code> command:</p>
-<pre><code>npm install -g @veri/cli</code></pre>
-<p>Prefer not to install globally? <code>npx @veri/cli check</code> runs the same CLI one-shot. The MCP server publishes alongside as <code>@veri/mcp</code> — the app (or your agent's <code>.mcp.json</code>) launches it for you.</p>
+<pre><code>npm install -g @verikb/cli</code></pre>
+<p>Prefer not to install globally? <code>npx @verikb/cli check</code> runs the same CLI one-shot. The MCP server publishes alongside as <code>@verikb/mcp</code> — the app (or your agent's <code>.mcp.json</code>) launches it for you.</p>
 <p>The rest of this quickstart uses the desktop app, which ships separately as a signed DMG:</p>
 <ol>
   <li><a href="https://github.com/danielyayla/veri/releases/latest">Download the DMG</a> for your Mac's chip from the latest release: <code>aarch64</code> for Apple silicon (M-series), <code>x64</code> for Intel. Unsure which you have? Apple menu → About This Mac — "Chip: Apple M…" means Apple silicon.</li>
