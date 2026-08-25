@@ -2,7 +2,7 @@
 id: WO-102
 type: work-order
 title: "MCP filing collapses onto core's createDocument — one creation implementation behind the file_* tools"
-status: ready
+status: in-progress
 approved: 2026-08-25
 created: 2026-08-25
 updated: 2026-08-25
