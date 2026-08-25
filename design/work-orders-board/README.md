@@ -1,8 +1,8 @@
 # Handoff: Work Orders Board (SRC-047)
 
 ## Overview
-Clicking the **Work Orders** collection in the sidebar opens a
-**▤ Work Orders view tab** — a four-column Kanban over the full
+A `▤ Board` row atop the **Work Orders** type panel opens the
+**▤ Board view tab** — a four-column Kanban over the full
 work-order lifecycle (`backlog · ready · in-progress · done`). This
 deliberately revisits the board retired by [[SRC-025]] (WO-053), and it
 is the UI surface for the `ready` dispatch state that WO-098's receipt
@@ -31,13 +31,21 @@ SRC-025 retired the old board for three reasons. Each is answered:
    issue (filled = issue, hollow = advisory, per SRC-010).
 
 ## Entry point
-The collection row's click behavior changes: instead of only toggling
-the type panel, clicking Work Orders opens the board as a **view tab**
+**Revised 2026-08-25 after Daniel's design critique.** The collection
+row stays a panel toggle, exactly like Requirements, Decisions, and
+Sources — the sidebar keeps one rule (collections are browsers, view
+rows are routes). The Work Orders panel gains a `▤ Board` row at the
+top of its list; clicking it opens the board as a **view tab**
 (preview semantics, one instance, closeable — exactly how Home,
-Search, and Settings open). The type panel remains available and
-unchanged; the board is a second door, not a replacement. Open
-question for approval: whether the collection click opens the board
-directly or the type panel gains a `▤ Board` affordance.
+Search, and Settings open) and closes the panel per the SRC-014
+"selecting any view closes the panel" rule. The panel is the
+collection's default surface — search, PINNED, status subgroups, done
+expander — and the board is its alternate, workflow-specific view.
+The ⌘K palette's "▤ Board" row is the direct path for power users.
+(The original open question — collection click straight to the board —
+shipped first and was reversed the same day: it made one of four
+identical collection rows a route while three stayed browsers, and
+cost the panel's search and discoverability from the sidebar path.)
 
 ## The ready lane
 - `ready` is entered **only by the user's stamp** (`veri approve`,

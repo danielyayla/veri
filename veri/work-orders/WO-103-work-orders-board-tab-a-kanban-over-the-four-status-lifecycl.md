@@ -21,11 +21,11 @@ links:
 
 ## Summary
 
-Clicking the Work Orders collection opens a ▤ Work Orders view tab — a four-column board (backlog · ready · in-progress · done) per SRC-047, giving the WO-098 ready state its deferred UI surface. DONE is windowed with an expander; cards are lean (id, title, recency / receipt SHA, check dot); no drag-and-drop.
+A ▤ Board view tab — a four-column board (backlog · ready · in-progress · done) per SRC-047, giving the WO-098 ready state its deferred UI surface — opened from a `▤ Board` row atop the Work Orders type panel (SRC-047 as revised 2026-08-25: the collection row stays a panel toggle like every other collection). DONE is windowed with an expander; cards are lean (id, title, recency / receipt SHA, check dot); no drag-and-drop.
 
 ## In scope
 
-- A `board` view tab (ViewKey, VIEW_META `▤`, one instance, preview semantics) opened by clicking the Work Orders collection row
+- A `board` view tab (ViewKey, VIEW_META `▤`, one instance, preview semantics) opened from the `▤ Board` row at the top of the Work Orders type panel; the collection row stays a panel toggle
 - Four columns from the shipped enum; DONE windowed to the 5 most recently updated with a `▸ show all N done` expander
 - Card anatomy per SRC-047: mono type-colored id, title, `updated Nd ago`; done cards show receipt SHA; filled amber dot on check issues
 - Surface `ready` across the UI: `STATUS_COLORS` (info blue), `STATUS_SEGMENTS`, `LIVING['work-order']` — with `backlog → ready` excluded from the segmented control (stamp-only transition)
@@ -35,7 +35,7 @@ Clicking the Work Orders collection opens a ▤ Work Orders view tab — a four-
 ## Out of scope
 
 - Drag-and-drop or any status mutation from the board (WO-053's ruling stands)
-- Changes to the type panel, its subgroups, or sidebar row anatomy
+- Changes to the type panel's subgroups or sidebar row anatomy (the panel gains only the one `▤ Board` row)
 - Any new colors outside the token blocks
 
 ## Requirements
@@ -47,7 +47,7 @@ Clicking the Work Orders collection opens a ▤ Work Orders view tab — a four-
 
 ## Acceptance tests
 
-- [ ] Clicking the Work Orders collection opens the ▤ Work Orders board tab; the type panel behavior for other collections is unchanged
+- [ ] Clicking the Work Orders collection toggles its type panel like every other collection; the panel's top `▤ Board` row opens the ▤ Board tab and closes the panel
 - [x] Board shows four columns with token status colors; `ready` renders info blue everywhere a status renders
 - [x] DONE column shows at most 5 cards until expanded; expander toggles in place
 - [x] The work-order detail's segmented control offers no path into `ready`; `veri approve` remains the only write path

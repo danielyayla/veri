@@ -18,9 +18,9 @@ export type ViewKey = 'homeview' | 'search' | 'settings' | 'import' | 'architect
 
 export const VIEW_META: Record<ViewKey, { label: string; glyph: string }> = {
   homeview: { label: 'Home', glyph: '⌂' },
-  // The board's return (WO-103, SRC-047): the Work Orders collection's
+  // The board's return (WO-103, SRC-047): the Work Orders panel's
   // view tab — backlog · ready · in-progress · done at a glance.
-  board: { label: 'Work Orders', glyph: '▤' },
+  board: { label: 'Board', glyph: '▤' },
   // The palette's thorough sibling (WO-048, SRC-022): one query, every hit.
   search: { label: 'Search', glyph: '⌕' },
   // One Settings tab hosts Templates and Agent connection too (WO-036).

@@ -2596,7 +2596,9 @@ class App implements Ctx {
       and the Settings gear at the foot. Replaces the icon rail and the
       working-set tree. Graph left the sidebar with WO-052 (SRC-024);
       Board folded into the Work Orders panel with WO-053 (SRC-025) and
-      returned with WO-103 (SRC-047) as the Work Orders row's view tab. */
+      returned with WO-103 (SRC-047) as a view tab opened from the Work
+      Orders panel's ▤ Board row — the collection row stays a panel
+      toggle like every other collection (DEC-105 as revised). */
   private sidebar(): HTMLElement {
     const target = activeTarget(this.tabState());
     const viewItem = (key: View, label: string, glyph: string): HTMLElement =>
@@ -2614,26 +2616,6 @@ class App implements Ctx {
     const collItem = (type: DocType): HTMLElement => {
       const meta = TYPE_META[type];
       const open = this.state.panel === type;
-      // The board's entry point (WO-103, SRC-047): the Work Orders row is a
-      // view row — clicking it opens the board tab, so it drops the panel
-      // caret. The Work Orders panel stays reachable via the live type
-      // crumb (openPanel), and every other collection keeps the toggle.
-      if (type === 'work-order') {
-        const active = target === 'board';
-        return h(
-          'button',
-          {
-            class: active ? 'btn-reset btn-block nav-item nav-item-active' : 'btn-reset btn-block nav-item',
-            label: `${meta.crumb} — ${livingCount(this.snap.documents, type)} living — opens the board`,
-            pressed: active,
-            fkey: `coll:${type}`,
-            onClick: () => this.setView('board'),
-          },
-          h('span', { class: 'nav-swatch' }, h('i', { style: `background:${meta.color};` })),
-          h('span', { class: 'nav-lbl' }, meta.crumb),
-          h('span', { class: 'nav-cnt' }, String(livingCount(this.snap.documents, type))),
-        );
-      }
       return h(
         'button',
         {
@@ -2792,6 +2774,26 @@ class App implements Ctx {
     // under BACKLOG / IN PROGRESS micro-headers; other types stay flat.
     const groups = livingGroups(list.living, type);
     const rows: HTMLElement[] = [];
+    // The board's entry point (WO-103, SRC-047, DEC-105 as revised): the
+    // panel is the collection's default surface; the board is its alternate
+    // view, promoted from the top of the list. setView closes the panel —
+    // the SRC-014 "selecting any view closes the panel" rule.
+    if (type === 'work-order') {
+      rows.push(
+        h(
+          'button',
+          {
+            class: `btn-reset btn-block tp-board${target === 'board' ? ' tp-board-active' : ''}`,
+            label: 'Open the board view',
+            fkey: 'tp-board',
+            onClick: () => this.setView('board'),
+          },
+          h('span', { class: 'tp-board-glyph' }, '▤'),
+          h('span', { class: 'tp-board-lbl' }, 'Board'),
+          h('span', { class: 'tp-board-hint' }, 'view'),
+        ),
+      );
+    }
     if (list.pinned.length > 0) {
       rows.push(h('div', { class: 'tp-group' }, 'Pinned'), ...list.pinned.map((d) => row(d, true)));
       // Subgroup headers take over the living list's labeling below.

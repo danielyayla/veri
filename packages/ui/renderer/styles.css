@@ -512,6 +512,19 @@ a:hover { color: var(--link-hover); }
   font-size: 11.5px; color: var(--ghost); cursor: pointer; border-radius: 6px;
 }
 .tp-more:hover { color: var(--muted); }
+/* The board's promotion row (WO-103, SRC-047, DEC-105 as revised): the
+   Work Orders panel's first row opens the ▤ Board view tab — the panel
+   stays the collection's default surface, in the tp-row grammar. */
+.tp-board {
+  min-height: 28px; display: flex; align-items: center; gap: 8px;
+  padding: 3px 8px; margin-top: 6px; border-radius: 6px; cursor: pointer;
+}
+.tp-board:hover { background: var(--row-hover); }
+.tp-board-active { background: var(--ember-tint); }
+.tp-board-glyph { font-family: var(--mono); font-size: 11px; color: var(--t-wo); flex: 0 0 auto; width: 52px; }
+.tp-board-lbl { flex: 1; font-size: 12.5px; color: var(--body-text-2); }
+.tp-board-active .tp-board-lbl { color: var(--text); }
+.tp-board-hint { font-family: var(--mono); font-size: 9px; color: var(--ghost); flex: 0 0 auto; }
 .tp-empty { padding: 14px 10px; font-size: 12px; color: var(--faint); }
 /* Teaching empty state (WO-030), re-homed from the old tree: hint by
    default, the action on hover (CSS swap). */

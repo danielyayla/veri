@@ -31,10 +31,11 @@ instead — a local 1-hop neighborhood map at the top of the Connections
 panel, not a screen), [[SRC-025]] (the Board screen is retired; its
 status columns live on as status subgroups in the Work Orders type
 panel's living list, with done behind the panel's expander), and
-[[SRC-047]] (the board returns as the Work Orders view tab — a
-four-column kanban over the [[WO-098]] lifecycle, opened by the Work
-Orders collection row, DONE windowed behind an expander; the type panel
-and its subgroups are unchanged, reachable via the live type crumb):
+[[SRC-047]] (the board returns as the ▤ Board view tab — a
+four-column kanban over the [[WO-098]] lifecycle, opened from a
+`▤ Board` row atop the Work Orders type panel, DONE windowed behind an
+expander; the collection row stays a panel toggle like every other
+collection, and the panel's subgroups are unchanged):
 
 1. **Project home** — three panes: doc tree grouped by type; markdown
    reader with frontmatter rendered as a properties header; Connections

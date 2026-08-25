@@ -27,11 +27,21 @@ Full handoff: `design/work-orders-board/README.md` + `Veri Work Orders
 Board.html` (dark + light). Published copy:
 https://claude.ai/code/artifact/a3c6f783-68e8-42da-a860-df668fdfac5f
 
-Clicking the Work Orders collection opens a **▤ Work Orders view tab**
-(preview semantics, one instance — the Home/Search/Settings pattern):
-a four-column Kanban `backlog · ready · in-progress · done`. It is
-also the UI surface for the `ready` dispatch state that WO-098's
-receipt deferred ("surface the ready state in the desktop UI").
+> **Revised 2026-08-25 after Daniel's design critique**: the collection
+> row stays a panel toggle like every other collection; the board is
+> reached from a `▤ Board` row atop the Work Orders type panel. The
+> critique: a view-row Work Orders click broke the sidebar's one
+> consistent rule (collections are browsers, view rows are routes) and
+> cost the panel's search/discoverability. The pattern is now "list is
+> the default surface, board is the alternate view" — the panel *is*
+> the list. This resolves the open question below.
+
+The Work Orders type panel gains a **`▤ Board` row** at the top of its
+list; clicking it opens the **▤ Board view tab** (preview semantics,
+one instance — the Home/Search/Settings pattern): a four-column Kanban
+`backlog · ready · in-progress · done`. It is also the UI surface for
+the `ready` dispatch state that WO-098's receipt deferred ("surface
+the ready state in the desktop UI").
 
 ## Each SRC-025 objection answered
 
@@ -58,9 +68,11 @@ with done). `STATUS_COLORS`, `STATUS_SEGMENTS`, and
 ## Out of scope
 
 No drag-and-drop (WO-053's ruling stands: the detail's segmented
-control is the only status mutation). No changes to the type panel or
-sidebar anatomy. Below ~640px pane width the grid falls back to a
-stacked list (container query).
+control is the only status mutation). No changes to sidebar anatomy;
+the type panel changes only by the one `▤ Board` row. Below ~640px
+pane width the grid falls back to a stacked list (container query).
 
 Open question for approval: does the collection click open the board
 directly, or does the type panel gain a `▤ Board` affordance?
+**Resolved 2026-08-25 by Daniel**: the panel gains the affordance —
+the collection click stays a panel toggle (see the revision note).
