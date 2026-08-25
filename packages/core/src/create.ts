@@ -96,7 +96,9 @@ export async function createDocument(
       : []),
     '---',
   ].join('\n');
-  const file = join(TYPE_SUBDIR[type], `${id}-${slugifyTitle(trimmed)}.md`);
+  // Forward slashes always: `file` is the veri/-relative contract path
+  // (loadProject, receipts, links all speak this form), not an OS path.
+  const file = `${TYPE_SUBDIR[type]}/${id}-${slugifyTitle(trimmed)}.md`;
   const text = `${frontmatter}\n${getTemplate(root, type).body}`;
   writeFileSync(join(root, file), text, { flag: 'wx' });
   recordIssuedId(root, prefix, next);

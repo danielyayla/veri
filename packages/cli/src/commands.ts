@@ -121,10 +121,18 @@ export async function newDoc(cwd: string, typeArg: string | undefined, title: st
 
 /** The veri/ directory's repo-root-relative path with forward slashes, for
     mapping document files onto the paths git reports (WO-045). Both sides
-    resolve through realpath — git reports the toplevel symlink-resolved
-    (macOS /var vs /private/var), the cwd may not be. */
+    resolve through the OS realpath — git reports the toplevel symlink-resolved
+    (macOS /var vs /private/var) and long-name (Windows RUNNER~1 vs runneradmin),
+    the cwd may be neither; only realpathSync.native expands 8.3 short names. */
 function veriPathInRepo(repoRoot: string, veriDir: string): string {
-  return relative(realpathSync(repoRoot), realpathSync(veriDir)).split(sep).join('/');
+  const real = (p: string): string => {
+    try {
+      return realpathSync.native(p);
+    } catch {
+      return realpathSync(p);
+    }
+  };
+  return relative(real(repoRoot), real(veriDir)).split(sep).join('/');
 }
 
 /**

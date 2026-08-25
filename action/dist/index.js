@@ -12749,7 +12749,14 @@ function requireVeriDir(cwd) {
   return existsSync3(dir) ? dir : null;
 }
 function veriPathInRepo(repoRoot, veriDir) {
-  return relative2(realpathSync(repoRoot), realpathSync(veriDir)).split(sep2).join("/");
+  const real = (p) => {
+    try {
+      return realpathSync.native(p);
+    } catch {
+      return realpathSync(p);
+    }
+  };
+  return relative2(real(repoRoot), real(veriDir)).split(sep2).join("/");
 }
 async function checkReport(cwd) {
   const dir = requireVeriDir(cwd);
