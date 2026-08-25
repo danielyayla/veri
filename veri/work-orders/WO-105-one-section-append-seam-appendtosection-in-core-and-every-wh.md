@@ -2,7 +2,7 @@
 id: WO-105
 type: work-order
 title: "One section-append seam — appendToSection in core, and every whole-file updated: bump adopts bumpUpdated"
-status: in-progress
+status: done
 claimed_by: claude-wo-105-session
 claimed_at: 2026-08-25
 approved: 2026-08-25
@@ -48,11 +48,11 @@ Three byte-identical copies of the section-splice algorithm live across two surf
 
 ## Acceptance tests
 
-- [ ] grep finds exactly one section-splice implementation across packages/ (the writeback.ts and write.ts copies gone) and zero whole-file `updated:` regex replaces outside core
-- [ ] sections.test.ts: create-when-missing, append preserving following sections, placeholder strip, multi-word heading — all green
-- [ ] All existing writeback.test.ts and write.test.ts tests pass with zero expectation edits (receipt placeholder replacement, note ordering, review-note gating, setStatus byte-equality)
-- [ ] Full suite and typecheck green across workspaces; veri check green
+- [x] grep finds exactly one section-splice implementation across packages/ (the writeback.ts and write.ts copies gone) and zero whole-file `updated:` regex replaces outside core — sections.ts is the one writer; remaining `search(/^##/)` sites (core check.ts, renderer derive.ts, mcp amend.ts) are read-side scanners, out of scope by design
+- [x] sections.test.ts: create-when-missing, append preserving following sections, placeholder strip, multi-word heading — all green — 4/4
+- [x] All existing writeback.test.ts and write.test.ts tests pass with zero expectation edits (receipt placeholder replacement, note ordering, review-note gating, setStatus byte-equality) — 12/12 and 10/10, no test file touched beyond none
+- [x] Full suite and typecheck green across workspaces; veri check green — core 233, cli 53, mcp 78, ui 326; typecheck clean; check 0 issues (standing WO-034 advisory only)
 
 ## Receipts
 
-(none yet)
+- 2026-08-25 · ee30b76 · packages/core/src/{sections.ts,sections.test.ts,index.ts}, packages/mcp/src/writeback.ts, packages/ui/src/lib/write.ts — appendToSection in core replaces the three splice copies; fileReceipt, setStatus, and both note appenders adopt save.ts's frontmatter-scoped bumpUpdated. index.ts staged surgically: the concurrent WO-099 session's uncommitted start.ts export stayed out of this commit. WO-105's claimed_by was corrected after being mis-stamped with the WO-100 session's claim id.
