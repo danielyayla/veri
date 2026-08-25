@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFi
 import { createRequire } from 'node:module';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, maintainerRegistry, migrateProject, moduleRegistry, nextDispatchable, nextIdNumber, originalStoragePath, recordIssuedId, renderArchitecture, renumberDocument, scaffoldProject, slugifyTitle, workOrdersTouching } from '@verikb/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, lookupIntent, maintainerRegistry, migrateProject, moduleRegistry, nextDispatchable, nextIdNumber, originalStoragePath, recordIssuedId, renderArchitecture, renderIntent, renumberDocument, scaffoldProject, slugifyTitle, workOrdersTouching } from '@verikb/core';
 import type { CheckReport, DocType } from '@verikb/core';
 import { collectGitFacts, gitUserName } from './git.ts';
 import { collectTestFacts } from './testfacts.ts';
@@ -489,4 +489,24 @@ export function open(cwd: string, dirArg: string | undefined, deps: OpenDeps = d
   }
   deps.launch(shellBin, [target]);
   return { code: 0, lines: [`Opening Veri on ${target}…`] };
+}
+
+/**
+ * Code-to-intent lookup (WO-095, DEC-099): the documents governing a code
+ * path, derived from what the corpus records — bindings, receipts, and the
+ * module registry — never a code index. Pure over loaded documents, so this
+ * prints byte-identically to the MCP get_intent tool (DEC-038).
+ */
+export async function intent(cwd: string, pathArg: string | undefined): Promise<CmdResult> {
+  if (pathArg === undefined || pathArg.trim() === '') {
+    return { code: 1, lines: ['usage: veri intent <path>'] };
+  }
+  const dir = requireVeriDir(cwd);
+  if (dir === null) return NO_VERI_DIR;
+  const format = classifyFormat(dir);
+  if (!isOperableFormat(format)) {
+    return { code: 1, lines: [formatStatement(format) ?? 'format mismatch'] };
+  }
+  const { documents } = await loadProject(dir);
+  return { code: 0, lines: [renderIntent(lookupIntent(documents, pathArg.trim()))] };
 }

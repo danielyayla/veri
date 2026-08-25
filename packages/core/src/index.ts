@@ -27,3 +27,4 @@ export * from './workflow-default.ts';
 export * from './brownfield.ts';
 export * from './intake.ts';
 export * from './next.ts';
+export * from './intent.ts';

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { approve, architecture, check, context, implemented, importFile, importPrompt, init, list, migrate, newDoc, next, open, renumber } from './commands.ts';
+import { approve, architecture, check, context, implemented, importFile, importPrompt, init, intent, list, migrate, newDoc, next, open, renumber } from './commands.ts';
 import type { CmdResult } from './commands.ts';
 
 /** The value following `--flag`, or undefined when the flag is absent. */
@@ -30,6 +30,8 @@ const USAGE = `usage: veri <command>
   veri context <WO-id>       print the context package an agent receives
   veri architecture          print the compiled intended architecture
   veri implemented <path>    work orders whose commits touched the path
+  veri intent <path>         the documents governing a code path — bindings,
+                             receipts, and the module registry, never an index
   veri list [type]           list documents: id, status, title
   veri open [dir]            open the project in the Veri desktop app
 `;
@@ -85,6 +87,9 @@ switch (command) {
     break;
   case 'implemented':
     result = await implemented(cwd, rest[0]);
+    break;
+  case 'intent':
+    result = await intent(cwd, rest[0]);
     break;
   case 'open':
     result = open(cwd, rest[0]);

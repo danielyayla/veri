@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { runCheck } from './check.ts';
 import { assembleContext } from './context.ts';
 import { getDocument, getNeighbors } from './read.ts';
+import { intentForPath } from './intent.ts';
 import { paletteSearch } from './search.ts';
 import { fileDecision, fileReceipt, fileRequirement, fileSource, fileWorkOrder } from './writeback.ts';
 
@@ -344,6 +345,27 @@ server.registerTool(
       guardFormat();
       const { file } = await fileReceipt(projectRoot, input);
       return ok(`Appended receipt to ${file}`);
+    } catch (err) {
+      return fail(err);
+    }
+  },
+);
+
+server.registerTool(
+  'get_intent',
+  {
+    description:
+      'The documents governing a code path (WO-095): work orders whose code bindings or receipts touch it — ' +
+      'bindings ranked above receipts, newest first — the module-registry entry covering it, and the ' +
+      'requirements and decisions those work orders cite. Grounded entirely in what this knowledge base ' +
+      'records (bindings, receipt file lists, the module registry), not a code index: unrecorded work will ' +
+      'not appear. Ask before editing a file to learn what governs it.',
+    inputSchema: { path: z.string().describe('Repo-relative file or directory path, e.g. packages/core/src/check.ts') },
+  },
+  async ({ path }) => {
+    try {
+      guardFormat();
+      return ok(await intentForPath(projectRoot, path));
     } catch (err) {
       return fail(err);
     }
