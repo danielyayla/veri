@@ -2,7 +2,7 @@
 id: WO-069
 type: work-order
 title: "Constraint severity: schema, check semantics, and the CLI surfaces"
-status: in-progress
+status: done
 created: 2026-08-20
 updated: 2026-08-25
 links:
@@ -16,6 +16,16 @@ links:
     rel: constrained-by
   - id: REQ-021
     rel: derived-from
+binds:
+  paths:
+    - packages/core/src/schema.ts
+    - packages/core/src/types.ts
+    - packages/core/src/architecture.ts
+    - packages/core/src/report.ts
+  tests:
+    - packages/core/src/architecture.test.ts
+    - packages/cli/src/commands.test.ts
+    - packages/cli/src/imports.test.ts
 ---
 
 ## Summary
@@ -49,14 +59,14 @@ The mechanism half of [[DEC-062]], kept separate from the app surfaces ([[WO-068
 
 ## Acceptance tests
 
-- [ ] A constraint with `severity: error` whose edge is observed produces a check issue naming file, specifier, and governing DEC — and `veri check` exits 1
-- [ ] The same violation at `severity: advisory` (or with no severity field) remains an advisory with exit 0 — WO-067 behavior byte-identical
-- [ ] An invalid severity value is an invalid-frontmatter issue naming the document
-- [ ] A conflicted edge produces no violation at either severity; the conflict issue stands alone
-- [ ] `veri architecture` prints each rule's severity and places error violations with issues, advisory violations in the violations section, deterministically
-- [ ] Dogfood: this repository's `veri check` and `veri architecture` output are unchanged by the upgrade (DEC-060 declares no severities)
-- [ ] `veri check` reports zero issues across the corpus and all tests pass
+- [x] A constraint with `severity: error` whose edge is observed produces a check issue naming file, specifier, and governing DEC — and `veri check` exits 1 (core: "an observed edge forbidden at severity error is a check issue…"; CLI: "an observed import forbidden at severity: error is a check issue and exit 1" asserts code 1 and the counted issue line)
+- [x] The same violation at `severity: advisory` (or with no severity field) remains an advisory with exit 0 — WO-067 behavior byte-identical (core: "an explicit severity: advisory behaves exactly like the absent default" asserts the identical WO-067 message; the CLI test's demotion leg asserts exit 0 with the unchanged advisory line)
+- [x] An invalid severity value is an invalid-frontmatter issue naming the document (core: "an invalid severity value is an invalid-frontmatter issue…" with `severity: blocking`)
+- [x] A conflicted edge produces no violation at either severity; the conflict issue stands alone (core: "a conflicted edge produces no violation at either severity…" runs both the plain and error-severity forbid against the same allow)
+- [x] `veri architecture` prints each rule's severity and places error violations with issues, advisory violations in the violations section, deterministically (core: "the printout gains a severity column only when a rule declares one, and splits violations by tier" — column, Issues-before-Violations ordering, repeat-run equality)
+- [x] Dogfood: this repository's `veri check` and `veri architecture` output are unchanged by the upgrade (DEC-060 declares no severities) (both outputs captured before and after 093a803 diff byte-identical; the cli dogfood test still reports zero findings)
+- [x] `veri check` reports zero issues across the corpus and all tests pass (npm test: 592 tests green across all five workspaces; veri check: 250 documents, 0 issues, 1 known WO-034 receipt-prefix advisory)
 
 ## Receipts
 
-(none yet)
+- 2026-08-25 — 093a803 — packages/core/src (schema.ts, types.ts, architecture.ts, architecture.test.ts, report.ts), packages/cli/src (commands.test.ts, imports.test.ts), action/dist/index.js, site/docs/ci.html, veri/decisions/DEC-086-a-multiply-forbidden-edge-takes-its-strictest-declared-sever.md, veri/ids — optional constraint `severity` with the error tier routed through buildCheckReport as counted `arch-violation` issues, advisory tier and severity-free corpora byte-identical, `veri architecture` severity column and issues-position rendering; DEC-086 filed as proposed for strictest-wins aggregation and declared-only rendering.
