@@ -246,6 +246,32 @@ test('snapshot skips match the CLI report outside a repository (WO-093, REQ-021)
   assert.deepEqual(snap.advisories.map(flat), report.advisories.map(flat));
 });
 
+test('snapshot skips match the CLI report in a shallow clone (WO-093, REQ-021)', async (t) => {
+  const { checkReport } = await import('@verikb/cli');
+  const dir = sandbox(t);
+  writeFileSync(join(dir, 'veri/requirements/REQ-001-fixture.md'), REQ_001);
+  writeFileSync(join(dir, 'veri/work-orders/WO-001-bound.md'), WO_BOUND);
+  const git = (cwd: string, ...args: string[]) => {
+    const run = spawnSync('git', args, { cwd, encoding: 'utf8' });
+    assert.equal(run.status, 0, run.stderr);
+  };
+  git(dir, 'init', '-q');
+  git(dir, 'config', 'user.email', 'test@example.com');
+  git(dir, 'config', 'user.name', 'Test');
+  git(dir, 'add', '.');
+  git(dir, 'commit', '-q', '-m', 'initial scaffold');
+  const shallow = mkdtempSync(join(tmpdir(), 'veri-snapshot-shallow-'));
+  t.after(() => rmSync(shallow, { recursive: true, force: true }));
+  git(shallow, 'clone', '-q', '--depth', '1', `file://${dir}`, 'clone');
+  const cloneDir = join(shallow, 'clone');
+
+  const snap = await buildSnapshot(cloneDir);
+  const report = await checkReport(cloneDir);
+  assert.ok(report !== null);
+  assert.deepEqual(snap.skips, report.skips);
+  assert.ok(snap.skips.some((note) => note === '(provenance: skipped — shallow clone — full history is not available)'));
+});
+
 // ---------------------------------------------------------------------------
 // WO-051 — incremental snapshots. The invariant: an incremental build after
 // any sequence of file events deep-equals a from-scratch buildSnapshot.
