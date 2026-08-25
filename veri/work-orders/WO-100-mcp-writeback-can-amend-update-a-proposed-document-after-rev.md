@@ -2,7 +2,7 @@
 id: WO-100
 type: work-order
 title: "MCP writeback can amend: update a proposed document after review feedback"
-status: in-progress
+status: done
 claimed_by: claude-555dab1c
 claimed_at: 2026-08-25
 approved: 2026-08-25
@@ -49,13 +49,13 @@ An MCP surface for revising an existing unapproved document — a triage agent f
 
 ## Acceptance tests
 
-- [ ] An agent can revise an unapproved work order's scope sections, acceptance tests, and links by id in one call, and the result is schema-valid on disk.
-- [ ] Amending an approved or active document is refused with a clear error naming the approval boundary.
-- [ ] A status promotion or `approved:` stamp attempted through the tool is refused.
-- [ ] `updated:` reflects the amendment date; `created:` and id are untouched.
-- [ ] The tool-shape choice (dedicated update tool vs. upsert mode) is filed as a proposed decision with rejected alternatives.
-- [ ] `veri check` passes; tests colocated per repo convention.
+- [x] An agent can revise an unapproved work order's scope sections, acceptance tests, and links by id in one call, and the result is schema-valid on disk.
+- [x] Amending an approved or active document is refused with a clear error naming the approval boundary.
+- [x] A status promotion or `approved:` stamp attempted through the tool is refused.
+- [x] `updated:` reflects the amendment date; `created:` and id are untouched.
+- [x] The tool-shape choice (dedicated update tool vs. upsert mode) is filed as a proposed decision with rejected alternatives.
+- [x] `veri check` passes; tests colocated per repo convention.
 
 ## Receipts
 
-(none yet)
+- 2026-08-25 — a60890e — packages/mcp/src/amend.ts, packages/mcp/src/amend.test.ts, packages/mcp/src/server.ts, packages/mcp/src/server.e2e.test.ts — amend_document shipped: whole-document revise of born-pending documents through core's guarded save (DEC-103), registered on the MCP server with unit and e2e coverage.
