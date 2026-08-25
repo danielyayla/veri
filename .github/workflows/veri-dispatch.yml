@@ -1,0 +1,177 @@
+# The dispatcher (WO-101, SRC-046 finding F4): the ready queue's first
+# consumer. On a trigger it polls `veri next`; if a work order is cleared
+# it claims it on an isolated branch, briefs a headless agent, evaluates
+# the gate, and opens a pull request. It never merges, approves, or
+# promotes a document — everything above "open a PR" stays human.
+#
+# This file is the copyable recipe — the walkthrough lives in the docs
+# (site/docs/dispatch.html). Two lines differ in an adopting repo, both
+# marked ADOPTERS below: install the published CLI instead of this repo's
+# workspace build, and uncomment the schedule trigger.
+name: Veri dispatch
+
+on:
+  workflow_dispatch:
+  # ADOPTERS: uncomment to poll. A scheduled run on an empty queue exits
+  # at the poll step — deterministic, agent-free, no tokens spent. This
+  # repo leaves dispatch manual because interactive sessions already
+  # consume its queue.
+  # schedule:
+  #   - cron: '17 * * * *'
+
+# One dispatch at a time: overlapping polls would race for the same head.
+concurrency:
+  group: veri-dispatch
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  # ADOPTERS: after `npm install -g @verikb/cli` below, set this to: veri
+  VERI: node packages/cli/dist/cli.js
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # ADOPTERS: replace the two commands with `npm install -g @verikb/cli`
+      # (veri next / veri start ship in @verikb/cli releases after 0.1.0).
+      - name: Install Veri
+        run: |
+          npm ci
+          npm run build
+
+      # `veri next` prints the queue head as one tab-separated line —
+      # id, title, path — and exits 1 when nothing is ready (DEC-097).
+      # An existing veri/<id> branch means an earlier run already
+      # dispatched this work order and its PR is pending review.
+      - name: Poll the queue
+        id: poll
+        run: |
+          if ! LINE=$($VERI next); then
+            echo "Queue empty — exiting without dispatching an agent."
+            echo "dispatch=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          IFS=$'\t' read -r ID TITLE WOPATH <<<"$LINE"
+          if git ls-remote --exit-code origin "refs/heads/veri/$ID" >/dev/null 2>&1; then
+            echo "$ID already dispatched — branch veri/$ID exists, its PR awaits review."
+            echo "dispatch=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          {
+            echo "dispatch=true"
+            echo "id=$ID"
+            echo "title=$TITLE"
+            echo "wopath=$WOPATH"
+          } >> "$GITHUB_OUTPUT"
+
+      # Fail before claiming: a claim with no agent behind it would strand
+      # the work order on a branch nobody is working.
+      - name: Preflight — an agent credential must exist
+        if: steps.poll.outputs.dispatch == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::${{ steps.poll.outputs.id }} is ready but no ANTHROPIC_API_KEY secret is configured — nothing was claimed."
+            exit 1
+          fi
+
+      # veri start flips ready → in-progress and records the claim —
+      # claimed_by / claimed_at — refusing a work order another session
+      # holds (WO-099). The flip commits with a start subject (DEC-041)
+      # so binding-drift eras anchor on it.
+      - name: Claim the work order on its own branch
+        if: steps.poll.outputs.dispatch == 'true'
+        env:
+          ID: ${{ steps.poll.outputs.id }}
+          WOPATH: ${{ steps.poll.outputs.wopath }}
+        run: |
+          git config user.name "veri-dispatcher"
+          git config user.email "veri-dispatcher@users.noreply.github.com"
+          git switch -c "veri/$ID"
+          CLAIMANT="dispatcher-run-${{ github.run_id }}"
+          $VERI start "$ID" --as "$CLAIMANT"
+          git add "$WOPATH"
+          git commit -m "$ID: started — claimed by $CLAIMANT"
+
+      # The kickoff prompt reuses the agent-neutral handoff surface of
+      # REQ-007: name the work order, point at the context package, restate
+      # the workflow's receipt-and-scope rules. Agent-agnostic on purpose —
+      # any agent that can run shell commands can brief itself.
+      - name: Write the kickoff prompt
+        if: steps.poll.outputs.dispatch == 'true'
+        env:
+          ID: ${{ steps.poll.outputs.id }}
+          TITLE: ${{ steps.poll.outputs.title }}
+        run: |
+          cat > "$RUNNER_TEMP/kickoff.txt" <<EOF
+          Implement $ID — $TITLE.
+          Before writing any code, fetch the full context package: run \`$VERI context $ID\`. Follow the workflow rules it opens with, respect the linked decisions, and stay inside the work order's scope.
+          File non-trivial choices as proposed decisions — never promote a document yourself. Append a receipt under ## Receipts (date, commit SHA, files touched, one-line summary) and check only the acceptance boxes you have verified.
+          Commit your work to the current branch with subjects prefixed "$ID:". Do not push, do not merge, and do not approve or promote any document.
+          Finish by running \`$VERI check\` — zero violations is the bar.
+          EOF
+
+      # ═══ The agent seam ═══════════════════════════════════════════════
+      # One step, one contract: a headless agent CLI receives the kickoff
+      # prompt and can read files, run commands, and commit. Claude Code is
+      # shown; any agent CLI with a non-interactive mode slots in the same
+      # way — swap the install line and the invocation, keep the prompt.
+      - name: Run the agent
+        if: steps.poll.outputs.dispatch == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude -p "$(cat "$RUNNER_TEMP/kickoff.txt")" \
+            --permission-mode acceptEdits \
+            --allowedTools "Bash,Read,Edit,Write,Glob,Grep"
+
+      # The gate evaluates before the PR opens, so the request arrives with
+      # its verdict attached (REQ-025). It re-runs on the pull_request event
+      # when pushes come from a PAT — see the docs note on tokens.
+      # ADOPTERS: use `danielyayla/veri@v1`; this repo runs its own bundle.
+      - name: Evaluate the gate
+        id: gate
+        if: steps.poll.outputs.dispatch == 'true'
+        continue-on-error: true
+        uses: ./
+
+      - name: Open the pull request — never merge
+        if: steps.poll.outputs.dispatch == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ID: ${{ steps.poll.outputs.id }}
+          TITLE: ${{ steps.poll.outputs.title }}
+          GATE_OUTCOME: ${{ steps.gate.outcome }}
+          GATE_ISSUES: ${{ steps.gate.outputs.issues }}
+          GATE_ADVISORIES: ${{ steps.gate.outputs.advisories }}
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git add -A
+            git commit -m "$ID: uncommitted session leftovers, committed by the dispatcher"
+          fi
+          git push origin "veri/$ID"
+          {
+            echo "Dispatched from the ready queue by [Veri dispatch](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
+            echo
+            echo "- Work order: $ID — $TITLE"
+            echo "- Gate: $GATE_OUTCOME — ${GATE_ISSUES:-?} issue(s), ${GATE_ADVISORIES:-?} advisories"
+            echo "- The claim and receipt ride the branch; review, approval, and merge stay human."
+          } > "$RUNNER_TEMP/pr-body.md"
+          gh pr create \
+            --title "$ID: $TITLE" \
+            --body-file "$RUNNER_TEMP/pr-body.md" \
+            --head "veri/$ID"

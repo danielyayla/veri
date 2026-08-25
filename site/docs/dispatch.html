@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The dispatcher — Veri</title>
+<meta name="description" content="Give the ready queue a consumer: a copyable GitHub Actions recipe that polls veri next, briefs a headless agent on the queue head, and opens a pull request — never a merge.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../assets/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<link rel="preload" href="../assets/fonts/source-sans-3-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../assets/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../site.css?v=9">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <a class="top-wordmark" href="../"><span class="v">V</span>eri</a>
+  <a class="nav here" href="quickstart.html">Docs</a>
+  <a class="nav" href="https://github.com/danielyayla/veri">GitHub</a>
+  <a class="top-dl" href="https://github.com/danielyayla/veri/releases/latest">Download</a>
+</header>
+
+<nav class="docs-strip" aria-label="Documentation pages">
+  <a href="quickstart.html">Quickstart</a>
+  <a href="workflow.html">Workflow</a>
+  <a href="connect-claude-code.html">Connect your agent</a>
+  <a href="brownfield.html">Import a repo</a>
+  <a href="ci.html">CI gate</a>
+  <a href="dispatch.html" class="here">Dispatch</a>
+  <a href="team.html">Teams</a>
+  <a href="how-veri-builds-veri.html">Built with Veri</a>
+  <a href="reference.html">Reference</a>
+  <a href="troubleshooting.html">Troubleshooting</a>
+</nav>
+
+<article class="doc" id="main">
+<h1>The dispatcher</h1>
+<p class="doc-lead">Approving a work order puts it in the ready queue — but a queue with no consumer still waits for a human to open a session. The dispatcher closes that gap: a GitHub Actions recipe that polls <code>veri next</code>, briefs a headless agent on the queue head, and ends at a <b>pull request</b>. Never a merge — everything above "open a PR" stays yours.</p>
+
+<p>The recipe is one workflow file you copy. It costs nothing while the queue is empty: <code>veri next</code> is a deterministic poll that exits before any agent spawns, so scheduled runs on an idle repo spend no tokens.</p>
+
+<h2>1. Add the workflow</h2>
+<p>One file, <code>.github/workflows/veri-dispatch.yml</code>, plus an <code>ANTHROPIC_API_KEY</code> secret for the agent shown (needs <code>@verikb/cli</code> newer than 0.1.0 for <code>veri next</code> / <code>veri start</code>):</p>
+<pre><code>name: Veri dispatch
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+
+# One dispatch at a time: overlapping polls would race for the same head.
+concurrency:
+  group: veri-dispatch
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Veri
+        run: npm install -g @verikb/cli
+
+      # veri next prints the queue head as one tab-separated line —
+      # id, title, path — and exits 1 when nothing is ready. An existing
+      # veri/&lt;id&gt; branch means an earlier run already dispatched this
+      # work order and its PR is pending review.
+      - name: Poll the queue
+        id: poll
+        run: |
+          if ! LINE=$(veri next); then
+            echo "Queue empty — exiting without dispatching an agent."
+            echo "dispatch=false" &gt;&gt; "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          IFS=$'\t' read -r ID TITLE WOPATH &lt;&lt;&lt;"$LINE"
+          if git ls-remote --exit-code origin "refs/heads/veri/$ID" &gt;/dev/null 2&gt;&amp;1; then
+            echo "$ID already dispatched — branch veri/$ID exists, its PR awaits review."
+            echo "dispatch=false" &gt;&gt; "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          {
+            echo "dispatch=true"
+            echo "id=$ID"
+            echo "title=$TITLE"
+            echo "wopath=$WOPATH"
+          } &gt;&gt; "$GITHUB_OUTPUT"
+
+      # Fail before claiming: a claim with no agent behind it would
+      # strand the work order on a branch nobody is working.
+      - name: Preflight — an agent credential must exist
+        if: steps.poll.outputs.dispatch == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::${{ steps.poll.outputs.id }} is ready but no ANTHROPIC_API_KEY secret is configured — nothing was claimed."
+            exit 1
+          fi
+
+      # veri start flips ready → in-progress and records the claim —
+      # claimed_by / claimed_at — refusing a work order another session
+      # holds.
+      - name: Claim the work order on its own branch
+        if: steps.poll.outputs.dispatch == 'true'
+        env:
+          ID: ${{ steps.poll.outputs.id }}
+          WOPATH: ${{ steps.poll.outputs.wopath }}
+        run: |
+          git config user.name "veri-dispatcher"
+          git config user.email "veri-dispatcher@users.noreply.github.com"
+          git switch -c "veri/$ID"
+          CLAIMANT="dispatcher-run-${{ github.run_id }}"
+          veri start "$ID" --as "$CLAIMANT"
+          git add "$WOPATH"
+          git commit -m "$ID: started — claimed by $CLAIMANT"
+
+      # The kickoff prompt: name the work order, point at the context
+      # package, restate the receipt-and-scope rules. Agent-agnostic —
+      # any agent that can run shell commands can brief itself.
+      - name: Write the kickoff prompt
+        if: steps.poll.outputs.dispatch == 'true'
+        env:
+          ID: ${{ steps.poll.outputs.id }}
+          TITLE: ${{ steps.poll.outputs.title }}
+        run: |
+          cat &gt; "$RUNNER_TEMP/kickoff.txt" &lt;&lt;EOF
+          Implement $ID — $TITLE.
+          Before writing any code, fetch the full context package: run \`veri context $ID\`. Follow the workflow rules it opens with, respect the linked decisions, and stay inside the work order's scope.
+          File non-trivial choices as proposed decisions — never promote a document yourself. Append a receipt under ## Receipts (date, commit SHA, files touched, one-line summary) and check only the acceptance boxes you have verified.
+          Commit your work to the current branch with subjects prefixed "$ID:". Do not push, do not merge, and do not approve or promote any document.
+          Finish by running \`veri check\` — zero violations is the bar.
+          EOF
+
+      # ═══ The agent seam ═══════════════════════════════════════════
+      # One step, one contract: a headless agent CLI receives the
+      # kickoff prompt and can read files, run commands, and commit.
+      # Claude Code is shown; swap the install line and the invocation
+      # for any agent CLI with a non-interactive mode — keep the prompt.
+      - name: Run the agent
+        if: steps.poll.outputs.dispatch == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude -p "$(cat "$RUNNER_TEMP/kickoff.txt")" \
+            --permission-mode acceptEdits \
+            --allowedTools "Bash,Read,Edit,Write,Glob,Grep"
+
+      # The gate evaluates before the PR opens, so the request arrives
+      # with its verdict attached.
+      - name: Evaluate the gate
+        id: gate
+        if: steps.poll.outputs.dispatch == 'true'
+        continue-on-error: true
+        uses: danielyayla/veri@v1
+
+      - name: Open the pull request — never merge
+        if: steps.poll.outputs.dispatch == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ID: ${{ steps.poll.outputs.id }}
+          TITLE: ${{ steps.poll.outputs.title }}
+          GATE_OUTCOME: ${{ steps.gate.outcome }}
+          GATE_ISSUES: ${{ steps.gate.outputs.issues }}
+          GATE_ADVISORIES: ${{ steps.gate.outputs.advisories }}
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git add -A
+            git commit -m "$ID: uncommitted session leftovers, committed by the dispatcher"
+          fi
+          git push origin "veri/$ID"
+          {
+            echo "Dispatched from the ready queue by [Veri dispatch](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
+            echo
+            echo "- Work order: $ID — $TITLE"
+            echo "- Gate: $GATE_OUTCOME — ${GATE_ISSUES:-?} issue(s), ${GATE_ADVISORIES:-?} advisories"
+            echo "- The claim and receipt ride the branch; review, approval, and merge stay human."
+          } &gt; "$RUNNER_TEMP/pr-body.md"
+          gh pr create \
+            --title "$ID: $TITLE" \
+            --body-file "$RUNNER_TEMP/pr-body.md" \
+            --head "veri/$ID"</code></pre>
+
+<h2>2. What a run does</h2>
+<ul>
+  <li><b>Poll.</b> <code>veri next</code> names the ready work order with the lowest id, or exits 1. Empty queue, or a <code>veri/&lt;id&gt;</code> branch already on the remote (a pending PR from an earlier run): the job ends here, silently, before any agent exists.</li>
+  <li><b>Claim.</b> On a fresh <code>veri/&lt;id&gt;</code> branch, <code>veri start</code> flips the work order to in-progress and records <code>claimed_by</code>/<code>claimed_at</code> — the same claim any interactive session would leave, so concurrent workers see who holds what.</li>
+  <li><b>Brief and run.</b> The agent gets a short kickoff prompt: fetch the context package with <code>veri context</code>, stay in scope, file proposed decisions, append a receipt, commit with <code>WO-xxx:</code> subjects.</li>
+  <li><b>Gate.</b> The <a href="ci.html">Veri Check action</a> evaluates the result inside the dispatch run, and its verdict lands in the PR body.</li>
+  <li><b>PR.</b> The branch pushes and a pull request opens — implementation, receipt, and claim included. The dispatcher never merges, never approves, never promotes a document; drafts and proposals in the PR wait for your stamp like any other.</li>
+</ul>
+
+<h2>3. Swapping the agent</h2>
+<p>Everything provider-specific lives in the one step marked <b>the agent seam</b>. The contract is small: a CLI that runs non-interactively, receives the prompt, and can read files, execute commands, and commit. To use a different agent, change the install line and the invocation — Codex CLI, Gemini CLI, and their peers all take a prompt and work in a checkout the same way. The kickoff prompt is deliberately agent-neutral: it names the work order and tells the agent to brief itself with <code>veri context</code>, which any tool that can run a shell command can do.</p>
+
+<h2>4. Tokens and the PR check</h2>
+<p>Pull requests created with the workflow's own <code>GITHUB_TOKEN</code> don't trigger other workflows — GitHub's guard against action loops — so your <code>veri-check.yml</code> won't run on the dispatcher's PR by default. The recipe compensates by running the gate inside the dispatch run and writing the verdict into the PR body. If you want the check to appear as a real status on the PR, store a fine-grained personal access token (contents + pull requests, this repo only) as a secret and use it for <code>GH_TOKEN</code> and the checkout instead.</p>
+
+<h2>The trust ladder</h2>
+<p>This recipe is deliberately the lowest rung: scheduled polling in CI, one work order at a time, ending at a PR a human reviews. The next rung is <code>veri watch</code> — a local daemon that spawns one agent per ready work order, each in its own git worktree — which is a named follow-up, not something this recipe does. There is no rung where merging is automatic: the approval gate (<a href="workflow.html">who stamps what</a>) is the product, and the dispatcher exists to feed it, not to bypass it.</p>
+
+<div class="next">
+  <b>Where next:</b> the <a href="ci.html">CI gate</a> the dispatcher's PRs land in front of, or the <a href="workflow.html">workflow guide</a> for the lifecycle the queue runs on.
+</div>
+</article>
+
+<footer class="foot">
+  <span>Veri — plain files, no telemetry.</span>
+  <span><a href="../">Home</a> · <a href="https://github.com/danielyayla/veri">Source</a> · <a href="https://github.com/danielyayla/veri/issues">Issues</a></span>
+</footer>
+
+<script>
+// Copy buttons on code blocks (WO-087, design SRC-042) — the same small
+// inline script on every docs page with a code block; vanilla JS, no
+// dependencies, per DEC-033. Buttons are injected here, so with scripts
+// disabled no dead control renders.
+(function () {
+  'use strict';
+  if (!navigator.clipboard) return;
+  document.querySelectorAll('.doc pre').forEach(function (pre) {
+    var code = pre.querySelector('code') || pre;
+    var wrap = document.createElement('div');
+    wrap.className = 'pre-wrap';
+    pre.parentNode.insertBefore(wrap, pre);
+    wrap.appendChild(pre);
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy-btn';
+    btn.textContent = 'Copy';
+    var timer = null;
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(code.textContent).then(function () {
+        btn.textContent = 'Copied';
+        clearTimeout(timer);
+        timer = setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      }, function () { /* clipboard refused — don't claim Copied */ });
+    });
+    wrap.appendChild(btn);
+  });
+})();
+</script>
+
+</body>
+</html>
