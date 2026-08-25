@@ -2,7 +2,7 @@
 id: WO-097
 type: work-order
 title: "One definition for the renderer's mirrored canon — isPending and the canonical strings reach the browser from core"
-status: in-progress
+status: done
 created: 2026-08-25
 updated: 2026-08-25
 links:
@@ -40,12 +40,12 @@ The renderer's three hand-kept mirrors of core logic (isPending, PACKAGE_RULES_T
 
 ## Acceptance tests
 
-- [ ] grep finds exactly one definition each of isPending, PACKAGE_RULES, and importKickoffPrompt across packages/ (mirrors and the write.ts inline copy gone)
-- [ ] A draft workflow document appears in pendingDocs and appendReviewNote accepts it — the drift bug is regression-tested
-- [ ] The two mirror drift tests are deleted; remaining suites green
-- [ ] The renderer bundle builds (esbuild) — the new subpaths pull no node built-ins into app.bundle.js
-- [ ] veri check green
+- [x] grep finds exactly one definition each of isPending, PACKAGE_RULES, and importKickoffPrompt across packages/ (mirrors and the write.ts inline copy gone) — only pending.ts and prompts.ts match
+- [x] A draft workflow document appears in pendingDocs and appendReviewNote accepts it — the drift bug is regression-tested — derive.test.ts pendingDocs test gains a draft WF-002; write.test.ts "appendReviewNote accepts a draft workflow document"
+- [x] The two mirror drift tests are deleted; remaining suites green — 636 tests pass across all workspaces
+- [x] The renderer bundle builds (esbuild) — the new subpaths pull no node built-ins into app.bundle.js — bundle inspected: zero node: module imports
+- [x] veri check green — 0 issues over 266 documents (the standing WO-034 receipt-wording advisory only)
 
 ## Receipts
 
-(none yet)
+- 2026-08-25 · 5923f99 · packages/core/src/{pending.ts,prompts.ts,check.ts,context.ts,brownfield.ts,brownfield.test.ts,index.ts}, packages/core/package.json, packages/ui/src/renderer/{derive.ts,derive.test.ts}, packages/ui/src/lib/{write.ts,write.test.ts}, action/dist/index.js — the three renderer mirrors and the write.ts inline copy replaced by core's one definition via the ./pending and ./prompts subpaths; schema.ts's PACKAGE_RULES removal rode a concurrent session's commit 9e172e7.
