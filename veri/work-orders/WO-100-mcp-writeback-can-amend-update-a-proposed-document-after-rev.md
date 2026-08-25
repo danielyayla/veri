@@ -2,7 +2,8 @@
 id: WO-100
 type: work-order
 title: "MCP writeback can amend: update a proposed document after review feedback"
-status: backlog
+status: ready
+approved: 2026-08-25
 created: 2026-08-25
 updated: 2026-08-25
 links:
