@@ -11504,7 +11504,11 @@ var bindsSchema = external_exports.object({
 var workOrderSchema = external_exports.object({
   ...baseFields,
   type: external_exports.literal("work-order"),
-  status: external_exports.enum(["backlog", "in-progress", "done"]),
+  status: external_exports.enum(["backlog", "ready", "in-progress", "done"]),
+  approved: dateField.optional(),
+  approved_by: approvedByField,
+  claimed_by: external_exports.string().min(1).optional(),
+  claimed_at: dateField.optional(),
   binds: bindsSchema.optional()
 }).passthrough();
 var sourceSchema = external_exports.object({
@@ -11549,6 +11553,13 @@ var frontmatterSchema = external_exports.discriminatedUnion("type", [requirement
       message: "a superseded decision must name its successor in superseded_by"
     });
   }
+  if (fm.type === "work-order" && fm.claimed_by === void 0 !== (fm.claimed_at === void 0)) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: [fm.claimed_by === void 0 ? "claimed_by" : "claimed_at"],
+      message: "claimed_by and claimed_at travel together \u2014 a claim names who and when"
+    });
+  }
 });
 
 // ../core/dist/parse.js
@@ -11587,8 +11598,10 @@ function parseDocument(file, content) {
     links: fm.links.map(({ id, rel }) => ({ id, rel })),
     ...fm.type === "decision" && fm.superseded_by !== void 0 ? { supersededBy: fm.superseded_by } : {},
     ...fm.type === "work-order" && fm.binds !== void 0 ? { binds: { paths: fm.binds.paths, tests: fm.binds.tests } } : {},
-    ...(fm.type === "requirement" || fm.type === "decision" || fm.type === "workflow") && fm.approved !== void 0 ? { approved: fm.approved } : {},
-    ...(fm.type === "requirement" || fm.type === "decision" || fm.type === "workflow") && fm.approved_by !== void 0 ? { approvedBy: fm.approved_by } : {},
+    ...fm.type === "work-order" && fm.claimed_by !== void 0 ? { claimedBy: fm.claimed_by } : {},
+    ...fm.type === "work-order" && fm.claimed_at !== void 0 ? { claimedAt: fm.claimed_at } : {},
+    ...(fm.type === "requirement" || fm.type === "decision" || fm.type === "workflow" || fm.type === "work-order") && fm.approved !== void 0 ? { approved: fm.approved } : {},
+    ...(fm.type === "requirement" || fm.type === "decision" || fm.type === "workflow" || fm.type === "work-order") && fm.approved_by !== void 0 ? { approvedBy: fm.approved_by } : {},
     frontmatter: fm,
     body,
     file,
@@ -11806,6 +11819,152 @@ function subjectWorkOrders(subject) {
   return subject.slice(0, colon).match(/WO-\d+/g) ?? [];
 }
 
+// ../core/dist/binds.js
+var short = (sha) => sha.slice(0, 7);
+var DEFAULT_STALE_AFTER_DAYS = 14;
+function staleAfterDays(documents) {
+  for (const doc of documents) {
+    if (doc.type !== "workflow" || doc.status === "retired")
+      continue;
+    const value = doc.frontmatter["stale_after_days"];
+    if (typeof value === "number" && Number.isInteger(value) && value > 0)
+      return value;
+  }
+  return DEFAULT_STALE_AFTER_DAYS;
+}
+function globToRegExp(pattern) {
+  let out = "";
+  let i = 0;
+  while (i < pattern.length) {
+    const ch = pattern[i];
+    if (ch === "*") {
+      if (pattern[i + 1] === "*") {
+        if (pattern[i + 2] === "/") {
+          out += "(?:[^/]+/)*";
+          i += 3;
+        } else {
+          out += ".*";
+          i += 2;
+        }
+      } else {
+        out += "[^/]*";
+        i += 1;
+      }
+    } else if (ch === "?") {
+      out += "[^/]";
+      i += 1;
+    } else {
+      out += ch.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+      i += 1;
+    }
+  }
+  return new RegExp(`^${out}$`);
+}
+function pathMatchesBinds(path, patterns) {
+  return patterns.some((pattern) => {
+    const clean = pattern.replace(/\/+$/, "");
+    if (clean === "")
+      return false;
+    if (globToRegExp(clean).test(path))
+      return true;
+    return !/[*?]/.test(clean) && path.startsWith(`${clean}/`);
+  });
+}
+function bindingClaimants(documents) {
+  return documents.filter((doc) => doc.type === "work-order" && doc.status === "in-progress" && (doc.binds?.paths.length ?? 0) > 0);
+}
+function boundTests(documents) {
+  const out = /* @__PURE__ */ new Set();
+  for (const doc of documents) {
+    if (doc.type !== "work-order" || doc.status !== "in-progress")
+      continue;
+    for (const test of doc.binds?.tests ?? [])
+      out.add(test);
+  }
+  return [...out];
+}
+function checkBoundTests(documents, testFacts) {
+  const resolved = new Map(testFacts.map((fact) => [fact.id, fact.exists]));
+  const advisories = [];
+  for (const doc of documents) {
+    if (doc.type !== "work-order" || doc.status !== "in-progress")
+      continue;
+    for (const test of doc.binds?.tests ?? []) {
+      if (resolved.get(test) === false) {
+        advisories.push({
+          kind: "drift-missing-test",
+          file: doc.file,
+          id: doc.id,
+          test,
+          message: `${doc.id} binds test "${test}", which no longer resolves \u2014 the bound proof is gone`
+        });
+      }
+    }
+  }
+  return advisories;
+}
+function isStartCommit(docId, subject) {
+  return subject.includes(docId) && /\bstart(?:ed|s)?\b/i.test(subject);
+}
+function startAnchor(facts, workOrder) {
+  const index = facts.commits.findIndex((commit) => isStartCommit(workOrder.id, commit.subject));
+  if (index >= 0)
+    return { index, date: facts.commits[index].date };
+  return { index: void 0, date: workOrder.created };
+}
+function inEra(commitIndex, commitDate, anchor) {
+  return anchor.index !== void 0 ? commitIndex < anchor.index : commitDate >= anchor.date;
+}
+function daysBetween(from, to) {
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 864e5);
+}
+function checkBindingDrift(documents, facts, options) {
+  if (options.veriPath === "")
+    return [];
+  const claimants = bindingClaimants(documents);
+  if (claimants.length === 0)
+    return [];
+  const windowDays = options.staleAfterDays ?? DEFAULT_STALE_AFTER_DAYS;
+  const veriPrefix = `${options.veriPath}/`;
+  const anchors = new Map(claimants.map((wo) => [wo.id, startAnchor(facts, wo)]));
+  const advisories = [];
+  facts.commits.forEach((commit, index) => {
+    if (subjectWorkOrders(commit.subject).length > 0)
+      return;
+    if (!claimants.some((wo) => inEra(index, commit.date, anchors.get(wo.id))))
+      return;
+    const code = commit.files.filter((file) => !file.startsWith(veriPrefix));
+    const unclaimed = code.filter((file) => !claimants.some((wo) => pathMatchesBinds(file, wo.binds.paths)));
+    if (unclaimed.length === 0)
+      return;
+    const shown = unclaimed.slice(0, 3).join(", ");
+    const more = unclaimed.length > 3 ? ` and ${unclaimed.length - 3} more` : "";
+    advisories.push({
+      kind: "drift-unclaimed-change",
+      file: unclaimed[0],
+      id: short(commit.sha),
+      sha: commit.sha,
+      message: `commit ${short(commit.sha)} "${commit.subject}" touched ${shown}${more} \u2014 no in-progress work order claims it by binding or subject`
+    });
+  });
+  for (const wo of claimants) {
+    const anchor = anchors.get(wo.id);
+    if (daysBetween(anchor.date, options.today) < windowDays)
+      continue;
+    const newest = facts.commits.find((commit) => commit.files.some((file) => pathMatchesBinds(file, wo.binds.paths)));
+    if (newest !== void 0 && daysBetween(newest.date, options.today) < windowDays)
+      continue;
+    const since = newest === void 0 ? `no commits have touched its bound paths since it started (${anchor.date})` : `no commits have touched its bound paths since ${newest.date}`;
+    advisories.push({
+      kind: "drift-stale-wo",
+      file: wo.file,
+      id: wo.id,
+      message: `${wo.id} is in-progress but ${since} \u2014 stale after ${windowDays} days`
+    });
+  }
+  return advisories;
+}
+
 // ../core/dist/drift.js
 function isLifecycleCommit(docId, subject) {
   return subject.includes(docId) && /\b(approved|superseded|retired)\b/i.test(subject);
@@ -11821,7 +11980,7 @@ function commitsTouching(facts, path) {
   });
   return hits;
 }
-var short = (sha) => sha.slice(0, 7);
+var short2 = (sha) => sha.slice(0, 7);
 function newestLifecycleIndex(facts, docId) {
   const index = facts.commits.findIndex((commit) => isLifecycleCommit(docId, commit.subject));
   return index >= 0 ? index : void 0;
@@ -11885,7 +12044,7 @@ function checkDrift(documents, facts, veriPath) {
           id: target.id,
           workOrderId: doc.id,
           sha: newest.sha,
-          message: `${target.id} changed after ${doc.id} (implements it) closed \u2014 the receipt no longer proves the current text (${short(newest.sha)} "${newest.subject}")`
+          message: `${target.id} changed after ${doc.id} (implements it) closed \u2014 the receipt no longer proves the current text (${short2(newest.sha)} "${newest.subject}")`
         });
       }
     }
@@ -11894,6 +12053,8 @@ function checkDrift(documents, facts, veriPath) {
     if (doc.approved === void 0)
       continue;
     if (doc.status === "superseded" || doc.status === "retired")
+      continue;
+    if (doc.type === "work-order" && doc.status !== "ready")
       continue;
     const touching = commitsTouching(facts, repoPath(veriPath, doc));
     const stamp = newestLifecycleIndex(facts, doc.id);
@@ -11905,7 +12066,7 @@ function checkDrift(documents, facts, veriPath) {
         file: doc.file,
         id: doc.id,
         sha: newest.sha,
-        message: `${doc.id} was approved ${doc.approved} but its file changed afterwards \u2014 the stamp no longer covers the current text (${short(newest.sha)} "${newest.subject}")`
+        message: `${doc.id} was approved ${doc.approved} but its file changed afterwards \u2014 the stamp no longer covers the current text (${short2(newest.sha)} "${newest.subject}")`
       });
     }
   }
@@ -12224,6 +12385,79 @@ function checkGatedWorkOrders(documents) {
   }
   return issues;
 }
+function checkUnclaimedWorkOrders(documents) {
+  const issues = [];
+  for (const doc of documents) {
+    if (doc.type !== "work-order" || doc.status !== "in-progress")
+      continue;
+    if (doc.claimedBy !== void 0 && doc.claimedAt !== void 0)
+      continue;
+    issues.push({
+      kind: "unclaimed-wo",
+      file: doc.file,
+      id: doc.id,
+      message: `work order ${doc.id} is in-progress but records no claim \u2014 start it with veri start ${doc.id} --as <session>, or add claimed_by/claimed_at`
+    });
+  }
+  return issues;
+}
+function chained(a, b) {
+  return a.links.some((link) => link.id === b.id) || b.links.some((link) => link.id === a.id) || a.inlineRefs.includes(b.id) || b.inlineRefs.includes(a.id);
+}
+function checkSharedClaims(documents) {
+  const held = /* @__PURE__ */ new Map();
+  for (const doc of documents) {
+    if (doc.type !== "work-order" || doc.status !== "in-progress" || doc.claimedBy === void 0)
+      continue;
+    const group = held.get(doc.claimedBy) ?? [];
+    group.push(doc);
+    held.set(doc.claimedBy, group);
+  }
+  const advisories = [];
+  for (const [claimedBy, group] of held) {
+    if (group.length < 2)
+      continue;
+    const sorted = group.sort((a, b) => compareIds(a.id, b.id));
+    for (const [at, doc] of sorted.entries()) {
+      if (at === 0)
+        continue;
+      const earlier = sorted.slice(0, at);
+      if (earlier.some((other) => chained(doc, other)))
+        continue;
+      const first = earlier[0];
+      advisories.push({
+        kind: "shared-claim",
+        file: doc.file,
+        id: doc.id,
+        otherId: first.id,
+        claimedBy,
+        message: `${doc.id} and ${first.id} are both in-progress under the claim "${claimedBy}" with no link between them \u2014 one session holds one work order; finish or release one`
+      });
+    }
+  }
+  return advisories;
+}
+var RECEIPT_DATE_RE = /^\s*[-*]\s+(\d{4}-\d{2}-\d{2})/gm;
+function checkStaleClaims(documents, today, windowDays) {
+  const advisories = [];
+  for (const doc of documents) {
+    if (doc.type !== "work-order" || doc.status !== "in-progress" || doc.claimedAt === void 0)
+      continue;
+    const section = receiptsSection(doc.body) ?? "";
+    const dates = [doc.claimedAt, ...[...section.matchAll(RECEIPT_DATE_RE)].map((match) => match[1])];
+    const newest = dates.sort().at(-1);
+    if (daysBetween(newest, today) < windowDays)
+      continue;
+    const since = newest === doc.claimedAt ? `was claimed ${newest}` : `last filed a receipt ${newest}`;
+    advisories.push({
+      kind: "stale-claim",
+      file: doc.file,
+      id: doc.id,
+      message: `${doc.id} is in-progress under "${doc.claimedBy}" but ${since} with no receipt since \u2014 stale after ${windowDays} days`
+    });
+  }
+  return advisories;
+}
 function checkDesignGate(documents) {
   const paths = documents.filter((doc) => doc.type === "workflow" && doc.status !== "retired").flatMap((doc) => doc.frontmatter["design_gate_paths"] ?? []);
   if (paths.length === 0)
@@ -12249,7 +12483,7 @@ function checkDesignGate(documents) {
   return issues;
 }
 function isPromoted(doc) {
-  return doc.type === "requirement" && doc.status === "accepted" || doc.type === "decision" && doc.status === "active" || doc.type === "workflow" && doc.status === "accepted";
+  return doc.type === "requirement" && doc.status === "accepted" || doc.type === "decision" && doc.status === "active" || doc.type === "workflow" && doc.status === "accepted" || doc.type === "work-order" && doc.status === "ready";
 }
 function maintainerRegistry(documents) {
   return documents.filter((doc) => doc.type === "workflow" && doc.status !== "retired").flatMap((doc) => doc.frontmatter["maintainers"] ?? []);
@@ -12389,6 +12623,7 @@ function checkProject(load) {
       ...checkDuplicateIds(load.documents),
       ...checkBrokenLinks(load.documents),
       ...checkWorkOrderRequirements(load.documents),
+      ...checkUnclaimedWorkOrders(load.documents),
       ...checkDoneWorkOrders(load.documents),
       ...checkGatedWorkOrders(load.documents),
       ...checkDesignGate(load.documents),
@@ -12402,155 +12637,12 @@ function checkProject(load) {
     advisories: [
       ...checkStructure(load.dir, load.documents),
       ...checkSupersededLinks(load.documents),
-      ...checkMissingApprovers(load.documents)
+      ...checkMissingApprovers(load.documents),
+      ...checkSharedClaims(load.documents)
+      // Stale claims need a clock (host territory, DEC-076) — deriveFindings
+      // adds checkStaleClaims with the host's today.
     ]
   };
-}
-
-// ../core/dist/binds.js
-var short2 = (sha) => sha.slice(0, 7);
-var DEFAULT_STALE_AFTER_DAYS = 14;
-function staleAfterDays(documents) {
-  for (const doc of documents) {
-    if (doc.type !== "workflow" || doc.status === "retired")
-      continue;
-    const value = doc.frontmatter["stale_after_days"];
-    if (typeof value === "number" && Number.isInteger(value) && value > 0)
-      return value;
-  }
-  return DEFAULT_STALE_AFTER_DAYS;
-}
-function globToRegExp(pattern) {
-  let out = "";
-  let i = 0;
-  while (i < pattern.length) {
-    const ch = pattern[i];
-    if (ch === "*") {
-      if (pattern[i + 1] === "*") {
-        if (pattern[i + 2] === "/") {
-          out += "(?:[^/]+/)*";
-          i += 3;
-        } else {
-          out += ".*";
-          i += 2;
-        }
-      } else {
-        out += "[^/]*";
-        i += 1;
-      }
-    } else if (ch === "?") {
-      out += "[^/]";
-      i += 1;
-    } else {
-      out += ch.replace(/[.+^${}()|[\]\\]/g, "\\$&");
-      i += 1;
-    }
-  }
-  return new RegExp(`^${out}$`);
-}
-function pathMatchesBinds(path, patterns) {
-  return patterns.some((pattern) => {
-    const clean = pattern.replace(/\/+$/, "");
-    if (clean === "")
-      return false;
-    if (globToRegExp(clean).test(path))
-      return true;
-    return !/[*?]/.test(clean) && path.startsWith(`${clean}/`);
-  });
-}
-function bindingClaimants(documents) {
-  return documents.filter((doc) => doc.type === "work-order" && doc.status === "in-progress" && (doc.binds?.paths.length ?? 0) > 0);
-}
-function boundTests(documents) {
-  const out = /* @__PURE__ */ new Set();
-  for (const doc of documents) {
-    if (doc.type !== "work-order" || doc.status !== "in-progress")
-      continue;
-    for (const test of doc.binds?.tests ?? [])
-      out.add(test);
-  }
-  return [...out];
-}
-function checkBoundTests(documents, testFacts) {
-  const resolved = new Map(testFacts.map((fact) => [fact.id, fact.exists]));
-  const advisories = [];
-  for (const doc of documents) {
-    if (doc.type !== "work-order" || doc.status !== "in-progress")
-      continue;
-    for (const test of doc.binds?.tests ?? []) {
-      if (resolved.get(test) === false) {
-        advisories.push({
-          kind: "drift-missing-test",
-          file: doc.file,
-          id: doc.id,
-          test,
-          message: `${doc.id} binds test "${test}", which no longer resolves \u2014 the bound proof is gone`
-        });
-      }
-    }
-  }
-  return advisories;
-}
-function isStartCommit(docId, subject) {
-  return subject.includes(docId) && /\bstart(?:ed|s)?\b/i.test(subject);
-}
-function startAnchor(facts, workOrder) {
-  const index = facts.commits.findIndex((commit) => isStartCommit(workOrder.id, commit.subject));
-  if (index >= 0)
-    return { index, date: facts.commits[index].date };
-  return { index: void 0, date: workOrder.created };
-}
-function inEra(commitIndex, commitDate, anchor) {
-  return anchor.index !== void 0 ? commitIndex < anchor.index : commitDate >= anchor.date;
-}
-function daysBetween(from, to) {
-  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 864e5);
-}
-function checkBindingDrift(documents, facts, options) {
-  if (options.veriPath === "")
-    return [];
-  const claimants = bindingClaimants(documents);
-  if (claimants.length === 0)
-    return [];
-  const windowDays = options.staleAfterDays ?? DEFAULT_STALE_AFTER_DAYS;
-  const veriPrefix = `${options.veriPath}/`;
-  const anchors = new Map(claimants.map((wo) => [wo.id, startAnchor(facts, wo)]));
-  const advisories = [];
-  facts.commits.forEach((commit, index) => {
-    if (subjectWorkOrders(commit.subject).length > 0)
-      return;
-    if (!claimants.some((wo) => inEra(index, commit.date, anchors.get(wo.id))))
-      return;
-    const code = commit.files.filter((file) => !file.startsWith(veriPrefix));
-    const unclaimed = code.filter((file) => !claimants.some((wo) => pathMatchesBinds(file, wo.binds.paths)));
-    if (unclaimed.length === 0)
-      return;
-    const shown = unclaimed.slice(0, 3).join(", ");
-    const more = unclaimed.length > 3 ? ` and ${unclaimed.length - 3} more` : "";
-    advisories.push({
-      kind: "drift-unclaimed-change",
-      file: unclaimed[0],
-      id: short2(commit.sha),
-      sha: commit.sha,
-      message: `commit ${short2(commit.sha)} "${commit.subject}" touched ${shown}${more} \u2014 no in-progress work order claims it by binding or subject`
-    });
-  });
-  for (const wo of claimants) {
-    const anchor = anchors.get(wo.id);
-    if (daysBetween(anchor.date, options.today) < windowDays)
-      continue;
-    const newest = facts.commits.find((commit) => commit.files.some((file) => pathMatchesBinds(file, wo.binds.paths)));
-    if (newest !== void 0 && daysBetween(newest.date, options.today) < windowDays)
-      continue;
-    const since = newest === void 0 ? `no commits have touched its bound paths since it started (${anchor.date})` : `no commits have touched its bound paths since ${newest.date}`;
-    advisories.push({
-      kind: "drift-stale-wo",
-      file: wo.file,
-      id: wo.id,
-      message: `${wo.id} is in-progress but ${since} \u2014 stale after ${windowDays} days`
-    });
-  }
-  return advisories;
 }
 
 // ../core/dist/report.js
@@ -12581,6 +12673,7 @@ function deriveFindings(load, host) {
     }));
   }
   advisories.push(...checkBoundTests(load.documents, host.testFacts));
+  advisories.push(...checkStaleClaims(load.documents, host.today, staleAfterDays(load.documents)));
   if (host.importFacts !== void 0) {
     const observed = checkObservedArchitecture(load.documents, host.importFacts.edges);
     issues.push(...observed.issues);
