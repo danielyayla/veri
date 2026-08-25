@@ -1,7 +1,8 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildGraph } from './graph.ts';
-import { checkStructure, isPending } from './check.ts';
+import { checkStructure } from './check.ts';
+import { isPending } from './pending.ts';
 import { checkSupersededLinks } from './drift.ts';
 import { DOC_TYPES, compareIds } from './ids.ts';
 import { loadProject } from './load.ts';

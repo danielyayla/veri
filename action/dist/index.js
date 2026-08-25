@@ -7367,8 +7367,8 @@ import { appendFileSync } from "node:fs";
 import { resolve as resolve3 } from "node:path";
 
 // ../cli/dist/commands.js
-import { existsSync as existsSync3, readdirSync as readdirSync2, realpathSync } from "node:fs";
-import { dirname as dirname2, join as join6, relative as relative2, resolve as resolve2, sep as sep2 } from "node:path";
+import { existsSync as existsSync3, mkdirSync as mkdirSync2, readFileSync as readFileSync5, readdirSync as readdirSync2, realpathSync, writeFileSync as writeFileSync3 } from "node:fs";
+import { basename, dirname as dirname2, join as join6, relative as relative2, resolve as resolve2, sep as sep2 } from "node:path";
 import { fileURLToPath as fileURLToPath4 } from "node:url";
 
 // ../core/dist/ids.js
@@ -7403,6 +7403,11 @@ function localToday(now = /* @__PURE__ */ new Date()) {
   const m = String(now.getMonth() + 1).padStart(2, "0");
   const d = String(now.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+// ../core/dist/pending.js
+function isPending(doc) {
+  return doc.type === "requirement" && doc.status === "draft" || doc.type === "decision" && doc.status === "proposed" || doc.type === "workflow" && doc.status === "draft";
 }
 
 // ../../node_modules/zod/v3/external.js
@@ -11502,7 +11507,12 @@ var workOrderSchema = external_exports.object({
   status: external_exports.enum(["backlog", "in-progress", "done"]),
   binds: bindsSchema.optional()
 }).passthrough();
-var sourceSchema = external_exports.object({ ...baseFields, type: external_exports.literal("source"), status: external_exports.literal("imported") }).passthrough();
+var sourceSchema = external_exports.object({
+  ...baseFields,
+  type: external_exports.literal("source"),
+  status: external_exports.literal("imported"),
+  original: external_exports.string().min(1).optional()
+}).passthrough();
 var workflowSchema = external_exports.object({
   ...baseFields,
   type: external_exports.literal("workflow"),
@@ -11641,7 +11651,7 @@ import { fileURLToPath as fileURLToPath2 } from "node:url";
 async function loadProject(veriDir) {
   const root2 = typeof veriDir === "string" ? veriDir : fileURLToPath2(veriDir);
   const entries = await readdir(root2, { recursive: true });
-  const files = entries.filter((entry) => entry.endsWith(".md")).map((entry) => entry.replaceAll("\\", "/")).filter((file) => !file.startsWith("templates/")).sort();
+  const files = entries.filter((entry) => entry.endsWith(".md")).map((entry) => entry.replaceAll("\\", "/")).filter((file) => !file.startsWith("templates/")).filter((file) => !file.startsWith("originals/")).sort();
   const documents = [];
   const issues = [];
   for (const file of files) {
@@ -12192,9 +12202,6 @@ function checkWorkOrderRequirements(documents) {
   }
   return issues;
 }
-function isPending(doc) {
-  return doc.type === "requirement" && doc.status === "draft" || doc.type === "decision" && doc.status === "proposed" || doc.type === "workflow" && doc.status === "draft";
-}
 function checkGatedWorkOrders(documents) {
   const byId = new Map(documents.map((doc) => [doc.id, doc]));
   const issues = [];
@@ -12604,6 +12611,10 @@ function buildCheckReport(load, host) {
     skips
   };
 }
+
+// ../core/dist/intake.js
+var INTAKE_EXTENSIONS = ["md", "txt", "eml"];
+var REFUSAL = `supported formats: ${INTAKE_EXTENSIONS.map((e) => "." + e).join(" ")} \u2014 audio, PDF, and office formats need extraction Veri does not ship (no network, no heavy dependencies in v1)`;
 
 // ../cli/dist/git.js
 import { spawnSync } from "node:child_process";

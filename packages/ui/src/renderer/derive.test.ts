@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { VeriDocument } from '@verikb/core';
-import { PACKAGE_RULES, buildGraph, importKickoffPrompt as coreImportKickoffPrompt } from '@verikb/core';
+import { buildGraph } from '@verikb/core';
 import type { Snapshot } from '../lib/snapshot.ts';
 import {
   advisoriesByDoc,
@@ -22,21 +22,13 @@ import {
   relsInUse,
   DEFAULT_REL,
   LOCAL_GRAPH_CAP,
-  PACKAGE_RULES_TEXT,
   importBatches,
   importEvidenceOf,
   importGroupLabel,
-  importKickoffPrompt,
   importManifestOf,
   latestImportBatch,
 } from './derive.ts';
 import type { Connection } from './derive.ts';
-
-// REQ-019: the footer's mirrored copy may never drift from the contract line
-// core owns (the renderer bundle can't import core's node-flavored runtime).
-test('the PACKAGE RULES footer text equals core PACKAGE_RULES', () => {
-  assert.equal(PACKAGE_RULES_TEXT, PACKAGE_RULES);
-});
 
 function doc(partial: Partial<VeriDocument> & Pick<VeriDocument, 'id' | 'type' | 'title' | 'status'>): VeriDocument {
   return {
@@ -310,17 +302,20 @@ test('recentlyChanged orders by updated desc and caps', () => {
 
 // ---- approval gate (WO-017, SRC-006) ----
 
-test('pendingDocs lists draft REQs and proposed DECs oldest-first', () => {
+test('pendingDocs lists draft REQs, proposed DECs, and draft workflows oldest-first', () => {
   const s = snap([
     doc({ id: 'REQ-001', type: 'requirement', title: 'Accepted', status: 'accepted' }),
     doc({ id: 'REQ-002', type: 'requirement', title: 'Newer draft', status: 'draft', created: '2026-08-09' }),
     doc({ id: 'DEC-001', type: 'decision', title: 'Older proposal', status: 'proposed', created: '2026-08-03' }),
     doc({ id: 'DEC-002', type: 'decision', title: 'Active', status: 'active' }),
     doc({ id: 'WO-001', type: 'work-order', title: 'Backlog', status: 'backlog' }),
+    // WO-097 regression: the renderer's mirror omitted core's workflow
+    // clause, so a draft workflow never reached NEEDS REVIEW.
+    doc({ id: 'WF-002', type: 'workflow', title: 'Draft rules', status: 'draft', created: '2026-08-01' }),
   ]);
   assert.deepEqual(
     pendingDocs(s).map((d) => d.id),
-    ['DEC-001', 'REQ-002'],
+    ['WF-002', 'DEC-001', 'REQ-002'],
   );
 });
 
@@ -418,12 +413,6 @@ test('relsInUse derives exactly the rels in use, deduped and sorted', () => {
 
 test('the default rel for a new link is relates-to (SRC-028)', () => {
   assert.equal(DEFAULT_REL, 'relates-to');
-});
-
-// DEC-067: the renderer's mirrored import kickoff may never drift from the
-// canonical string core owns (same constraint as PACKAGE_RULES above).
-test('the import kickoff mirror equals core importKickoffPrompt', () => {
-  assert.equal(importKickoffPrompt(), coreImportKickoffPrompt());
 });
 
 test('import batches derive from imported-via links alone (DEC-068)', () => {

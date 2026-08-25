@@ -4,18 +4,14 @@
  */
 import type { Advisory, Edge, Issue, VeriDocument } from '@verikb/core';
 import { compareIds } from '@verikb/core/ids';
+import { isPending } from '@verikb/core/pending';
 import type { Snapshot } from '../lib/snapshot.ts';
 import { sections, parseBlocks, plainText } from './markdown.ts';
 
-/**
- * Mirrors @verikb/core's PACKAGE_RULES for the package panel footer. The
- * renderer bundle can't import core's node-flavored runtime, so the string is
- * mirrored here and a drift test asserts equality with the core export
- * (REQ-019) — edit both or the suite fails.
- */
-export const PACKAGE_RULES_TEXT =
-  'Workflow always first · linked requirements and decisions in full · sources as excerpts · ' +
-  'superseded decisions named only · oversized neighborhoods enumerated as a context map';
+// Core's one definition, bundled from the pure subpaths (DEC-046, DEC-092) —
+// the renderer-local mirrors these once were are gone, drift tests and all.
+export { isPending };
+export { PACKAGE_RULES as PACKAGE_RULES_TEXT, importKickoffPrompt } from '@verikb/core/prompts';
 
 export type DocsById = Map<string, VeriDocument>;
 
@@ -319,16 +315,6 @@ export function fileActivity(doc: VeriDocument, rel: (date: string) => string): 
 
 // ---- Home view derivations (WO-015, SRC-005 layer 4) ---------------------
 
-/** Awaiting the user's approval, so not binding (REQ-008). Renderer-local
-    mirror of core's isPending — the browser can't import @verikb/core at
-    runtime (bare specifier, CSP 'self'); core's self-tests keep them in sync. */
-export function isPending(doc: VeriDocument): boolean {
-  return (
-    (doc.type === 'requirement' && doc.status === 'draft') ||
-    (doc.type === 'decision' && doc.status === 'proposed')
-  );
-}
-
 /** NEEDS REVIEW (SRC-006): pending docs, oldest first — the longest-waiting
     proposal is the most urgent, it may be gating work. */
 export function pendingDocs(snap: Snapshot): VeriDocument[] {
@@ -472,22 +458,6 @@ export function kickoffPrompt(id: string, title: string): string {
     `MCP tool: get_context("${id}"). Follow the linked decisions and stay ` +
     `inside the work order's scope.`
   );
-}
-
-/**
- * The import kickoff prompt (DEC-067). Renderer-local mirror of core's
- * importKickoffPrompt — the browser can't import @verikb/core at runtime
- * (bare specifier, CSP 'self'); derive.test.ts holds this to core's truth.
- */
-export function importKickoffPrompt(): string {
-  return [
-    'You are importing existing project knowledge into Veri.',
-    'Call the veri MCP tool get_import_instructions and follow it exactly:',
-    'read this repo — code layout, git history, ADRs, READMEs, agent docs —',
-    'and file what you find as an import manifest, evidence sources, draft',
-    'requirements, and proposed decisions. Nothing you file is binding',
-    'until the user approves it.',
-  ].join('\n');
 }
 
 // ---- Brownfield import derivations (WO-075, SRC-039, DEC-068) ------------

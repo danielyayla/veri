@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { approveDocument, loadProject, localToday, setDocumentLinks } from '@verikb/core';
+import { approveDocument, isPending, loadProject, localToday, setDocumentLinks } from '@verikb/core';
 import type { ApproveResult, Link, VeriDocument } from '@verikb/core';
 
 /** Statuses the UI may write, per the vocabularies in CLAUDE.md / core's schema. */
@@ -109,9 +109,7 @@ export async function appendReviewNote(projectRoot: string, id: string, note: st
   const text = note.trim();
   if (text === '') throw new Error('review note is empty');
   const { doc, path } = await findDoc(projectRoot, id);
-  const pending =
-    (doc.type === 'requirement' && doc.status === 'draft') || (doc.type === 'decision' && doc.status === 'proposed');
-  if (!pending) throw new Error(`${id} is ${doc.status} — review notes are for pending documents`);
+  if (!isPending(doc)) throw new Error(`${id} is ${doc.status} — review notes are for pending documents`);
   const raw = await readFile(path, 'utf8');
   const line = `- ${today()} (review): ${text}`;
 

@@ -29,6 +29,14 @@
     "./dates": {
       "types": "./dist/dates.d.ts",
       "default": "./dist/dates.js"
+    },
+    "./pending": {
+      "types": "./dist/pending.d.ts",
+      "default": "./dist/pending.js"
+    },
+    "./prompts": {
+      "types": "./dist/prompts.d.ts",
+      "default": "./dist/prompts.js"
     }
   },
   "files": [

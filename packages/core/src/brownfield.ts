@@ -1,27 +1,10 @@
-// Brownfield import (REQ-024, DEC-067, DEC-068): the canonical kickoff
-// prompt, the brownfield predicate shared by CLI and app, and the
-// instruction package the MCP server serves to the importing agent.
+// Brownfield import (REQ-024, DEC-067, DEC-068): the brownfield predicate
+// shared by CLI and app, and the instruction package the MCP server serves
+// to the importing agent. The kickoff prompt lives in prompts.ts (DEC-092).
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { getTemplate } from './templates.ts';
 import type { VeriDocument } from './types.ts';
-
-/**
- * The one kickoff prompt (DEC-067): what the app's "Copy import kickoff"
- * button copies and what `veri import` prints. It points the agent at the
- * MCP-served instruction package rather than carrying the instructions,
- * so the paste never goes stale.
- */
-export function importKickoffPrompt(): string {
-  return [
-    'You are importing existing project knowledge into Veri.',
-    'Call the veri MCP tool get_import_instructions and follow it exactly:',
-    'read this repo — code layout, git history, ADRs, READMEs, agent docs —',
-    'and file what you find as an import manifest, evidence sources, draft',
-    'requirements, and proposed decisions. Nothing you file is binding',
-    'until the user approves it.',
-  ].join('\n');
-}
 
 /**
  * A project root is brownfield when it holds anything beyond what a fresh

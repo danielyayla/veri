@@ -1,5 +1,6 @@
 import type { Advisory, Issue, VeriDocument } from './types.ts';
 import type { LoadResult } from './load.ts';
+import { isPending } from './pending.ts';
 import type { DocType } from './ids.ts';
 import { checkSupersededLinks } from './drift.ts';
 import { checkArchitecture } from './architecture.ts';
@@ -89,15 +90,6 @@ export function checkWorkOrderRequirements(documents: VeriDocument[]): Issue[] {
     }
   }
   return issues;
-}
-
-/** A document awaiting the user's approval and therefore not binding (REQ-008). */
-export function isPending(doc: VeriDocument): boolean {
-  return (
-    (doc.type === 'requirement' && doc.status === 'draft') ||
-    (doc.type === 'decision' && doc.status === 'proposed') ||
-    (doc.type === 'workflow' && doc.status === 'draft')
-  );
 }
 
 // The gate is on starting work, not on planning: backlog work orders may cite

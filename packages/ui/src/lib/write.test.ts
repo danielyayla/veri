@@ -186,3 +186,14 @@ test('appendReviewNote creates the section, appends entries, and refuses non-pen
   await assert.rejects(() => appendReviewNote(root, 'REQ-001', '   '), /empty/);
   await assert.rejects(() => appendReviewNote(root, 'WO-001', 'Not pending'), /review notes are for pending documents/);
 });
+
+test('appendReviewNote accepts a draft workflow document (WO-097 — the drifted inline copy refused it)', async () => {
+  const root = await makeReviewProject();
+  const WF = DRAFT_REQ.replace('id: REQ-001', 'id: WF-002')
+    .replace('type: requirement', 'type: workflow')
+    .replace('title: Pending requirement', 'title: Draft rules');
+  await writeFile(join(root, 'veri', 'WF-002-draft-rules.md'), WF);
+  await appendReviewNote(root, 'WF-002', 'Clarify rule one.');
+  const after = await readFile(join(root, 'veri', 'WF-002-draft-rules.md'), 'utf8');
+  assert.match(after, /## Review notes\n\n- \d{4}-\d{2}-\d{2} \(review\): Clarify rule one\.\n$/);
+});

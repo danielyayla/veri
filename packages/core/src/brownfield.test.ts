@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { assembleImportInstructions, importKickoffPrompt, isBrownfieldRoot, isUnpopulated } from './brownfield.ts';
+import { assembleImportInstructions, isBrownfieldRoot, isUnpopulated } from './brownfield.ts';
+import { importKickoffPrompt } from './prompts.ts';
 import type { VeriDocument } from './types.ts';
 
 function tmpRoot(t: { after(fn: () => void): void }): string {
