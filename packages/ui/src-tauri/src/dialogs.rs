@@ -33,6 +33,26 @@ pub async fn alert(app: &AppHandle, message: &str, detail: &str) {
     let _ = rx.await;
 }
 
+/// Native multi-file picker for evidence intake (WO-096). No extension
+/// filter: unsupported picks surface as refused rows in the review sheet
+/// (SRC-045) — the same honesty as the drag path, never a silent drop.
+pub async fn pick_files(app: &AppHandle, title: &str) -> Option<Vec<String>> {
+    let (tx, rx) = oneshot::channel();
+    app.dialog()
+        .file()
+        .set_title(title)
+        .pick_files(move |paths| {
+            let _ = tx.send(paths);
+        });
+    rx.await.ok().flatten().map(|paths| {
+        paths
+            .into_iter()
+            .filter_map(|p| p.into_path().ok())
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect()
+    })
+}
+
 /// Native folder picker; `can_create` adds the New Folder affordance the
 /// new-project flow relies on (Electron's createDirectory property).
 pub async fn pick_folder(app: &AppHandle, title: &str, can_create: bool) -> Option<String> {

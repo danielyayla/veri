@@ -1959,3 +1959,73 @@ a:hover { color: var(--link-hover); }
   .dt-grid { grid-template-columns: 1fr; }
   .dt-grid .dt-sec:nth-child(odd):not(.dt-sec-full) { border-right: none; }
 }
+
+/* File import (WO-096, SRC-045). Drop target: scrim below the topbar with a
+   dashed ember frame — the one canvas-scale dashed surface in the app. */
+.imp-drop { position: fixed; inset: 44px 0 0 0; background: var(--scrim); z-index: 70; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.imp-frame { position: absolute; inset: 14px; border: 1.5px dashed var(--ember); border-radius: 12px; background: var(--ember-tint-faint); }
+.imp-drop-inner {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px;
+  text-align: center; max-width: 420px; padding: 28px 36px; border-radius: 12px;
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+}
+.imp-drop-glyph { font-family: var(--mono); font-size: 30px; color: var(--ember-light); line-height: 1; }
+.imp-drop-title { font-size: 20px; font-weight: 600; color: var(--text); }
+.imp-drop-sub { font-size: 13.5px; color: var(--secondary); line-height: 1.55; }
+.imp-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.imp-chip {
+  display: flex; align-items: center; gap: 7px; background: var(--overlay);
+  border: 1px solid var(--pop-border); border-radius: 6px; padding: 6px 11px;
+  font-family: var(--mono); font-size: 11px; color: var(--body-text);
+}
+.imp-chip-swatch { width: 7px; height: 7px; border-radius: 2px; background: var(--t-src); flex: 0 0 auto; }
+.imp-formats { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+/* Review sheet: np-sheet chrome, one card per file, scrolling past ~4. */
+.imp-scrim { position: fixed; inset: 0; background: var(--scrim-2); display: flex; align-items: center; justify-content: center; z-index: 80; }
+.imp-sheet {
+  width: 520px; max-height: 82vh; display: flex; flex-direction: column;
+  background: var(--pop); border: 1px solid var(--pop-border); border-radius: 10px;
+  box-shadow: var(--shadow-pop);
+}
+.imp-head { padding: 16px 20px 13px; border-bottom: 1px solid var(--pop-hair); }
+.imp-head-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.imp-files { display: flex; flex-direction: column; gap: 12px; padding: 16px 20px 0; overflow-y: auto; }
+.imp-file { background: var(--card); border: 1px solid var(--card-border); border-radius: 8px; padding: 13px 14px; }
+.imp-file-head { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.imp-file-name { font-family: var(--mono); font-size: 12px; color: var(--body-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.imp-file-note { font-family: var(--mono); font-size: 10.5px; color: var(--muted); flex: 0 0 auto; }
+.imp-id-chip { margin-left: auto; font-family: var(--mono); font-size: 11px; border-radius: 4px; padding: 2px 7px; flex: 0 0 auto; }
+.imp-field-label { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 10px 0 5px; }
+.imp-title-input {
+  width: 100%; box-sizing: border-box; height: 34px; background: var(--bg);
+  border: 1px solid var(--int-border); border-radius: 6px; padding: 0 10px;
+  font-family: var(--sans); font-size: 13.5px; color: var(--text); outline: none;
+}
+.imp-title-input:focus { border-color: var(--focus-border); }
+/* Refused rows: the amber register (.np-err), never a silent drop. */
+.imp-refused { background: var(--amber-tint-6); border-color: var(--amber-border); }
+.imp-refused-msg { margin-top: 7px; color: var(--amber); font-size: 12px; line-height: 1.45; }
+.imp-note { display: flex; align-items: baseline; gap: 5px; flex-wrap: wrap; padding: 12px 20px 0; font-size: 12px; color: var(--muted); line-height: 1.45; }
+.imp-note-path { font-family: var(--mono); font-size: 11px; color: var(--secondary); }
+.imp-err { margin: 10px 20px 0; padding: 9px 12px; background: var(--amber-tint-6); border: 1px solid var(--amber-border); border-radius: 6px; color: var(--amber); font-size: 12.5px; }
+.imp-acts { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px 16px; border-top: 1px solid var(--pop-hair); margin-top: 14px; }
+.imp-btn-ghost { font-family: var(--sans); font-size: 12.5px; padding: 6px 13px; border-radius: 6px; cursor: pointer; color: var(--secondary); background: transparent; border: 1px solid var(--int-border); }
+.imp-btn-ghost:hover { border-color: var(--hover-border); }
+.imp-btn-primary { font-family: var(--sans); font-size: 12.5px; padding: 6px 13px; border-radius: 6px; cursor: pointer; color: var(--on-accent); background: var(--ember); border: 1px solid var(--ember); font-weight: 600; }
+.imp-btn-primary:hover { background: var(--ember-btn-hov); border-color: var(--ember-btn-hov); }
+.imp-btn-ghost:disabled, .imp-btn-primary:disabled { opacity: .5; cursor: default; }
+
+/* Sources panel entry + filed-state feedback. */
+.tp-import {
+  font-family: var(--sans); font-size: 11.5px; color: var(--body-text);
+  background: transparent; border: 1px solid var(--int-border); border-radius: 6px;
+  padding: 3px 9px; cursor: pointer; flex: 0 0 auto;
+}
+.tp-import:hover { border-color: var(--hover-border); color: var(--text); }
+.tp-row-new { background: var(--ember-tint); animation: imp-row-fade 2.4s ease forwards; }
+@keyframes imp-row-fade { from { background: var(--ember-tint); } to { background: transparent; } }
+.toast-import { pointer-events: auto; display: flex; align-items: center; gap: 10px; border-color: var(--green-border); background: var(--green-tint-6); }
+.toast-import-label { color: var(--body-text); }
+.toast-import-link { font-family: var(--mono); font-size: 11px; color: var(--ember); cursor: pointer; }
+.toast-import-link:hover { color: var(--link-hover); }

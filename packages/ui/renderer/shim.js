@@ -124,6 +124,14 @@
       return err;
     },
     onChanged: (cb) => listen('veri-changed', () => cb()),
+    // File import (WO-096): derivations and writes live sidecar-side; the
+    // drag events arrive from the shell's native handler (DEC-095).
+    importInspect: (paths) => call('import-inspect', paths),
+    importCommit: (requests) => call('import-commit', requests),
+    pickImportFiles: () => inv('pick_files', { title: 'Import files' }),
+    onDragHover: (cb) => listen('veri-drag-hover', (e) => cb(Array.isArray(e.payload) ? e.payload : [])),
+    onDragDrop: (cb) => listen('veri-drag-drop', (e) => cb(Array.isArray(e.payload) ? e.payload : [])),
+    onDragCancel: (cb) => listen('veri-drag-cancel', () => cb()),
     themeGet: async () => {
       const { pref } = await call('theme-get');
       themePref = pref;

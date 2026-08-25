@@ -42,6 +42,8 @@ import type { ThemePref } from '../lib/appearance.ts';
 import { loadWorkspaceState, saveWorkspaceState } from '../lib/workspace.ts';
 import type { WorkspaceState } from '../lib/workspace.ts';
 import { appendNote, appendReviewNote, approveDoc, setLinks, setStatus } from '../lib/write.ts';
+import { commitIntake, inspectIntake } from '../lib/intakehost.ts';
+import type { CommitRequest } from '../lib/intakehost.ts';
 import { createLogger } from '../lib/log.ts';
 import { buildIssueUrl } from '../lib/report.ts';
 import type { ProjectInfo } from '../renderer/api.ts';
@@ -266,6 +268,11 @@ export function createSidecar(options: SidecarOptions): Sidecar {
     },
     'save-doc': (file: string, text: string) => saveDocumentFile(join(projectRoot, 'veri'), file, text),
     'create-doc': (type: DocType, title: string) => createDocument(join(projectRoot, 'veri'), type, title),
+    // File import (WO-096, SRC-045): inspect derives what each dropped or
+    // picked file would become — writing nothing, so Cancel is free; commit
+    // files the accepted rows through core's intake seam (DEC-093, DEC-094).
+    'import-inspect': (paths: string[]) => inspectIntake(paths),
+    'import-commit': (requests: CommitRequest[]) => commitIntake(projectRoot, requests),
     // Template settings (WO-024): the effective body plus provenance, straight
     // from core (WO-023) — never cached, so chips always match the files.
     'template-read': (type: DocType) => {

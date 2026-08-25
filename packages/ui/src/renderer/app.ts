@@ -9,6 +9,9 @@ import { h } from './dom.ts';
 import { TYPE_META, relTime, statusColor, tint } from './theme.ts';
 import { advisoriesByDoc, docsById, isPending, issuesByDoc, packageSummary } from './derive.ts';
 import { composeTarget, isValidProjectName } from './newproject.ts';
+import { baseNames, commitRequests, confirmLabel, formatLabel, nextSrcNumber, provisionalIds, sheetFromInspect, sizeLabel, toastText } from './importlogic.ts';
+import type { ImportSheet } from './importlogic.ts';
+import type { CommittedSource } from './api.ts';
 import type { ActivityRow, DocsById, PackageSummary } from './derive.ts';
 import type { McpStatus } from '../lib/mcpconfig.ts';
 import type { RuntimeProbe } from '../lib/noderuntime.ts';
@@ -125,6 +128,16 @@ export interface State {
   toast: string | null;
   /** Status-change undo toast (WO-061): one-click revert of the last change. */
   undoToast: { docId: string; from: string; to: string } | null;
+  /** File import (WO-096, SRC-045): basenames while an OS drag hovers the
+      window — the drop overlay's chips. Null when no drag is in flight. */
+  dragImport: string[] | null;
+  /** Non-null while the import review sheet is up. */
+  importSheet: ImportSheet | null;
+  /** Freshly imported source ids, highlighted transiently in the panel. */
+  flashRows: string[];
+  /** Post-import toast: the count line plus jump links to the new docs
+      beyond the one already opened. */
+  importToast: { text: string; others: CommittedSource[] } | null;
   /** Command palette (WO-013): overlay flag, raw query, selection, ranked result. */
   paletteOpen: boolean;
   paletteQuery: string;
@@ -389,6 +402,10 @@ class App implements Ctx {
     reviewText: null,
     toast: null,
     undoToast: null,
+    dragImport: null,
+    importSheet: null,
+    flashRows: [],
+    importToast: null,
     paletteOpen: false,
     paletteQuery: '',
     paletteSel: 0,
@@ -457,6 +474,8 @@ class App implements Ctx {
   private copyTimer: ReturnType<typeof setTimeout> | undefined;
   private toastTimer: ReturnType<typeof setTimeout> | undefined;
   private undoTimer: ReturnType<typeof setTimeout> | undefined;
+  private flashRowsTimer: ReturnType<typeof setTimeout> | undefined;
+  private importToastTimer: ReturnType<typeof setTimeout> | undefined;
   private kickoffTimer: ReturnType<typeof setTimeout> | undefined;
   private mcpCmdTimer: ReturnType<typeof setTimeout> | undefined;
   private root: HTMLElement;
@@ -514,6 +533,8 @@ class App implements Ctx {
       layers.push({ kind: 'palette', sel: '.pal-panel', trap: true, initial: 'pal-input', close: () => this.update({ paletteOpen: false }) });
     if (this.state.newProject !== null)
       layers.push({ kind: 'newProject', sel: '.np-sheet', trap: true, initial: 'np-name', close: () => this.closeNewProject() });
+    if (this.state.importSheet !== null)
+      layers.push({ kind: 'importSheet', sel: '.imp-sheet', trap: true, initial: 'imp-cancel', close: () => this.closeImportSheet() });
     if (this.state.settingsPop)
       layers.push({ kind: 'settingsPop', sel: '.settings-pop', trap: true, close: () => this.update({ settingsPop: false }) });
     if (this.state.projectSwitcherOpen)
@@ -671,6 +692,18 @@ class App implements Ctx {
       );
     }
     this.api.onChanged(() => void this.refresh());
+    // OS file drags (WO-096): the shell forwards native drag-drop, since
+    // HTML5 drop events are suppressed by the webview handler (DEC-095).
+    this.api.onDragHover((paths) => {
+      if (this.state.importSheet === null && paths.length > 0) this.update({ dragImport: baseNames(paths) });
+    });
+    this.api.onDragCancel(() => {
+      if (this.state.dragImport !== null) this.update({ dragImport: null });
+    });
+    this.api.onDragDrop((paths) => {
+      this.update({ dragImport: null });
+      if (this.state.importSheet === null) void this.openImportSheet(paths);
+    });
     this.api.onMcpChanged((external) => {
       void this.refreshMcp().then(() => {
         if (external) this.update({ mcpExternal: true });
@@ -1048,6 +1081,144 @@ class App implements Ctx {
     this.announce(text);
     this.update({ toast: text });
     this.toastTimer = setTimeout(() => this.update({ toast: null }), 2400);
+  }
+
+  /** Inspect dropped or picked files and raise the review sheet (SRC-045).
+      Inspect writes nothing, so closing the sheet abandons cleanly. */
+  async openImportSheet(paths: string[]): Promise<void> {
+    if (paths.length === 0) return;
+    const rows = await this.guardIpc(() => this.api.importInspect(paths));
+    if (rows === undefined) return;
+    this.update({ importSheet: sheetFromInspect(rows), dragImport: null });
+  }
+
+  /** The Sources panel's "Import files…" — same sheet via the native picker. */
+  async startImportPicker(): Promise<void> {
+    const paths = await this.api.pickImportFiles();
+    if (paths !== null && paths.length > 0) await this.openImportSheet(paths);
+  }
+
+  closeImportSheet(): void {
+    if (this.state.importSheet?.busy) return;
+    this.update({ importSheet: null });
+  }
+
+  /** File the accepted rows, refresh, open the first as a preview tab, and
+      flash the new rows plus the quiet toast (SRC-045's filed state). */
+  private async submitImport(): Promise<void> {
+    const sheet = this.state.importSheet;
+    if (sheet === null || sheet.busy) return;
+    const requests = commitRequests(sheet);
+    if (requests.length === 0) return;
+    this.update({ importSheet: { ...sheet, busy: true, error: null } });
+    let committed: CommittedSource[];
+    try {
+      committed = await this.api.importCommit(requests);
+    } catch (err) {
+      this.update({ importSheet: { ...sheet, busy: false, error: ipcErrorMessage(err) } });
+      return;
+    }
+    await this.refresh();
+    this.update({ importSheet: null, flashRows: committed.map((c) => c.id) });
+    clearTimeout(this.flashRowsTimer);
+    this.flashRowsTimer = setTimeout(() => this.update({ flashRows: [] }), 2400);
+    const first = committed[0];
+    if (first !== undefined) this.openDoc(first.id, { preview: true });
+    this.announce(toastText(committed));
+    this.update({ importToast: { text: toastText(committed), others: committed.slice(1) } });
+    clearTimeout(this.importToastTimer);
+    this.importToastTimer = setTimeout(() => this.update({ importToast: null }), 6000);
+    for (const c of committed) this.sessionLog(c.id, { agent: false, text: `Imported — original preserved at veri/${c.original}`, time: 'today' });
+  }
+
+  /** The drag-hover drop target (SRC-045 board 1): scrim below the topbar,
+      dashed ember frame, the incoming files as chips, the accepted set. */
+  private importDropEl(): HTMLElement | null {
+    const names = this.state.dragImport;
+    if (names === null) return null;
+    const shown = names.slice(0, 3);
+    const more = names.length - shown.length;
+    return h(
+      'div',
+      { class: 'imp-drop' },
+      h('div', { class: 'imp-frame' }),
+      h(
+        'div',
+        { class: 'imp-drop-inner' },
+        h('div', { class: 'imp-drop-glyph' }, '⇪'),
+        h('div', { class: 'imp-drop-title' }, 'Drop to import'),
+        h(
+          'div',
+          { class: 'imp-drop-sub' },
+          `${names.length === 1 ? '1 file becomes a source document' : `${names.length} files become source documents`} — ready to link, pack, and distill. Originals are preserved.`,
+        ),
+        h('div', { class: 'imp-chips' }, ...shown.map((name) => h('span', { class: 'imp-chip' }, h('span', { class: 'imp-chip-swatch' }), name)), more > 0 ? h('span', { class: 'imp-chip' }, `+${more} more`) : null),
+        h('div', { class: 'imp-formats' }, 'md · txt · eml'),
+      ),
+    );
+  }
+
+  /** The review sheet (SRC-045 board 2): one card per file — accepted cards
+      carry the provisional id chip and an editable title; refused cards say
+      why, naming the supported set. Cancel abandons with nothing filed. */
+  private importSheetEl(): HTMLElement | null {
+    const sheet = this.state.importSheet;
+    if (sheet === null) return null;
+    const ids = provisionalIds(sheet, nextSrcNumber(this.byId.keys()));
+    const src = TYPE_META.source;
+    const accepted = commitRequests(sheet).length;
+    const cards = sheet.rows.map((row, i) =>
+      row.ok
+        ? h(
+            'div',
+            { class: 'imp-file' },
+            h(
+              'div',
+              { class: 'imp-file-head' },
+              h('span', { class: 'imp-chip-swatch' }),
+              h('span', { class: 'imp-file-name' }, row.name),
+              h('span', { class: 'imp-file-note' }, `${sizeLabel(row.size)} · ${formatLabel(row)}`),
+              h('span', { class: 'imp-id-chip', style: `color:${src.color};background:${tint(src.color)};` }, ids[i] ?? ''),
+            ),
+            h('div', { class: 'imp-field-label' }, 'Title'),
+            h('input', {
+              class: 'imp-title-input',
+              fkey: `imp-title-${i}`,
+              value: row.editedTitle,
+              onInput: (e) => {
+                row.editedTitle = (e.target as HTMLInputElement).value;
+              },
+            }),
+          )
+        : h(
+            'div',
+            { class: 'imp-file imp-refused' },
+            h('div', { class: 'imp-file-head' }, h('span', { class: 'imp-file-name' }, row.name), h('span', { class: 'imp-file-note' }, row.size > 0 ? sizeLabel(row.size) : '')),
+            h('div', { class: 'imp-refused-msg' }, row.message ?? 'refused'),
+          ),
+    );
+    return h(
+      'div',
+      { class: 'imp-scrim', onClick: () => this.closeImportSheet() },
+      h(
+        'div',
+        { class: 'imp-sheet', role: 'dialog', modal: true, label: 'Import files', onClick: (e) => e.stopPropagation() },
+        h('div', { class: 'imp-head' }, h('span', { class: 'imp-head-title' }, accepted === 1 ? 'Import 1 file as a source' : `Import ${accepted} files as sources`)),
+        h('div', { class: 'imp-files' }, ...cards),
+        h('div', { class: 'imp-note' }, 'Originals preserved in ', h('span', { class: 'imp-note-path' }, 'veri/originals/'), ' — the source document keeps a link to the unmodified file.'),
+        sheet.error !== null ? h('div', { class: 'imp-err' }, sheet.error) : null,
+        h(
+          'div',
+          { class: 'imp-acts' },
+          h('button', { class: 'imp-btn-ghost', fkey: 'imp-cancel', onClick: () => this.closeImportSheet(), disabled: sheet.busy ? true : undefined }, 'Cancel'),
+          h(
+            'button',
+            { class: 'imp-btn-primary', fkey: 'imp-confirm', onClick: () => void this.submitImport(), disabled: sheet.busy || accepted === 0 ? true : undefined },
+            sheet.busy ? 'Importing…' : confirmLabel(sheet),
+          ),
+        ),
+      ),
+    );
   }
 
   flashUndo(docId: string, from: string, to: string): void {
@@ -2576,7 +2747,7 @@ class App implements Ctx {
       h(
         'button',
         {
-          class: target === d.id ? 'btn-reset btn-block tp-row tp-row-active' : 'btn-reset btn-block tp-row',
+          class: `btn-reset btn-block tp-row${target === d.id ? ' tp-row-active' : ''}${this.state.flashRows.includes(d.id) ? ' tp-row-new' : ''}`,
           label: `${d.id} — ${d.title} — ${d.status}`,
           fkey: `tp:${d.id}`,
           onClick: (e) => this.openDoc(d.id, { preview: true, background: e.metaKey || e.ctrlKey }),
@@ -2674,6 +2845,26 @@ class App implements Ctx {
         h('span', { class: 'tp-swatch', style: `background:${meta.color};` }),
         h('span', { class: 'tp-title' }, meta.crumb),
         h('span', { class: 'tp-count' }, String(list.total)),
+        // Evidence intake entry two of two (WO-096, SRC-045): same review
+        // sheet as the drag path, via the native multi-file picker.
+        ...(type === 'source'
+          ? [
+              h(
+                'button',
+                {
+                  class: 'tp-import',
+                  title: 'Import files as sources',
+                  label: 'Import files',
+                  fkey: 'tp-import',
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    void this.startImportPicker();
+                  },
+                },
+                'Import files…',
+              ),
+            ]
+          : []),
         h(
           'button',
           {
@@ -3068,13 +3259,28 @@ class App implements Ctx {
           )
         : null;
     const panel = this.typePanel();
+    const importDrop = this.importDropEl();
+    const importSheet = this.importSheetEl();
+    const it = this.state.importToast;
+    const importToast =
+      it !== null
+        ? h(
+            'div',
+            { class: 'toast toast-import', role: 'status' },
+            h('span', { class: 'toast-import-label' }, it.text),
+            ...it.others.map((c) => h('button', { class: 'btn-reset toast-import-link', fkey: `toast-imp-${c.id}`, onClick: () => this.openDoc(c.id, { preview: true }) }, `${c.id} →`)),
+          )
+        : null;
     this.root.replaceChildren(
       this.topbar(),
       h('div', { class: 'body' }, this.sidebar(), ...(panel !== null ? [panel] : []), editorArea),
       ...(palette !== null ? [palette] : []),
       ...(sheet !== null ? [sheet] : []),
+      ...(importDrop !== null ? [importDrop] : []),
+      ...(importSheet !== null ? [importSheet] : []),
       ...(toast !== null ? [toast] : []),
       ...(undoToast !== null ? [undoToast] : []),
+      ...(importToast !== null ? [importToast] : []),
       ...this.editPopovers(),
     );
     this.state.editorFocused = false;

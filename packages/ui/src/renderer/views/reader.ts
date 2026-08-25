@@ -29,6 +29,11 @@ export function frontmatterCard(ctx: Ctx, opts: { status?: boolean } = {}): HTML
     ...(doc.approved !== undefined ? [row('approved', h('span', { class: 'fm-mono', title: doc.approved }, doc.approved))] : []),
     row('created', h('span', { class: 'fm-mono', title: doc.created }, doc.created)),
     row('updated', h('span', { class: 'fm-mono', title: doc.updated }, ctx.rel(doc.updated))),
+    // WO-096 (SRC-045): an imported source names its preserved original
+    // (DEC-094). Absent field → no row, matching hand-authored sources.
+    ...(typeof doc.frontmatter['original'] === 'string'
+      ? [row('original', h('span', { class: 'fm-mono', title: `veri/${doc.frontmatter['original']}` }, `veri/${doc.frontmatter['original']}`))]
+      : []),
     // WO-056 (SRC-028): the links row is the links editor — the count
     // expands into the outbound list with remove and add controls.
     row(

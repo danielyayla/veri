@@ -38,6 +38,11 @@ async fn pick_folder(
     Ok(dialogs::pick_folder(&app, &title, can_create.unwrap_or(false)).await)
 }
 
+#[tauri::command]
+async fn pick_files(app: tauri::AppHandle, title: String) -> Result<Option<Vec<String>>, String> {
+    Ok(dialogs::pick_files(&app, &title).await)
+}
+
 /// First snapshot rendered — the startup milestone the shim reports.
 #[tauri::command]
 fn booted(state: State<'_, Arc<Sidecar>>) {
@@ -112,6 +117,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             veri_call,
             pick_folder,
+            pick_files,
             booted,
             apply_theme,
             copy_text,
@@ -128,6 +134,27 @@ fn main() {
             }
             tauri::WindowEvent::ThemeChanged(t) => {
                 theme::on_os_flip(window.app_handle(), *t == tauri::Theme::Dark);
+            }
+            // OS file drags (WO-096, DEC-095): the webview's native handler
+            // owns the gesture (HTML5 drops are suppressed on this platform),
+            // so the shell forwards paths and the renderer draws the state.
+            tauri::WindowEvent::DragDrop(drag) => {
+                use tauri::Emitter;
+                let paths_of = |paths: &Vec<std::path::PathBuf>| -> Vec<String> {
+                    paths.iter().map(|p| p.to_string_lossy().into_owned()).collect()
+                };
+                match drag {
+                    tauri::DragDropEvent::Enter { paths, .. } => {
+                        let _ = window.emit("veri-drag-hover", paths_of(paths));
+                    }
+                    tauri::DragDropEvent::Drop { paths, .. } => {
+                        let _ = window.emit("veri-drag-drop", paths_of(paths));
+                    }
+                    tauri::DragDropEvent::Leave => {
+                        let _ = window.emit("veri-drag-cancel", ());
+                    }
+                    _ => {}
+                }
             }
             _ => {}
         })

@@ -5,7 +5,10 @@ import type { McpStatus } from '../lib/mcpconfig.ts';
 import type { RuntimeProbe } from '../lib/noderuntime.ts';
 import type { VerifyResult } from '../lib/verify.ts';
 import type { Snapshot } from '../lib/snapshot.ts';
+import type { CommitRequest, CommittedSource, InspectRow } from '../lib/intakehost.ts';
 import type { WorkspaceState } from '../lib/workspace.ts';
+
+export type { CommitRequest, CommittedSource, InspectRow };
 
 export interface ProjectInfo {
   dir: string;
@@ -83,6 +86,17 @@ export interface VeriApi {
   /** New project, step 2: scaffold `dir` then open it. Error message or null. */
   createProject(dir: string, demo: boolean): Promise<string | null>;
   onChanged(cb: () => void): void;
+  /** File import (WO-096): derive what each file would become — writes nothing. */
+  importInspect(paths: string[]): Promise<InspectRow[]>;
+  /** File the accepted rows through core's intake seam; ids allocate here. */
+  importCommit(requests: CommitRequest[]): Promise<CommittedSource[]>;
+  /** Native multi-file picker for the Sources panel's "Import files…". */
+  pickImportFiles(): Promise<string[] | null>;
+  /** OS drag-drop over the window (shell-forwarded, DEC-095): hover with the
+      dragged paths, drop with them, cancel when the drag leaves. */
+  onDragHover(cb: (paths: string[]) => void): void;
+  onDragDrop(cb: (paths: string[]) => void): void;
+  onDragCancel(cb: () => void): void;
   /** Theme (WO-060): app-level preference; `dark` is the resolved mode. */
   themeGet(): Promise<ThemeState>;
   themeSet(pref: ThemePref): Promise<ThemeState>;
