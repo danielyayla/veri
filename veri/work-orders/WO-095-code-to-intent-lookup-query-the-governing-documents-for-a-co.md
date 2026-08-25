@@ -6,6 +6,8 @@ status: backlog
 created: 2026-08-25
 updated: 2026-08-25
 links:
+  - id: REQ-021
+    rel: implements
   - id: SRC-044
     rel: derived-from
   - id: WO-088
@@ -49,6 +51,7 @@ Give agents the reverse lookup Veri already has the data for: from a code path t
 
 ## Requirements
 
+- [[REQ-021]] — implements
 - [[SRC-044]] — derived-from
 - [[WO-088]] — relates-to
 - [[DEC-059]] — constrained-by

@@ -6,6 +6,8 @@ status: backlog
 created: 2026-08-25
 updated: 2026-08-25
 links:
+  - id: REQ-031
+    rel: implements
   - id: SRC-044
     rel: derived-from
   - id: REQ-024
@@ -45,6 +47,7 @@ Lower the intake bar for evidence. Today a source document is authored by hand (
 
 ## Requirements
 
+- [[REQ-031]] — implements
 - [[SRC-044]] — derived-from
 - [[REQ-024]] — relates-to
 - [[DEC-060]] — constrained-by
