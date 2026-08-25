@@ -2,7 +2,8 @@
 id: DEC-095
 type: decision
 title: "Import drop channel and seam — native shell drag-drop events, two-phase inspect/commit over the sidecar"
-status: proposed
+status: active
+approved: 2026-08-25
 created: 2026-08-25
 updated: 2026-08-25
 links:
