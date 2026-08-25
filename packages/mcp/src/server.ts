@@ -9,6 +9,7 @@ import { assembleContext } from './context.ts';
 import { getDocument, getNeighbors } from './read.ts';
 import { intentForPath } from './intent.ts';
 import { paletteSearch } from './search.ts';
+import { amendDocument } from './amend.ts';
 import { fileDecision, fileReceipt, fileRequirement, fileSource, fileWorkOrder } from './writeback.ts';
 
 const projectRoot = resolve(process.argv[2] ?? process.cwd());
@@ -374,6 +375,40 @@ server.registerTool(
       guardFormat();
       const { file } = await fileReceipt(projectRoot, input);
       return ok(`Appended receipt to ${file}`);
+    } catch (err) {
+      return fail(err);
+    }
+  },
+);
+
+server.registerTool(
+  'amend_document',
+  {
+    description:
+      'Revise a pending document after review feedback — the iterate half of propose → review → revise (DEC-103). ' +
+      'Replaces the title, the whole body, and/or the links list of a draft requirement, proposed decision, or ' +
+      'backlog work order. Never a promotion: approved, ready, or started documents are refused, no status or ' +
+      'approval field exists to send, and receipts stay append-only via file_receipt (the body may not carry a ' +
+      'Receipts section — the existing one is preserved). Create with the file_* tools; amend while unbinding; ' +
+      'promotion stays the user’s act.',
+    inputSchema: {
+      id: z.string().describe('Document id, e.g. WO-002'),
+      title: z.string().optional().describe('Replacement title'),
+      body: z
+        .string()
+        .optional()
+        .describe('Complete replacement markdown body (everything below the frontmatter), without a Receipts section'),
+      links: z
+        .array(z.object({ id: z.string(), rel: z.string() }))
+        .optional()
+        .describe('Full replacement of the frontmatter links list; [] clears it'),
+    },
+  },
+  async (input) => {
+    try {
+      guardFormat();
+      const { id, file } = await amendDocument(projectRoot, input);
+      return ok(`Amended ${id} at ${file} — still pending the user's review, not binding until they approve it.`);
     } catch (err) {
       return fail(err);
     }

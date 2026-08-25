@@ -68,8 +68,10 @@ test('the built server answers tools/list and get_context over stdio', { skip: !
 
   const toolNames = (responses.get(2)?.result?.tools ?? []).map((tool) => tool.name).sort();
   // The complete write surface: file_* only creates unapproved documents or
-  // appends receipts — no tool approves, promotes, or edits a body (REQ-017).
+  // appends receipts, and amend_document revises still-pending ones (DEC-103)
+  // — no tool approves or promotes (REQ-017).
   assert.deepEqual(toolNames, [
+    'amend_document',
     'file_decision',
     'file_receipt',
     'file_requirement',
@@ -219,4 +221,61 @@ test('start_work_order flips a ready work order and records the claim (WO-099)',
   const refused = second.get(3)?.result;
   assert.equal(refused?.isError, true);
   assert.match(refused?.content?.[0]?.text ?? '', /already in-progress, claimed by "agent-session-1"/);
+});
+
+test('amend_document revises a backlog work order and refuses past the approval boundary (WO-100)', { skip: !existsSync(SERVER) }, async (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'veri-mcp-amend-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, 'veri', 'requirements'), { recursive: true });
+  mkdirSync(join(root, 'veri', 'work-orders'), { recursive: true });
+  writeFileSync(
+    join(root, 'veri', 'requirements', 'REQ-001-req.md'),
+    '---\nid: REQ-001\ntype: requirement\ntitle: R\nstatus: accepted\ncreated: 2026-08-01\nupdated: 2026-08-01\napproved: 2026-08-01\n---\n## Acceptance criteria\n\n- [ ] x\n',
+  );
+  writeFileSync(
+    join(root, 'veri', 'work-orders', 'WO-001-work.md'),
+    '---\nid: WO-001\ntype: work-order\ntitle: W\nstatus: backlog\ncreated: 2026-08-01\nupdated: 2026-08-01\n---\n## Summary\n\nWork.\n\n## Receipts\n\n(none yet)\n',
+  );
+
+  const call = (id: number, args: object): object => ({
+    jsonrpc: '2.0',
+    id,
+    method: 'tools/call',
+    params: { name: 'amend_document', arguments: args },
+  });
+  const init = {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'initialize',
+    params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test', version: '0.0.0' } },
+  };
+  const initialized = { jsonrpc: '2.0', method: 'notifications/initialized' };
+  const responses = await rpcSession(
+    [
+      init,
+      initialized,
+      call(2, {
+        id: 'WO-001',
+        title: 'W, re-scoped',
+        body: '## Summary\n\nRevised after review.',
+        links: [{ id: 'REQ-001', rel: 'implements' }],
+      }),
+      call(3, { id: 'REQ-001', title: 'Rewritten canon' }),
+    ],
+    [1, 2, 3],
+    root,
+  );
+
+  const amended = responses.get(2)?.result;
+  assert.ok(amended?.isError !== true, amended?.content?.[0]?.text);
+  assert.match(amended?.content?.[0]?.text ?? '', /Amended WO-001 .* still pending the user's review/);
+  const file = readFileSync(join(root, 'veri', 'work-orders', 'WO-001-work.md'), 'utf8');
+  assert.match(file, /^title: "W, re-scoped"$/m);
+  assert.match(file, /^status: backlog$/m); // never a promotion
+  assert.match(file, /Revised after review/);
+  assert.match(file, /## Receipts\n\n\(none yet\)/); // carried over verbatim
+
+  const refused = responses.get(3)?.result;
+  assert.equal(refused?.isError, true);
+  assert.match(refused?.content?.[0]?.text ?? '', /past the approval boundary \(REQ-008\)/);
 });
