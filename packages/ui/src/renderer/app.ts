@@ -2845,6 +2845,27 @@ class App implements Ctx {
           h('span', { class: 'tp-ghost-action' }, `New ${meta.label}…`),
         ),
       );
+      // DEC-109: the empty Sources panel offers both entries — either path
+      // a user reaches for first should be present in place.
+      if (type === 'source') {
+        rows.push(
+          h(
+            'button',
+            {
+              class: 'btn-reset btn-block tp-ghost',
+              label: 'Import files as sources',
+              fkey: 'tp-ghost-import',
+              onClick: (e) => {
+                e.stopPropagation();
+                void this.startImportPicker();
+              },
+            },
+            h('span', { class: 'tp-ghost-plus' }, '↑'),
+            h('span', { class: 'tp-ghost-hint' }, 'Files you already have'),
+            h('span', { class: 'tp-ghost-action' }, 'Import files…'),
+          ),
+        );
+      }
     } else if (list.pinned.length + list.living.length + list.dead.length === 0) {
       rows.push(h('div', { class: 'tp-empty' }, `No matches for “${this.state.panelFilter.trim()}”.`));
     }
@@ -2896,7 +2917,9 @@ class App implements Ctx {
                     void this.startImportPicker();
                   },
                 },
-                'Import files…',
+                // DEC-109: short label — the panel is already titled Sources;
+                // the accessible name above keeps the full phrase.
+                'Import…',
               ),
             ]
           : []),
@@ -3441,6 +3464,25 @@ class App implements Ctx {
           h('div', { class: 'micro-label' }, 'NEW DOCUMENT'),
           h('div', { class: 'nd-segs', role: 'group', label: 'Type' }, ...segs),
           input,
+          // DEC-109: the authoring entry cross-links the ingest entry — a
+          // user who reached + first still finds file import in place.
+          ...(nd.type === 'source'
+            ? [
+                h(
+                  'button',
+                  {
+                    class: 'btn-reset nd-import-link',
+                    label: 'Import files as sources instead',
+                    fkey: 'nd-import',
+                    onClick: () => {
+                      this.update({ newDoc: null });
+                      void this.startImportPicker();
+                    },
+                  },
+                  'or import files…',
+                ),
+              ]
+            : []),
           h(
             'div',
             { class: 'nd-acts' },

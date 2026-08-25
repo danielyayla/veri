@@ -54,9 +54,15 @@ stroke).
 
 ## Interaction notes
 - The drop target is the whole editor area, active during any OS file
-  drag over the window; the Sources panel's persistent "Import files…"
-  button opens the same review sheet via a file picker — one flow, two
-  entries.
+  drag over the window; the Sources panel's persistent import button
+  opens the same review sheet via a file picker — one flow, two
+  entries. Per DEC-109 the button reads "Import…" (the panel is
+  already titled Sources; the accessible name stays "Import files"),
+  and the flows cross-link rather than merge: the New Document
+  popover, when the Source type is selected, carries an
+  "or import files…" link into the picker path, and the empty Sources
+  panel offers an import ghost row beside "New Source…". The `+`
+  keeps its direct, cross-panel-consistent behavior — no menu.
 - The review sheet is the REQ-031 posture made visible: nothing files
   on drop. Each file shows its detected format and target id; titles
   are editable before filing; Cancel abandons cleanly.

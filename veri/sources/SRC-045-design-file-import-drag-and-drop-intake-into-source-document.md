@@ -51,3 +51,15 @@ only new primitives are the dashed ember drop frame and stroke-SVG
 file-type icons. Builds on the review-grouping language of [[SRC-039]]
 (brownfield import) — that flow mines a repo; this one ingests
 individual evidence files.
+
+## Amendment (2026-08-25, per DEC-109)
+
+Daniel's design-critique question — should the Sources panel's `+` and
+"Import files…" collapse into one `+` menu? — was ruled on in
+[[DEC-109]]: both entries stay, the flows cross-link instead of
+merging. The bundle's `README.md` interaction notes carry the amended
+spec: the header button label shortens to "Import…" (accessible name
+unchanged), the New Document popover's Source type gains an
+"or import files…" link into the picker path, and the empty Sources
+panel offers an import ghost row beside "New Source…". Implemented by
+[[WO-108]].

@@ -1420,6 +1420,12 @@ a:hover { color: var(--link-hover); }
   outline: none; margin-bottom: 10px;
 }
 .nd-title:focus { border-color: var(--focus-border); }
+/* DEC-109: the source popover's cross-link to the file-import flow. */
+.nd-import-link {
+  display: block; font: 12px var(--sans); color: var(--muted);
+  cursor: pointer; padding: 0 0 10px; text-align: left;
+}
+.nd-import-link:hover { color: var(--ember); }
 .nd-acts, .cc-acts { display: flex; justify-content: flex-end; gap: 8px; }
 .nd-btn-primary {
   font: 500 12px var(--sans); border: none; border-radius: 6px; padding: 7px 14px;
