@@ -2,7 +2,7 @@
 id: WO-105
 type: work-order
 title: "One section-append seam — appendToSection in core, and every whole-file updated: bump adopts bumpUpdated"
-status: ready
+status: in-progress
 approved: 2026-08-25
 created: 2026-08-25
 updated: 2026-08-25
