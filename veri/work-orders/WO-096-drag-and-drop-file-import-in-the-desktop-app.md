@@ -2,7 +2,7 @@
 id: WO-096
 type: work-order
 title: "Drag-and-drop file import in the desktop app"
-status: in-progress
+status: done
 created: 2026-08-25
 updated: 2026-08-25
 links:
@@ -64,22 +64,22 @@ adds only the surface, per the architecture constraints ([[DEC-060]]).
 
 ## Acceptance tests
 
-- [ ] Dragging supported files over the window shows the drop state;
+- [x] Dragging supported files over the window shows the drop state;
       dropping opens the review sheet listing each file with detected
       format, target id, and editable title.
-- [ ] The Sources panel "Import files…" button reaches the same sheet
+- [x] The Sources panel "Import files…" button reaches the same sheet
       via the file picker.
-- [ ] Confirming files the sources through the WO-094 core seam; the
+- [x] Confirming files the sources through the WO-094 core seam; the
       documents pass `veri check` and their frontmatter links the
       preserved originals.
-- [ ] An unsupported file shows as a refused row naming the supported
+- [x] An unsupported file shows as a refused row naming the supported
       set; it is never filed and never silently dropped.
-- [ ] Cancel closes the sheet with no documents filed and no originals
+- [x] Cancel closes the sheet with no documents filed and no originals
       copied.
-- [ ] After import: first new source opens as a preview tab, new rows
+- [x] After import: first new source opens as a preview tab, new rows
       highlight transiently, the toast appears with a working jump link.
-- [ ] Non-trivial choices made during implementation are filed as
-      proposed decisions.
+- [x] Non-trivial choices made during implementation are filed as
+      proposed decisions ([[DEC-095]]).
 
 ## Requirements
 
@@ -91,4 +91,19 @@ adds only the surface, per the architecture constraints ([[DEC-060]]).
 
 ## Receipts
 
-(none yet)
+- 2026-08-25 · commits 5ca74ad, 906d4ce · packages/ui: src/lib/intakehost.ts
+  (new, +test), src/lib/snapshot.ts (+test), src/sidecar/app.ts,
+  src/renderer/{api.ts, importlogic.ts (new, +test), app.ts,
+  views/reader.ts}, renderer/{shim.js, styles.css},
+  src-tauri/src/{dialogs.rs, main.rs} — shell forwards native DragDrop
+  events and gains pick_files; sidecar serves two-phase
+  import-inspect/import-commit; renderer adds drop overlay, review sheet
+  (refused rows, editable titles), Sources-panel Import button, transient
+  highlights, jump-link toast, and the `original` frontmatter row.
+  Verified live via the DEC-066 shot harness: drop overlay, review sheet
+  with an accepted md + refused pdf, and the filed state (preview tab,
+  `original` row, toast) against a scratch project — which also caught
+  and fixed the snapshot listing missing the originals/ exclusion. The
+  native picker dialog itself is not drivable headless; its path shares
+  openImportSheet with the verified drag path and pick_files compiles
+  under cargo. DEC-095 filed proposed. Full suite green.
