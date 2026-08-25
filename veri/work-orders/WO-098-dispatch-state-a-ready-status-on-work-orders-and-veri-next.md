@@ -2,7 +2,7 @@
 id: WO-098
 type: work-order
 title: "Dispatch state: a ready status on work orders and veri next"
-status: in-progress
+status: done
 created: 2026-08-25
 updated: 2026-08-25
 links:
@@ -50,12 +50,12 @@ A machine-readable "cleared for autonomous execution" state in the work-order li
 
 ## Acceptance tests
 
-- [ ] A work order can move backlog → ready only via the user-stamp path, and `veri check` reports a violation if ready is reached with unapproved links or without the stamp.
-- [ ] `veri next` prints the single next ready work order deterministically and exits non-zero when none is ready.
-- [ ] The lifecycle change is enforced by schema: an unknown or out-of-order status transition is a check violation.
-- [ ] Non-trivial choices (stamp verb, ordering rule, output shape) are filed as proposed decisions with rejected alternatives.
-- [ ] `veri check` passes; tests colocated per repo convention.
+- [x] A work order can move backlog → ready only via the user-stamp path, and `veri check` reports a violation if ready is reached with unapproved links or without the stamp.
+- [x] `veri next` prints the single next ready work order deterministically and exits non-zero when none is ready.
+- [x] The lifecycle change is enforced by schema: an unknown or out-of-order status transition is a check violation.
+- [x] Non-trivial choices (stamp verb, ordering rule, output shape) are filed as proposed decisions with rejected alternatives.
+- [x] `veri check` passes; tests colocated per repo convention.
 
 ## Receipts
 
-(none yet)
+- 2026-08-25 — 16345bd — packages/core/src/{schema,parse,approve,check,drift,next,index}.ts (+ tests, approve/broken fixtures), packages/cli/src/{cli,commands}.ts (+ tests), packages/mcp/src/search.ts, AGENTS.md, site/docs/reference.html — the ready status as the fourth stamped promotion (prospective link gate, missing-approval on unstamped ready, drift exemption past ready) and `veri next` over a pure core `nextDispatchable`; choices filed as [[DEC-096]] and [[DEC-097]]. Unknown statuses fail as invalid frontmatter; "only via the stamp" is the transition enforcement — there is no other write path into ready. All 325 workspace tests pass; `veri check` green (272 docs, 0 issues). Follow-up noted for the app: surface the ready state in the desktop UI (excluded here by scope).
