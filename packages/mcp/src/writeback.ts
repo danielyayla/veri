@@ -1,7 +1,8 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { loadProject, localToday, nextIdNumber, recordIssuedId } from '@verikb/core';
+import { createDocument, loadProject, localToday } from '@verikb/core';
+import type { DocType, Link } from '@verikb/core';
 
 export interface FileDecisionInput {
   title: string;
@@ -46,20 +47,30 @@ export interface FileReceiptInput {
 // committer dates the drift detectors compare against (WO-074).
 const today = localToday;
 
-function slugify(title: string): string {
-  const slug = title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 60)
-    .replace(/-+$/, '');
-  return slug === '' ? 'untitled' : slug;
-}
-
 function requireVeriDir(projectRoot: string): string {
   const dir = join(projectRoot, 'veri');
   if (!existsSync(dir)) throw new Error(`no veri/ directory under ${projectRoot}`);
   return dir;
+}
+
+/**
+ * The filers compose markdown sections from their structured wire params;
+ * everything else — id allocation, frontmatter canon, link validation, the
+ * write — is core's createDocument (DEC-098). File mechanics have one home.
+ */
+async function fileDocument(
+  projectRoot: string,
+  type: DocType,
+  title: string,
+  sections: string[],
+  links: Link[] | undefined,
+): Promise<{ id: string; file: string }> {
+  const veriDir = requireVeriDir(projectRoot);
+  const { id, file } = await createDocument(veriDir, type, title, {
+    body: `\n${sections.join('\n\n')}\n`,
+    links,
+  });
+  return { id, file: `veri/${file}` };
 }
 
 /** Create a new decision document with the next free DEC id. Returns its id and file. */
@@ -67,38 +78,6 @@ export async function fileDecision(
   projectRoot: string,
   input: FileDecisionInput,
 ): Promise<{ id: string; file: string }> {
-  const veriDir = requireVeriDir(projectRoot);
-  const { documents } = await loadProject(veriDir);
-
-  const known = new Set(documents.map((doc) => doc.id));
-  for (const link of input.links ?? []) {
-    if (!known.has(link.id)) {
-      throw new Error(`link target ${link.id} does not exist — the decision would fail veri check`);
-    }
-  }
-
-  const next = nextIdNumber(
-    veriDir,
-    'DEC',
-    documents.map((doc) => doc.id),
-  );
-  const id = `DEC-${String(next).padStart(3, '0')}`;
-
-  const date = today();
-  const frontmatter = [
-    '---',
-    `id: ${id}`,
-    'type: decision',
-    `title: ${JSON.stringify(input.title)}`,
-    'status: proposed', // agent-filed decisions are never born binding — REQ-008
-    `created: ${date}`,
-    `updated: ${date}`,
-    ...(input.links && input.links.length > 0
-      ? ['links:', ...input.links.flatMap((link) => [`  - id: ${link.id}`, `    rel: ${link.rel}`])]
-      : []),
-    '---',
-  ].join('\n');
-
   const sections = [`## Choice\n\n${input.choice.trim()}`];
   if (input.rejected_alternatives !== undefined && input.rejected_alternatives.trim() !== '') {
     sections.push(`## Rejected alternatives\n\n${input.rejected_alternatives.trim()}`);
@@ -106,12 +85,8 @@ export async function fileDecision(
   if (input.rationale !== undefined && input.rationale.trim() !== '') {
     sections.push(`## Rationale\n\n${input.rationale.trim()}`);
   }
-
-  const file = join('decisions', `${id}-${slugify(input.title)}.md`);
-  mkdirSync(join(veriDir, 'decisions'), { recursive: true });
-  writeFileSync(join(veriDir, file), `${frontmatter}\n\n${sections.join('\n\n')}\n`, { flag: 'wx' });
-  recordIssuedId(veriDir, 'DEC', next);
-  return { id, file: `veri/${file}` };
+  // Born proposed (core's INITIAL_STATUS) — agent-filed decisions are never binding (REQ-008).
+  return fileDocument(projectRoot, 'decision', input.title, sections, input.links);
 }
 
 /**
@@ -123,38 +98,6 @@ export async function fileWorkOrder(
   projectRoot: string,
   input: FileWorkOrderInput,
 ): Promise<{ id: string; file: string }> {
-  const veriDir = requireVeriDir(projectRoot);
-  const { documents } = await loadProject(veriDir);
-
-  const known = new Set(documents.map((doc) => doc.id));
-  for (const link of input.links ?? []) {
-    if (!known.has(link.id)) {
-      throw new Error(`link target ${link.id} does not exist — the work order would fail veri check`);
-    }
-  }
-
-  const next = nextIdNumber(
-    veriDir,
-    'WO',
-    documents.map((doc) => doc.id),
-  );
-  const id = `WO-${String(next).padStart(3, '0')}`;
-
-  const date = today();
-  const frontmatter = [
-    '---',
-    `id: ${id}`,
-    'type: work-order',
-    `title: ${JSON.stringify(input.title)}`,
-    'status: backlog', // proposals never start started — the gate is on leaving backlog (DEC-022)
-    `created: ${date}`,
-    `updated: ${date}`,
-    ...(input.links && input.links.length > 0
-      ? ['links:', ...input.links.flatMap((link) => [`  - id: ${link.id}`, `    rel: ${link.rel}`])]
-      : []),
-    '---',
-  ].join('\n');
-
   const sections = [`## Summary\n\n${input.summary.trim()}`];
   if (input.in_scope !== undefined && input.in_scope.trim() !== '') {
     sections.push(`## In scope\n\n${input.in_scope.trim()}`);
@@ -169,12 +112,7 @@ export async function fileWorkOrder(
     sections.push(`## Acceptance tests\n\n${input.acceptance_tests.trim()}`);
   }
   sections.push('## Receipts\n\n(none yet)');
-
-  const file = join('work-orders', `${id}-${slugify(input.title)}.md`);
-  mkdirSync(join(veriDir, 'work-orders'), { recursive: true });
-  writeFileSync(join(veriDir, file), `${frontmatter}\n\n${sections.join('\n\n')}\n`, { flag: 'wx' });
-  recordIssuedId(veriDir, 'WO', next);
-  return { id, file: `veri/${file}` };
+  return fileDocument(projectRoot, 'work-order', input.title, sections, input.links);
 }
 
 /**
@@ -186,48 +124,11 @@ export async function fileRequirement(
   projectRoot: string,
   input: FileRequirementInput,
 ): Promise<{ id: string; file: string }> {
-  const veriDir = requireVeriDir(projectRoot);
-  const { documents } = await loadProject(veriDir);
-
-  const known = new Set(documents.map((doc) => doc.id));
-  for (const link of input.links ?? []) {
-    if (!known.has(link.id)) {
-      throw new Error(`link target ${link.id} does not exist — the requirement would fail veri check`);
-    }
-  }
-
-  const next = nextIdNumber(
-    veriDir,
-    'REQ',
-    documents.map((doc) => doc.id),
-  );
-  const id = `REQ-${String(next).padStart(3, '0')}`;
-
-  const date = today();
-  const frontmatter = [
-    '---',
-    `id: ${id}`,
-    'type: requirement',
-    `title: ${JSON.stringify(input.title)}`,
-    'status: draft', // agent-filed requirements are never born binding — REQ-008
-    `created: ${date}`,
-    `updated: ${date}`,
-    ...(input.links && input.links.length > 0
-      ? ['links:', ...input.links.flatMap((link) => [`  - id: ${link.id}`, `    rel: ${link.rel}`])]
-      : []),
-    '---',
-  ].join('\n');
-
   const sections = [input.body.trim()];
   if (input.acceptance_criteria !== undefined && input.acceptance_criteria.trim() !== '') {
     sections.push(`## Acceptance criteria\n\n${input.acceptance_criteria.trim()}`);
   }
-
-  const file = join('requirements', `${id}-${slugify(input.title)}.md`);
-  mkdirSync(join(veriDir, 'requirements'), { recursive: true });
-  writeFileSync(join(veriDir, file), `${frontmatter}\n\n${sections.join('\n\n')}\n`, { flag: 'wx' });
-  recordIssuedId(veriDir, 'REQ', next);
-  return { id, file: `veri/${file}` };
+  return fileDocument(projectRoot, 'requirement', input.title, sections, input.links);
 }
 
 /**
@@ -239,43 +140,7 @@ export async function fileSource(
   projectRoot: string,
   input: FileSourceInput,
 ): Promise<{ id: string; file: string }> {
-  const veriDir = requireVeriDir(projectRoot);
-  const { documents } = await loadProject(veriDir);
-
-  const known = new Set(documents.map((doc) => doc.id));
-  for (const link of input.links ?? []) {
-    if (!known.has(link.id)) {
-      throw new Error(`link target ${link.id} does not exist — the source would fail veri check`);
-    }
-  }
-
-  const next = nextIdNumber(
-    veriDir,
-    'SRC',
-    documents.map((doc) => doc.id),
-  );
-  const id = `SRC-${String(next).padStart(3, '0')}`;
-
-  const date = today();
-  const frontmatter = [
-    '---',
-    `id: ${id}`,
-    'type: source',
-    `title: ${JSON.stringify(input.title)}`,
-    'status: imported',
-    `created: ${date}`,
-    `updated: ${date}`,
-    ...(input.links && input.links.length > 0
-      ? ['links:', ...input.links.flatMap((link) => [`  - id: ${link.id}`, `    rel: ${link.rel}`])]
-      : []),
-    '---',
-  ].join('\n');
-
-  const file = join('sources', `${id}-${slugify(input.title)}.md`);
-  mkdirSync(join(veriDir, 'sources'), { recursive: true });
-  writeFileSync(join(veriDir, file), `${frontmatter}\n\n${input.body.trim()}\n`, { flag: 'wx' });
-  recordIssuedId(veriDir, 'SRC', next);
-  return { id, file: `veri/${file}` };
+  return fileDocument(projectRoot, 'source', input.title, [input.body.trim()], input.links);
 }
 
 /**

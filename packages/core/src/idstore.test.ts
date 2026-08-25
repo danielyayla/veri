@@ -19,12 +19,12 @@ function sandbox(t: { after(fn: () => void): void }): string {
 
 test('a deleted id is never reissued — the record outlives the file', async (t) => {
   const dir = sandbox(t);
-  await createDocument(dir, 'requirement', 'First', '2026-08-18');
-  const second = await createDocument(dir, 'requirement', 'Second', '2026-08-18');
+  await createDocument(dir, 'requirement', 'First', { date: '2026-08-18' });
+  const second = await createDocument(dir, 'requirement', 'Second', { date: '2026-08-18' });
   assert.equal(second.id, 'REQ-002');
 
   unlinkSync(join(dir, second.file));
-  const third = await createDocument(dir, 'requirement', 'Third', '2026-08-18');
+  const third = await createDocument(dir, 'requirement', 'Third', { date: '2026-08-18' });
   assert.equal(third.id, 'REQ-003');
 });
 
@@ -35,7 +35,7 @@ test('with no ids file, allocation matches the old scan and writes the record', 
     ['---', 'id: REQ-007', 'type: requirement', 'title: Existing', 'status: draft', 'created: 2026-08-18', 'updated: 2026-08-18', '---', ''].join('\n'),
   );
   assert.equal(existsSync(join(dir, 'ids')), false);
-  const result = await createDocument(dir, 'requirement', 'Backfill', '2026-08-18');
+  const result = await createDocument(dir, 'requirement', 'Backfill', { date: '2026-08-18' });
   assert.equal(result.id, 'REQ-008');
   assert.equal(readIdRecord(dir).REQ, 8);
 });
@@ -46,9 +46,9 @@ test('a corrupt record never blocks creation and is repaired on the next write',
   const record = readIdRecord(dir);
   assert.deepEqual(record, { DEC: 4 });
 
-  const req = await createDocument(dir, 'requirement', 'Fresh', '2026-08-18');
+  const req = await createDocument(dir, 'requirement', 'Fresh', { date: '2026-08-18' });
   assert.equal(req.id, 'REQ-001');
-  const dec = await createDocument(dir, 'decision', 'Choice', '2026-08-18');
+  const dec = await createDocument(dir, 'decision', 'Choice', { date: '2026-08-18' });
   assert.equal(dec.id, 'DEC-005');
   assert.equal(readFileSync(join(dir, 'ids'), 'utf8'), 'REQ 1\nDEC 5\n');
 });

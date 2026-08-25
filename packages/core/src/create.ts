@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { DocType } from './ids.ts';
@@ -6,6 +6,7 @@ import { nextIdNumber, recordIssuedId, type IdPrefix } from './idstore.ts';
 import { loadProject } from './load.ts';
 import { getTemplate } from './templates.ts';
 import { localToday } from './dates.ts';
+import type { Link } from './types.ts';
 
 /**
  * Document creation (REQ-009 §2): type + title in, a check-passing file out.
@@ -57,22 +58,43 @@ export interface CreateResult {
   text: string;
 }
 
+export interface CreateOptions {
+  /** Stamp for `created:` and `updated:`. Defaults to today. */
+  date?: string;
+  /** Body markdown replacing the type's template body (DEC-098: filing
+      surfaces compose sections from structured params and pass them here). */
+  body?: string;
+  /** Outbound frontmatter links. Every target must exist in the project —
+      an unknown id throws before anything is written or any id consumed. */
+  links?: Link[];
+}
+
 /**
  * Create a new document: next free id for the type, initial status, today's
- * dates, the type's body template, kebab-case filename. Never overwrites —
- * the id is free by construction and the write is `wx`.
+ * dates, the type's body template (or the given body), kebab-case filename.
+ * The one creation implementation for every surface — `veri new`, the app,
+ * and the MCP filing tools (DEC-098). Never overwrites — the id is free by
+ * construction and the write is `wx`.
  */
 export async function createDocument(
   veriDir: string | URL,
   type: DocType,
   title: string,
-  date: string = localToday(),
+  options: CreateOptions = {},
 ): Promise<CreateResult> {
   const trimmed = title.trim();
   if (trimmed === '') throw new Error('a title is required');
   const root = typeof veriDir === 'string' ? veriDir : fileURLToPath(veriDir);
+  const date = options.date ?? localToday();
+  const links = options.links ?? [];
 
   const { documents } = await loadProject(root);
+  const known = new Set(documents.map((doc) => doc.id));
+  for (const link of links) {
+    if (!known.has(link.id)) {
+      throw new Error(`link target ${link.id} does not exist — the document would fail veri check`);
+    }
+  }
   const prefix = TYPE_PREFIX[type] as IdPrefix;
   const next = nextIdNumber(
     root,
@@ -89,6 +111,7 @@ export async function createDocument(
     `status: ${INITIAL_STATUS[type]}`,
     `created: ${date}`,
     `updated: ${date}`,
+    ...(links.length > 0 ? ['links:', ...links.flatMap((link) => [`  - id: ${link.id}`, `    rel: ${link.rel}`])] : []),
     // WO-088: new work orders surface the binding block ready to uncomment —
     // the field is optional, so the commented form changes nothing.
     ...(type === 'work-order'
@@ -99,7 +122,9 @@ export async function createDocument(
   // Forward slashes always: `file` is the veri/-relative contract path
   // (loadProject, receipts, links all speak this form), not an OS path.
   const file = `${TYPE_SUBDIR[type]}/${id}-${slugifyTitle(trimmed)}.md`;
-  const text = `${frontmatter}\n${getTemplate(root, type).body}`;
+  const body = options.body ?? getTemplate(root, type).body;
+  const text = `${frontmatter}\n${body}`;
+  if (TYPE_SUBDIR[type] !== '') mkdirSync(join(root, TYPE_SUBDIR[type]), { recursive: true });
   writeFileSync(join(root, file), text, { flag: 'wx' });
   recordIssuedId(root, prefix, next);
   return { id, file, text };

@@ -4,7 +4,7 @@ import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { checkProject, loadProject } from '@verikb/core';
+import { checkProject, createDocument, loadProject } from '@verikb/core';
 import { fileDecision, fileReceipt, fileRequirement, fileSource, fileWorkOrder } from './writeback.ts';
 import { searchDocs } from './search.ts';
 
@@ -82,6 +82,19 @@ test('file_work_order is born backlog and unapproved with the next free WO id', 
   assert.match(content, /- \[\[REQ-001\]\] — implements/);
   assert.match(content, /- \[ \] Widgets are polished/);
   assert.match(content, /## Receipts\n\n\(none yet\)/);
+});
+
+test('an MCP-filed work order carries the commented binds: block, same as veri new (WO-102)', async (t) => {
+  const root = sandbox(t);
+  const filed = await fileWorkOrder(root, { title: 'Bound work', summary: 'X.' });
+  const filedContent = readFileSync(join(root, filed.file), 'utf8');
+  // The WO-088 divergence: the filer's hand-assembled frontmatter dropped the
+  // binding affordance createDocument emits. Both paths are one path now.
+  const created = await createDocument(join(root, 'veri'), 'work-order', 'Bound work too');
+  const bindsBlock = created.text.match(/^# binds:[\s\S]*?(?=\n---)/m)?.[0];
+  assert.ok(bindsBlock, 'createDocument emits the commented binds block');
+  assert.ok(filedContent.includes(bindsBlock), 'the MCP-filed work order carries the identical block');
+  await assertClean(root);
 });
 
 test('file_work_order consumes its id permanently and rejects bad links', async (t) => {

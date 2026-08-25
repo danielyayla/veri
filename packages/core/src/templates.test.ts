@@ -75,12 +75,12 @@ test('createDocument scaffolds from the project template, falling back when dele
   const custom = '\n## Context\n\n(Why.)\n\n## Decision\n\n(What.)\n';
   writeFileSync(join(dir, templateFile('decision')), custom);
 
-  const withCustom = await createDocument(dir, 'decision', 'Custom shaped', '2026-08-13');
+  const withCustom = await createDocument(dir, 'decision', 'Custom shaped', { date: '2026-08-13' });
   assert.ok(withCustom.text.endsWith(custom), 'body should be the project template');
   assert.match(withCustom.text, /^id: DEC-001$/m, 'frontmatter is unaffected by the template');
 
   rmSync(join(dir, templateFile('decision')));
-  const withDefault = await createDocument(dir, 'decision', 'Default shaped', '2026-08-13');
+  const withDefault = await createDocument(dir, 'decision', 'Default shaped', { date: '2026-08-13' });
   assert.ok(withDefault.text.endsWith(BODY_TEMPLATES.decision));
 });
 
