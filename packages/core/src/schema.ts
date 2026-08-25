@@ -111,6 +111,9 @@ export type BindsBlock = z.infer<typeof bindsSchema>;
 // WO-098: `ready` sits between backlog and in-progress — the user's dispatch
 // clearance, entered only via the approve stamp, so `approved`/`approved_by`
 // ride work orders exactly as they ride the other promotable types.
+// WO-099: `claimed_by`/`claimed_at` record which session holds a started
+// work order — free-text identity plus the local calendar date (DEC-076),
+// written by the start transition and kept at done as provenance.
 const workOrderSchema = z
   .object({
     ...baseFields,
@@ -118,6 +121,8 @@ const workOrderSchema = z
     status: z.enum(['backlog', 'ready', 'in-progress', 'done']),
     approved: dateField.optional(),
     approved_by: approvedByField,
+    claimed_by: z.string().min(1).optional(),
+    claimed_at: dateField.optional(),
     binds: bindsSchema.optional(),
   })
   .passthrough();
@@ -175,6 +180,15 @@ export const frontmatterSchema = z
         code: z.ZodIssueCode.custom,
         path: ['superseded_by'],
         message: 'a superseded decision must name its successor in superseded_by',
+      });
+    }
+    // WO-099: a claim is one fact with two fields — half a claim identifies
+    // nobody (or no moment) and would silently satisfy the unclaimed check.
+    if (fm.type === 'work-order' && (fm.claimed_by === undefined) !== (fm.claimed_at === undefined)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [fm.claimed_by === undefined ? 'claimed_by' : 'claimed_at'],
+        message: 'claimed_by and claimed_at travel together — a claim names who and when',
       });
     }
   });

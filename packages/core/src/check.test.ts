@@ -5,7 +5,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadProject } from './load.ts';
-import { checkProject, checkStructure, expectedSections, missingSections } from './check.ts';
+import { checkProject, checkSharedClaims, checkStaleClaims, checkStructure, expectedSections, missingSections } from './check.ts';
+import type { VeriDocument } from './types.ts';
 
 interface BrokenCase {
   dir: string;
@@ -95,6 +96,18 @@ const CASES: BrokenCase[] = [
     expected: [{ kind: 'gated-wo', id: 'WO-001', targetId: 'REQ-001', targetStatus: 'draft' }],
   },
   {
+    // WO-099: in-progress asserts a session holds the work — no claim, no
+    // account of which one.
+    dir: 'unclaimed-wo',
+    expected: [{ kind: 'unclaimed-wo', id: 'WO-001', file: 'work-orders/WO-001-unclaimed.md' }],
+  },
+  {
+    // WO-099: claimed_by and claimed_at travel together — half a claim is
+    // malformed frontmatter, not a satisfied check.
+    dir: 'half-claim',
+    expected: [{ kind: 'invalid-frontmatter', file: 'work-orders/WO-001-half-claimed.md', field: 'claimed_at' }],
+  },
+  {
     dir: 'ui-wo-without-design',
     expected: [{ kind: 'ui-wo-without-design', id: 'WO-001', file: 'work-orders/WO-001-ui-no-design.md' }],
   },
@@ -148,7 +161,9 @@ test('a resolvable designed-by link satisfies the design gate; backlog is exempt
     '---\nid: SRC-001\ntype: source\ntitle: Design handoff\nstatus: imported\ncreated: 2026-08-01\nupdated: 2026-08-01\n---\nThe design.\n',
   );
   const wo = (status: string, links: string): string =>
-    `---\nid: WO-001\ntype: work-order\ntitle: T\nstatus: ${status}\ncreated: 2026-08-01\nupdated: 2026-08-01\nlinks:\n${links}---\n## Summary\n\nTouches packages/ui.\n`;
+    `---\nid: WO-001\ntype: work-order\ntitle: T\nstatus: ${status}\n${
+      status === 'in-progress' ? 'claimed_by: session-a\nclaimed_at: 2026-08-01\n' : ''
+    }created: 2026-08-01\nupdated: 2026-08-01\nlinks:\n${links}---\n## Summary\n\nTouches packages/ui.\n`;
 
   // In-progress with a resolvable designed-by link: clean.
   const woPath = join(dir, 'work-orders', 'WO-001-ui.md');
@@ -279,4 +294,88 @@ test('a custom-template project is checked against its own headings', async (t) 
   const load = await loadProject(dir);
   // Matches its own structure — the built-in "Acceptance criteria" stops applying.
   assert.deepEqual(checkStructure(dir, load.documents), []);
+});
+
+// --- Claim semantics (WO-099) ---
+
+/** Minimal in-memory work order for the pure claim checks. */
+function claimedWo(
+  id: string,
+  status: string,
+  claim: { by?: string; at?: string },
+  body = '## Summary\n\nWork.\n',
+): VeriDocument {
+  return {
+    id,
+    type: 'work-order',
+    title: `T ${id}`,
+    status,
+    created: '2026-08-01',
+    updated: '2026-08-01',
+    links: [],
+    ...(claim.by !== undefined ? { claimedBy: claim.by } : {}),
+    ...(claim.at !== undefined ? { claimedAt: claim.at } : {}),
+    frontmatter: {},
+    body,
+    file: `work-orders/${id}-t.md`,
+    inlineRefs: [],
+  };
+}
+
+test('shared claims: one identity holding two in-progress work orders advises; distinct identities are clean', () => {
+  const clean = [claimedWo('WO-001', 'in-progress', { by: 'a', at: '2026-08-01' }), claimedWo('WO-002', 'in-progress', { by: 'b', at: '2026-08-01' })];
+  assert.deepEqual(checkSharedClaims(clean), []);
+
+  const shared = [
+    claimedWo('WO-002', 'in-progress', { by: 'a', at: '2026-08-01' }),
+    claimedWo('WO-001', 'in-progress', { by: 'a', at: '2026-08-01' }),
+    // Done under the same identity is history, not a live claim.
+    claimedWo('WO-003', 'done', { by: 'a', at: '2026-08-01' }),
+  ];
+  const advisories = checkSharedClaims(shared);
+  assert.equal(advisories.length, 1);
+  assert.partialDeepStrictEqual(advisories[0], {
+    kind: 'shared-claim',
+    id: 'WO-002',
+    otherId: 'WO-001',
+    claimedBy: 'a',
+    file: 'work-orders/WO-002-t.md',
+  });
+
+  // A declared chain is exempt: a session that split out a prerequisite and
+  // linked it holds both deliberately.
+  const chainHead = claimedWo('WO-001', 'in-progress', { by: 'a', at: '2026-08-01' });
+  const prerequisite = claimedWo('WO-002', 'in-progress', { by: 'a', at: '2026-08-01' }, '## Summary\n\nThe seam [[WO-001]] needs first.\n');
+  prerequisite.inlineRefs.push('WO-001');
+  assert.deepEqual(checkSharedClaims([chainHead, prerequisite]), []);
+});
+
+test('stale claims: silence past the window advises; a receipt inside it resets the clock', () => {
+  const wo = claimedWo('WO-001', 'in-progress', { by: 'a', at: '2026-08-01' });
+
+  // 13 days of silence with a 14-day window: too young to flag.
+  assert.deepEqual(checkStaleClaims([wo], '2026-08-14', 14), []);
+  // Day 14: stale.
+  const stale = checkStaleClaims([wo], '2026-08-15', 14);
+  assert.equal(stale.length, 1);
+  assert.partialDeepStrictEqual(stale[0], { kind: 'stale-claim', id: 'WO-001', file: 'work-orders/WO-001-t.md' });
+  assert.match(stale[0]!.message, /was claimed 2026-08-01/);
+
+  // A receipt is activity: the newest receipt date anchors staleness.
+  const withReceipt = claimedWo(
+    'WO-001',
+    'in-progress',
+    { by: 'a', at: '2026-08-01' },
+    '## Summary\n\nWork.\n\n## Receipts\n\n- 2026-08-10 — abc1234 — files — first session\n',
+  );
+  assert.deepEqual(checkStaleClaims([withReceipt], '2026-08-15', 14), []);
+  const staleAgain = checkStaleClaims([withReceipt], '2026-08-24', 14);
+  assert.equal(staleAgain.length, 1);
+  assert.match(staleAgain[0]!.message, /last filed a receipt 2026-08-10/);
+
+  // Only claimed in-progress work orders are eligible: ready, done, and
+  // unclaimed (already a violation) never advise.
+  assert.deepEqual(checkStaleClaims([claimedWo('WO-002', 'ready', {})], '2027-01-01', 14), []);
+  assert.deepEqual(checkStaleClaims([claimedWo('WO-003', 'done', { by: 'a', at: '2026-01-01' })], '2027-01-01', 14), []);
+  assert.deepEqual(checkStaleClaims([claimedWo('WO-004', 'in-progress', {})], '2027-01-01', 14), []);
 });

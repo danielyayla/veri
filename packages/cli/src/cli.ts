@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { approve, architecture, check, context, implemented, importFile, importPrompt, init, intent, list, migrate, newDoc, next, open, renumber } from './commands.ts';
+import { approve, architecture, check, context, implemented, importFile, importPrompt, init, intent, list, migrate, newDoc, next, open, renumber, start } from './commands.ts';
 import type { CmdResult } from './commands.ts';
 
 /** The value following `--flag`, or undefined when the flag is absent. */
@@ -21,6 +21,9 @@ const USAGE = `usage: veri <command>
                              for dispatch
   veri next                  print the next ready work order (id, title, path,
                              tab-separated); exit 1 when nothing is ready
+  veri start <WO-id> [--as <session>]
+                             flip a ready work order to in-progress, recording
+                             the claim (--as defaults from git user.name)
   veri renumber <id> [--to <new-id>] [--file <path>] [--refs <path,path>]
                              move a document to a new id, rewriting inbound links
   veri migrate               bring veri/ to the current on-disk format
@@ -60,6 +63,9 @@ switch (command) {
     break;
   case 'next':
     result = await next(cwd);
+    break;
+  case 'start':
+    result = await start(cwd, rest[0], flagValue(rest, '--as'));
     break;
   case 'renumber':
     result = await renumber(cwd, rest[0], {

@@ -53,6 +53,8 @@ export function parseDocument(file: string, content: string): ParseOutcome {
     ...(fm.type === 'work-order' && fm.binds !== undefined
       ? { binds: { paths: fm.binds.paths, tests: fm.binds.tests } }
       : {}),
+    ...(fm.type === 'work-order' && fm.claimed_by !== undefined ? { claimedBy: fm.claimed_by } : {}),
+    ...(fm.type === 'work-order' && fm.claimed_at !== undefined ? { claimedAt: fm.claimed_at } : {}),
     ...((fm.type === 'requirement' || fm.type === 'decision' || fm.type === 'workflow' || fm.type === 'work-order') &&
     fm.approved !== undefined
       ? { approved: fm.approved }

@@ -154,7 +154,10 @@ function inEra(commitIndex: number, commitDate: string, anchor: EraAnchor): bool
   return anchor.index !== undefined ? commitIndex < anchor.index : commitDate >= anchor.date;
 }
 
-function daysBetween(from: string, to: string): number {
+/** Whole days from one YYYY-MM-DD to another — shared by the binding and
+    claim staleness detectors (WO-088, WO-099) so "days of silence" means
+    one thing everywhere. */
+export function daysBetween(from: string, to: string): number {
   return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
 }
 

@@ -58,7 +58,7 @@
   <tr><th>Type</th><th>Id prefix</th><th>Statuses</th><th>Notes</th></tr>
   <tr><td><span class="type-req">requirement</span></td><td><code>REQ-</code></td><td><code>draft</code> → <code>accepted</code> → <code>retired</code></td><td><code>accepted</code> requires an <code>approved:</code> date — the user's stamp.</td></tr>
   <tr><td><span class="type-dec">decision</span></td><td><code>DEC-</code></td><td><code>proposed</code> → <code>active</code> → <code>superseded</code></td><td><code>active</code> requires <code>approved:</code>; <code>superseded</code> must name its successor in <code>superseded_by:</code>.</td></tr>
-  <tr><td><span class="type-wo">work-order</span></td><td><code>WO-</code></td><td><code>backlog</code> → <code>ready</code> → <code>in-progress</code> → <code>done</code></td><td><code>ready</code> — cleared for dispatch — is entered only via <code>veri approve</code> and requires <code>approved:</code>; <code>done</code> requires every acceptance box checked and at least one receipt.</td></tr>
+  <tr><td><span class="type-wo">work-order</span></td><td><code>WO-</code></td><td><code>backlog</code> → <code>ready</code> → <code>in-progress</code> → <code>done</code></td><td><code>ready</code> — cleared for dispatch — is entered only via <code>veri approve</code> and requires <code>approved:</code>; <code>in-progress</code> is entered via <code>veri start</code>, which records the claim (<code>claimed_by</code>/<code>claimed_at</code> — who holds the work); <code>done</code> requires every acceptance box checked and at least one receipt.</td></tr>
   <tr><td><span class="type-src">source</span></td><td><code>SRC-</code></td><td><code>imported</code></td><td>External evidence; one status, no lifecycle.</td></tr>
   <tr><td><span class="type-wf">workflow</span></td><td><code>WF-</code></td><td><code>draft</code> → <code>accepted</code> → <code>retired</code></td><td>One per project; scaffolded projects ship theirs pre-accepted.</td></tr>
 </table>
@@ -124,6 +124,7 @@ binds:
   <tr><td><code>duplicate-id</code></td><td>Two files claim the same id — the merge-collision case; the error names every claimant and the <code>veri renumber</code> resolution (see <a href="team.html">teams</a>).</td></tr>
   <tr><td><code>broken-link</code></td><td>A frontmatter link, <code>superseded_by</code>, or inline <code>[[ref]]</code> targets an id no document has.</td></tr>
   <tr><td><code>wo-without-requirement</code></td><td>A work order links no requirement — unjustified work.</td></tr>
+  <tr><td><code>unclaimed-wo</code></td><td>A work order is <code>in-progress</code> without <code>claimed_by</code>/<code>claimed_at</code> — no record of which session holds it. <code>veri start</code> writes the claim.</td></tr>
   <tr><td><code>gated-wo</code></td><td>A work order moved forward while depending on a document still awaiting approval — approve the dependency first.</td></tr>
   <tr><td><code>missing-approval</code></td><td>A document sits in a promoted status (<code>accepted</code>, <code>active</code>) without the user's <code>approved:</code> stamp.</td></tr>
   <tr><td><code>unknown-approver</code></td><td>(Maintainers projects) <code>approved_by</code> names someone not on the workflow's <code>maintainers:</code> list. A promoted document <i>missing</i> <code>approved_by</code> only warns — pre-team stamps are grandfathered as an advisory.</td></tr>
@@ -134,6 +135,16 @@ binds:
 </table>
 </div>
 <p>Softer signals ship as <i>advisories</i> — shown greyed in the app, never failing the check.</p>
+
+<h2 id="claims">Claims</h2>
+<p>The claim (<code>claimed_by</code>/<code>claimed_at</code>, written by <code>veri start</code>) is a declaration in the knowledge base, not a lock — and two advisories watch it, needing no git:</p>
+<div class="table-scroll">
+<table>
+  <tr><th>Advisory</th><th>Fires when</th></tr>
+  <tr><td><code>shared-claim</code></td><td>One claim identity holds two in-progress work orders that do not reference each other — one session, one work order is the convention for parallel agent runs. A declared chain (either work order linking or citing the other) is exempt: splitting out a prerequisite and starting it is deliberate.</td></tr>
+  <tr><td><code>stale-claim</code></td><td>A claimed in-progress work order's newest sign of life — the claim date or its latest receipt — is older than the staleness window (the same <code>stale_after_days</code> knob binding drift uses; default 14 days). A crashed or abandoned session leaves exactly this trace.</td></tr>
+</table>
+</div>
 
 <h2 id="binding-drift">Binding drift</h2>
 <p>When an in-progress work order declares <code>binds</code>, <code>veri check</code> also watches the code side of the contract. Three advisories — deterministic, derived from git history on demand, and never failing the check:</p>
@@ -162,6 +173,10 @@ veri approve &lt;id&gt; [--as &lt;maintainer&gt;]
                            work order promotes to ready — cleared for dispatch
 veri next                  print the next ready work order (id, title, path,
                            tab-separated); exit 1 when nothing is ready
+veri start &lt;WO-id&gt; [--as &lt;session&gt;]
+                           flip a ready work order to in-progress, recording
+                           the claim (--as defaults from git user.name); an
+                           already-claimed work order is refused
 veri renumber &lt;id&gt; [--to &lt;new-id&gt;] [--file &lt;path&gt;] [--refs &lt;path,path&gt;]
                            move a document to a new id, rewriting the filename
                            and inbound links in one atomic pass (collision
@@ -186,6 +201,7 @@ veri open [dir]            open the project in the Veri desktop app</code></pre>
   <tr><td><code>file_requirement(title, body, …)</code></td><td>Draft a requirement with the next free REQ id, <code>status: draft</code> (awaiting your acceptance).</td></tr>
   <tr><td><code>file_source(title, body, …)</code></td><td>File a source document: imported evidence with the paths, commit refs, and excerpts it rests on.</td></tr>
   <tr><td><code>file_receipt(work_order_id, commit, files, summary)</code></td><td>Append a work-session receipt to a work order — or to an import manifest as an import's completion signal. Receipts accumulate, never overwrite.</td></tr>
+  <tr><td><code>start_work_order(id, claimed_by)</code></td><td>Begin implementation: flip a ready work order to in-progress and record the claim. Refuses anything not <code>ready</code>, and names the holder when the work order is already claimed.</td></tr>
   <tr><td><code>run_check()</code></td><td>The health check as structured JSON — the same derivation <code>veri check</code> runs: <code>violations</code> (the gate; any entry fails the CLI), <code>advisories</code> (inform, never block), and <code>skipped</code> checks named with reasons. The git-backed tier (provenance, drift) is skipped over MCP — the server spawns no subprocesses — so agents run it for the document gates and bound tests, and a terminal <code>veri check</code> covers the rest.</td></tr>
   <tr><td><code>get_import_instructions()</code></td><td>The brownfield import instruction package: what to mine from an existing repo, the filing rules, and a census of what the knowledge base already holds.</td></tr>
 </table>

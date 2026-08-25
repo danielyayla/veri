@@ -23,6 +23,11 @@ export interface VeriDocument {
       and test identifiers (`path` or `path::name`). Only on work orders
       that declare a `binds:` block. */
   binds?: { paths: string[]; tests: string[] };
+  /** Who holds this work order (WO-099): free-text session/agent identity,
+      written by the start transition. Only on claimed work orders. */
+  claimedBy?: string;
+  /** Local calendar date the claim was taken (DEC-076). */
+  claimedAt?: string;
   /** Full validated frontmatter; unknown extra keys are preserved here. */
   frontmatter: Record<string, unknown>;
   body: string;
@@ -65,6 +70,11 @@ export type Advisory =
   // two anchor to the work order that carries the binding.
   | { kind: 'drift-unclaimed-change'; file: string; id: string; sha: string; message: string }
   | { kind: 'drift-stale-wo'; file: string; id: string; message: string }
+  // Claim semantics (WO-099, REQ-026): declarations in the knowledge base,
+  // checked mechanically — never OS-level locks. Advisories, because a
+  // maintainer's slow-but-live work must inform, not fail, a shared gate.
+  | { kind: 'shared-claim'; file: string; id: string; otherId: string; claimedBy: string; message: string }
+  | { kind: 'stale-claim'; file: string; id: string; message: string }
   | { kind: 'drift-missing-test'; file: string; id: string; test: string; message: string }
   // Observed architecture (WO-067, REQ-022): the code contains an edge an
   // active decision forbids. Advisory — intended-vs-observed deviation is
@@ -104,6 +114,9 @@ export type Issue =
       message: string;
     }
   | { kind: 'wo-without-requirement'; file: string; id: string; message: string }
+  // Claim semantics (WO-099): in-progress asserts a session holds the work,
+  // and the claim is how it says which one — absence is unaccounted work.
+  | { kind: 'unclaimed-wo'; file: string; id: string; message: string }
   | {
       kind: 'gated-wo';
       file: string;

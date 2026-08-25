@@ -3,6 +3,8 @@ id: WO-004
 type: work-order
 title: Client manager
 status: in-progress
+claimed_by: ben
+claimed_at: 2026-08-01
 created: 2026-08-01
 updated: 2026-08-03
 links: []

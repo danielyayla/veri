@@ -3,6 +3,8 @@ id: WO-002
 type: work-order
 title: PDF export pipeline
 status: in-progress
+claimed_by: ana
+claimed_at: 2026-07-30
 created: 2026-07-30
 updated: 2026-08-06
 links:

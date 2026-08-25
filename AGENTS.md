@@ -38,7 +38,10 @@ Statuses:
 - decision: proposed → active → superseded (add `superseded_by: DEC-XXX`)
 - work-order: backlog → ready → in-progress → done (`ready` — cleared for
   dispatch — is entered only via the user's `veri approve` stamp; `veri next`
-  prints the queue's head)
+  prints the queue's head; `veri start <WO-id> --as <session>` — or the
+  `start_work_order` MCP tool — flips ready → in-progress and records the
+  claim, `claimed_by`/`claimed_at`, which an in-progress work order must
+  carry)
 - source: imported
 
 Promotion (draft → accepted, proposed → active) requires an

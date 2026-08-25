@@ -5,7 +5,7 @@ title: Veri project workflow
 status: accepted
 approved: 2026-08-21
 created: 2026-08-12
-updated: 2026-08-21
+updated: 2026-08-25
 design_gate_paths:
   - packages/ui
 modules:
@@ -62,3 +62,13 @@ receipts.
    `source` document in `veri/`, and stop for user approval before
    writing code. `veri check` enforces this via the `design_gate_paths`
    list in this document's frontmatter ([[DEC-039]]).
+8. One session, one work order, one worktree. Begin implementation with
+   `veri start <WO-id> --as <session>` (or the `start_work_order` MCP
+   tool): it flips the ready work order to in-progress and records the
+   claim — `claimed_by`/`claimed_at` — so concurrent sessions see who
+   holds what instead of colliding. Commit the flip with a subject like
+   `WO-042: started`. Sessions running in parallel each work in their
+   own git worktree, one per claimed work order; an in-progress work
+   order without a claim fails `veri check`, and a claim another
+   session holds is refused — pick different work orders, never share
+   one.

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -78,9 +78,11 @@ test('the built server answers tools/list and get_context over stdio', { skip: !
     'get_context',
     'get_document',
     'get_import_instructions',
+    'get_intent',
     'get_neighbors',
     'run_check',
     'search',
+    'start_work_order',
   ]);
 
   const context = responses.get(3)?.result;
@@ -173,4 +175,48 @@ test('every tool states a newer format instead of operating (REQ-015)', { skip: 
     assert.equal(result?.isError, true, `tool call ${id} must refuse`);
     assert.match(result?.content?.[0]?.text ?? '', /format 99.*update Veri/);
   }
+});
+
+test('start_work_order flips a ready work order and records the claim (WO-099)', { skip: !existsSync(SERVER) }, async (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'veri-mcp-start-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, 'veri', 'requirements'), { recursive: true });
+  mkdirSync(join(root, 'veri', 'work-orders'), { recursive: true });
+  writeFileSync(
+    join(root, 'veri', 'requirements', 'REQ-001-req.md'),
+    '---\nid: REQ-001\ntype: requirement\ntitle: R\nstatus: accepted\ncreated: 2026-08-01\nupdated: 2026-08-01\napproved: 2026-08-01\n---\n## Acceptance criteria\n\n- [ ] x\n',
+  );
+  writeFileSync(
+    join(root, 'veri', 'work-orders', 'WO-001-work.md'),
+    '---\nid: WO-001\ntype: work-order\ntitle: W\nstatus: ready\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\nlinks:\n  - id: REQ-001\n    rel: implements\n---\n## Summary\n\nWork.\n\n## Receipts\n\n(none yet)\n',
+  );
+
+  const call = (id: number, args: object): object => ({
+    jsonrpc: '2.0',
+    id,
+    method: 'tools/call',
+    params: { name: 'start_work_order', arguments: args },
+  });
+  const init = {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'initialize',
+    params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test', version: '0.0.0' } },
+  };
+  const initialized = { jsonrpc: '2.0', method: 'notifications/initialized' };
+  const responses = await rpcSession([init, initialized, call(2, { id: 'WO-001', claimed_by: 'agent-session-1' })], [1, 2], root);
+  // A second session's claim on the now-held work order is refused, naming
+  // the holder — the collision guard. A fresh server, as a second concurrent
+  // agent session would be.
+  const second = await rpcSession([init, initialized, call(3, { id: 'WO-001', claimed_by: 'agent-session-2' })], [1, 3], root);
+
+  const started = responses.get(2)?.result;
+  assert.ok(started?.isError !== true, started?.content?.[0]?.text);
+  assert.match(started?.content?.[0]?.text ?? '', /WO-001 ready → in-progress — claimed by agent-session-1/);
+  const file = readFileSync(join(root, 'veri', 'work-orders', 'WO-001-work.md'), 'utf8');
+  assert.match(file, /^status: in-progress\nclaimed_by: agent-session-1\nclaimed_at: \d{4}-\d{2}-\d{2}$/m);
+
+  const refused = second.get(3)?.result;
+  assert.equal(refused?.isError, true);
+  assert.match(refused?.content?.[0]?.text ?? '', /already in-progress, claimed by "agent-session-1"/);
 });

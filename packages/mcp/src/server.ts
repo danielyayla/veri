@@ -2,7 +2,7 @@
 import { join, resolve } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { assembleImportInstructions, classifyFormat, formatStatement, isOperableFormat, loadProject } from '@verikb/core';
+import { assembleImportInstructions, classifyFormat, formatStatement, isOperableFormat, loadProject, startWorkOrder } from '@verikb/core';
 import { z } from 'zod';
 import { runCheck } from './check.ts';
 import { assembleContext } from './context.ts';
@@ -318,6 +318,35 @@ server.registerTool(
           null,
           2,
         ),
+      );
+    } catch (err) {
+      return fail(err);
+    }
+  },
+);
+
+server.registerTool(
+  'start_work_order',
+  {
+    description:
+      'Begin implementation: flip a ready work order to in-progress, recording the claim — which session ' +
+      'holds it (claimed_by) and since when (claimed_at). Only ready work orders start: the user\'s ' +
+      'approve stamp is the dispatch clearance, and an already-claimed work order is refused, naming its ' +
+      'holder. Call this before writing code for a work order, with a claimed_by that identifies this ' +
+      'session; then commit the flip with a subject like "WO-042: started".',
+    inputSchema: {
+      id: z.string().describe('Work order id, e.g. WO-042'),
+      claimed_by: z.string().describe('This session\'s identity — free text, unique per session'),
+    },
+  },
+  async ({ id, claimed_by }) => {
+    try {
+      guardFormat();
+      const result = await startWorkOrder(join(projectRoot, 'veri'), id, claimed_by);
+      return ok(
+        `${result.id} ready → in-progress — claimed by ${result.claimedBy} (${result.claimedAt}) at veri/${result.file}. ` +
+          `Commit the flip with a start subject (e.g. "${result.id}: started — claimed by ${result.claimedBy}") so ` +
+          `provenance anchors the work's era.`,
       );
     } catch (err) {
       return fail(err);

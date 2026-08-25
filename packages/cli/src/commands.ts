@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFi
 import { createRequire } from 'node:module';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, lookupIntent, maintainerRegistry, migrateProject, moduleRegistry, nextDispatchable, nextIdNumber, originalStoragePath, recordIssuedId, renderArchitecture, renderIntent, renumberDocument, scaffoldProject, slugifyTitle, workOrdersTouching } from '@verikb/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, lookupIntent, maintainerRegistry, migrateProject, moduleRegistry, nextDispatchable, nextIdNumber, originalStoragePath, recordIssuedId, renderArchitecture, renderIntent, renumberDocument, scaffoldProject, slugifyTitle, startWorkOrder, workOrdersTouching } from '@verikb/core';
 import type { CheckReport, DocType } from '@verikb/core';
 import { collectGitFacts, gitUserName } from './git.ts';
 import { collectTestFacts } from './testfacts.ts';
@@ -374,6 +374,39 @@ export async function approve(cwd: string, idArg: string | undefined, asName?: s
     return {
       code: 0,
       lines: [`${result.id} ${result.from} → ${result.to} — approved: ${result.approved}${by} (veri/${result.file})`],
+    };
+  } catch (err) {
+    return { code: 1, lines: (err as Error).message.split('\n') };
+  }
+}
+
+/** The start transition (WO-099): ready → in-progress with the claim
+    recorded. The claimant is --as, defaulted from git user.name the same
+    way approve defaults its maintainer — the host collects the identity,
+    core writes it. The printed hint names the start-commit convention the
+    binding-drift era anchor recognizes (DEC-041). */
+export async function start(cwd: string, idArg: string | undefined, asName?: string): Promise<CmdResult> {
+  if (idArg === undefined || idArg.trim() === '') {
+    return { code: 1, lines: ['usage: veri start <WO-id> --as <session> (a ready work order; --as may default from git user.name)'] };
+  }
+  const dir = requireVeriDir(cwd);
+  if (dir === null) return NO_VERI_DIR;
+  const claimant = ((): string | undefined => {
+    const explicit = asName?.trim();
+    if (explicit !== undefined && explicit !== '') return explicit;
+    return gitUserName(cwd) ?? undefined;
+  })();
+  if (claimant === undefined) {
+    return { code: 1, lines: ['a claim names its holder — pass one: veri start <WO-id> --as <session>'] };
+  }
+  try {
+    const result = await startWorkOrder(dir, idArg.trim(), claimant);
+    return {
+      code: 0,
+      lines: [
+        `${result.id} ready → in-progress — claimed by ${result.claimedBy} (${result.claimedAt}) (veri/${result.file})`,
+        `commit the flip with a start subject, e.g. git commit -m "${result.id}: started — claimed by ${result.claimedBy}"`,
+      ],
     };
   } catch (err) {
     return { code: 1, lines: (err as Error).message.split('\n') };

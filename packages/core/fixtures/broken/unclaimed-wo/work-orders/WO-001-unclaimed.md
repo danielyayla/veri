@@ -1,10 +1,8 @@
 ---
 id: WO-001
 type: work-order
-title: Started UI work with no design
+title: In-progress with no claim
 status: in-progress
-claimed_by: session-a
-claimed_at: 2026-08-01
 created: 2026-08-01
 updated: 2026-08-01
 links:
@@ -14,4 +12,4 @@ links:
 
 ## Summary
 
-Adds a panel to packages/ui without any linked design document.
+Started work that records no session holding it.

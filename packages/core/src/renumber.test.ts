@@ -36,7 +36,7 @@ function sandbox(t: TestContext): string {
       'WO-001',
       'work-order',
       'in-progress',
-      'links:\n  - id: REQ-001\n    rel: implements\n  - id: DEC-002\n    rel: constrained-by\n',
+      'claimed_by: session-a\nclaimed_at: 2026-08-24\nlinks:\n  - id: REQ-001\n    rel: implements\n  - id: DEC-002\n    rel: constrained-by\n',
       '## Summary\n\nPer [[DEC-002]].\n\n## Receipts\n\n(none yet)\n',
     ),
   );

@@ -2,7 +2,7 @@ import { checkObservedArchitecture } from './architecture.ts';
 import type { ImportEdge } from './architecture.ts';
 import { bindingClaimants, checkBindingDrift, checkBoundTests, staleAfterDays } from './binds.ts';
 import type { TestFact } from './binds.ts';
-import { checkProject } from './check.ts';
+import { checkProject, checkStaleClaims } from './check.ts';
 import { checkDrift } from './drift.ts';
 import { formatStatement } from './format.ts';
 import type { FormatClassification } from './format.ts';
@@ -102,6 +102,9 @@ export function deriveFindings(load: LoadResult, host: HostFacts): CheckFindings
   }
   // Bound tests (WO-088) need the filesystem, not git — they run either way.
   advisories.push(...checkBoundTests(load.documents, host.testFacts));
+  // Stale claims (WO-099) need only the host's clock — they too run either
+  // way, sharing the binding detectors' staleness window.
+  advisories.push(...checkStaleClaims(load.documents, host.today, staleAfterDays(load.documents)));
   // Observed architecture (WO-067): import edges vs the intended
   // architecture, split by declared constraint severity (DEC-062) — error
   // violations join the issues (counted, exit 1); advisory violations stay

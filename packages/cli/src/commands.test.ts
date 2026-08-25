@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assembleContext } from '@verikb/core';
-import { approve, architecture, check, checkReport, context, importFile, importPrompt, init, list, listStarters, migrate, newDoc, next, open, renumber } from './commands.ts';
+import { approve, architecture, check, checkReport, context, importFile, importPrompt, init, list, listStarters, migrate, newDoc, next, open, renumber, start } from './commands.ts';
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const FIVE_ISSUES = fileURLToPath(new URL('../fixtures/five-issues', import.meta.url));
@@ -95,7 +95,44 @@ test('a work order promotes to ready and veri next serves the queue head (WO-098
   assert.equal(head.lines[0], `WO-001\tBuild the login flow\tveri/work-orders/WO-001-build-the-login-flow.md`);
 
   // Execution spends the clearance: in-progress leaves the queue.
-  writeFileSync(woFile, readFileSync(woFile, 'utf8').replace('status: ready', 'status: in-progress'));
+  writeFileSync(woFile, readFileSync(woFile, 'utf8').replace('status: ready', 'status: in-progress\nclaimed_by: session-a\nclaimed_at: 2026-08-01'));
+  assert.equal((await next(cwd)).code, 1);
+});
+
+test('veri start claims the queue head and refuses uncleared or already-claimed work (WO-099)', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+
+  init(cwd, { demo: false });
+  await newDoc(cwd, 'requirement', 'User authentication');
+  await newDoc(cwd, 'work-order', 'Build the login flow');
+  const woFile = join(cwd, 'veri/work-orders/WO-001-build-the-login-flow.md');
+  writeFileSync(
+    woFile,
+    readFileSync(woFile, 'utf8').replace(/^updated: (.*)$/m, 'updated: $1\nlinks:\n  - id: REQ-001\n    rel: implements'),
+  );
+
+  // Backlog is not dispatchable: only cleared work starts.
+  const early = await start(cwd, 'WO-001', 'agent-a');
+  assert.equal(early.code, 1);
+  assert.match(early.lines.join('\n'), /only cleared work starts.*veri approve WO-001/s);
+
+  await approve(cwd, 'REQ-001');
+  await approve(cwd, 'WO-001');
+  const started = await start(cwd, 'WO-001', 'agent-a');
+  assert.equal(started.code, 0, started.lines.join('\n'));
+  assert.match(started.lines[0] ?? '', /^WO-001 ready → in-progress — claimed by agent-a \(\d{4}-\d{2}-\d{2}\)/);
+  // The hint names the start-commit convention the era anchor recognizes.
+  assert.match(started.lines[1] ?? '', /WO-001: started/);
+  const content = readFileSync(woFile, 'utf8');
+  assert.match(content, /^status: in-progress\nclaimed_by: agent-a\nclaimed_at: \d{4}-\d{2}-\d{2}$/m);
+
+  // The claim holds against a second session, and the corpus stays check-clean.
+  const contested = await start(cwd, 'WO-001', 'agent-b');
+  assert.equal(contested.code, 1);
+  assert.match(contested.lines.join('\n'), /already in-progress, claimed by "agent-a"/);
+  assert.equal((await check(cwd)).code, 0);
+  // Started work leaves the queue.
   assert.equal((await next(cwd)).code, 1);
 });
 
@@ -143,10 +180,14 @@ test('init --demo installs skiff; check reports exactly the 2 intended issues', 
 
   const checked = await check(cwd);
   assert.equal(checked.code, 1);
-  assert.equal(checked.lines.at(-1), '2 issue(s) · 0 advisories', checked.lines.join('\n'));
+  // The two intended issues, plus the stale-claim advisories the demo's
+  // frozen claim dates keep permanently in the past (WO-099) — advisories
+  // whisper, so the demo's teaching issues stay exactly two.
+  assert.equal(checked.lines.at(-1), '2 issue(s) · 2 advisories', checked.lines.join('\n'));
   const issues = checked.lines.slice(1, -1).join('\n');
   assert.match(issues, /WO-004/, 'WO-004 must be flagged for its missing requirement');
   assert.match(issues, /SRC-003/, 'REQ-004 must be flagged for its broken SRC-003 link');
+  assert.match(issues, /stale-claim|stale after/, 'the demo claims must surface as stale-claim advisories');
 });
 
 test('init --demo keeps an existing README.md and refuses an existing veri/', (t) => {
@@ -250,14 +291,14 @@ test('check on the five-issues fixture reports exactly 5 issues and exits 1', as
   cpSync(FIVE_ISSUES, cwd, { recursive: true });
   const result = await check(cwd);
   assert.equal(result.code, 1);
-  assert.equal(result.lines.at(-1), '5 issue(s) · 11 advisories', result.lines.join('\n'));
+  assert.equal(result.lines.at(-1), '5 issue(s) · 12 advisories', result.lines.join('\n'));
   // The fixture predates the marker: the leading format line says so.
   assert.match(result.lines[0] ?? '', /^format 0 \(pre-marker/);
   const body = result.lines.slice(1, -1).filter((line) => !line.startsWith('(provenance:'));
   const issueLines = body.filter((line) => !line.startsWith('(advisory) '));
   const advisoryLines = body.filter((line) => line.startsWith('(advisory) '));
   assert.equal(issueLines.length, 5);
-  assert.equal(advisoryLines.length, 11);
+  assert.equal(advisoryLines.length, 12);
   // Advisories print after every issue (DEC-025), each one line with a file.
   assert.deepEqual(body.slice(0, 5), issueLines);
   for (const line of body) {
@@ -322,7 +363,7 @@ test('checkReport is the structured source check renders from (WO-076)', async (
   const report = await checkReport(cwd);
   assert.ok(report !== null);
   assert.equal(report.issues.length, 5);
-  assert.equal(report.advisories.length, 11);
+  assert.equal(report.advisories.length, 12);
   for (const advisory of report.advisories) {
     assert.ok(advisory.kind.length > 0 && advisory.file.endsWith('.md'), `advisory carries kind and file: ${JSON.stringify(advisory)}`);
   }
@@ -687,7 +728,7 @@ test('binding drift skips with a note outside git, while bound-test facts still 
   await newDoc(cwd, 'work-order', 'Export pipeline');
   const file = join(cwd, 'veri/work-orders/WO-001-export-pipeline.md');
   const raw = readFileSync(file, 'utf8')
-    .replace('status: backlog', 'status: in-progress')
+    .replace('status: backlog', 'status: in-progress\nclaimed_by: session-a\nclaimed_at: 2026-08-01')
     .replace(
       /^---\n$/m,
       'links:\n  - id: REQ-001\n    rel: implements\nbinds:\n  paths:\n    - src/export/**\n  tests:\n    - tests/gone.test.ts\n---\n',
