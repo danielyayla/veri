@@ -124,6 +124,31 @@ export function checkGatedWorkOrders(documents: VeriDocument[]): Issue[] {
 }
 
 /**
+ * The demotion hole (WO-111): a work order carrying an `approved:` stamp
+ * while sitting in `backlog`. Ready exists only via the stamp (DEC-096,
+ * REQ-008), so this state means a demotion discarded dispatch clearance
+ * without discarding its record — no legitimate path produces it. Runs
+ * unconditionally: the other work-order checks `continue` on backlog
+ * (planning is ungated), which is exactly why this contradiction was
+ * invisible until now. Withdrawn work orders are out of play (DEC-110) and
+ * keep their history unflagged; they are not `backlog`, so the status test
+ * already exempts them.
+ */
+export function checkStampedBacklog(documents: VeriDocument[]): Issue[] {
+  const issues: Issue[] = [];
+  for (const doc of documents) {
+    if (doc.type !== 'work-order' || doc.status !== 'backlog' || doc.approved === undefined) continue;
+    issues.push({
+      kind: 'stamped-backlog',
+      file: doc.file,
+      id: doc.id,
+      message: `work order ${doc.id} is backlog but carries an approved: ${doc.approved} stamp — it left ready without discarding the record; re-approve it (veri approve ${doc.id}), or remove the approved:/approved_by: lines in the commit that demotes it`,
+    });
+  }
+  return issues;
+}
+
+/**
  * Claim semantics (WO-099): in-progress means a session holds the work, and
  * the claim fields say which one. A work order that reached in-progress
  * without them is unaccounted — the concurrent-session collision REQ-026's
@@ -683,6 +708,7 @@ export function checkProject(load: LoadResult): CheckResult {
       ...checkDuplicateIds(load.documents),
       ...checkBrokenLinks(load.documents),
       ...checkWorkOrderRequirements(load.documents),
+      ...checkStampedBacklog(load.documents),
       ...checkHypothesisOutcomes(load.documents),
       ...checkOutcomeLinks(load.documents),
       ...checkUnclaimedWorkOrders(load.documents),

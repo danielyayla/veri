@@ -8,14 +8,16 @@ import { PACKAGE_RULES_TEXT, fileActivity, gatingDocs, receipts } from '../deriv
 import { activityFeed, dirtyStrip, displayTitle, idChip, imgDirFor, modeToggle, pinChip, renderBlocks, statusChip } from '../widgets.ts';
 import { frontmatterCard } from './reader.ts';
 import { roveIndex, roveKey } from '../a11y.ts';
+import { segmentRefusal, writeStatus } from '../statuswrite.ts';
 import type { Ctx } from '../app.ts';
 
-/** `ready` renders but is never a click target (WO-103): it is entered
-    only by the user's stamp via `veri approve` (WO-098, DEC-096) — the UI
-    shows the state without offering a write path into it. */
-const STATUS_SEGMENTS: Array<{ status: string; label: string; stamped?: boolean }> = [
+/** `ready` renders but is never a click target (WO-103): it is entered only
+    by the user's stamp via `veri approve` (WO-098, DEC-096) — and left only
+    by a deliberate git act (WO-111, SRC-051). The refusal table for both
+    directions lives in segmentRefusal. */
+const STATUS_SEGMENTS: Array<{ status: string; label: string }> = [
   { status: 'backlog', label: 'backlog' },
-  { status: 'ready', label: 'ready', stamped: true },
+  { status: 'ready', label: 'ready' },
   { status: 'in-progress', label: 'in progress' },
   { status: 'done', label: 'done' },
 ];
@@ -42,10 +44,14 @@ function statusControl(ctx: Ctx, doc: VeriDocument): HTMLElement {
         segs[next].focus();
       },
     },
-    ...STATUS_SEGMENTS.map(({ status, label, stamped }) => {
+    ...STATUS_SEGMENTS.map(({ status, label }) => {
       const active = doc.status === status;
       const color = statusColor(status);
-      const gated = stamped === true && !active;
+      // WO-111 (SRC-051): a refused target wears the one "shown, not
+      // clickable" treatment — ready on the way in, everything on the way
+      // out of ready — and its title carries the reason.
+      const refusal = active ? null : segmentRefusal(doc.status, status);
+      const gated = refusal !== null;
       const btn = h(
         'button',
         {
@@ -55,20 +61,29 @@ function statusControl(ctx: Ctx, doc: VeriDocument): HTMLElement {
           tabindex: active ? 0 : -1,
           fkey: `status:${status}`,
           style: active ? `background:${tint(color, 0.14)};color:${color};` : '',
-          title: gated ? 'stamped via veri approve' : undefined,
+          title: refusal ?? undefined,
           onClick: () => {
             if (active) return;
-            if (gated) {
-              ctx.announce('ready is entered via veri approve — the stamp is the only path');
+            // Click and ↩/Space land here alike — the keyboard path is
+            // native button activation on the same handler.
+            if (refusal !== null) {
+              ctx.announce(refusal);
               return;
             }
             // WO-061: the write is instant; recovery is too — the undo toast
-            // reverts through the same setStatus path.
+            // reverts through the same write path. WO-111: a refused write
+            // surfaces instead of vanishing into a void-ed promise.
             const prev = doc.status;
-            void ctx.api.setStatus(doc.id, status).then(() => {
-              ctx.flashUndo(doc.id, prev, status);
-              return ctx.refresh();
-            });
+            void writeStatus(
+              (id, next) => ctx.api.setStatus(id, next),
+              doc.id,
+              status,
+              () => {
+                ctx.flashUndo(doc.id, prev, status);
+                return ctx.refresh();
+              },
+              (message) => ctx.announce(`status not written — ${message}`),
+            );
           },
         },
         label,

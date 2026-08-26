@@ -12,6 +12,7 @@ import {
   checkProject,
   checkSharedClaims,
   checkStaleClaims,
+  checkStampedBacklog,
   checkStructure,
   expectedSections,
   missingSections,
@@ -668,6 +669,69 @@ test('shared claims: one identity holding two in-progress work orders advises; d
   const prerequisite = claimedWo('WO-002', 'in-progress', { by: 'a', at: '2026-08-01' }, '## Summary\n\nThe seam [[WO-001]] needs first.\n');
   prerequisite.inlineRefs.push('WO-001');
   assert.deepEqual(checkSharedClaims([chainHead, prerequisite]), []);
+});
+
+// --- The demotion hole (WO-111) ---
+
+test('stamped backlog: a backlog work order carrying approved: is a violation naming veri approve', () => {
+  // The WO-104 shape: demoted ready → backlog with the stamp left behind.
+  const demoted = claimedWo('WO-104', 'backlog', {});
+  demoted.approved = '2026-08-25';
+  const issues = checkStampedBacklog([demoted]);
+  assert.equal(issues.length, 1);
+  assert.partialDeepStrictEqual(issues[0], {
+    kind: 'stamped-backlog',
+    id: 'WO-104',
+    file: 'work-orders/WO-104-t.md',
+  });
+  assert.match(issues[0]!.message, /veri approve WO-104/);
+
+});
+
+test('stamped backlog: checkProject reports it despite the backlog skips, and re-approval clears it', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-stamped-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  mkdirSync(join(dir, 'work-orders'), { recursive: true });
+  const wo = (status: string, stamp: string): string =>
+    `---\nid: WO-001\ntype: work-order\ntitle: T\nstatus: ${status}\n${stamp}created: 2026-08-01\nupdated: 2026-08-01\nlinks:\n  - id: WO-001\n    rel: relates-to\n---\n## Summary\n\nWork.\n`;
+  const woPath = join(dir, 'work-orders', 'WO-001-t.md');
+
+  // The demoted state: backlog with the stamp stranded.
+  writeFileSync(woPath, wo('backlog', 'approved: 2026-08-25\n'));
+  const before = checkProject(await loadProject(dir)).issues;
+  assert.equal(before.length, 1);
+  assert.equal(before[0]!.kind, 'stamped-backlog');
+
+  // The remedy the message names — veri approve re-stamps to ready. (A REQ
+  // link would be required by the prospective gate; here we only assert the
+  // resulting state is clean.)
+  writeFileSync(woPath, wo('ready', 'approved: 2026-08-26\n'));
+  const after = checkProject(await loadProject(dir)).issues;
+  assert.ok(!after.some((issue) => issue.kind === 'stamped-backlog'));
+});
+
+test('stamped backlog: fires on the contradiction only', () => {
+  // An unstamped backlog work order is ordinary planning.
+  assert.deepEqual(checkStampedBacklog([claimedWo('WO-001', 'backlog', {})]), []);
+  // A stamped ready work order is the legitimate promoted state (DEC-096).
+  const ready = claimedWo('WO-002', 'ready', {});
+  ready.approved = '2026-08-25';
+  assert.deepEqual(checkStampedBacklog([ready]), []);
+  // Past ready, the stamp is spent clearance — valid history, never flagged.
+  const done = claimedWo('WO-003', 'done', {});
+  done.approved = '2026-08-25';
+  assert.deepEqual(checkStampedBacklog([done]), []);
+  // Withdrawn keeps its history out of play (DEC-110).
+  const withdrawn = claimedWo('WO-004', 'withdrawn', {});
+  withdrawn.approved = '2026-08-25';
+  assert.deepEqual(checkStampedBacklog([withdrawn]), []);
+  // Other types with stamps are the normal promoted world.
+  assert.deepEqual(
+    checkStampedBacklog([
+      { ...claimedWo('WO-005', 'backlog', {}), type: 'requirement', id: 'REQ-005', status: 'accepted', approved: '2026-08-01' },
+    ]),
+    [],
+  );
 });
 
 test('stale claims: silence past the window advises; a receipt inside it resets the clock', () => {

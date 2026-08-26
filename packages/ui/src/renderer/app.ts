@@ -61,6 +61,7 @@ import type { FindBarRefs } from './find.ts';
 import { FOCUSABLE_SEL, resolveFocus, roveIndex, roveKey, trapTarget } from './a11y.ts';
 import { dismissPreview, resetChipKeys, setPreviewRoot } from './widgets.ts';
 import { ipcErrorMessage, reconcileDisk } from './editlogic.ts';
+import { writeStatus } from './statuswrite.ts';
 import { editorScreen } from './views/editor.ts';
 import { paletteRows } from './palette.ts';
 import type { PaletteRow } from './palette.ts';
@@ -1233,17 +1234,29 @@ class App implements Ctx {
     this.undoTimer = setTimeout(() => this.update({ undoToast: null }), 6000);
   }
 
-  /** Revert the last status change through the same setStatus write path —
-      the file on disk goes back exactly as it was (WO-061). */
+  /** Revert the last status change through the same write path — the file on
+      disk goes back exactly as it was (WO-061). A revert the writable-status
+      guard or core refuses surfaces here instead of vanishing into a void-ed
+      promise (WO-111): the toast clears, the reason is announced, and the
+      view keeps showing disk truth. */
   private undoStatus(): void {
     const u = this.state.undoToast;
     if (u === null) return;
     clearTimeout(this.undoTimer);
-    void this.api.setStatus(u.docId, u.from).then(() => {
-      this.sessionLog(u.docId, { agent: false, text: `Status change undone — back to ${u.from.replace(/-/g, ' ')}`, time: 'today' });
-      this.update({ undoToast: null });
-      return this.refresh();
-    });
+    void writeStatus(
+      (id, status) => this.api.setStatus(id, status),
+      u.docId,
+      u.from,
+      () => {
+        this.sessionLog(u.docId, { agent: false, text: `Status change undone — back to ${u.from.replace(/-/g, ' ')}`, time: 'today' });
+        this.update({ undoToast: null });
+        return this.refresh();
+      },
+      (message) => {
+        this.announce(`undo refused — ${message}`);
+        this.update({ undoToast: null });
+      },
+    );
   }
 
   /** Open = re-detect from disk/PATH right now (DEC-002: nothing cached). */
