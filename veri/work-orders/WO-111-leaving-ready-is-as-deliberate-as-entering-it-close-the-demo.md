@@ -2,7 +2,10 @@
 id: WO-111
 type: work-order
 title: "Leaving `ready` is as deliberate as entering it — close the demotion hole in the approval gate"
-status: backlog
+status: in-progress
+claimed_by: claude-wo111
+claimed_at: 2026-08-26
+approved: 2026-08-26
 created: 2026-08-26
 updated: 2026-08-26
 links:
