@@ -23,9 +23,18 @@ links:
     rel: relates-to
   - id: WO-061
     rel: relates-to
-# binds:         # code this work order claims (optional)
-#   paths: []    # repo-root-relative globs
-#   tests: []    # test files proving it (path or path::name)
+  - id: SRC-051
+    rel: designed-by
+binds:
+  paths:
+    - packages/core/src/check.ts
+    - packages/core/src/types.ts
+    - packages/ui/src/renderer/statuswrite.ts
+    - packages/ui/src/renderer/views/workorder.ts
+    - packages/ui/src/renderer/app.ts
+  tests:
+    - packages/core/src/check.test.ts
+    - packages/ui/src/renderer/statuswrite.test.ts
 ---
 
 ## Summary
