@@ -2,7 +2,7 @@
 id: WO-109
 type: work-order
 title: "Withdraw and delete in core and the CLI — the terminal status, the guarded removal, and the format bump"
-status: in-progress
+status: done
 claimed_by: claude-withdraw-delete
 claimed_at: 2026-08-26
 approved: 2026-08-26
@@ -81,24 +81,4 @@ Deliver the discard verbs in core and on the terminal surface, per [[DEC-110]]. 
 
 ## Receipts
 
-### 2026-08-26 — withdraw and delete land in core and the CLI
-
-Files: `packages/core/src/discard.ts` (new), `packages/core/src/discard.test.ts` (new),
-`packages/core/src/schema.ts`, `packages/core/src/pending.ts`, `packages/core/src/check.ts`,
-`packages/core/src/context.ts`, `packages/core/src/drift.ts`, `packages/core/src/save.ts`,
-`packages/core/src/format.ts`, `packages/core/src/index.ts`, `packages/cli/src/commands.ts`,
-`packages/cli/src/cli.ts`, `veri/format`, `AGENTS.md`, plus the format/scaffold/CLI test
-updates and the rebuilt `action/dist/index.js`.
-
-`withdrawn` joins the status enum of all four types; `withdrawDocument` flips
-status and updated alone, `deleteDocument` refuses anything approved or
-referenced via `deleteRefusal`. Withdrawn documents leave context packages,
-the work-order gates, the design gate, and drift, while their inbound
-`[[ID]]` links keep resolving. `CURRENT_FORMAT` is 2 with a marker-only 1→2
-migration, and this project is migrated: the shipped Veri.app 0.2.1 core now
-answers "this project uses veri format 2 … update Veri to open it" instead of
-dropping documents and misreporting their references — WO-104's remedy,
-spent here rather than twice.
-
-Verified: `npm test` 722 tests across five workspaces, 0 failures;
-`npm run typecheck` clean; `veri check` 0 issues (10 pre-existing advisories).
+- 2026-08-26 — 8fc577d — packages/core/src/discard.ts, packages/core/src/discard.test.ts, packages/core/src/schema.ts, packages/core/src/pending.ts, packages/core/src/check.ts, packages/core/src/context.ts, packages/core/src/drift.ts, packages/core/src/save.ts, packages/core/src/format.ts, packages/core/src/index.ts, packages/core/src/format.test.ts, packages/core/src/scaffold.test.ts, packages/cli/src/commands.ts, packages/cli/src/cli.ts, packages/cli/src/commands.test.ts, veri/format, AGENTS.md, action/dist/index.js — `withdrawn` joins all four type enums; withdrawDocument flips status/updated alone, deleteDocument refuses anything approved or referenced (deleteRefusal); withdrawn documents leave context packages, the WO gates, the design gate, the queue, and drift while inbound [[links]] keep resolving; CURRENT_FORMAT 2 with a marker-only 1→2 migration, this project migrated, and the shipped 0.2.1 core verified to refuse it with the REQ-015 statement (WO-104's rule spent once). 722 tests across five workspaces pass, typecheck clean, veri check 0 issues.
