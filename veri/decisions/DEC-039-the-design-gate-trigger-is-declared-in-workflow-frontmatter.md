@@ -3,7 +3,7 @@ id: DEC-039
 type: decision
 title: "The design-gate trigger is declared in workflow frontmatter"
 status: active
-approved: 2026-08-18
+approved: 2026-08-26
 created: 2026-08-18
 updated: 2026-08-26
 links:

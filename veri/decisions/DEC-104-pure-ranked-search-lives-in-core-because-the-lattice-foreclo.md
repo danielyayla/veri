@@ -3,9 +3,9 @@ id: DEC-104
 type: decision
 title: "Pure ranked search lives in core because the lattice forecloses DEC-009's third-consumer trigger in mcp"
 status: active
-approved: 2026-08-25
+approved: 2026-08-26
 created: 2026-08-25
-updated: 2026-08-25
+updated: 2026-08-26
 links:
   - id: WO-106
     rel: constrains
