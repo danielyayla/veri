@@ -1,6 +1,6 @@
 import type { Advisory, Issue, VeriDocument } from './types.ts';
 import type { LoadResult } from './load.ts';
-import { isPending, isWithdrawn, requirementKind } from './pending.ts';
+import { OUTCOME_OF_REL, OUTCOME_RELS, isOutcomeRel, isPending, isWithdrawn, requirementKind } from './pending.ts';
 import { compareIds } from './ids.ts';
 import type { DocType } from './ids.ts';
 import { daysBetween } from './binds.ts';
@@ -165,6 +165,88 @@ export function checkHypothesisOutcomes(documents: VeriDocument[]): Issue[] {
     });
   }
   return issues;
+}
+
+/**
+ * Outcome link relations (REQ-033, WO-115): evidence points at the bet.
+ * `tests`/`supports`/`refutes` are valid only from a source toward a
+ * requirement, and `outcome-of` only from a source toward the work order
+ * that shipped the change. A misdirected outcome rel would silently fail to
+ * count as outcome evidence — the untested-bet advisory and context assembly
+ * both read these edges — so it is an issue, never a no-op (DEC-058). A
+ * target id that resolves to nothing is the broken-link check's finding, not
+ * duplicated here; direction is still checked on the linking side.
+ *
+ * Rels stay free text everywhere else: on a non-source, the bare words
+ * tests/supports/refutes keep their ordinary meaning (a WO "supports" a
+ * requirement — the bundled demo does exactly that) and are never flagged.
+ * What IS flagged from a non-source is the two unambiguous mistakes: an
+ * outcome rel pointing *at a source* (the evidence edge written backwards)
+ * and any use of `outcome-of`, a rel this feature coins.
+ */
+export function checkOutcomeLinks(documents: VeriDocument[]): Issue[] {
+  const byId = new Map(documents.map((doc) => [doc.id, doc]));
+  const issues: Issue[] = [];
+  const flag = (doc: VeriDocument, link: { id: string; rel: string }, message: string): void => {
+    issues.push({ kind: 'invalid-outcome-link', file: doc.file, id: doc.id, targetId: link.id, rel: link.rel, message });
+  };
+  for (const doc of documents) {
+    for (const link of doc.links) {
+      const outcome = isOutcomeRel(link.rel);
+      if (!outcome && link.rel !== OUTCOME_OF_REL) continue;
+      const target = byId.get(link.id);
+      if (doc.type === 'source') {
+        const expected = outcome ? 'requirement' : 'work-order';
+        if (target !== undefined && target.type !== expected) {
+          flag(doc, link, `${doc.id} links to ${link.id} (a ${target.type}) with rel "${link.rel}", which must target a ${expected}`);
+        }
+      } else if (outcome && target?.type === 'source') {
+        flag(doc, link, `${doc.id} links to source ${link.id} with rel "${link.rel}" — an outcome link points the other way: the source links the requirement it ${link.rel} (REQ-033)`);
+      } else if (!outcome) {
+        flag(doc, link, `${doc.id} links to ${link.id} with rel "outcome-of", which belongs to sources — evidence enters as a SRC linked to the work order that shipped it (REQ-033)`);
+      }
+    }
+  }
+  return issues;
+}
+
+/**
+ * The untested bet (REQ-033, WO-115): a hypothesis requirement whose linked
+ * work orders have all shipped but on which no outcome source has reported.
+ * Advisory — never an issue — because the open loop must inform, not block:
+ * Veri makes the question unavoidable; a human judges the answer. It stays
+ * silent for constraints (verified by acceptance criteria, not outcomes),
+ * for hypotheses with open work orders (the bet is still shipping), for
+ * hypotheses no work order has picked up (nothing has shipped to observe),
+ * and once any source links the requirement with tests/supports/refutes.
+ * Withdrawn and retired requirements are out of play, and withdrawn work
+ * orders count as never started (DEC-110).
+ */
+export function checkUntestedBets(documents: VeriDocument[]): Advisory[] {
+  const advisories: Advisory[] = [];
+  const tested = new Set<string>();
+  for (const doc of documents) {
+    if (doc.type !== 'source' || isWithdrawn(doc)) continue;
+    for (const link of doc.links) if (isOutcomeRel(link.rel)) tested.add(link.id);
+  }
+  const workOrders = documents.filter((doc) => doc.type === 'work-order' && !isWithdrawn(doc));
+  for (const doc of documents) {
+    if (doc.type !== 'requirement' || isWithdrawn(doc) || doc.status === 'retired') continue;
+    if (requirementKind(doc) !== 'hypothesis' || tested.has(doc.id)) continue;
+    const linked = workOrders
+      .filter((wo) => wo.links.some((link) => link.id === doc.id) || doc.links.some((link) => link.id === wo.id))
+      .sort((a, b) => compareIds(a.id, b.id));
+    if (linked.length === 0 || !linked.every((wo) => wo.status === 'done')) continue;
+    const ids = linked.map((wo) => wo.id);
+    advisories.push({
+      kind: 'untested-bet',
+      file: doc.file,
+      id: doc.id,
+      workOrderIds: ids,
+      message: `${doc.id} is a hypothesis and its work ${ids.length === 1 ? 'order' : 'orders'} (${ids.join(', ')}) ${ids.length === 1 ? 'is' : 'are all'} done, but no outcome source reports what reality said — an untested bet; file the evidence as a SRC linked ${OUTCOME_RELS.join('/')} to ${doc.id}`,
+    });
+  }
+  return advisories;
 }
 
 /** Whether either work order declares the other — a frontmatter link or an
@@ -496,6 +578,7 @@ export function checkProject(load: LoadResult): CheckResult {
       ...checkBrokenLinks(load.documents),
       ...checkWorkOrderRequirements(load.documents),
       ...checkHypothesisOutcomes(load.documents),
+      ...checkOutcomeLinks(load.documents),
       ...checkUnclaimedWorkOrders(load.documents),
       ...checkDoneWorkOrders(load.documents),
       ...checkGatedWorkOrders(load.documents),
@@ -512,6 +595,7 @@ export function checkProject(load: LoadResult): CheckResult {
       ...checkSupersededLinks(load.documents),
       ...checkMissingApprovers(load.documents),
       ...checkSharedClaims(load.documents),
+      ...checkUntestedBets(load.documents),
       // Stale claims need a clock (host territory, DEC-076) — deriveFindings
       // adds checkStaleClaims with the host's today.
     ],

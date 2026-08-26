@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildGraph } from './graph.ts';
 import { checkStructure } from './check.ts';
-import { isPending, isWithdrawn, outcomeLabel, requirementKind } from './pending.ts';
+import { isOutcomeRel, isPending, isWithdrawn, outcomeLabel, requirementKind } from './pending.ts';
 import { checkSupersededLinks } from './drift.ts';
 import { DOC_TYPES, compareIds } from './ids.ts';
 import { loadProject } from './load.ts';
@@ -78,6 +78,20 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
     frontier = next;
   }
 
+  // Outcome evidence rides its requirement (REQ-033, WO-115): a source that
+  // reports on a hop-1 requirement (rel tests/supports/refutes) is part of
+  // that requirement's story — "what reality said" — so it ships in the core
+  // ring, never demoted to the hop-2 map. Such a source links the
+  // requirement directly, so it is already reached (hop ≤ 2); this only
+  // lifts it to hop 1.
+  for (const [id, hop] of [...hopOf]) {
+    if (hop !== 1 || graph.byId.get(id)?.type !== 'requirement') continue;
+    for (const edge of graph.backlinks(id)) {
+      if (edge.via !== 'frontmatter' || !isOutcomeRel(edge.rel)) continue;
+      if (graph.byId.get(edge.from)?.type === 'source') hopOf.set(edge.from, 1);
+    }
+  }
+
   // Withdrawn documents are out of play (DEC-110): they bind nothing and
   // steer nothing, so they never enter a package — the same exclusion
   // retired workflows get below. The traversal still passes *through* them,
@@ -112,6 +126,24 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
     return label === null ? '' : `Outcome: ${label}\n\n`;
   };
 
+  // REQ-033 (WO-115): the sources that report on this requirement — inbound
+  // tests/supports/refutes edges — named on the requirement itself, so what
+  // reality said is legible right where the bet is stated. Withdrawn sources
+  // are out of play (DEC-110). Deterministic: id order, then rel.
+  const evidenceLine = (doc: VeriDocument): string => {
+    if (doc.type !== 'requirement') return '';
+    const rows = graph
+      .backlinks(doc.id)
+      .filter((edge) => edge.via === 'frontmatter' && isOutcomeRel(edge.rel))
+      .filter((edge) => {
+        const from = graph.byId.get(edge.from);
+        return from !== undefined && from.type === 'source' && !isWithdrawn(from);
+      })
+      .sort((a, b) => compareIds(a.from, b.from) || a.rel.localeCompare(b.rel));
+    if (rows.length === 0) return '';
+    return `Outcome evidence: ${rows.map((edge) => `${edge.from} (${edge.rel})`).join(', ')}\n\n`;
+  };
+
   /** How a hop-2 document connects to the core: its first edge to a hop-1
       document in id order (then rel order), either direction. Deterministic. */
   const connection = (doc: VeriDocument): string => {
@@ -142,7 +174,7 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
       text: string;
     }
     const renderFull = (doc: VeriDocument, level: string): Rendered => {
-      const text = `${linksLine(doc)}${outcomeLine(doc)}${doc.body.trim()}\n`;
+      const text = `${linksLine(doc)}${outcomeLine(doc)}${evidenceLine(doc)}${doc.body.trim()}\n`;
       return {
         heading: `${level} ${doc.id} — ${doc.title} · ${doc.status}${kindTag(doc)} · ~${estimateTokens(text)} tokens`,
         text,

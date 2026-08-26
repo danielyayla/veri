@@ -92,6 +92,11 @@ export type Advisory =
   // that declares maintainers. Advisory — every stamp made before the team
   // formed is grandfathered as a warning, never a failure.
   | { kind: 'missing-approver'; file: string; id: string; message: string }
+  // The untested bet (REQ-033, WO-115): a hypothesis requirement whose
+  // linked work orders have all shipped but which no outcome source has
+  // reported on. Advisory by design — the open loop must inform, never
+  // block; judging the evidence stays a human act.
+  | { kind: 'untested-bet'; file: string; id: string; workOrderIds: string[]; message: string }
   | {
       kind: 'arch-violation';
       file: string;
@@ -142,6 +147,12 @@ export type Issue =
   // merely missing one (see the missing-approver advisory).
   | { kind: 'unknown-approver'; file: string; id: string; approver: string; message: string }
   | { kind: 'format-mismatch'; file: string; problem: 'newer' | 'invalid'; message: string }
+  // Outcome link relations (REQ-033, WO-115): tests/supports/refutes point
+  // from a source at a requirement, and outcome-of from a source at the work
+  // order that shipped the change. A misdirected outcome rel would silently
+  // fail to count as evidence — an issue, never a no-op (the DEC-058
+  // posture). `id` is the linking document, `targetId` the link's target.
+  | { kind: 'invalid-outcome-link'; file: string; id: string; targetId: string; rel: string; message: string }
   | { kind: 'ui-wo-without-design'; file: string; id: string; message: string }
   | {
       kind: 'done-wo-violation';

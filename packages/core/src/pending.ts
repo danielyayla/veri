@@ -44,3 +44,24 @@ export function requirementKind(doc: Pick<VeriDocument, 'kind'>): 'constraint' |
 export function outcomeLabel(doc: Pick<VeriDocument, 'outcome'>): string | null {
   return doc.outcome === undefined ? null : `${doc.outcome.metric} ${doc.outcome.target}`;
 }
+
+/**
+ * The outcome link vocabulary (REQ-033, WO-115): how a source reports what
+ * reality said about a requirement. `tests` claims relevance without a
+ * verdict; `supports` and `refutes` carry one. Direction is fixed — the
+ * evidence points at the bet, source → requirement — and check validates it
+ * (checkOutcomeLinks). Lives on the dependency-free subpath so every surface
+ * shares the one vocabulary (DEC-046).
+ */
+export const OUTCOME_RELS = ['tests', 'supports', 'refutes'] as const;
+
+export type OutcomeRel = (typeof OUTCOME_RELS)[number];
+
+/** Whether `rel` is one of the outcome relations (tests/supports/refutes). */
+export function isOutcomeRel(rel: string): rel is OutcomeRel {
+  return (OUTCOME_RELS as readonly string[]).includes(rel);
+}
+
+/** The rel an outcome source uses toward the work order that shipped the
+    change it observed (REQ-033): source → work-order, validated by check. */
+export const OUTCOME_OF_REL = 'outcome-of';

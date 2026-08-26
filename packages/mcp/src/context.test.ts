@@ -78,6 +78,61 @@ test('sources reached at hop 2 appear as truncated excerpts', async () => {
   assert.match(text, /· excerpt ·/);
 });
 
+// --- Outcome sources ride their requirement (REQ-033, WO-115) ---
+
+function writeOutcomeProject(root: string, extra: Record<string, string> = {}): void {
+  const veri = join(root, 'veri');
+  for (const sub of ['requirements', 'work-orders', 'sources', 'decisions']) mkdirSync(join(veri, sub), { recursive: true });
+  writeFileSync(
+    join(veri, 'work-orders', 'WO-001-ship.md'),
+    '---\nid: WO-001\ntype: work-order\ntitle: Ship it\nstatus: done\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\nlinks:\n  - id: REQ-001\n    rel: implements\n---\n## Summary\n\nWO-BODY.\n\n## Receipts\n\n- 2026-08-01 abc123 shipped\n',
+  );
+  writeFileSync(
+    join(veri, 'requirements', 'REQ-001-bet.md'),
+    '---\nid: REQ-001\ntype: requirement\ntitle: The bet\nstatus: accepted\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\nkind: hypothesis\noutcome:\n  metric: activation-rate\n  target: "> 40%"\n---\nREQ-BODY.\n\n## Acceptance criteria\n\n- [x] x\n',
+  );
+  writeFileSync(
+    join(veri, 'sources', 'SRC-001-outcome.md'),
+    '---\nid: SRC-001\ntype: source\ntitle: What reality said\nstatus: imported\ncreated: 2026-08-02\nupdated: 2026-08-02\nlinks:\n  - id: REQ-001\n    rel: supports\n  - id: WO-001\n    rel: outcome-of\n---\nOUTCOME-EVIDENCE-BODY activation moved.\n',
+  );
+  for (const [file, text] of Object.entries(extra)) writeFileSync(join(veri, file), text);
+}
+
+test("a requirement's package carries its outcome sources and names them as evidence (REQ-033)", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-outcome-ctx-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeOutcomeProject(dir);
+  const { text, mode } = await assembleContext(dir, 'WO-001');
+  assert.equal(mode, 'inline');
+  assert.match(text, /## Sources \(excerpts\)/);
+  assert.ok(text.includes('OUTCOME-EVIDENCE-BODY'), 'the outcome source body must ship');
+  // The requirement itself names what reality said, right where the bet is stated.
+  assert.match(text, /### REQ-001 — The bet · accepted · hypothesis/);
+  assert.match(text, /Outcome evidence: SRC-001 \(supports\)/);
+});
+
+test('outcome sources stay inlined in layered mode instead of falling to the context map', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-outcome-layered-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  // A huge hop-2 decision (linked from the requirement) pushes the inline
+  // package over the threshold; the outcome source — also hop 2 by
+  // traversal — must ride its requirement into the core ring regardless.
+  writeOutcomeProject(dir, {
+    'decisions/DEC-001-huge.md': `---\nid: DEC-001\ntype: decision\ntitle: Huge\nstatus: active\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\nlinks:\n  - id: REQ-001\n    rel: constrains\n---\n## Choice\n\n${'filler '.repeat(INLINE_THRESHOLD_TOKENS)}\n`,
+    // This source links only the requirement — reached at hop 2, so only the
+    // promotion keeps it out of the map.
+    'sources/SRC-001-outcome.md':
+      '---\nid: SRC-001\ntype: source\ntitle: What reality said\nstatus: imported\ncreated: 2026-08-02\nupdated: 2026-08-02\nlinks:\n  - id: REQ-001\n    rel: supports\n---\nOUTCOME-EVIDENCE-BODY activation moved.\n',
+  });
+  const { text, mode } = await assembleContext(dir, 'WO-001');
+  assert.equal(mode, 'layered');
+  assert.ok(text.includes('OUTCOME-EVIDENCE-BODY'), 'the outcome source must inline, not map');
+  assert.match(text, /Outcome evidence: SRC-001 \(supports\)/);
+  const mapAt = text.indexOf('## Context map');
+  assert.ok(mapAt >= 0, 'the huge decision should force a context map');
+  assert.ok(!text.slice(mapAt).includes('- SRC-001'), 'SRC-001 must not appear as a map row');
+});
+
 test('assembly is deterministic', async () => {
   const first = await assembleContext(FIXTURE, 'WO-001');
   const second = await assembleContext(FIXTURE, 'WO-001');

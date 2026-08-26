@@ -159,6 +159,121 @@ test('a hypothesis with an outcome and a kind-less constraint both pass the outc
   assert.deepEqual(checkProject(await loadProject(dir)).issues, []);
 });
 
+// --- Outcome links and the untested bet (REQ-033, WO-115) ---
+
+const OUTCOME_FILES = {
+  workflow: '---\nid: WF-001\ntype: workflow\ntitle: W\nstatus: accepted\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\n---\nRules.\n',
+  hypothesis: (links = ''): string =>
+    `---\nid: REQ-001\ntype: requirement\ntitle: The bet\nstatus: accepted\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\nkind: hypothesis\noutcome:\n  metric: activation-rate\n  target: "> 40%"\n${links}---\nBody.\n\n## Acceptance criteria\n\n- [x] x\n\n## Receipts\n\n- none\n`,
+  wo: (status: string): string =>
+    `---\nid: WO-001\ntype: work-order\ntitle: Ship it\nstatus: ${status}\n${status === 'ready' || status === 'done' ? 'approved: 2026-08-01\n' : ''}${
+      status === 'in-progress' ? 'claimed_by: s\nclaimed_at: 2026-08-01\n' : ''
+    }created: 2026-08-01\nupdated: 2026-08-01\nlinks:\n  - id: REQ-001\n    rel: implements\n---\n## Summary\n\nx.\n\n## Acceptance tests\n\n- [x] x\n\n## Receipts\n\n- 2026-08-01 abc123 shipped\n`,
+  outcomeSrc: (rel: string): string =>
+    `---\nid: SRC-001\ntype: source\ntitle: What reality said\nstatus: imported\ncreated: 2026-08-02\nupdated: 2026-08-02\nlinks:\n  - id: REQ-001\n    rel: ${rel}\n  - id: WO-001\n    rel: outcome-of\n---\nActivation moved.\n`,
+};
+
+function writeOutcomeProject(dir: string, files: Record<string, string>): void {
+  for (const sub of ['requirements', 'work-orders', 'sources', 'decisions']) mkdirSync(join(dir, sub), { recursive: true });
+  writeFileSync(join(dir, 'workflow.md'), OUTCOME_FILES.workflow);
+  for (const [file, text] of Object.entries(files)) writeFileSync(join(dir, file), text);
+}
+
+test('a SRC may link a REQ with tests/supports/refutes and the shipping WO with outcome-of (REQ-033)', async (t) => {
+  for (const rel of ['tests', 'supports', 'refutes']) {
+    const dir = mkdtempSync(join(tmpdir(), 'veri-outcome-ok-'));
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    writeOutcomeProject(dir, {
+      'requirements/REQ-001-bet.md': OUTCOME_FILES.hypothesis(),
+      'work-orders/WO-001-ship.md': OUTCOME_FILES.wo('done'),
+      'sources/SRC-001-outcome.md': OUTCOME_FILES.outcomeSrc(rel),
+    });
+    const { issues, advisories } = checkProject(await loadProject(dir));
+    assert.deepEqual(issues, [], `rel ${rel} must validate cleanly`);
+    assert.deepEqual(advisories.filter((advisory) => advisory.kind === 'untested-bet'), []);
+  }
+});
+
+test('an outcome rel from a non-source, or at the wrong target type, is an invalid-outcome-link issue', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-outcome-bad-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeOutcomeProject(dir, {
+    'requirements/REQ-001-bet.md': OUTCOME_FILES.hypothesis('links:\n  - id: SRC-001\n    rel: tests\n'),
+    // supports at a work order, outcome-of at a requirement: both misdirected.
+    'sources/SRC-001-outcome.md':
+      '---\nid: SRC-001\ntype: source\ntitle: S\nstatus: imported\ncreated: 2026-08-02\nupdated: 2026-08-02\nlinks:\n  - id: WO-001\n    rel: supports\n  - id: REQ-001\n    rel: outcome-of\n---\nBody.\n',
+    'work-orders/WO-001-ship.md': OUTCOME_FILES.wo('done'),
+    // Free text survives: a WO "supporting" a requirement is the ordinary
+    // English rel the bundled demo uses — never an outcome-link issue.
+    'work-orders/WO-002-free-text.md':
+      '---\nid: WO-002\ntype: work-order\ntitle: Free text\nstatus: backlog\ncreated: 2026-08-01\nupdated: 2026-08-01\nlinks:\n  - id: REQ-001\n    rel: supports\n---\n## Summary\n\nx.\n',
+  });
+  const issues = checkProject(await loadProject(dir)).issues;
+  assert.partialDeepStrictEqual(
+    issues.filter((issue) => issue.kind === 'invalid-outcome-link'),
+    [
+      { id: 'REQ-001', targetId: 'SRC-001', rel: 'tests' },
+      { id: 'SRC-001', targetId: 'WO-001', rel: 'supports' },
+      { id: 'SRC-001', targetId: 'REQ-001', rel: 'outcome-of' },
+    ],
+  );
+});
+
+test('a hypothesis whose WOs are all done with no outcome source is an untested bet — advisory, never an issue', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-untested-bet-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeOutcomeProject(dir, {
+    'requirements/REQ-001-bet.md': OUTCOME_FILES.hypothesis(),
+    'work-orders/WO-001-ship.md': OUTCOME_FILES.wo('done'),
+  });
+  const { issues, advisories } = checkProject(await loadProject(dir));
+  assert.deepEqual(issues, [], 'the untested bet must never appear in the issues array');
+  assert.partialDeepStrictEqual(
+    advisories.filter((advisory) => advisory.kind === 'untested-bet'),
+    [{ id: 'REQ-001', file: 'requirements/REQ-001-bet.md', workOrderIds: ['WO-001'] }],
+  );
+});
+
+test('the untested-bet advisory stays silent for constraints, open WOs, unshipped bets, and tested bets', async (t) => {
+  const silent = async (files: Record<string, string>, label: string): Promise<void> => {
+    const dir = mkdtempSync(join(tmpdir(), 'veri-tested-bet-'));
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    writeOutcomeProject(dir, files);
+    const advisories = checkProject(await loadProject(dir)).advisories;
+    assert.deepEqual(advisories.filter((advisory) => advisory.kind === 'untested-bet'), [], label);
+  };
+
+  // A constraint (kind-less default) with done WOs is verified by acceptance
+  // criteria, not outcomes — never an untested bet.
+  await silent(
+    {
+      'requirements/REQ-001-bet.md':
+        '---\nid: REQ-001\ntype: requirement\ntitle: C\nstatus: accepted\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\n---\nBody.\n\n## Acceptance criteria\n\n- [x] x\n',
+      'work-orders/WO-001-ship.md': OUTCOME_FILES.wo('done'),
+    },
+    'constraint',
+  );
+  // An open work order: the bet is still shipping.
+  await silent(
+    {
+      'requirements/REQ-001-bet.md': OUTCOME_FILES.hypothesis(),
+      'work-orders/WO-001-ship.md': OUTCOME_FILES.wo('in-progress'),
+    },
+    'open WO',
+  );
+  // No linked work order at all: nothing has shipped to observe.
+  await silent({ 'requirements/REQ-001-bet.md': OUTCOME_FILES.hypothesis() }, 'no WOs');
+  // An outcome source linked: the loop is closed, whatever the verdict.
+  await silent(
+    {
+      'requirements/REQ-001-bet.md': OUTCOME_FILES.hypothesis(),
+      'work-orders/WO-001-ship.md': OUTCOME_FILES.wo('done'),
+      'sources/SRC-001-outcome.md': OUTCOME_FILES.outcomeSrc('refutes'),
+    },
+    'tested',
+  );
+});
+
 test('a backlog work order may cite pending documents — the gate is on starting work', async () => {
   const load = await loadProject(new URL('../fixtures/pending-ok', import.meta.url));
   assert.equal(load.documents.length, 3);
