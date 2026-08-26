@@ -2,7 +2,7 @@
 id: WO-114
 type: work-order
 title: "Requirement kind: constraint vs hypothesis in core, check, and rendering"
-status: in-progress
+status: done
 claimed_by: claude-wo114
 claimed_at: 2026-08-26
 approved: 2026-08-26
@@ -47,12 +47,12 @@ Implements REQ-032. The REQ schema gains `kind: constraint | hypothesis` (absent
 
 ## Acceptance tests
 
-- [ ] A REQ with `kind: hypothesis` and an outcome block parses and round-trips
-- [ ] A REQ with no `kind` behaves as a constraint everywhere
-- [ ] `veri check` flags a hypothesis REQ with no outcome declared
-- [ ] Kind is visible in CLI rendering, context packages, and the UI
-- [ ] Full check suite passes with zero edits to existing documents
+- [x] A REQ with `kind: hypothesis` and an outcome block parses and round-trips
+- [x] A REQ with no `kind` behaves as a constraint everywhere
+- [x] `veri check` flags a hypothesis REQ with no outcome declared
+- [x] Kind is visible in CLI rendering, context packages, and the UI
+- [x] Full check suite passes with zero edits to existing documents
 
 ## Receipts
 
-(none yet)
+- 2026-08-26 — 9c07a84 — packages/core/src/{schema,types,parse,pending,check,context}.ts (+ parse/check tests, hypothesis-no-outcome fixture), packages/cli/src/commands.ts (+ test), packages/mcp/src/context.test.ts, the UI renderer's reader view (frontmatter card), veri/templates/requirement.md, DEC-112 (proposed), veri/ids — `kind`/`outcome` in the REQ schema, the `hypothesis-without-outcome` check rule, and kind/outcome rendering in the CLI list, context packages, and the app's frontmatter card. Validated: core 254 / cli 58 / mcp 80 / ui 331 tests pass; `veri check` 0 issues (12 pre-existing advisories). Deviations: none in scope; the UI change is a two-row addition to the existing frontmatter card, no new designed surface (gate did not fire).
