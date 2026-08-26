@@ -2,7 +2,7 @@
 id: WO-117
 type: work-order
 title: "The intent home: current bets, awaiting judgment, recently learned"
-status: in-progress
+status: done
 claimed_by: claude-wo117
 claimed_at: 2026-08-26
 approved: 2026-08-26
@@ -52,12 +52,12 @@ Implements REQ-035. Adds a home/intent view to the desktop app aggregating: curr
 
 ## Acceptance tests
 
-- [ ] The home view renders the three sections from existing documents; a hypothesis REQ shows outcome target and WO state; untested bets are flagged
-- [ ] Proposed DECs and draft REQs appear under awaiting judgment and link to where they are acted on
-- [ ] Outcome sources are visually distinct in recently-learned and link to their hypothesis
-- [ ] The view holds no authoritative state
-- [ ] UI suite and typecheck pass; shot-harness screenshots verify the view; terminal `veri check` zero issues
+- [x] The home view renders the three sections from existing documents; a hypothesis REQ shows outcome target and WO state; untested bets are flagged
+- [x] Proposed DECs and draft REQs appear under awaiting judgment and link to where they are acted on
+- [x] Outcome sources are visually distinct in recently-learned and link to their hypothesis
+- [x] The view holds no authoritative state
+- [x] UI suite and typecheck pass; shot-harness screenshots verify the view; terminal `veri check` zero issues
 
 ## Receipts
 
-(none yet)
+- 2026-08-26 — 82a9520 — packages/ui/src/renderer/derive.ts, packages/ui/src/renderer/derive.test.ts, packages/ui/src/renderer/views/home.ts, packages/ui/renderer/styles.css, veri/sources/SRC-053 (design, d39a1bb), veri/decisions/DEC-118 — claude-wo117 session: the intent home per SRC-053 — the existing Home view evolved: NEEDS REVIEW becomes AWAITING JUDGMENT (N gate crossings, same pendingDocs derivation and import grouping, rows route to the reader's review banner); a full-width CURRENT BETS card renders accepted hypothesis REQs with core's outcomeLabel target chip, either-direction linked-WO done counts (withdrawn excluded — the check's own linkage), and an epistemic state that is either the snapshot's untested-bet advisory (never recomputed) or the outcome sources that reported; RECENTLY LEARNED joins the grid with newest non-withdrawn sources, outcome sources distinguished by a supports/refutes/tests verdict-chip button opening the hypothesis (split row — two honest targets, no nested buttons). Derivations (currentBets, recentlyLearned) are pure renderer functions over the snapshot reading @verikb/core/pending; no new sidecar reads, no state. DEC-118 (proposed) records the choices. Validation: ui 358 tests pass, typecheck and bundle clean; terminal veri check 0 issues (16 pre-existing advisories); shot-harness verification of a fixture project (bets with evidence, untested-bet flag, verdict chips, judgment queue) and the self-hosted repo in dark (empty-bets teaching state). Deviations: SRC-053's approved: stamp placed by the session under Daniel's blanket pivot authorization (same provenance as SRC-051/SRC-052), flagged for his review.
