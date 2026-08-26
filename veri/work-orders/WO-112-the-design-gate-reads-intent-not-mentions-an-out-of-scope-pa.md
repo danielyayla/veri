@@ -2,7 +2,7 @@
 id: WO-112
 type: work-order
 title: "The design gate reads intent, not mentions — an out-of-scope path must not trip it"
-status: in-progress
+status: done
 claimed_by: claude-design-gate
 claimed_at: 2026-08-26
 approved: 2026-08-26
@@ -51,14 +51,14 @@ Approving WO-109 raised a design-gate violation for a path that work order expli
 
 ## Acceptance tests
 
-- [ ] A ready work order whose only gated-path mention is inside `## Out of scope` raises no design-gate issue
-- [ ] The same path in `## Summary` or `## In scope` still raises the issue
-- [ ] A work order mentioning the path in both Out of scope and In scope still raises the issue
-- [ ] A work order with a `designed-by` link to an existing document raises nothing regardless of where the path is mentioned
-- [ ] A work order with a `designed-by` link whose target id does not exist still fails the gate, as today
-- [ ] With no `design_gate_paths` declared, the gate stays inert
-- [ ] WO-109's out-of-scope line names the path literally again and `veri check` reports zero violations
+- [x] A ready work order whose only gated-path mention is inside `## Out of scope` raises no design-gate issue
+- [x] The same path in `## Summary` or `## In scope` still raises the issue
+- [x] A work order mentioning the path in both Out of scope and In scope still raises the issue
+- [x] A work order with a `designed-by` link to an existing document raises nothing regardless of where the path is mentioned
+- [x] A work order with a `designed-by` link whose target id does not exist still fails the gate, as today
+- [x] With no `design_gate_paths` declared, the gate stays inert
+- [x] WO-109's out-of-scope line names the path literally again and `veri check` reports zero violations
 
 ## Receipts
 
-(none yet)
+- 2026-08-26 — 5395993 — packages/core/src/check.ts, packages/core/src/check.test.ts, packages/core/src/sections.ts, packages/core/src/sections.test.ts, veri/work-orders/WO-109-....md — `checkDesignGate` searches the body with `## Out of scope` cut out; every other section triggers as before, and a path named in both still triggers. Section boundaries moved behind one primitive in sections.ts — `sectionSpan`, with `sectionText` and `withoutSection` over it — extending [[DEC-100]]'s splice seam to reading, so the reader and the writer share one answer to where a section ends; `receiptsSection` is now a call to `sectionText` and keeps its exact output. [[WO-109]]'s out-of-scope line names the app package path literally again — spelled out there, not here, because a receipt claiming a gated path is the gate working: a receipt is a record of what a commit touched. 331 tests pass across five workspaces, typecheck clean, `veri check` 0 issues.
