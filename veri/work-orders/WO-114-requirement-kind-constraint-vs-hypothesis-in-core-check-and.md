@@ -2,7 +2,10 @@
 id: WO-114
 type: work-order
 title: "Requirement kind: constraint vs hypothesis in core, check, and rendering"
-status: backlog
+status: in-progress
+claimed_by: claude-wo114
+claimed_at: 2026-08-26
+approved: 2026-08-26
 created: 2026-08-26
 updated: 2026-08-26
 links:
