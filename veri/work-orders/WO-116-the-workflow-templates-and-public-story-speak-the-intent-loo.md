@@ -2,7 +2,7 @@
 id: WO-116
 type: work-order
 title: "The workflow, templates, and public story speak the intent loop"
-status: in-progress
+status: done
 claimed_by: claude-wo116
 claimed_at: 2026-08-26
 approved: 2026-08-26
@@ -46,11 +46,11 @@ Implements REQ-034. Amends the workflow document (WF-001) to present the full li
 
 ## Acceptance tests
 
-- [ ] workflow.md describes the full loop and the intent principle, and an implementer reading only it learns how hypotheses and outcome sources work
-- [ ] The source template shows outcome-evidence filing
-- [ ] README and docs-site positioning state the DEC-111 thesis
-- [ ] Terminal `veri check`: zero issues; only expected re-stamp advisories from the in-scope WF-001 amendment
+- [x] workflow.md describes the full loop and the intent principle, and an implementer reading only it learns how hypotheses and outcome sources work
+- [x] The source template shows outcome-evidence filing
+- [x] README and docs-site positioning state the DEC-111 thesis
+- [x] Terminal `veri check`: zero issues; only expected re-stamp advisories from the in-scope WF-001 amendment
 
 ## Receipts
 
-(none yet)
+- 2026-08-26 — 93ee663 — veri/workflow.md, veri/templates/source.md, README.md, site/index.html, veri/decisions/DEC-117 — WF-001's path of work amended to state the full lifecycle loop (evidence → understanding → product intent → requirements → decisions → bounded work → agent implementation → verification → learning → revised intent) and the humans-define-intent / agents-execute-within-intent principle with its four gate points; new rule 9 teaches constraint vs hypothesis, outcome targets, outcome-source filing (tests/supports/refutes + outcome-of), and the untested-bet advisory. Source template gains an outcome-evidence parenthetical with a links: example. README lede and site title/meta/hero restate the DEC-111 thesis; mechanism copy untouched. Terminal veri check: 0 issues, 16 advisories — identical to the pre-existing set (WF-001's re-stamp drift advisory already stood from WO-113 and now covers this amendment too; awaits Daniel's batch-end re-approval). Placement choices in DEC-117 (proposed).
