@@ -2,7 +2,7 @@
 id: WO-106
 type: work-order
 title: "The palette query grammar and ranked matching move to core; mcp keeps the door and re-exports"
-status: in-progress
+status: done
 claimed_by: claude-wo106
 claimed_at: 2026-08-26
 approved: 2026-08-26
@@ -49,11 +49,11 @@ The ranked-search implementation the whole product shares — parsePaletteQuery,
 
 ## Acceptance tests
 
-- [ ] parsePaletteQuery, relatedIds, and rankDocs are defined once, in core; mcp/search.ts holds only searchDocs, paletteSearch, and re-exports
-- [ ] The moved ranking suite runs in core (parse, tiers, AND scoring, related:, dogfood recall, zero-strip) — all green
-- [ ] `import { parsePaletteQuery, rankDocs, relatedIds } from '@verikb/mcp'` and the renderer's PaletteResult/PaletteHit type imports still resolve — no consumer file outside mcp/search.ts changes
-- [ ] Full suite and typecheck green across workspaces; veri check green (the observed-import scan sees no new edges)
+- [x] parsePaletteQuery, relatedIds, and rankDocs are defined once, in core; mcp/search.ts holds only searchDocs, paletteSearch, and re-exports
+- [x] The moved ranking suite runs in core (parse, tiers, AND scoring, related:, dogfood recall, zero-strip) — all green
+- [x] `import { parsePaletteQuery, rankDocs, relatedIds } from '@verikb/mcp'` and the renderer's PaletteResult/PaletteHit type imports still resolve — no consumer file outside mcp/search.ts changes
+- [x] Full suite and typecheck green across workspaces; veri check green (the observed-import scan sees no new edges)
 
 ## Receipts
 
-(none yet)
+- 2026-08-26 — ddb3faa — packages/core/src/{search.ts,search.test.ts,index.ts}, packages/mcp/src/search.ts (search.test.ts moved out) — parsePaletteQuery, relatedIds, rankDocs, and the Palette* shapes moved verbatim to a new pure core module per [[DEC-104]]; mcp keeps searchDocs and paletteSearch and re-exports the moved names, so no consumer file outside mcp/search.ts changed; the ranking suite runs in core (290 core tests), full suites green across core/mcp/cli/ui (290/56/58/338), typecheck clean everywhere, veri check 0 issues.
