@@ -2,7 +2,10 @@
 id: WO-117
 type: work-order
 title: "The intent home: current bets, awaiting judgment, recently learned"
-status: backlog
+status: in-progress
+claimed_by: claude-wo117
+claimed_at: 2026-08-26
+approved: 2026-08-26
 created: 2026-08-26
 updated: 2026-08-26
 links:
