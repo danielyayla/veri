@@ -2,7 +2,10 @@
 id: WO-110
 type: work-order
 title: "Discard a document from the app — withdraw and delete on the document surface"
-status: backlog
+status: in-progress
+claimed_by: claude-wo110
+claimed_at: 2026-08-26
+approved: 2026-08-26
 created: 2026-08-26
 updated: 2026-08-26
 links:
