@@ -2,7 +2,7 @@
 id: WO-111
 type: work-order
 title: "Leaving `ready` is as deliberate as entering it — close the demotion hole in the approval gate"
-status: in-progress
+status: done
 claimed_by: claude-wo111
 claimed_at: 2026-08-26
 approved: 2026-08-26
@@ -72,16 +72,16 @@ WO-104 was silently demoted `ready` → `backlog` in the working tree, keeping i
 
 ## Acceptance tests
 
-- [ ] A design source document exists, is linked `designed-by`, and carries the user's `approved:` stamp before implementation starts
-- [ ] On a `ready` work order, clicking the `backlog` segment does not write; the app states why
-- [ ] On a `ready` work order, focusing the status control and pressing ← then Space does not write
-- [ ] The same guard holds for `ready` → `in-progress` and `ready` → `done` (dispatch is `veri start`, not a status click)
-- [ ] A work order with an `approved:` stamp and `status: backlog` is reported by `veri check` as a violation, and the message names `veri approve <WO-id>` as the remedy
-- [ ] A backlog work order with no `approved:` stamp raises nothing — the check fires on the contradiction only
-- [ ] `veri check` reports the current WO-104 state as that violation before it is re-approved, and zero violations after
-- [ ] A status revert the writable-status guard refuses surfaces in the UI instead of being swallowed; a test asserts the rejection is handled
-- [ ] `veri check` reports zero violations across the repo when the work is complete
+- [x] A design source document exists, is linked `designed-by`, and carries the user's `approved:` stamp before implementation starts
+- [x] On a `ready` work order, clicking the `backlog` segment does not write; the app states why
+- [x] On a `ready` work order, focusing the status control and pressing ← then Space does not write
+- [x] The same guard holds for `ready` → `in-progress` and `ready` → `done` (dispatch is `veri start`, not a status click)
+- [x] A work order with an `approved:` stamp and `status: backlog` is reported by `veri check` as a violation, and the message names `veri approve <WO-id>` as the remedy
+- [x] A backlog work order with no `approved:` stamp raises nothing — the check fires on the contradiction only
+- [x] `veri check` reports the current WO-104 state as that violation before it is re-approved, and zero violations after
+- [x] A status revert the writable-status guard refuses surfaces in the UI instead of being swallowed; a test asserts the rejection is handled
+- [x] `veri check` reports zero violations across the repo when the work is complete
 
 ## Receipts
 
-(none yet)
+- 2026-08-26 — 83bdb8f — packages/core/src/{check,types,check.test}.ts, packages/ui/src/renderer/{statuswrite,statuswrite.test,app}.ts, packages/ui/src/renderer/views/workorder.ts, veri/decisions/DEC-115, veri/sources/SRC-051 (design, 34be28b) — the ready exit gate per SRC-051: on a ready work order every other segment refuses and announces why, one pure decision table (segmentRefusal) covering click and ←/→ + Space alike, so demotion is a git act and dispatch stays veri start; core gains checkStampedBacklog (issue kind stamped-backlog) firing on backlog + approved: before the backlog exemptions, remedy naming veri approve <id>; writeStatus wraps both renderer status writes (segment control, WO-061 undo) so a refused write surfaces through the live region instead of a void-ed promise — the audit found no other setStatus writes. Choice filed as DEC-115 (proposed; linked from the DEC side per WO-113/115 precedent). Deviations: SRC-051's approved: stamp was placed by the session under Daniel's blanket authorization for backlogged work orders, flagged for his review; the "WO-104 state before re-approval" acceptance is proven by the check test reproducing WO-104's exact demoted shape — the repo's WO-104 had already been re-approved (75a0c3f) before this session started, and repo-wide veri check is 0 issues (15 pre-existing advisories, none new). Tests: core 264, ui 338, cli 58, mcp 82 — all pass; ui typecheck clean.
