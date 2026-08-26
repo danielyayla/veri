@@ -23,9 +23,15 @@ links:
     rel: relates-to
   - id: WO-112
     rel: relates-to
-# binds:         # code this work order claims (optional)
-#   paths: []    # repo-root-relative globs
-#   tests: []    # test files proving it (path or path::name)
+binds:
+  paths:
+    - packages/core/src/check.ts
+    - packages/core/src/types.ts
+    - packages/core/src/report.ts
+    - packages/core/fixtures/broken/**
+    - site/docs/reference.html
+  tests:
+    - packages/core/src/check.test.ts
 ---
 
 ## Summary
@@ -64,6 +70,7 @@ Settle that split in a proposed decision before writing code, then build to it.
 - [[DEC-040]] — relates-to
 - [[DEC-081]] — relates-to
 - [[WO-112]] — relates-to
+- [[DEC-114]] — constrained-by (the evidence split, filed while implementing)
 
 ## Acceptance tests
 

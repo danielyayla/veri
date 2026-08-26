@@ -5,7 +5,7 @@ title: "The design-gate trigger is declared in workflow frontmatter"
 status: active
 approved: 2026-08-18
 created: 2026-08-18
-updated: 2026-08-18
+updated: 2026-08-26
 links:
   - id: WO-042
     rel: constrains
@@ -15,7 +15,9 @@ links:
 
 ## Choice
 
-`checkDesignGate` reads its trigger paths from a typed optional frontmatter field on the project's workflow document — `design_gate_paths`, a list of path substrings. A started work order whose body mentions any declared path must link a design document (`rel: designed-by`), exactly as [[DEC-012]] requires; with no paths declared the gate is inert. Core keeps only the mechanism; each project declares the values — this repo declares `packages/ui` in `veri/workflow.md`.
+`checkDesignGate` reads its trigger paths from a typed optional frontmatter field on the project's workflow document — `design_gate_paths`, a list of paths. A started work order that claims any declared path must link a design document (`rel: designed-by`), exactly as [[DEC-012]] requires; with no paths declared the gate is inert. Core keeps only the mechanism; each project declares the values — this repo declares `packages/ui` in `veri/workflow.md`.
+
+What counts as claiming a path is [[DEC-114]]'s split (amended here from the original body-text mention heuristic): the issue-tier evidence is the work order's own `binds: paths:` declaration, commits that touched a gated path without a declaration surface as a git-backed advisory, and prose mention survives only as an advisory nudge for work that has declared nothing.
 
 ## Rejected alternatives
 

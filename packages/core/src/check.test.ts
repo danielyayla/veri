@@ -5,7 +5,18 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadProject } from './load.ts';
-import { checkProject, checkSharedClaims, checkStaleClaims, checkStructure, expectedSections, missingSections } from './check.ts';
+import {
+  bindsClaimGatedPath,
+  checkDesignGateDiff,
+  checkDesignGateMentions,
+  checkProject,
+  checkSharedClaims,
+  checkStaleClaims,
+  checkStructure,
+  expectedSections,
+  missingSections,
+} from './check.ts';
+import type { GitFacts } from './provenance.ts';
 import type { VeriDocument } from './types.ts';
 
 interface BrokenCase {
@@ -323,13 +334,14 @@ test('a resolvable designed-by link satisfies the design gate; backlog is exempt
   assert.deepEqual(checkProject(await loadProject(dir)).issues, []);
 });
 
-test('the design gate ignores a gated path named only under "## Out of scope" (WO-112)', async (t) => {
-  const dir = mkdtempSync(join(tmpdir(), 'veri-design-gate-scope-'));
-  t.after(() => rmSync(dir, { recursive: true, force: true }));
+// Shared fixture for the declaration/mention/diff tiers (WO-113, DEC-114).
+function writeDesignGateFixture(dir: string, withGatePaths = true): void {
   for (const sub of ['requirements', 'work-orders', 'sources']) mkdirSync(join(dir, sub), { recursive: true });
   writeFileSync(
     join(dir, 'workflow.md'),
-    '---\nid: WF-001\ntype: workflow\ntitle: W\nstatus: accepted\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\ndesign_gate_paths:\n  - packages/ui\n---\nRules.\n',
+    `---\nid: WF-001\ntype: workflow\ntitle: W\nstatus: accepted\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\n${
+      withGatePaths ? 'design_gate_paths:\n  - packages/ui\n' : ''
+    }---\nRules.\n`,
   );
   writeFileSync(
     join(dir, 'requirements', 'REQ-001-ui.md'),
@@ -339,36 +351,157 @@ test('the design gate ignores a gated path named only under "## Out of scope" (W
     join(dir, 'sources', 'SRC-001-design.md'),
     '---\nid: SRC-001\ntype: source\ntitle: Design handoff\nstatus: imported\ncreated: 2026-08-01\nupdated: 2026-08-01\n---\nThe design.\n',
   );
+}
+
+const IMPLEMENTS = '  - id: REQ-001\n    rel: implements\n';
+const DESIGNED = `${IMPLEMENTS}  - id: SRC-001\n    rel: designed-by\n`;
+const BROKEN_DESIGN = `${IMPLEMENTS}  - id: SRC-999\n    rel: designed-by\n`;
+
+function designWo(body: string, options: { links?: string; binds?: string[]; status?: string } = {}): string {
+  const status = options.status ?? 'in-progress';
+  const binds =
+    options.binds === undefined ? '' : `binds:\n  paths:\n${options.binds.map((p) => `    - ${p}\n`).join('')}`;
+  return `---\nid: WO-001\ntype: work-order\ntitle: T\nstatus: ${status}\n${
+    status === 'in-progress' ? 'claimed_by: session-a\nclaimed_at: 2026-08-01\n' : ''
+  }created: 2026-08-01\nupdated: 2026-08-01\nlinks:\n${options.links ?? IMPLEMENTS}${binds}---\n${body}`;
+}
+
+test('the design gate reads declarations: gated binds without a design fail; prose alone never does (WO-113)', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-design-gate-binds-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeDesignGateFixture(dir);
   const woPath = join(dir, 'work-orders', 'WO-001-ui.md');
-  const wo = (body: string, links = '  - id: REQ-001\n    rel: implements\n'): string =>
-    `---\nid: WO-001\ntype: work-order\ntitle: T\nstatus: in-progress\nclaimed_by: session-a\nclaimed_at: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\nlinks:\n${links}---\n${body}`;
   const gated = async (): Promise<string[]> =>
     checkProject(await loadProject(dir)).issues.filter((issue) => issue.kind === 'ui-wo-without-design').map((issue) => issue.message);
 
-  // An exclusion is a promise not to touch the path — never a claim to it.
-  writeFileSync(woPath, wo('## Summary\n\nCore only.\n\n## Out of scope\n\n- Any change to packages/ui — its own work order.\n'));
+  // A declared gated bind with no designed-by link fails, and the message
+  // names the declaration as its evidence.
+  writeFileSync(woPath, designWo('## Summary\n\nRework the app panel.\n', { binds: ['packages/ui/src/**'] }));
+  const messages = await gated();
+  assert.equal(messages.length, 1);
+  assert.ok(messages[0]!.includes('binds.paths'), messages[0]);
+
+  // A glob that covers the gated directory claims it too.
+  writeFileSync(woPath, designWo('## Summary\n\nEverything.\n', { binds: ['packages/**'] }));
+  assert.equal((await gated()).length, 1);
+
+  // A resolvable designed-by link satisfies the gate; a broken one does not.
+  writeFileSync(woPath, designWo('## Summary\n\nRework the app panel.\n', { binds: ['packages/ui/src/**'], links: DESIGNED }));
+  assert.deepEqual(await gated(), []);
+  writeFileSync(woPath, designWo('## Summary\n\nRework the app panel.\n', { binds: ['packages/ui/src/**'], links: BROKEN_DESIGN }));
+  assert.equal((await gated()).length, 1);
+
+  // Prose naming a gated path it never declares is not issue evidence — the
+  // WO-112 false positive (receipts, rationale, comparisons) is gone for good.
+  writeFileSync(woPath, designWo('## Summary\n\nTouches packages/ui.\n\n## In scope\n\n- packages/ui work\n'));
   assert.deepEqual(await gated(), []);
 
-  // Every other section still triggers, Summary and In scope alike.
-  writeFileSync(woPath, wo('## Summary\n\nTouches packages/ui.\n\n## Out of scope\n\n- Nothing.\n'));
-  assert.equal((await gated()).length, 1);
-  writeFileSync(woPath, wo('## Summary\n\nx\n\n## In scope\n\n- packages/ui work\n\n## Out of scope\n\n- Nothing.\n'));
-  assert.equal((await gated()).length, 1);
-
-  // Mentioned in both: the claim wins — excluding one sentence never licenses
-  // the other.
-  writeFileSync(woPath, wo('## In scope\n\n- packages/ui work\n\n## Out of scope\n\n- Other packages/ui screens.\n'));
-  assert.equal((await gated()).length, 1);
-
-  // A resolvable designed-by link satisfies the gate wherever the path sits.
-  const designed = '  - id: REQ-001\n    rel: implements\n  - id: SRC-001\n    rel: designed-by\n';
-  writeFileSync(woPath, wo('## In scope\n\n- packages/ui work\n\n## Out of scope\n\n- packages/ui elsewhere.\n', designed));
+  // Non-gated binds pass, prose mentions or not.
+  writeFileSync(woPath, designWo('## Summary\n\nCompare with packages/ui.\n', { binds: ['packages/core/src/**'] }));
   assert.deepEqual(await gated(), []);
 
-  // A designed-by link to a missing id still fails the gate, as before.
-  const broken = '  - id: REQ-001\n    rel: implements\n  - id: SRC-999\n    rel: designed-by\n';
-  writeFileSync(woPath, wo('## In scope\n\n- packages/ui work\n', broken));
-  assert.equal((await gated()).length, 1);
+  // Backlog is exempt: the gate fires on promotion, as before.
+  writeFileSync(woPath, designWo('## Summary\n\nApp work.\n', { binds: ['packages/ui/src/**'], status: 'backlog' }));
+  assert.deepEqual(await gated(), []);
+});
+
+test('the mention heuristic is an advisory: undeclared prose claims nudge, declarations and designs silence it (WO-113)', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-design-gate-mention-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeDesignGateFixture(dir);
+  const woPath = join(dir, 'work-orders', 'WO-001-ui.md');
+  const mentions = async (): Promise<string[]> =>
+    checkDesignGateMentions((await loadProject(dir)).documents).map((advisory) => advisory.message);
+
+  // No binds declared, prose names the gated path: an advisory, naming its
+  // evidence — never an issue.
+  writeFileSync(woPath, designWo('## Summary\n\nx\n\n## In scope\n\n- packages/ui work\n'));
+  const nudges = await mentions();
+  assert.equal(nudges.length, 1);
+  assert.ok(nudges[0]!.includes('body text'), nudges[0]);
+  assert.deepEqual(checkProject(await loadProject(dir)).issues, []);
+
+  // `## Out of scope` stays excluded (WO-112), and `## Receipts` joins it —
+  // receipts record history, which the diff tier reads directly.
+  writeFileSync(woPath, designWo('## Summary\n\nCore only.\n\n## Out of scope\n\n- Any change to packages/ui.\n'));
+  assert.deepEqual(await mentions(), []);
+  writeFileSync(woPath, designWo('## Summary\n\nCore only.\n\n## Receipts\n\n- 2026-08-01 — abc1234 — packages/ui/x.ts — done\n'));
+  assert.deepEqual(await mentions(), []);
+
+  // A work order that declares binds has spoken — its prose is no longer
+  // evidence, whichever paths it declares.
+  writeFileSync(woPath, designWo('## Summary\n\nCompare with packages/ui.\n', { binds: ['packages/core/src/**'] }));
+  assert.deepEqual(await mentions(), []);
+
+  // A designed-by link silences the nudge too.
+  writeFileSync(woPath, designWo('## In scope\n\n- packages/ui work\n', { links: DESIGNED }));
+  assert.deepEqual(await mentions(), []);
+
+  // With no design_gate_paths declared, every tier is inert.
+  writeDesignGateFixture(dir, false);
+  writeFileSync(woPath, designWo('## In scope\n\n- packages/ui work\n', { binds: ['packages/ui/src/**'] }));
+  const load = await loadProject(dir);
+  assert.deepEqual(checkProject(load).issues, []);
+  assert.deepEqual(checkDesignGateMentions(load.documents), []);
+  assert.deepEqual(checkDesignGateDiff(load.documents, { commits: [] }), []);
+});
+
+test('the diff tier catches gated work that declared nothing (WO-113)', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-design-gate-diff-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeDesignGateFixture(dir);
+  const woPath = join(dir, 'work-orders', 'WO-001-ui.md');
+  const facts: GitFacts = {
+    commits: [
+      {
+        sha: 'aaaa111122223333444455556666777788889999',
+        date: '2026-08-02',
+        subject: 'WO-001: build the panel',
+        files: ['packages/ui/src/panel.ts', 'veri/work-orders/WO-001-ui.md'],
+      },
+      {
+        sha: 'bbbb111122223333444455556666777788889999',
+        date: '2026-08-02',
+        subject: 'unrelated tinkering',
+        files: ['packages/ui/src/other.ts'],
+      },
+    ],
+  };
+  const diff = async (gitFacts: GitFacts = facts): Promise<string[]> =>
+    checkDesignGateDiff((await loadProject(dir)).documents, gitFacts).map((advisory) => advisory.message);
+
+  // The false negative, caught: an in-progress work order whose claimed
+  // commit touched the gated path without declaring it. The message names
+  // the commit, the file, and the diff as evidence.
+  writeFileSync(woPath, designWo('## Summary\n\nQuiet app work, never spelled out.\n'));
+  const found = await diff();
+  assert.equal(found.length, 1);
+  assert.ok(found[0]!.includes('aaaa111') && found[0]!.includes('packages/ui/src/panel.ts'), found[0]);
+  assert.ok(found[0]!.includes('commit diff'), found[0]);
+
+  // An unclaimed commit (no WO-nnn: subject) is not this work order's touch.
+  writeFileSync(woPath, designWo('## Summary\n\nQuiet.\n'));
+  assert.deepEqual(await diff({ commits: [facts.commits[1]!] }), []);
+
+  // A covering declaration hands the case to the issue tier; a designed-by
+  // link satisfies the gate outright. Neither double-charges here.
+  writeFileSync(woPath, designWo('## Summary\n\nQuiet.\n', { binds: ['packages/ui/**'] }));
+  assert.deepEqual(await diff(), []);
+  writeFileSync(woPath, designWo('## Summary\n\nQuiet.\n', { links: DESIGNED }));
+  assert.deepEqual(await diff(), []);
+
+  // Closed work orders are never audited retroactively (WO-113 out of scope).
+  writeFileSync(woPath, designWo('## Summary\n\nQuiet.\n## Receipts\n\n- x\n', { status: 'done' }));
+  assert.deepEqual(await diff(), []);
+});
+
+test('bindsClaimGatedPath: names, globs, and directory prefixes', () => {
+  assert.ok(bindsClaimGatedPath(['packages/ui'], 'packages/ui'));
+  assert.ok(bindsClaimGatedPath(['packages/ui/src/**'], 'packages/ui'));
+  assert.ok(bindsClaimGatedPath(['packages/**'], 'packages/ui'));
+  assert.ok(!bindsClaimGatedPath(['packages/core/src/**'], 'packages/ui'));
+  assert.ok(!bindsClaimGatedPath([], 'packages/ui'));
+  assert.ok(!bindsClaimGatedPath(['packages/ui'], ''));
 });
 
 // --- Multi-maintainer stamps (REQ-026, DEC-071) ---

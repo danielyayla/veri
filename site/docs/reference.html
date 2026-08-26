@@ -130,7 +130,7 @@ binds:
   <tr><td><code>missing-approval</code></td><td>A document sits in a promoted status (<code>accepted</code>, <code>active</code>) without the user's <code>approved:</code> stamp.</td></tr>
   <tr><td><code>unknown-approver</code></td><td>(Maintainers projects) <code>approved_by</code> names someone not on the workflow's <code>maintainers:</code> list. A promoted document <i>missing</i> <code>approved_by</code> only warns — pre-team stamps are grandfathered as an advisory.</td></tr>
   <tr><td><code>done-wo-violation</code></td><td>A work order is <code>done</code> with unchecked acceptance boxes or no receipt.</td></tr>
-  <tr><td><code>ui-wo-without-design</code></td><td>(Design-gated projects) a UI work order has no resolvable <code>designed-by</code> link.</td></tr>
+  <tr><td><code>ui-wo-without-design</code></td><td>(Design-gated projects) a started work order declares a design-gated path in <code>binds.paths</code> but has no resolvable <code>designed-by</code> link — the message names the declaration as its evidence.</td></tr>
   <tr><td><code>missing-section</code></td><td>A document lost a <code>##</code> section its type's template expects.</td></tr>
   <tr><td><code>format-mismatch</code></td><td>The <code>veri/format</code> marker doesn't match what this Veri reads — migrate, or update Veri.</td></tr>
 </table>
@@ -158,6 +158,16 @@ binds:
 </table>
 </div>
 <p>"Since the in-progress work began" is derived, never stored: a commit whose subject names the work order and a form of "start" anchors it, falling back to the work order's <code>created</code> date. Work orders without <code>binds</code> change nothing — the detectors are inert until a project opts in. Outside a git repository they skip with a note.</p>
+
+<h2 id="design-gate">Design gate</h2>
+<p>In projects that declare <code>design_gate_paths</code> on the workflow document, the gate's hard tier is the <code>ui-wo-without-design</code> issue above, read from each work order's own <code>binds.paths</code> declaration. Two advisories cover what a declaration cannot:</p>
+<div class="table-scroll">
+<table>
+  <tr><th>Advisory</th><th>Fires when</th></tr>
+  <tr><td><code>design-undeclared-touch</code></td><td>An in-progress work order's claimed commits (the <code>WO-nnn:</code> subject convention) touched a file under a gated path the work order neither declares in <code>binds.paths</code> nor covers with a <code>designed-by</code> link — gated work done while declaring nothing. Git-backed; outside a git repository it skips with a note.</td></tr>
+  <tr><td><code>design-mention</code></td><td>A started work order that declares no <code>binds.paths</code> and links no design names a gated path in its prose (<code>## Out of scope</code> and <code>## Receipts</code> excluded) — a nudge to declare the path or link the design before the work touches it.</td></tr>
+</table>
+</div>
 
 <h2>The CLI</h2>
 <pre><code>veri init [--demo] [--starter &lt;name&gt;]

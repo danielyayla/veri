@@ -97,6 +97,16 @@ export type Advisory =
   // reported on. Advisory by design — the open loop must inform, never
   // block; judging the evidence stays a human act.
   | { kind: 'untested-bet'; file: string; id: string; workOrderIds: string[]; message: string }
+  // The design gate's advisory tiers (WO-113, DEC-114). `design-mention` is
+  // the demoted v1 heuristic: prose names a gated path but the work order
+  // declares no binds paths and links no design — a nudge to declare or
+  // design, pure over documents. `design-undeclared-touch` is the diff tier:
+  // an in-progress work order's claimed commits touched a gated path it
+  // never declared — git-backed, so advisory (DEC-081: the git tier is out
+  // of reach over MCP, and an issue only some surfaces could compute would
+  // fork the gate's verdict).
+  | { kind: 'design-mention'; file: string; id: string; path: string; message: string }
+  | { kind: 'design-undeclared-touch'; file: string; id: string; sha: string; path: string; message: string }
   | {
       kind: 'arch-violation';
       file: string;

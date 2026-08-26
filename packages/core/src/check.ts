@@ -3,7 +3,9 @@ import type { LoadResult } from './load.ts';
 import { OUTCOME_OF_REL, OUTCOME_RELS, isOutcomeRel, isPending, isWithdrawn, requirementKind } from './pending.ts';
 import { compareIds } from './ids.ts';
 import type { DocType } from './ids.ts';
-import { daysBetween } from './binds.ts';
+import { daysBetween, pathMatchesBinds } from './binds.ts';
+import { commitsByWorkOrder } from './provenance.ts';
+import type { GitFacts } from './provenance.ts';
 import { checkSupersededLinks } from './drift.ts';
 import { checkArchitecture } from './architecture.ts';
 import { getTemplate } from './templates.ts';
@@ -328,46 +330,150 @@ export function checkStaleClaims(documents: VeriDocument[], today: string, windo
   return advisories;
 }
 
-/**
- * The design gate, machine-checked (WO-010): a work order whose body mentions
- * a design-gated path and has started (in-progress/done) must link at least
- * one existing document with rel "designed-by". The trigger paths are
- * project-defined — declared as `design_gate_paths` on the workflow document
- * (DEC-039) — so core carries nothing specific to any repo's layout; with no
- * paths declared the gate is inert. A designed-by link whose target id doesn't
- * exist does not satisfy the gate; the broken-link check reports that link
- * separately.
- *
- * Mention is still the heuristic — not git diffs or declared file lists — but
- * it reads intent, not spelling (WO-112): `## Out of scope` is excluded, so a
- * sentence naming what the work will not touch never trips the gate, while
- * the same path in Summary, In scope, or anywhere else does. Without that,
- * the gate punished precision — the more carefully a work order drew its
- * boundary, the more likely it fired.
- */
-export function checkDesignGate(documents: VeriDocument[]): Issue[] {
-  const paths = documents
+/** The design gate's trigger paths, declared as `design_gate_paths` on the
+    workflow document (DEC-039) — core carries nothing specific to any repo's
+    layout; with none declared every gate tier is inert. */
+export function designGatePaths(documents: VeriDocument[]): string[] {
+  return documents
     .filter((doc) => doc.type === 'workflow' && doc.status !== 'retired')
     .flatMap((doc) => (doc.frontmatter['design_gate_paths'] as string[] | undefined) ?? []);
+}
+
+/** The design gate applies once a work order leaves backlog and is not
+    withdrawn — unchanged since WO-010: promotion is when the claim starts
+    to matter. */
+function designGateApplies(doc: VeriDocument): boolean {
+  return doc.type === 'work-order' && doc.status !== 'backlog' && !isWithdrawn(doc);
+}
+
+/** What satisfies every tier of the gate: at least one designed-by link whose
+    target exists (DEC-012, DEC-026). A designed-by link to a missing id does
+    not satisfy it; the broken-link check reports that link separately. */
+function hasDesign(doc: VeriDocument, ids: Set<string>): boolean {
+  return doc.links.some((link) => link.rel === 'designed-by' && ids.has(link.id));
+}
+
+/** Does a `binds: paths:` declaration claim a design-gated path? True when a
+    pattern's text names the gated path or its glob matches the gated
+    directory — `packages/ui`, `packages/ui/src/**`, and `packages/**` all
+    claim gated `packages/ui`. */
+export function bindsClaimGatedPath(patterns: string[], gatePath: string): boolean {
+  const gate = gatePath.replace(/\/+$/, '');
+  if (gate === '') return false;
+  return patterns.some((pattern) => pattern.includes(gate) || pathMatchesBinds(gate, [pattern]));
+}
+
+/** Is a committed file under a gated path, read as a repo-root directory
+    prefix (DEC-114)? */
+function fileUnderGatePath(file: string, gatePath: string): boolean {
+  const gate = gatePath.replace(/\/+$/, '');
+  return gate !== '' && (file === gate || file.startsWith(`${gate}/`));
+}
+
+/**
+ * The design gate, machine-checked (WO-010): a work order out of backlog
+ * that claims a design-gated path must link at least one existing
+ * document with rel "designed-by" (DEC-012). The trigger paths are
+ * project-defined (`design_gate_paths` on the workflow document, DEC-039);
+ * with none declared the gate is inert.
+ *
+ * The issue tier's evidence is the work order's own `binds: paths:`
+ * declaration (WO-113, DEC-114) — pure and available pre-flight, so every
+ * surface (veri check, run_check over MCP, the app) reaches the same verdict.
+ * Body-text mention is no longer issue evidence: it survives only as the
+ * `design-mention` advisory (checkDesignGateMentions), and what the commits
+ * actually touched is the git-backed `design-undeclared-touch` advisory
+ * (checkDesignGateDiff).
+ */
+export function checkDesignGate(documents: VeriDocument[]): Issue[] {
+  const paths = designGatePaths(documents);
   if (paths.length === 0) return [];
   const ids = new Set(documents.map((doc) => doc.id));
   const issues: Issue[] = [];
   for (const doc of documents) {
-    if (doc.type !== 'work-order' || doc.status === 'backlog' || isWithdrawn(doc)) continue;
-    const claimed = withoutSection(doc.body, 'Out of scope');
-    const touched = paths.find((path) => claimed.includes(path));
-    if (touched === undefined) continue;
-    const designed = doc.links.some((link) => link.rel === 'designed-by' && ids.has(link.id));
-    if (!designed) {
+    if (!designGateApplies(doc)) continue;
+    const claimed = paths.find((path) => bindsClaimGatedPath(doc.binds?.paths ?? [], path));
+    if (claimed === undefined) continue;
+    if (!hasDesign(doc, ids)) {
       issues.push({
         kind: 'ui-wo-without-design',
         file: doc.file,
         id: doc.id,
-        message: `work order ${doc.id} touches design-gated ${touched} but links no designed-by design document — this project's workflow requires the design first`,
+        message: `work order ${doc.id} declares design-gated ${claimed} in binds.paths but links no designed-by design document — this project's workflow requires the design first`,
       });
     }
   }
   return issues;
+}
+
+/**
+ * The v1 mention heuristic, demoted to an advisory (WO-113, DEC-114): a
+ * started work order that declares no binds paths, links no design, and whose
+ * prose names a gated path gets a nudge to declare or design — the honest
+ * pre-commit case the declaration tier cannot see. `## Out of scope` stays
+ * excluded (WO-112: an exclusion is a promise, not a claim), and `## Receipts`
+ * joins it — receipts record history, which the diff tier reads directly. A
+ * work order that declares binds has spoken; its prose is no longer evidence.
+ */
+export function checkDesignGateMentions(documents: VeriDocument[]): Advisory[] {
+  const paths = designGatePaths(documents);
+  if (paths.length === 0) return [];
+  const ids = new Set(documents.map((doc) => doc.id));
+  const advisories: Advisory[] = [];
+  for (const doc of documents) {
+    if (!designGateApplies(doc)) continue;
+    if ((doc.binds?.paths.length ?? 0) > 0 || hasDesign(doc, ids)) continue;
+    const prose = withoutSection(withoutSection(doc.body, 'Out of scope'), 'Receipts');
+    const mentioned = paths.find((path) => prose.includes(path));
+    if (mentioned === undefined) continue;
+    advisories.push({
+      kind: 'design-mention',
+      file: doc.file,
+      id: doc.id,
+      path: mentioned,
+      message: `${doc.id}'s prose names design-gated ${mentioned} but it declares no binds.paths and links no designed-by document — if the work touches it, declare the path in binds.paths or link the design (evidence: body text only)`,
+    });
+  }
+  return advisories;
+}
+
+/**
+ * The diff tier of the design gate (WO-113, DEC-114): an in-progress work
+ * order whose claimed commits (the WO-nnn: subject convention) touched a file
+ * under a gated path, without a covering binds declaration and without a
+ * designed-by link, did gated work while declaring nothing — the false
+ * negative the declaration tier cannot see. Pure over documents plus
+ * host-collected GitFacts (DEC-040); advisory-tier because the git tier is
+ * unavailable over MCP (DEC-081) and an issue only some surfaces could
+ * compute would fork the gate's verdict. In-progress only: auditing closed
+ * work orders retroactively is out of WO-113's scope.
+ */
+export function checkDesignGateDiff(documents: VeriDocument[], facts: GitFacts): Advisory[] {
+  const paths = designGatePaths(documents);
+  if (paths.length === 0) return [];
+  const ids = new Set(documents.map((doc) => doc.id));
+  const byWorkOrder = commitsByWorkOrder(facts);
+  const advisories: Advisory[] = [];
+  for (const doc of documents) {
+    if (doc.type !== 'work-order' || doc.status !== 'in-progress' || isWithdrawn(doc)) continue;
+    if (hasDesign(doc, ids)) continue;
+    const commits = byWorkOrder.get(doc.id) ?? [];
+    for (const path of paths) {
+      if (bindsClaimGatedPath(doc.binds?.paths ?? [], path)) continue;
+      const commit = commits.find((entry) => entry.files.some((file) => fileUnderGatePath(file, path)));
+      if (commit === undefined) continue;
+      const file = commit.files.find((entry) => fileUnderGatePath(entry, path))!;
+      advisories.push({
+        kind: 'design-undeclared-touch',
+        file: doc.file,
+        id: doc.id,
+        sha: commit.sha,
+        path,
+        message: `${doc.id}'s commit ${commit.sha.slice(0, 7)} touched design-gated ${file} but the work order neither declares ${path} in binds.paths nor links a designed-by document (evidence: the commit diff)`,
+      });
+    }
+  }
+  return advisories;
 }
 
 /**
@@ -596,6 +702,7 @@ export function checkProject(load: LoadResult): CheckResult {
       ...checkMissingApprovers(load.documents),
       ...checkSharedClaims(load.documents),
       ...checkUntestedBets(load.documents),
+      ...checkDesignGateMentions(load.documents),
       // Stale claims need a clock (host territory, DEC-076) — deriveFindings
       // adds checkStaleClaims with the host's today.
     ],

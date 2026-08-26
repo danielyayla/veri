@@ -12,8 +12,11 @@ links:
     rel: implements
   - id: SRC-999
     rel: designed-by
+binds:
+  paths:
+    - packages/ui/src/**
 ---
 
 ## Summary
 
-Adds a panel to packages/ui; the designed-by link points at nothing.
+Adds a panel to the app; the designed-by link points at nothing.

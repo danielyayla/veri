@@ -5,7 +5,7 @@ title: Veri project workflow
 status: accepted
 approved: 2026-08-25
 created: 2026-08-12
-updated: 2026-08-25
+updated: 2026-08-26
 design_gate_paths:
   - packages/ui
 modules:
@@ -61,7 +61,13 @@ receipts.
    exists, produce the design first with Claude Design, commit it as a
    `source` document in `veri/`, and stop for user approval before
    writing code. `veri check` enforces this via the `design_gate_paths`
-   list in this document's frontmatter ([[DEC-039]]).
+   list in this document's frontmatter ([[DEC-039]]), reading what the
+   work claims, not how it is written about ([[DEC-114]]): declare
+   gated paths in `binds: paths:` — a declaration without a designed-by
+   link fails the check, commits that touch a gated path the work order
+   never declared are flagged as an advisory, and prose that names a
+   gated path with no declaration earns an advisory nudge to declare
+   or design.
 8. One session, one work order, one worktree. Begin implementation with
    `veri start <WO-id> --as <session>` (or the `start_work_order` MCP
    tool): it flips the ready work order to in-progress and records the

@@ -2,7 +2,7 @@ import { checkObservedArchitecture } from './architecture.ts';
 import type { ImportEdge } from './architecture.ts';
 import { bindingClaimants, checkBindingDrift, checkBoundTests, staleAfterDays } from './binds.ts';
 import type { TestFact } from './binds.ts';
-import { checkProject, checkStaleClaims } from './check.ts';
+import { checkDesignGateDiff, checkProject, checkStaleClaims, designGatePaths } from './check.ts';
 import { checkDrift } from './drift.ts';
 import { formatStatement } from './format.ts';
 import type { FormatClassification } from './format.ts';
@@ -92,6 +92,9 @@ export function deriveFindings(load: LoadResult, host: HostFacts): CheckFindings
   if (host.git.kind === 'ok') {
     advisories.push(...checkProvenance(load.documents, host.git.facts));
     advisories.push(...checkDrift(load.documents, host.git.facts, host.git.veriPath));
+    // The design gate's diff tier (WO-113, DEC-114): claimed commits that
+    // touched a gated path the work order never declared.
+    advisories.push(...checkDesignGateDiff(load.documents, host.git.facts));
     advisories.push(
       ...checkBindingDrift(load.documents, host.git.facts, {
         veriPath: host.git.veriPath,
@@ -121,6 +124,12 @@ export function deriveFindings(load: LoadResult, host: HostFacts): CheckFindings
       ...(host.git.kind === 'ok' ? [] : [`(provenance: skipped — ${host.git.reason})`]),
       ...(host.git.kind !== 'ok' && bindingClaimants(load.documents).length > 0
         ? [`(binding drift: skipped — ${host.git.reason})`]
+        : []),
+      // The diff tier degrades loudly, never silently (REQ-021): a project
+      // with gated paths and no git facts is told the gate's diff evidence
+      // could not be read.
+      ...(host.git.kind !== 'ok' && designGatePaths(load.documents).length > 0
+        ? [`(design gate diff: skipped — ${host.git.reason})`]
         : []),
       ...importSkipNotes(host.importFacts?.skipped ?? []),
     ],
