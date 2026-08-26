@@ -1159,6 +1159,47 @@ a:hover { color: var(--link-hover); }
 .hv-time { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--ghost); flex: 0 0 auto; }
 .hv-empty { padding: 14px; font-size: 12px; color: var(--faint); }
 
+/* ===== The intent home (WO-117, SRC-053) ===== */
+
+/* CURRENT BETS: full-width under the judgment queue. */
+.hv-card-bets { margin-bottom: 14px; }
+
+/* The bet's win condition: `→ metric target`. Amber variant when the
+   hypothesis declares no outcome (check flags it; the row agrees). */
+.hv-bet-outcome {
+  font-family: var(--mono); font-size: 9.5px; color: var(--secondary);
+  border: 1px solid var(--int-border); border-radius: 4px; padding: 1px 6px; flex: 0 0 auto;
+  white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis;
+}
+.hv-bet-outcome-missing { color: var(--amber); border-color: var(--amber-border); }
+
+/* Epistemic state: shipped-but-unanswered wears amber; reported evidence
+   names its sources. */
+.hv-bet-untested {
+  font-family: var(--mono); font-size: 9.5px; color: var(--amber);
+  background: var(--amber-tint-8); border: 1px solid var(--amber-border); border-radius: 4px;
+  padding: 1px 6px; flex: 0 0 auto; white-space: nowrap;
+}
+.hv-bet-evidence { font-family: var(--mono); font-size: 9.5px; color: var(--t-src); flex: 0 0 auto; white-space: nowrap; }
+.hv-bet-wos { margin-left: auto; font-family: var(--mono); font-size: 10px; flex: 0 0 auto; }
+
+/* RECENTLY LEARNED outcome rows: a split row — the main button opens the
+   source, the verdict chip opens the hypothesis it answers. */
+.hv-row-split { padding: 0; cursor: default; }
+.hv-split-main {
+  display: flex; align-items: baseline; gap: 9px; min-width: 0; flex: 1;
+  padding: 9px 0 9px 14px; cursor: pointer; text-align: left;
+}
+.hv-verdict {
+  font-family: var(--mono); font-size: 9.5px; border-radius: 4px; padding: 1px 6px;
+  flex: 0 0 auto; cursor: pointer; align-self: center; white-space: nowrap;
+}
+.hv-verdict-supports { color: var(--green); border: 1px solid color-mix(in srgb, var(--green) 35%, transparent); background: color-mix(in srgb, var(--green) 10%, transparent); }
+.hv-verdict-refutes { color: var(--amber); border: 1px solid var(--amber-border); background: var(--amber-tint-8); }
+.hv-verdict-tests { color: var(--muted); border: 1px solid var(--int-border); background: none; }
+.hv-verdict:hover { filter: brightness(1.15); }
+.hv-row-split .hv-time { padding-right: 14px; }
+
 /* ===== Approval gate (WO-017, SRC-006) ===== */
 
 /* Pending marker: 6px amber dot left of the id (sidebar + palette rows). */

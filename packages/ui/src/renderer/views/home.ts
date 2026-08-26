@@ -2,7 +2,7 @@
     Agent activity, Recently changed. Every row opens its doc as a preview. */
 import { h } from '../dom.ts';
 import { TYPE_META, statusColor } from '../theme.ts';
-import { importBatches, importGroupLabel, inFlight, isPending, issueDocId, pendingDocs, projectActivity, recentlyChanged } from '../derive.ts';
+import { currentBets, importBatches, importGroupLabel, inFlight, isPending, issueDocId, pendingDocs, projectActivity, recentlyChanged, recentlyLearned } from '../derive.ts';
 import { archSummary } from '../archderive.ts';
 import { isLiving } from '../sidebar.ts';
 import type { Ctx } from '../app.ts';
@@ -187,12 +187,62 @@ export function homeView(ctx: Ctx): HTMLElement {
             'div',
             { class: 'hv-card-head' },
             dot('var(--amber)'),
-            h('span', { class: 'hv-label', style: 'color:var(--amber);' }, 'NEEDS REVIEW'),
-            h('span', { class: 'hv-meta' }, `${pending.length} pending`),
+            h('span', { class: 'hv-label', style: 'color:var(--amber);' }, 'AWAITING JUDGMENT'),
+            h('span', { class: 'hv-meta' }, `${pending.length} gate crossing${pending.length === 1 ? '' : 's'}`),
           ),
           ...groupSections,
           ...ungrouped.map(pendingRow),
         );
+
+  // CURRENT BETS (WO-117, SRC-053): accepted hypothesis requirements with
+  // their outcome target, shipping state, and epistemic state. Full-width
+  // under the judgment queue; renders its teaching empty state even at zero
+  // so the section teaches the vocabulary (the SRC-013 posture).
+  const bets = currentBets(ctx.snap);
+  const betState = (bet: (typeof bets)[number]): HTMLElement | null =>
+    bet.untested
+      ? h('span', { class: 'hv-bet-untested', title: 'All linked work orders are done, but no outcome source reports what reality said' }, '● untested bet')
+      : bet.evidence.length > 0
+        ? h('span', { class: 'hv-bet-evidence' }, `evidence: ${bet.evidence.map((e) => `${e.id} ${e.rel}`).join(', ')}`)
+        : null;
+  const betsCard = h(
+    'div',
+    { class: 'hv-card hv-card-bets' },
+    h(
+      'div',
+      { class: 'hv-card-head' },
+      dot('var(--t-req)'),
+      label('CURRENT BETS'),
+      h('span', { class: 'hv-meta' }, `${bets.length} ${bets.length === 1 ? 'hypothesis' : 'hypotheses'}`),
+    ),
+    ...(bets.length > 0
+      ? bets.map((bet) =>
+          row(
+            bet.id,
+            'hv-row',
+            h('span', { class: 'hv-id', style: 'color:var(--t-req);' }, bet.id),
+            h('span', { class: 'hv-flight-title' }, bet.title),
+            bet.outcome !== null
+              ? h('span', { class: 'hv-bet-outcome', title: 'The outcome that would confirm or refute this bet' }, `→ ${bet.outcome}`)
+              : h('span', { class: 'hv-bet-outcome hv-bet-outcome-missing' }, 'no outcome declared'),
+            betState(bet),
+            h(
+              'span',
+              {
+                class: 'hv-bet-wos',
+                style:
+                  bet.woTotal === 0
+                    ? 'color:var(--faint);'
+                    : bet.woDone === bet.woTotal
+                      ? 'color:var(--green);'
+                      : 'color:var(--ember);',
+              },
+              bet.woTotal === 0 ? 'no WOs yet' : `${bet.woDone}/${bet.woTotal} WOs done`,
+            ),
+          ),
+        )
+      : [h('div', { class: 'hv-empty' }, 'No bets yet — a requirement with kind: hypothesis and an outcome target becomes a bet')]),
+  );
 
   const issues = ctx.snap.issues;
   const advisories = ctx.snap.advisories;
@@ -335,6 +385,48 @@ export function homeView(ctx: Ctx): HTMLElement {
     'No activity yet',
   );
 
+  // RECENTLY LEARNED (WO-117, SRC-053): newest sources — what most recently
+  // entered the evidence door. An outcome source is a split row: the verdict
+  // chip is its own button opening the hypothesis it answers; the rest of
+  // the row opens the source (one row, two honest targets — never nested
+  // buttons).
+  const learnedCard = card(
+    [dot('var(--t-src)'), label('RECENTLY LEARNED')],
+    recentlyLearned(ctx.snap, ctx.rel).map((r) =>
+      r.outcome === null
+        ? row(
+            r.id,
+            'hv-row hv-row-feed',
+            h('span', { class: 'hv-id', style: 'color:var(--t-src);' }, r.id),
+            h('span', { class: 'hv-changed-title' }, r.title),
+            h('span', { class: 'hv-time' }, r.time),
+          )
+        : h(
+            'div',
+            { class: 'hv-row hv-row-feed hv-row-split' },
+            h(
+              'button',
+              { class: 'btn-reset hv-split-main', fkey: `hv:${r.id}:${rowSeq++}`, onClick: open(r.id) },
+              h('span', { class: 'hv-id', style: 'color:var(--t-src);' }, r.id),
+              h('span', { class: 'hv-changed-title' }, r.title),
+            ),
+            h(
+              'button',
+              {
+                class: `btn-reset hv-verdict hv-verdict-${r.outcome.rel}`,
+                fkey: `hv:${r.id}:${rowSeq++}`,
+                title: `Outcome evidence — open ${r.outcome.reqId}`,
+                label: `${r.outcome.rel} ${r.outcome.reqId} — open the hypothesis`,
+                onClick: open(r.outcome.reqId),
+              },
+              `${r.outcome.rel} ${r.outcome.reqId}`,
+            ),
+            h('span', { class: 'hv-time' }, r.time),
+          ),
+    ),
+    'No sources yet — evidence comes first',
+  );
+
   const changedCard = card(
     [label('RECENTLY CHANGED')],
     recentlyChanged(ctx.snap, ctx.rel).map((r) =>
@@ -364,7 +456,8 @@ export function homeView(ctx: Ctx): HTMLElement {
         h('span', { class: 'hv-count' }, `${docs.length} docs · ${living} living`),
       ),
       reviewCard,
-      h('div', { class: 'hv-grid' }, health, ...(archCard !== null ? [archCard] : []), inFlightCard, activityCard, changedCard),
+      betsCard,
+      h('div', { class: 'hv-grid' }, health, ...(archCard !== null ? [archCard] : []), inFlightCard, activityCard, learnedCard, changedCard),
     ),
   );
 }

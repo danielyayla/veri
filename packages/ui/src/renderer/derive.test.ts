@@ -29,6 +29,8 @@ import {
   latestImportBatch,
   boardColumns,
   BOARD_DONE_WINDOW,
+  currentBets,
+  recentlyLearned,
 } from './derive.ts';
 import type { Connection } from './derive.ts';
 
@@ -504,4 +506,100 @@ test('boardColumns: living columns in dispatch order (ascending id), DONE most-r
 
 test('the DONE window constant matches the SRC-047 spec', () => {
   assert.equal(BOARD_DONE_WINDOW, 5);
+});
+
+// ---- The intent home (WO-117, SRC-053) -------------------------------------
+
+test('currentBets: accepted hypotheses only, id order, outcome label and WO state', () => {
+  const s = snap([
+    doc({ id: 'REQ-010', type: 'requirement', title: 'later bet', status: 'accepted', kind: 'hypothesis' }),
+    doc({
+      id: 'REQ-002',
+      type: 'requirement',
+      title: 'the bet',
+      status: 'accepted',
+      kind: 'hypothesis',
+      outcome: { metric: 'activation', target: '> 50%' },
+      links: [{ id: 'WO-002', rel: 'relates-to' }],
+    }),
+    doc({ id: 'REQ-003', type: 'requirement', title: 'constraint', status: 'accepted' }),
+    doc({ id: 'REQ-004', type: 'requirement', title: 'draft bet', status: 'draft', kind: 'hypothesis' }),
+    doc({ id: 'REQ-005', type: 'requirement', title: 'retired bet', status: 'retired', kind: 'hypothesis' }),
+    doc({ id: 'REQ-006', type: 'requirement', title: 'withdrawn bet', status: 'withdrawn', kind: 'hypothesis' }),
+    doc({ id: 'WO-001', type: 'work-order', title: 'ships it', status: 'done', links: [{ id: 'REQ-002', rel: 'implements' }] }),
+    doc({ id: 'WO-002', type: 'work-order', title: 'linked from the REQ side', status: 'in-progress' }),
+    doc({ id: 'WO-003', type: 'work-order', title: 'withdrawn', status: 'withdrawn', links: [{ id: 'REQ-002', rel: 'implements' }] }),
+  ]);
+  const bets = currentBets(s);
+  assert.deepEqual(bets.map((b) => b.id), ['REQ-002', 'REQ-010']);
+  const [bet, later] = bets;
+  assert.equal(bet.outcome, 'activation > 50%');
+  // Either-direction linkage, withdrawn WOs excluded (the check's own rule).
+  assert.equal(bet.woTotal, 2);
+  assert.equal(bet.woDone, 1);
+  assert.equal(bet.untested, false);
+  assert.deepEqual(bet.evidence, []);
+  // Undeclared outcome renders as null; no linked WOs at all.
+  assert.equal(later.outcome, null);
+  assert.equal(later.woTotal, 0);
+});
+
+test('currentBets: untested flag reads the snapshot advisory; evidence names outcome sources', () => {
+  const docs = [
+    doc({ id: 'REQ-001', type: 'requirement', title: 'answered bet', status: 'accepted', kind: 'hypothesis' }),
+    doc({ id: 'REQ-002', type: 'requirement', title: 'untested bet', status: 'accepted', kind: 'hypothesis' }),
+    doc({ id: 'WO-001', type: 'work-order', title: 'shipped', status: 'done', links: [{ id: 'REQ-002', rel: 'implements' }] }),
+    doc({
+      id: 'SRC-001',
+      type: 'source',
+      title: 'reality reports',
+      status: 'imported',
+      links: [
+        { id: 'REQ-001', rel: 'supports' },
+        { id: 'WO-001', rel: 'outcome-of' },
+      ],
+    }),
+    doc({ id: 'SRC-002', type: 'source', title: 'withdrawn evidence', status: 'withdrawn', links: [{ id: 'REQ-001', rel: 'refutes' }] }),
+  ];
+  const s = snap(docs, [], [
+    { kind: 'untested-bet', file: docs[1].file, id: 'REQ-002', workOrderIds: ['WO-001'], message: 'untested' },
+  ]);
+  const [answered, untested] = currentBets(s);
+  assert.deepEqual(answered.evidence, [{ id: 'SRC-001', rel: 'supports' }]);
+  assert.equal(answered.untested, false);
+  assert.equal(untested.untested, true);
+  assert.deepEqual(untested.evidence, []);
+});
+
+test('recentlyLearned: newest sources first, outcome chip from the first outcome rel, withdrawn excluded', () => {
+  const rel = (d: string): string => `on ${d}`;
+  const s = snap([
+    doc({ id: 'SRC-001', type: 'source', title: 'old note', status: 'imported', created: '2026-08-01' }),
+    doc({
+      id: 'SRC-002',
+      type: 'source',
+      title: 'the verdict',
+      status: 'imported',
+      created: '2026-08-20',
+      links: [
+        { id: 'WO-001', rel: 'outcome-of' },
+        { id: 'REQ-001', rel: 'refutes' },
+      ],
+    }),
+    doc({ id: 'SRC-003', type: 'source', title: 'gone', status: 'withdrawn', created: '2026-08-25' }),
+    doc({ id: 'REQ-001', type: 'requirement', title: 'bet', status: 'accepted', kind: 'hypothesis' }),
+  ]);
+  const rows = recentlyLearned(s, rel);
+  assert.deepEqual(rows.map((r) => r.id), ['SRC-002', 'SRC-001']);
+  // outcome-of is not an outcome rel — the chip carries the verdict edge.
+  assert.deepEqual(rows[0].outcome, { rel: 'refutes', reqId: 'REQ-001' });
+  assert.equal(rows[0].time, 'on 2026-08-20');
+  assert.equal(rows[1].outcome, null);
+});
+
+test('recentlyLearned: capped', () => {
+  const many = Array.from({ length: 12 }, (_, i) =>
+    doc({ id: `SRC-${String(i + 1).padStart(3, '0')}`, type: 'source', title: `s${i}`, status: 'imported', created: `2026-08-${String(i + 1).padStart(2, '0')}` }),
+  );
+  assert.equal(recentlyLearned(snap(many), (d) => d).length, 8);
 });

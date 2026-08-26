@@ -4,7 +4,7 @@
  */
 import type { Advisory, Edge, Issue, VeriDocument } from '@verikb/core';
 import { compareIds } from '@verikb/core/ids';
-import { isPending } from '@verikb/core/pending';
+import { isOutcomeRel, isPending, isWithdrawn, outcomeLabel, requirementKind } from '@verikb/core/pending';
 import type { Snapshot } from '../lib/snapshot.ts';
 import { sections, parseBlocks, plainText } from './markdown.ts';
 
@@ -440,6 +440,91 @@ export function recentlyChanged(snap: Snapshot, rel: (date: string) => string, c
     .sort((a, b) => b.updated.localeCompare(a.updated) || compareIds(b.id, a.id))
     .slice(0, cap)
     .map((d) => ({ id: d.id, title: d.title, time: rel(d.updated) }));
+}
+
+// ---- The intent home (WO-117, SRC-053) -----------------------------------
+
+/** One outcome source that has reported on a bet: `SRC-055 supports`. */
+export interface BetEvidence {
+  id: string;
+  rel: string;
+}
+
+export interface BetRow {
+  id: string;
+  title: string;
+  /** Core's `outcomeLabel` — `metric target` — or null when undeclared
+      (check already flags that as hypothesis-without-outcome). */
+  outcome: string | null;
+  /** Linked work orders, the untested-bet check's own linkage: a link in
+      either direction, withdrawn work orders excluded. */
+  woTotal: number;
+  woDone: number;
+  /** From the snapshot's `untested-bet` advisory — the check derivation's
+      verdict, never recomputed here (SRC-053). */
+  untested: boolean;
+  /** Outcome sources that have reported, filing order. */
+  evidence: BetEvidence[];
+}
+
+/**
+ * CURRENT BETS (SRC-053): accepted hypothesis requirements, id order — a
+ * draft bet still awaits judgment, a retired or withdrawn one is out of
+ * play. Kind and outcome read core's one helper pair (DEC-112); the
+ * untested flag reads the snapshot's advisory rather than re-deriving the
+ * rule, so the view can never disagree with `veri check`.
+ */
+export function currentBets(snap: Snapshot): BetRow[] {
+  const untested = new Set(snap.advisories.filter((a) => a.kind === 'untested-bet').map((a) => a.id));
+  const workOrders = snap.documents.filter((d) => d.type === 'work-order' && !isWithdrawn(d));
+  const sources = snap.documents.filter((d) => d.type === 'source' && !isWithdrawn(d));
+  return snap.documents
+    .filter((d) => d.type === 'requirement' && d.status === 'accepted' && requirementKind(d) === 'hypothesis')
+    .sort((a, b) => compareIds(a.id, b.id))
+    .map((req) => {
+      const linked = workOrders.filter(
+        (wo) => wo.links.some((l) => l.id === req.id) || req.links.some((l) => l.id === wo.id),
+      );
+      const evidence = sources.flatMap((src) =>
+        src.links.filter((l) => l.id === req.id && isOutcomeRel(l.rel)).map((l) => ({ id: src.id, rel: l.rel })),
+      );
+      return {
+        id: req.id,
+        title: req.title,
+        outcome: outcomeLabel(req),
+        woTotal: linked.length,
+        woDone: linked.filter((wo) => wo.status === 'done').length,
+        untested: untested.has(req.id),
+        evidence,
+      };
+    });
+}
+
+export interface LearnedRow {
+  id: string;
+  title: string;
+  time: string;
+  /** The source's first outcome link (DEC-113 vocabulary) — the verdict
+      chip's rel and the hypothesis it answers; null for ordinary sources. */
+  outcome: { rel: string; reqId: string } | null;
+}
+
+/** RECENTLY LEARNED (SRC-053): non-withdrawn sources, newest `created`
+    first — what most recently entered the evidence door. */
+export function recentlyLearned(snap: Snapshot, rel: (date: string) => string, cap = 8): LearnedRow[] {
+  return snap.documents
+    .filter((d) => d.type === 'source' && !isWithdrawn(d))
+    .sort((a, b) => b.created.localeCompare(a.created) || compareIds(b.id, a.id))
+    .slice(0, cap)
+    .map((d) => {
+      const link = d.links.find((l) => isOutcomeRel(l.rel));
+      return {
+        id: d.id,
+        title: d.title,
+        time: rel(d.created),
+        outcome: link === undefined ? null : { rel: link.rel, reqId: link.id },
+      };
+    });
 }
 
 /** Default rel for a new typed link (SRC-028). */
