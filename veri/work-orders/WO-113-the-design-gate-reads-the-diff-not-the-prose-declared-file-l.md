@@ -2,7 +2,7 @@
 id: WO-113
 type: work-order
 title: "The design gate reads the diff, not the prose — declared file lists replace mention matching"
-status: in-progress
+status: done
 claimed_by: claude-wo113
 claimed_at: 2026-08-26
 approved: 2026-08-26
@@ -74,15 +74,15 @@ Settle that split in a proposed decision before writing code, then build to it.
 
 ## Acceptance tests
 
-- [ ] A proposed decision exists recording the evidence split and the fate of mention matching, and this work order links it
-- [ ] A work order that declares a gated path in `binds: paths:` and links no `designed-by` document fails the gate
-- [ ] A work order whose prose names a gated path it neither declares nor touches does not fail the gate
-- [ ] A work order that touches a gated path without declaring it is reported — at the severity the decision sets, with a message naming what evidence was read
-- [ ] A work order with a `designed-by` link to an existing document passes regardless of declarations or diffs; one whose `designed-by` target does not exist still fails
-- [ ] With no `design_gate_paths` declared, the gate stays inert
-- [ ] The gate reaches the same verdict from `veri check`, `run_check` over MCP, and the app — no tier sees a gate the others cannot
-- [ ] `veri check` on this repo reports zero issues after the change, with no document edited solely to appease the new rule
+- [x] A proposed decision exists recording the evidence split and the fate of mention matching, and this work order links it
+- [x] A work order that declares a gated path in `binds: paths:` and links no `designed-by` document fails the gate
+- [x] A work order whose prose names a gated path it neither declares nor touches does not fail the gate
+- [x] A work order that touches a gated path without declaring it is reported — at the severity the decision sets, with a message naming what evidence was read
+- [x] A work order with a `designed-by` link to an existing document passes regardless of declarations or diffs; one whose `designed-by` target does not exist still fails
+- [x] With no `design_gate_paths` declared, the gate stays inert
+- [x] The gate reaches the same verdict from `veri check`, `run_check` over MCP, and the app — no tier sees a gate the others cannot
+- [x] `veri check` on this repo reports zero issues after the change, with no document edited solely to appease the new rule
 
 ## Receipts
 
-(none yet)
+- 2026-08-26 — f92bd58 — packages/core/src/check.ts, packages/core/src/check.test.ts, packages/core/src/types.ts, packages/core/src/report.ts, packages/core/fixtures/broken/ui-wo-without-design/work-orders/WO-001-ui-no-design.md, packages/core/fixtures/broken/ui-wo-broken-design-link/work-orders/WO-001-ui-dangling-design.md, site/docs/reference.html, veri/workflow.md, veri/decisions/DEC-039-....md, veri/decisions/DEC-114-....md — the gate's evidence split per [[DEC-114]] (proposed): the issue tier reads `binds: paths:` declarations (`checkDesignGate`, pure, message naming the declaration), the git diff of a work order's claimed commits becomes the `design-undeclared-touch` advisory (`checkDesignGateDiff`, host-collected facts, in-progress only, skip note without git), and mention matching demotes to the pure `design-mention` advisory for started work that declared nothing — `## Out of scope` stays excluded and `## Receipts` joins it. Corpus migration clean: WO-068 is the only gated declarer and carries designed-by; zero new issues or design advisories. 742 tests pass across five workspaces, typecheck clean, `veri check` 0 issues · the 12 pre-existing advisories.
