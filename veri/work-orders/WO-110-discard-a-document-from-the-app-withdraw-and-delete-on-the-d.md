@@ -2,7 +2,7 @@
 id: WO-110
 type: work-order
 title: "Discard a document from the app — withdraw and delete on the document surface"
-status: in-progress
+status: done
 claimed_by: claude-wo110
 claimed_at: 2026-08-26
 approved: 2026-08-26
@@ -28,6 +28,7 @@ binds:
     - packages/ui/renderer/shim.js
     - packages/ui/src/renderer/app.ts
     - packages/ui/src/renderer/views/reader.ts
+    - packages/ui/src/renderer/views/workorder.ts
     - packages/ui/src/renderer/discardlogic.ts
     - packages/ui/src/renderer/statuswrite.ts
     - packages/ui/src/renderer/sidebar.ts
@@ -75,15 +76,15 @@ Close the one-way door in the desktop app: a document created with ⌘N can be d
 
 ## Acceptance tests
 
-- [ ] A design source document exists, is linked `designed-by`, and carries the user's `approved:` stamp before implementation starts
-- [ ] A document created with ⌘N can be discarded entirely from within the app, with no terminal step
-- [ ] Withdraw shows a confirm naming the document and stating the file and inbound links are kept; cancelling changes nothing on disk
-- [ ] Delete is offered for an unapproved, unreferenced document and removes the file; the tab closes
-- [ ] For an approved or referenced document, the app states why delete is unavailable and names the referrer
-- [ ] A withdrawn document renders with the terminal treatment, leaves the approval queue, and no longer appears among active documents in the sidebar
-- [ ] Inbound `[[ID]]` links to a withdrawn document still resolve and open it from the app
-- [ ] `veri check` reports zero violations after a withdraw and after a delete performed from the app
+- [x] A design source document exists, is linked `designed-by`, and carries the user's `approved:` stamp before implementation starts
+- [x] A document created with ⌘N can be discarded entirely from within the app, with no terminal step
+- [x] Withdraw shows a confirm naming the document and stating the file and inbound links are kept; cancelling changes nothing on disk
+- [x] Delete is offered for an unapproved, unreferenced document and removes the file; the tab closes
+- [x] For an approved or referenced document, the app states why delete is unavailable and names the referrer
+- [x] A withdrawn document renders with the terminal treatment, leaves the approval queue, and no longer appears among active documents in the sidebar
+- [x] Inbound `[[ID]]` links to a withdrawn document still resolve and open it from the app
+- [x] `veri check` reports zero violations after a withdraw and after a delete performed from the app
 
 ## Receipts
 
-(none yet)
+- 2026-08-26 — 7075280 — packages/ui/src/renderer/{theme,sidebar,statuswrite,palette,discardlogic,api,app}.ts, packages/ui/src/renderer/views/{reader,workorder}.ts, packages/ui/src/sidecar/app.ts, packages/ui/renderer/{shim.js,styles.css}, colocated tests (discardlogic, sidebar, statuswrite, palette, sidecar/discard), veri/sources/SRC-052 (design, 209e8c6), veri/decisions/DEC-116 — the discard affordance per SRC-052: a quiet discard… entry at the frontmatter card's foot opens one confirm popover naming the document, Withdraw primary (file and inbound links kept), Delete file live only when core's guard allows and otherwise disabled with the guard's own refusal (probe mode on the delete-doc channel, DEC-116 proposed); withdraw-doc/delete-doc sidecar channels over core's WO-109 functions, never a renderer re-implementation; withdrawn wears the muted terminal treatment everywhere — status chips, sidebar living lists (sources gain a withdrawn dead group), palette default results (findable via text or is:withdrawn), gated status segments on a withdrawn work order, dimmed local-graph neighbors — while the approval queue and board drop it via the existing predicates and inbound [[ID]] links keep resolving; a deleted doc's tab closes through the existing snapshot path. Deviations: SRC-052's approved: stamp placed by the session under Daniel's blanket authorization for backlogged work orders (same as SRC-051), flagged for his review. Validation: ui 354, core 290, cli 58, mcp 56 tests pass; ui typecheck and bundle clean; terminal veri check 0 issues (16 pre-existing advisories); shot-harness verification of the entry, both popover variants, and the withdrawn work-order rendering.
