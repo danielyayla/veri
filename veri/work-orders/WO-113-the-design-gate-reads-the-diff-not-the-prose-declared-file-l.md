@@ -2,7 +2,10 @@
 id: WO-113
 type: work-order
 title: "The design gate reads the diff, not the prose — declared file lists replace mention matching"
-status: backlog
+status: in-progress
+claimed_by: claude-wo113
+claimed_at: 2026-08-26
+approved: 2026-08-26
 created: 2026-08-26
 updated: 2026-08-26
 links:
