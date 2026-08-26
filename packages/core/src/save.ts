@@ -47,7 +47,11 @@ export function guardDocumentEdit(prev: string, next: string): string | null {
   }
   const pending = PENDING_STATUS[fmValue(prev, 'type') ?? ''];
   const prevStatus = fmValue(prev, 'status');
-  if (pending !== undefined && prevStatus === pending && fmValue(next, 'status') !== prevStatus) {
+  const nextStatus = fmValue(next, 'status');
+  // Withdrawal is not promotion (DEC-110): a pending document may leave for
+  // `withdrawn` without a stamp, because abandoning a proposal claims no
+  // authority. Every other exit from a pending status still needs approval.
+  if (pending !== undefined && prevStatus === pending && nextStatus !== prevStatus && nextStatus !== 'withdrawn') {
     return 'promotion requires approval — use veri approve';
   }
   return null;

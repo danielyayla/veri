@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFi
 import { createRequire } from 'node:module';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, lookupIntent, maintainerRegistry, migrateProject, moduleRegistry, nextDispatchable, nextIdNumber, originalStoragePath, recordIssuedId, renderArchitecture, renderIntent, renumberDocument, scaffoldProject, slugifyTitle, startWorkOrder, workOrdersTouching } from '@verikb/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createDocument, deleteDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, lookupIntent, maintainerRegistry, migrateProject, moduleRegistry, nextDispatchable, nextIdNumber, originalStoragePath, recordIssuedId, renderArchitecture, renderIntent, renumberDocument, scaffoldProject, slugifyTitle, startWorkOrder, withdrawDocument, workOrdersTouching } from '@verikb/core';
 import type { CheckReport, DocType } from '@verikb/core';
 import { collectGitFacts, gitUserName } from './git.ts';
 import { collectTestFacts } from './testfacts.ts';
@@ -406,6 +406,53 @@ export async function start(cwd: string, idArg: string | undefined, asName?: str
       lines: [
         `${result.id} ready → in-progress — claimed by ${result.claimedBy} (${result.claimedAt}) (veri/${result.file})`,
         `commit the flip with a start subject, e.g. git commit -m "${result.id}: started — claimed by ${result.claimedBy}"`,
+      ],
+    };
+  } catch (err) {
+    return { code: 1, lines: (err as Error).message.split('\n') };
+  }
+}
+
+/** Withdrawal (DEC-110): any document to the terminal `withdrawn` status.
+    The file, the id, and every inbound [[ID]] link survive — only the
+    document's standing changes, so it needs no stamp and no gate. */
+export async function withdraw(cwd: string, idArg: string | undefined): Promise<CmdResult> {
+  if (idArg === undefined || idArg.trim() === '') {
+    return { code: 1, lines: ['usage: veri withdraw <id> (a requirement, decision, work order, or source)'] };
+  }
+  const dir = requireVeriDir(cwd);
+  if (dir === null) return NO_VERI_DIR;
+  try {
+    const result = await withdrawDocument(dir, idArg.trim());
+    return {
+      code: 0,
+      lines: [
+        `${result.id} ${result.from} → withdrawn (veri/${result.file})`,
+        'the file and its id stay — inbound [[links]] keep resolving. To remove it outright: veri delete',
+      ],
+    };
+  } catch (err) {
+    return { code: 1, lines: (err as Error).message.split('\n') };
+  }
+}
+
+/** Hard delete (DEC-110): remove a document that never meant anything — a
+    mistyped `veri new`, a scratch file. Refuses anything approved or
+    referenced, naming what blocks it. The id is spent either way: `veri/ids`
+    is a high-water floor (DEC-037), so a deleted id is never reissued. */
+export async function del(cwd: string, idArg: string | undefined): Promise<CmdResult> {
+  if (idArg === undefined || idArg.trim() === '') {
+    return { code: 1, lines: ['usage: veri delete <id> (an unapproved, unreferenced document)'] };
+  }
+  const dir = requireVeriDir(cwd);
+  if (dir === null) return NO_VERI_DIR;
+  try {
+    const result = await deleteDocument(dir, idArg.trim());
+    return {
+      code: 0,
+      lines: [
+        `deleted ${result.id} (veri/${result.file})`,
+        `the id stays spent — the next veri new skips ${result.id}. Recover the file with git if this was a mistake.`,
       ],
     };
   } catch (err) {

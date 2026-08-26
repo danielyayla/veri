@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildGraph } from './graph.ts';
 import { checkStructure } from './check.ts';
-import { isPending } from './pending.ts';
+import { isPending, isWithdrawn } from './pending.ts';
 import { checkSupersededLinks } from './drift.ts';
 import { DOC_TYPES, compareIds } from './ids.ts';
 import { loadProject } from './load.ts';
@@ -78,9 +78,15 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
     frontier = next;
   }
 
+  // Withdrawn documents are out of play (DEC-110): they bind nothing and
+  // steer nothing, so they never enter a package — the same exclusion
+  // retired workflows get below. The traversal still passes *through* them,
+  // since a withdrawn document's own links are how some neighbors are
+  // reached; only the rendering drops them.
   const reached = [...hopOf.keys()]
     .filter((id) => id !== workOrderId)
     .map((id) => graph.byId.get(id)!)
+    .filter((doc) => !isWithdrawn(doc))
     .sort((a, b) => compareIds(a.id, b.id));
 
   // The project workflow (DEC-018) opens every package, reached or not — its

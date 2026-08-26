@@ -2,7 +2,8 @@
 id: DEC-110
 type: decision
 title: "Discarding a document is a withdraw, with hard delete reserved for the unapproved and unreferenced"
-status: proposed
+status: active
+approved: 2026-08-26
 created: 2026-08-26
 updated: 2026-08-26
 links:

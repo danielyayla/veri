@@ -5,8 +5,8 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { assembleContext } from '@verikb/core';
-import { approve, architecture, check, checkReport, context, importFile, importPrompt, init, list, listStarters, migrate, newDoc, next, open, renumber, start } from './commands.ts';
+import { CURRENT_FORMAT, assembleContext } from '@verikb/core';
+import { approve, architecture, check, checkReport, context, del, importFile, importPrompt, init, list, listStarters, migrate, newDoc, next, open, renumber, start, withdraw } from './commands.ts';
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const FIVE_ISSUES = fileURLToPath(new URL('../fixtures/five-issues', import.meta.url));
@@ -33,7 +33,7 @@ test('init && new requirement && check succeeds end-to-end in a temp directory',
   const checked = await check(cwd);
   assert.equal(checked.code, 0, checked.lines.join('\n'));
   // The format line leads the report (REQ-015); a fresh scaffold is current.
-  assert.equal(checked.lines[0], 'format 1 (current)');
+  assert.equal(checked.lines[0], `format ${CURRENT_FORMAT} (current)`);
   assert.match(checked.lines.at(-1) ?? '', /ok — 2 documents, 0 issues/); // WF-001 + REQ-001
 });
 
@@ -334,9 +334,9 @@ test('migrate stamps a pre-marker project; a second run is a no-op; newer refuse
 
   const migrated = migrate(cwd);
   assert.equal(migrated.code, 0, migrated.lines.join('\n'));
-  assert.match(migrated.lines.at(-1) ?? '', /format 0 to 1/);
-  assert.equal(readFileSync(marker, 'utf8'), '1\n');
-  assert.equal((await check(cwd)).lines[0], 'format 1 (current)');
+  assert.match(migrated.lines.at(-1) ?? '', new RegExp(`format 0 to ${CURRENT_FORMAT}`));
+  assert.equal(readFileSync(marker, 'utf8'), `${CURRENT_FORMAT}\n`);
+  assert.equal((await check(cwd)).lines[0], `format ${CURRENT_FORMAT} (current)`);
 
   const again = migrate(cwd);
   assert.equal(again.code, 0);
@@ -806,4 +806,100 @@ test('veri import allocates past existing sources and records the issued id', as
   const doc = readFileSync(join(cwd, 'veri/sources/SRC-002-renewal-pricing.md'), 'utf8');
   assert.match(doc, /^title: "Renewal pricing"$/m);
   assert.match(doc, /- Subject: Renewal pricing/);
+});
+
+test('veri withdraw takes a document out of play and veri check stays clean', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+
+  init(cwd, { demo: false });
+  await newDoc(cwd, 'decision', 'Pick a widget');
+
+  const result = await withdraw(cwd, 'dec-001');
+  assert.equal(result.code, 0, result.lines.join('\n'));
+  assert.match(result.lines[0] ?? '', /^DEC-001 proposed → withdrawn/);
+  assert.match(result.lines[1] ?? '', /inbound \[\[links\]\] keep resolving/);
+  assert.match(readFileSync(join(cwd, 'veri/decisions/DEC-001-pick-a-widget.md'), 'utf8'), /^status: withdrawn$/m);
+
+  const checked = await check(cwd);
+  assert.equal(checked.code, 0, checked.lines.join('\n'));
+});
+
+test('veri withdraw without an id prints usage and exits 1', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  init(cwd, { demo: false });
+  const result = await withdraw(cwd, undefined);
+  assert.equal(result.code, 1);
+  assert.match(result.lines[0] ?? '', /^usage: veri withdraw <id>/);
+});
+
+test('veri delete removes an unapproved, unreferenced document and keeps its id spent', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+
+  init(cwd, { demo: false });
+  await newDoc(cwd, 'decision', 'Pick a widget');
+  const file = join(cwd, 'veri/decisions/DEC-001-pick-a-widget.md');
+
+  const result = await del(cwd, 'DEC-001');
+  assert.equal(result.code, 0, result.lines.join('\n'));
+  assert.match(result.lines[0] ?? '', /^deleted DEC-001/);
+  assert.equal(existsSync(file), false);
+
+  // The floor holds (DEC-037): the next decision is DEC-002, not the hole.
+  await newDoc(cwd, 'decision', 'Pick another widget');
+  assert.ok(existsSync(join(cwd, 'veri/decisions/DEC-002-pick-another-widget.md')));
+});
+
+test('veri delete refuses the approved and the referenced, exits 1, and names the way out', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+
+  init(cwd, { demo: false });
+  await newDoc(cwd, 'requirement', 'User authentication');
+  await approve(cwd, 'REQ-001');
+
+  const approved = await del(cwd, 'REQ-001');
+  assert.equal(approved.code, 1);
+  assert.match(approved.lines.join(' '), /was approved .* veri withdraw REQ-001/);
+  assert.ok(existsSync(join(cwd, 'veri/requirements/REQ-001-user-authentication.md')));
+
+  // The other refusal, on an unapproved document: a referrer would be stranded.
+  await newDoc(cwd, 'requirement', 'Session expiry');
+  await newDoc(cwd, 'decision', 'Pick a widget');
+  const decision = join(cwd, 'veri/decisions/DEC-001-pick-a-widget.md');
+  writeFileSync(decision, `${readFileSync(decision, 'utf8')}\nGoverns [[REQ-002]].\n`);
+
+  const stranding = await del(cwd, 'REQ-002');
+  assert.equal(stranding.code, 1);
+  assert.match(stranding.lines.join(' '), /DEC-001 references REQ-002 — deleting it would strand that link/);
+  assert.match(stranding.lines.join(' '), /veri withdraw REQ-002/);
+  assert.ok(existsSync(join(cwd, 'veri/requirements/REQ-002-session-expiry.md')));
+});
+
+test('a withdrawn document leaves the context package while its neighbors stay', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+
+  init(cwd, { demo: false });
+  await newDoc(cwd, 'requirement', 'User authentication');
+  await newDoc(cwd, 'decision', 'Pick a widget');
+  await newDoc(cwd, 'work-order', 'Ship the thing');
+
+  // The work order links both; the decision is what gets withdrawn.
+  const wo = join(cwd, 'veri/work-orders/WO-001-ship-the-thing.md');
+  writeFileSync(
+    wo,
+    readFileSync(wo, 'utf8').replace(
+      /^updated: (.*)$/m,
+      'updated: $1\nlinks:\n  - id: REQ-001\n    rel: implements\n  - id: DEC-001\n    rel: constrained-by',
+    ),
+  );
+  assert.match((await context(cwd, 'WO-001')).lines.join('\n'), /DEC-001/);
+
+  assert.equal((await withdraw(cwd, 'DEC-001')).code, 0);
+  const after = (await context(cwd, 'WO-001')).lines.join('\n');
+  assert.doesNotMatch(after, /### DEC-001/);
+  assert.match(after, /### REQ-001/);
 });

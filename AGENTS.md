@@ -44,6 +44,14 @@ Statuses:
   carry)
 - source: imported
 
+Every one of those four types also has `withdrawn` — the terminal state for
+a document taken out of play (`veri withdraw <id>`, DEC-110). It is not a
+promotion, so it needs no stamp; the file, its id, and every inbound
+`[[ID]]` link survive it, and a withdrawn document binds nothing and never
+enters a context package. `veri delete <id>` removes a file outright, and
+refuses unless the document was never approved and nothing references it —
+the id stays spent either way, since `veri/ids` is a high-water floor.
+
 Promotion (draft → accepted, proposed → active) requires an
 `approved: YYYY-MM-DD` frontmatter stamp and belongs to the user alone
 (`veri approve <id>`). `veri check` enforces both the stamp and the gate:

@@ -65,9 +65,23 @@ test('migrating a pre-marker project writes the marker and touches nothing else'
   const result = migrateProject(dir);
   assert.equal(result.from, 0);
   assert.equal(result.to, CURRENT_FORMAT);
-  assert.equal(result.applied.length, 1);
+  assert.equal(result.applied.length, CURRENT_FORMAT);
   assert.equal(classifyFormat(dir).kind, 'current');
   // Content preserved byte-for-byte — the 0→1 step is marker-only.
+  assert.equal(readFileSync(join(dir, 'requirements', 'REQ-001-t.md'), 'utf8'), doc);
+});
+
+test('a format-1 project migrates to 2 by the marker alone — the withdrawn status needs no document rewrite', (t) => {
+  const dir = tmpVeriDir(t);
+  writeFormatMarker(dir, 1);
+  const doc = '---\nid: REQ-001\ntype: requirement\ntitle: T\nstatus: draft\ncreated: 2026-08-01\nupdated: 2026-08-01\nlinks: []\n---\n\nBody.\n';
+  writeFileSync(join(dir, 'requirements', 'REQ-001-t.md'), doc);
+
+  const result = migrateProject(dir);
+  assert.equal(result.from, 1);
+  assert.equal(result.to, 2);
+  assert.equal(result.applied.length, 1);
+  assert.match(result.applied[0] ?? '', /withdrawn status/);
   assert.equal(readFileSync(join(dir, 'requirements', 'REQ-001-t.md'), 'utf8'), doc);
 });
 

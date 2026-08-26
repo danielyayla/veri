@@ -1,6 +1,6 @@
 import type { Advisory, Issue, VeriDocument } from './types.ts';
 import type { LoadResult } from './load.ts';
-import { isPending } from './pending.ts';
+import { isPending, isWithdrawn } from './pending.ts';
 import { compareIds } from './ids.ts';
 import type { DocType } from './ids.ts';
 import { daysBetween } from './binds.ts';
@@ -81,7 +81,9 @@ export function checkWorkOrderRequirements(documents: VeriDocument[]): Issue[] {
     if (doc.type !== 'work-order') continue;
     // Backlog is planning, and the gate is on starting work, not planning
     // (REQ-008, REQ-009): a freshly created WO passes check until it starts.
-    if (doc.status === 'backlog') continue;
+    // Withdrawn is the other end of the same exemption (DEC-110): work that
+    // was abandoned is not held to the standards of work that will happen.
+    if (doc.status === 'backlog' || isWithdrawn(doc)) continue;
     if (!doc.links.some((link) => link.id.startsWith('REQ-'))) {
       issues.push({
         kind: 'wo-without-requirement',
@@ -100,7 +102,7 @@ export function checkGatedWorkOrders(documents: VeriDocument[]): Issue[] {
   const byId = new Map(documents.map((doc) => [doc.id, doc]));
   const issues: Issue[] = [];
   for (const doc of documents) {
-    if (doc.type !== 'work-order' || doc.status === 'backlog') continue;
+    if (doc.type !== 'work-order' || doc.status === 'backlog' || isWithdrawn(doc)) continue;
     for (const link of doc.links) {
       const target = byId.get(link.id);
       if (target !== undefined && isPending(target)) {
@@ -238,7 +240,7 @@ export function checkDesignGate(documents: VeriDocument[]): Issue[] {
   const ids = new Set(documents.map((doc) => doc.id));
   const issues: Issue[] = [];
   for (const doc of documents) {
-    if (doc.type !== 'work-order' || doc.status === 'backlog') continue;
+    if (doc.type !== 'work-order' || doc.status === 'backlog' || isWithdrawn(doc)) continue;
     const touched = paths.find((path) => doc.body.includes(path));
     if (touched === undefined) continue;
     const designed = doc.links.some((link) => link.rel === 'designed-by' && ids.has(link.id));

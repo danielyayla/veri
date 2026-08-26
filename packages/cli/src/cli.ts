@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { approve, architecture, check, context, implemented, importFile, importPrompt, init, intent, list, migrate, newDoc, next, open, renumber, start } from './commands.ts';
+import { approve, architecture, check, context, del, implemented, importFile, importPrompt, init, intent, list, migrate, newDoc, next, open, renumber, start, withdraw } from './commands.ts';
 import type { CmdResult } from './commands.ts';
 
 /** The value following `--flag`, or undefined when the flag is absent. */
@@ -24,6 +24,12 @@ const USAGE = `usage: veri <command>
   veri start <WO-id> [--as <session>]
                              flip a ready work order to in-progress, recording
                              the claim (--as defaults from git user.name)
+  veri withdraw <id>         take a document out of play — the terminal
+                             withdrawn status; the file, its id, and inbound
+                             [[links]] all stay
+  veri delete <id>           remove a document's file outright; refused unless
+                             it was never approved and nothing references it
+                             (the id stays spent — veri/ids is a floor)
   veri renumber <id> [--to <new-id>] [--file <path>] [--refs <path,path>]
                              move a document to a new id, rewriting inbound links
   veri migrate               bring veri/ to the current on-disk format
@@ -66,6 +72,12 @@ switch (command) {
     break;
   case 'start':
     result = await start(cwd, rest[0], flagValue(rest, '--as'));
+    break;
+  case 'withdraw':
+    result = await withdraw(cwd, rest[0]);
+    break;
+  case 'delete':
+    result = await del(cwd, rest[0]);
     break;
   case 'renumber':
     result = await renumber(cwd, rest[0], {

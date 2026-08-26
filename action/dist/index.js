@@ -7409,6 +7409,9 @@ function localToday(now = /* @__PURE__ */ new Date()) {
 function isPending(doc) {
   return doc.type === "requirement" && doc.status === "draft" || doc.type === "decision" && doc.status === "proposed" || doc.type === "workflow" && doc.status === "draft";
 }
+function isWithdrawn(doc) {
+  return doc.status === "withdrawn";
+}
 
 // ../../node_modules/zod/v3/external.js
 var external_exports = {};
@@ -11466,10 +11469,11 @@ var baseFields = {
   links: external_exports.array(linkSchema).default([])
 };
 var approvedByField = external_exports.string().min(1).optional();
+var WITHDRAWN = "withdrawn";
 var requirementSchema = external_exports.object({
   ...baseFields,
   type: external_exports.literal("requirement"),
-  status: external_exports.enum(["draft", "accepted", "retired"]),
+  status: external_exports.enum(["draft", "accepted", "retired", WITHDRAWN]),
   approved: dateField.optional(),
   approved_by: approvedByField
 }).passthrough();
@@ -11491,7 +11495,7 @@ var moduleEntrySchema = external_exports.object({
 var decisionSchema = external_exports.object({
   ...baseFields,
   type: external_exports.literal("decision"),
-  status: external_exports.enum(["proposed", "active", "superseded"]),
+  status: external_exports.enum(["proposed", "active", "superseded", WITHDRAWN]),
   approved: dateField.optional(),
   approved_by: approvedByField,
   superseded_by: idField.optional(),
@@ -11504,7 +11508,7 @@ var bindsSchema = external_exports.object({
 var workOrderSchema = external_exports.object({
   ...baseFields,
   type: external_exports.literal("work-order"),
-  status: external_exports.enum(["backlog", "ready", "in-progress", "done"]),
+  status: external_exports.enum(["backlog", "ready", "in-progress", "done", WITHDRAWN]),
   approved: dateField.optional(),
   approved_by: approvedByField,
   claimed_by: external_exports.string().min(1).optional(),
@@ -11514,7 +11518,7 @@ var workOrderSchema = external_exports.object({
 var sourceSchema = external_exports.object({
   ...baseFields,
   type: external_exports.literal("source"),
-  status: external_exports.literal("imported"),
+  status: external_exports.enum(["imported", WITHDRAWN]),
   original: external_exports.string().min(1).optional()
 }).passthrough();
 var workflowSchema = external_exports.object({
@@ -11622,7 +11626,7 @@ function invalidFrontmatter(file, field, message) {
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-var CURRENT_FORMAT = 1;
+var CURRENT_FORMAT = 2;
 var FORMAT_FILE = "format";
 function toPath(veriDir) {
   return typeof veriDir === "string" ? veriDir : fileURLToPath(veriDir);
@@ -12052,7 +12056,7 @@ function checkDrift(documents, facts, veriPath) {
   for (const doc of documents) {
     if (doc.approved === void 0)
       continue;
-    if (doc.status === "superseded" || doc.status === "retired")
+    if (doc.status === "superseded" || doc.status === "retired" || doc.status === "withdrawn")
       continue;
     if (doc.type === "work-order" && doc.status !== "ready")
       continue;
@@ -12350,7 +12354,7 @@ function checkWorkOrderRequirements(documents) {
   for (const doc of documents) {
     if (doc.type !== "work-order")
       continue;
-    if (doc.status === "backlog")
+    if (doc.status === "backlog" || isWithdrawn(doc))
       continue;
     if (!doc.links.some((link) => link.id.startsWith("REQ-"))) {
       issues.push({
@@ -12367,7 +12371,7 @@ function checkGatedWorkOrders(documents) {
   const byId = new Map(documents.map((doc) => [doc.id, doc]));
   const issues = [];
   for (const doc of documents) {
-    if (doc.type !== "work-order" || doc.status === "backlog")
+    if (doc.type !== "work-order" || doc.status === "backlog" || isWithdrawn(doc))
       continue;
     for (const link of doc.links) {
       const target = byId.get(link.id);
@@ -12465,7 +12469,7 @@ function checkDesignGate(documents) {
   const ids = new Set(documents.map((doc) => doc.id));
   const issues = [];
   for (const doc of documents) {
-    if (doc.type !== "work-order" || doc.status === "backlog")
+    if (doc.type !== "work-order" || doc.status === "backlog" || isWithdrawn(doc))
       continue;
     const touched = paths.find((path) => doc.body.includes(path));
     if (touched === void 0)

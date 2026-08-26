@@ -25,12 +25,18 @@ const baseFields = {
 // never by the schema, so a solo project is untouched.
 const approvedByField = z.string().min(1).optional();
 
+// WO-109: `withdrawn` is the fifth status every type carries — the terminal
+// state for a document taken out of play (DEC-110). It is not a promotion, so
+// it needs no `approved:` stamp and no gate; the file, the id, and every
+// inbound [[ID]] link survive it. Hard removal is the separate, guarded verb.
+const WITHDRAWN = 'withdrawn' as const;
+
 // Unknown extra keys are preserved (passthrough), never rejected — see REQ-001.
 const requirementSchema = z
   .object({
     ...baseFields,
     type: z.literal('requirement'),
-    status: z.enum(['draft', 'accepted', 'retired']),
+    status: z.enum(['draft', 'accepted', 'retired', WITHDRAWN]),
     approved: dateField.optional(),
     approved_by: approvedByField,
   })
@@ -85,7 +91,7 @@ const decisionSchema = z
   .object({
     ...baseFields,
     type: z.literal('decision'),
-    status: z.enum(['proposed', 'active', 'superseded']),
+    status: z.enum(['proposed', 'active', 'superseded', WITHDRAWN]),
     approved: dateField.optional(),
     approved_by: approvedByField,
     superseded_by: idField.optional(),
@@ -118,7 +124,7 @@ const workOrderSchema = z
   .object({
     ...baseFields,
     type: z.literal('work-order'),
-    status: z.enum(['backlog', 'ready', 'in-progress', 'done']),
+    status: z.enum(['backlog', 'ready', 'in-progress', 'done', WITHDRAWN]),
     approved: dateField.optional(),
     approved_by: approvedByField,
     claimed_by: z.string().min(1).optional(),
@@ -135,7 +141,7 @@ const sourceSchema = z
   .object({
     ...baseFields,
     type: z.literal('source'),
-    status: z.literal('imported'),
+    status: z.enum(['imported', WITHDRAWN]),
     original: z.string().min(1).optional(),
   })
   .passthrough();

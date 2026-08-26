@@ -5,6 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ProjectExistsError, VERI_SUBDIRS, scaffoldProject } from './scaffold.ts';
 import { localToday } from './dates.ts';
+import { CURRENT_FORMAT } from './format.ts';
 
 function tmp(): string {
   return mkdtempSync(join(tmpdir(), 'veri-scaffold-'));
@@ -29,7 +30,7 @@ test('empty scaffold creates the four subdirectories, the default workflow, and 
   assert.deepEqual(result.filesWritten, ['AGENTS.md', 'CLAUDE.md']);
   assert.deepEqual(readdirSync(result.veriDir).sort(), [...VERI_SUBDIRS, 'format', 'templates', 'workflow.md'].sort());
   // Every new project is born at the current format (REQ-015, DEC-030).
-  assert.equal(readFileSync(join(result.veriDir, 'format'), 'utf8'), '1\n');
+  assert.equal(readFileSync(join(result.veriDir, 'format'), 'utf8'), `${CURRENT_FORMAT}\n`);
   for (const sub of VERI_SUBDIRS) {
     assert.deepEqual(readdirSync(join(result.veriDir, sub)), ['.gitkeep']);
   }
@@ -84,7 +85,7 @@ test('demo scaffold copies veri/ verbatim, adds the default workflow, and counts
   assert.equal(readFileSync(join(root, 'README.md'), 'utf8'), 'demo readme');
   assert.match(readFileSync(join(root, 'veri', 'workflow.md'), 'utf8'), /id: WF-001/);
   // A demo without its own marker gets stamped at the current format.
-  assert.equal(readFileSync(join(root, 'veri', 'format'), 'utf8'), '1\n');
+  assert.equal(readFileSync(join(root, 'veri', 'format'), 'utf8'), `${CURRENT_FORMAT}\n`);
 });
 
 test("a demo's own format marker wins over the stamp", () => {
@@ -153,7 +154,7 @@ test('starter scaffold copies the seed docs, completes the layout, and stamps fo
   assert.deepEqual(readdirSync(join(result.veriDir, 'sources')), ['.gitkeep']);
   // Seeded directories carry their documents, no .gitkeep noise.
   assert.deepEqual(readdirSync(join(result.veriDir, 'requirements')), ['REQ-001-x.md']);
-  assert.equal(readFileSync(join(result.veriDir, 'format'), 'utf8'), '1\n');
+  assert.equal(readFileSync(join(result.veriDir, 'format'), 'utf8'), `${CURRENT_FORMAT}\n`);
   assert.match(readFileSync(join(result.veriDir, 'workflow.md'), 'utf8'), /id: WF-001/);
   // The ids high-water record covers every seeded id, so the next document
   // filed after init allocates past the bundle (DEC-037, WO-091).

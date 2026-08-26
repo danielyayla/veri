@@ -143,7 +143,9 @@ export function checkDrift(documents: VeriDocument[], facts: GitFacts, veriPath:
   // approval is invisible, which the advisory tier can afford).
   for (const doc of documents) {
     if (doc.approved === undefined) continue;
-    if (doc.status === 'superseded' || doc.status === 'retired') continue; // history, not drift
+    // History, not drift — including `withdrawn` (DEC-110): a document taken
+    // out of play binds nothing, so its stamp has nothing left to cover.
+    if (doc.status === 'superseded' || doc.status === 'retired' || doc.status === 'withdrawn') continue;
     // WO-098: a work order's stamp is dispatch clearance, spent once
     // execution begins — receipts and checked boxes are progress, not drift.
     if (doc.type === 'work-order' && doc.status !== 'ready') continue;

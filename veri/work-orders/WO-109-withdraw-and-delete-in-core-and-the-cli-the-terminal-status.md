@@ -67,18 +67,38 @@ Deliver the discard verbs in core and on the terminal surface, per [[DEC-110]]. 
 
 ## Acceptance tests
 
-- [ ] A document of each of the four types parses and validates with `status: withdrawn`, and needs no `approved:` stamp to reach it
-- [ ] `veri withdraw DEC-xxx` rewrites only `status:` and `updated:`; the rest of the file is byte-identical
-- [ ] A withdrawn requirement linked by an in-progress work order does not gate it, and does not appear in that work order's context package
-- [ ] A withdrawn work order never appears in `veri next`, even when it carries an `approved:` stamp
-- [ ] An inline `[[ID]]` pointing at a withdrawn document is not reported as a broken link by `veri check`
-- [ ] `veri delete WO-xxx` removes an unapproved, unreferenced document and leaves `veri/ids` unchanged; the next `veri new` skips the freed id
-- [ ] `veri delete` refuses with exit 1 and a named reason when the document carries an `approved:` stamp
-- [ ] `veri delete` refuses with exit 1 and names the referrer when another document links to it in frontmatter, and again when only an inline `[[ID]]` mentions it
-- [ ] A project at the new format opened by a pre-bump core is refused with the REQ-015 format statement rather than opened
-- [ ] `veri migrate` takes a pre-bump project to the new format with no document rewrites
-- [ ] `veri check` reports zero violations across the repo after a withdraw and after a delete
+- [x] A document of each of the four types parses and validates with `status: withdrawn`, and needs no `approved:` stamp to reach it
+- [x] `veri withdraw DEC-xxx` rewrites only `status:` and `updated:`; the rest of the file is byte-identical
+- [x] A withdrawn requirement linked by an in-progress work order does not gate it, and does not appear in that work order's context package
+- [x] A withdrawn work order never appears in `veri next`, even when it carries an `approved:` stamp
+- [x] An inline `[[ID]]` pointing at a withdrawn document is not reported as a broken link by `veri check`
+- [x] `veri delete WO-xxx` removes an unapproved, unreferenced document and leaves `veri/ids` unchanged; the next `veri new` skips the freed id
+- [x] `veri delete` refuses with exit 1 and a named reason when the document carries an `approved:` stamp
+- [x] `veri delete` refuses with exit 1 and names the referrer when another document links to it in frontmatter, and again when only an inline `[[ID]]` mentions it
+- [x] A project at the new format opened by a pre-bump core is refused with the REQ-015 format statement rather than opened
+- [x] `veri migrate` takes a pre-bump project to the new format with no document rewrites
+- [x] `veri check` reports zero violations across the repo after a withdraw and after a delete
 
 ## Receipts
 
-(none yet)
+### 2026-08-26 — withdraw and delete land in core and the CLI
+
+Files: `packages/core/src/discard.ts` (new), `packages/core/src/discard.test.ts` (new),
+`packages/core/src/schema.ts`, `packages/core/src/pending.ts`, `packages/core/src/check.ts`,
+`packages/core/src/context.ts`, `packages/core/src/drift.ts`, `packages/core/src/save.ts`,
+`packages/core/src/format.ts`, `packages/core/src/index.ts`, `packages/cli/src/commands.ts`,
+`packages/cli/src/cli.ts`, `veri/format`, `AGENTS.md`, plus the format/scaffold/CLI test
+updates and the rebuilt `action/dist/index.js`.
+
+`withdrawn` joins the status enum of all four types; `withdrawDocument` flips
+status and updated alone, `deleteDocument` refuses anything approved or
+referenced via `deleteRefusal`. Withdrawn documents leave context packages,
+the work-order gates, the design gate, and drift, while their inbound
+`[[ID]]` links keep resolving. `CURRENT_FORMAT` is 2 with a marker-only 1→2
+migration, and this project is migrated: the shipped Veri.app 0.2.1 core now
+answers "this project uses veri format 2 … update Veri to open it" instead of
+dropping documents and misreporting their references — WO-104's remedy,
+spent here rather than twice.
+
+Verified: `npm test` 722 tests across five workspaces, 0 failures;
+`npm run typecheck` clean; `veri check` 0 issues (10 pre-existing advisories).

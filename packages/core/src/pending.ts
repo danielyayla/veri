@@ -15,3 +15,15 @@ export function isPending(doc: VeriDocument): boolean {
     (doc.type === 'workflow' && doc.status === 'draft')
   );
 }
+
+/**
+ * A document taken out of play (DEC-110): terminal, non-binding, and never
+ * gated. It is neither pending (nothing awaits a stamp) nor live — checks
+ * that skip planning skip withdrawal for the same reason, and assembly leaves
+ * it out of context packages while its inbound [[ID]] links keep resolving.
+ * Lives beside `isPending` so the browser-bundled renderer reaches the one
+ * real implementation through the same dependency-free subpath (DEC-046).
+ */
+export function isWithdrawn(doc: VeriDocument): boolean {
+  return doc.status === 'withdrawn';
+}

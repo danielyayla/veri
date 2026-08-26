@@ -9,7 +9,13 @@ import { fileURLToPath } from 'node:url';
  * format it reports. A directory without the file predates the marker and
  * is format 0, the oldest — always openable, never rejected.
  */
-export const CURRENT_FORMAT = 1;
+// WO-109 bumps this to 2: `withdrawn` joins every type's status enum, and a
+// reader that predates it rejects such a document's frontmatter outright —
+// dropping it from the document set and then misreporting every inline
+// reference to it as a broken link. That is the exact failure WO-104 names,
+// and the format bump is its remedy: a stale reader states the format and
+// refuses, instead of opening the project and lying about it.
+export const CURRENT_FORMAT = 2;
 
 export const FORMAT_FILE = 'format';
 
@@ -83,6 +89,12 @@ export const MIGRATIONS: readonly MigrationStep[] = [
     to: 1,
     summary: 'write the veri/format marker (no content changes)',
     apply: (veriDir) => writeFormatMarker(veriDir, 1),
+  },
+  {
+    from: 1,
+    to: 2,
+    summary: 'the withdrawn status joins every type (marker only; documents are already valid)',
+    apply: (veriDir) => writeFormatMarker(veriDir, 2),
   },
 ];
 
