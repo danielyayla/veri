@@ -4,14 +4,18 @@
 [![Latest release](https://img.shields.io/github/v/release/danielyayla/veri)](https://github.com/danielyayla/veri/releases/latest)
 [![License](https://img.shields.io/github/license/danielyayla/veri)](LICENSE)
 
-A knowledge base your coding agents read — requirements, decisions, and
-work orders as plain markdown files living in your repo. Veri hands an
-agent a complete context package for any task over MCP, and everything
-the agent writes back lands in files you review.
+The system of record for product intent in an agent-built software
+world. Agents can build anything; Veri helps humans decide what should
+be built — and whether it worked. Evidence, requirements, decisions,
+and work orders live as plain markdown files in your repo; Veri hands
+an agent a complete context package for any task over MCP, and
+everything the agent writes back lands in files you review.
 
-Veri is for developers who build with coding agents every day and are
-done re-explaining their project's decisions at the start of each
-session.
+The operating principle: humans define and revise intent; agents
+execute within it. Veri is for developers who build with coding agents
+every day and are done re-explaining their project's decisions at the
+start of each session — and done losing track of whether what shipped
+actually worked.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="site/assets/app-dark.png">

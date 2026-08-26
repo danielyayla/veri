@@ -31,7 +31,26 @@ section of every context package ([[DEC-018]]).
 
 Evidence enters as sources; sources become requirements and decisions;
 those become work orders; work orders become implementation with
-receipts.
+receipts. Receipts are the middle of the path, not the end — the full
+shape is a loop:
+
+> evidence → understanding → product intent → requirements → decisions
+> → bounded work → agent implementation → verification → learning →
+> revised intent
+
+After a change ships, reality reports back — metrics, user feedback,
+support tickets, a follow-up investigation. That report re-enters
+through the evidence door as a new source linked to what it tests
+([[REQ-033]]), and what is learned revises the intent the next round
+of work executes within.
+
+The operating principle: **humans define and revise intent; agents
+execute within intent** ([[DEC-111]]). Human gates sit at semantic
+boundaries, not at every action — interpreting evidence into a
+requirement, approving a requirement, choosing a decision's tradeoffs,
+and judging after implementation whether the shipped change actually
+solved the product problem. Everything between those gates is agent
+work.
 
 ## Rules for implementers
 
@@ -78,3 +97,18 @@ receipts.
    order without a claim fails `veri check`, and a claim another
    session holds is refused — pick different work orders, never share
    one.
+9. Requirements carry an epistemic kind ([[REQ-032]]). A
+   `kind: constraint` (the default when the field is absent) must be
+   satisfied and stay satisfied — acceptance criteria verify it. A
+   `kind: hypothesis` is a bet: it declares the outcome that would
+   confirm or refute it (a metric and a target), and implementation
+   only *tests* it — shipping the work orders does not settle it.
+   After a hypothesis's work orders ship, reality's answer is filed
+   as a new source linked to the requirement with rel
+   `tests`/`supports`/`refutes` and to the shipping work order with
+   rel `outcome-of` ([[REQ-033]], [[DEC-113]]). A hypothesis whose
+   linked work orders are all done but which has no outcome source is
+   an untested bet — `veri check` surfaces it as an advisory until
+   the evidence lands. Outcome evidence never auto-changes the
+   requirement: judging what the evidence means, and revising or
+   retiring the requirement, is the user's act.
