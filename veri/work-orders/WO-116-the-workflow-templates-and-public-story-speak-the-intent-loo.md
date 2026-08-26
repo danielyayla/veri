@@ -2,7 +2,10 @@
 id: WO-116
 type: work-order
 title: "The workflow, templates, and public story speak the intent loop"
-status: backlog
+status: in-progress
+claimed_by: claude-wo116
+claimed_at: 2026-08-26
+approved: 2026-08-26
 created: 2026-08-26
 updated: 2026-08-26
 links:
