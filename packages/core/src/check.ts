@@ -1,6 +1,6 @@
 import type { Advisory, Issue, VeriDocument } from './types.ts';
 import type { LoadResult } from './load.ts';
-import { isPending, isWithdrawn } from './pending.ts';
+import { isPending, isWithdrawn, requirementKind } from './pending.ts';
 import { compareIds } from './ids.ts';
 import type { DocType } from './ids.ts';
 import { daysBetween } from './binds.ts';
@@ -138,6 +138,30 @@ export function checkUnclaimedWorkOrders(documents: VeriDocument[]): Issue[] {
       file: doc.file,
       id: doc.id,
       message: `work order ${doc.id} is in-progress but records no claim — start it with veri start ${doc.id} --as <session>, or add claimed_by/claimed_at`,
+    });
+  }
+  return issues;
+}
+
+/**
+ * Requirement kinds (REQ-032, WO-114): a hypothesis is a bet tested by
+ * shipping, and a bet with no declared outcome — no metric, no target — can
+ * never be confirmed or refuted. An untestable claim is an issue, never a
+ * silent no-op (the DEC-058 posture). Constraints (including every
+ * requirement with no `kind:`, which defaults to constraint) are exempt:
+ * they are verified by acceptance criteria, not outcomes. Withdrawn
+ * requirements are out of play (DEC-110) and not held to it.
+ */
+export function checkHypothesisOutcomes(documents: VeriDocument[]): Issue[] {
+  const issues: Issue[] = [];
+  for (const doc of documents) {
+    if (doc.type !== 'requirement' || isWithdrawn(doc)) continue;
+    if (requirementKind(doc) !== 'hypothesis' || doc.outcome !== undefined) continue;
+    issues.push({
+      kind: 'hypothesis-without-outcome',
+      file: doc.file,
+      id: doc.id,
+      message: `requirement ${doc.id} is a hypothesis but declares no outcome — add outcome: {metric: ..., target: ...} naming what would confirm or refute it`,
     });
   }
   return issues;
@@ -471,6 +495,7 @@ export function checkProject(load: LoadResult): CheckResult {
       ...checkDuplicateIds(load.documents),
       ...checkBrokenLinks(load.documents),
       ...checkWorkOrderRequirements(load.documents),
+      ...checkHypothesisOutcomes(load.documents),
       ...checkUnclaimedWorkOrders(load.documents),
       ...checkDoneWorkOrders(load.documents),
       ...checkGatedWorkOrders(load.documents),

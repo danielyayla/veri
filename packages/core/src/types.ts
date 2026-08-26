@@ -23,6 +23,13 @@ export interface VeriDocument {
       and test identifiers (`path` or `path::name`). Only on work orders
       that declare a `binds:` block. */
   binds?: { paths: string[]; tests: string[] };
+  /** A requirement's epistemic kind (REQ-032, WO-114): `constraint` must be
+      satisfied and stay satisfied; `hypothesis` is a bet tested by shipping.
+      Absent means constraint — use `requirementKind` for the effective value. */
+  kind?: 'constraint' | 'hypothesis';
+  /** What would confirm or refute a hypothesis (REQ-032): a metric and its
+      target, normalized to strings. Only on requirements that declare one. */
+  outcome?: { metric: string; target: string };
   /** Who holds this work order (WO-099): free-text session/agent identity,
       written by the start transition. Only on claimed work orders. */
   claimedBy?: string;
@@ -126,6 +133,10 @@ export type Issue =
       message: string;
     }
   | { kind: 'missing-approval'; file: string; id: string; message: string }
+  // Requirement kinds (REQ-032, WO-114): a hypothesis is a bet, and a bet
+  // with no declared outcome cannot be confirmed or refuted — an untestable
+  // claim is an issue, never a silent no-op (the DEC-058 posture).
+  | { kind: 'hypothesis-without-outcome'; file: string; id: string; message: string }
   // Team semantics (DEC-071): approved_by names someone the workflow's
   // maintainers list does not — a misattributed stamp fails, unlike a
   // merely missing one (see the missing-approver advisory).

@@ -53,6 +53,14 @@ export function parseDocument(file: string, content: string): ParseOutcome {
     ...(fm.type === 'work-order' && fm.binds !== undefined
       ? { binds: { paths: fm.binds.paths, tests: fm.binds.tests } }
       : {}),
+    // REQ-032 (WO-114): a requirement's declared kind and outcome. `kind`
+    // stays absent when undeclared — "absent means constraint" is the
+    // readers' rule (requirementKind), so round-tripping never invents a
+    // field the file does not have. Outcome targets normalize to strings.
+    ...(fm.type === 'requirement' && fm.kind !== undefined ? { kind: fm.kind } : {}),
+    ...(fm.type === 'requirement' && fm.outcome !== undefined
+      ? { outcome: { metric: fm.outcome.metric, target: String(fm.outcome.target) } }
+      : {}),
     ...(fm.type === 'work-order' && fm.claimed_by !== undefined ? { claimedBy: fm.claimed_by } : {}),
     ...(fm.type === 'work-order' && fm.claimed_at !== undefined ? { claimedAt: fm.claimed_at } : {}),
     ...((fm.type === 'requirement' || fm.type === 'decision' || fm.type === 'workflow' || fm.type === 'work-order') &&

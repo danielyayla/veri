@@ -283,3 +283,32 @@ test('the package carries the advisory tier for the subject work order — pure 
   const pristine = await assembleContext(FIXTURE, 'WO-001');
   assert.ok(!pristine.text.includes('stands on DEC-002'), 'backlog work order stays quiet');
 });
+
+test('requirement kind rides the heading and a declared outcome ships as its own line (REQ-032, WO-114)', async (t) => {
+  const { mkdirSync, mkdtempSync, rmSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const dir = mkdtempSync(join(tmpdir(), 'veri-context-kind-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  for (const sub of ['requirements', 'work-orders']) mkdirSync(join(dir, 'veri', sub), { recursive: true });
+  writeFileSync(
+    join(dir, 'veri', 'requirements', 'REQ-001-bet.md'),
+    '---\nid: REQ-001\ntype: requirement\ntitle: Onboarding map improves activation\nstatus: accepted\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\nkind: hypothesis\noutcome:\n  metric: activation-rate\n  target: "> 40%"\n---\nHYPOTHESIS-BODY-MARKER\n\n## Acceptance criteria\n\n- [ ] x\n',
+  );
+  writeFileSync(
+    join(dir, 'veri', 'requirements', 'REQ-002-constraint.md'),
+    '---\nid: REQ-002\ntype: requirement\ntitle: No data loss\nstatus: accepted\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\n---\nCONSTRAINT-BODY-MARKER\n\n## Acceptance criteria\n\n- [ ] x\n',
+  );
+  writeFileSync(
+    join(dir, 'veri', 'work-orders', 'WO-001-work.md'),
+    '---\nid: WO-001\ntype: work-order\ntitle: The work\nstatus: backlog\ncreated: 2026-08-01\nupdated: 2026-08-01\nlinks:\n  - id: REQ-001\n    rel: implements\n  - id: REQ-002\n    rel: implements\n---\n## Summary\n\nWork.\n',
+  );
+
+  const { text } = await assembleContext(dir, 'WO-001');
+  assert.match(text, /### REQ-001 — Onboarding map improves activation · accepted · hypothesis · ~\d+ tokens/);
+  assert.match(text, /^Outcome: activation-rate > 40%$/m);
+  // The kind-less default renders explicitly as a constraint (REQ-032).
+  assert.match(text, /### REQ-002 — No data loss · accepted · constraint · ~\d+ tokens/);
+  // The outcome line belongs to the hypothesis, before its body.
+  const outcomeAt = text.indexOf('Outcome: activation-rate > 40%');
+  assert.ok(outcomeAt >= 0 && outcomeAt < text.indexOf('HYPOTHESIS-BODY-MARKER'));
+});

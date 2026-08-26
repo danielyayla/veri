@@ -417,6 +417,19 @@ test('list prints id, status, title sorted by id', async (t) => {
     ['DEC-001', 'REQ-001', 'WF-001'],
   );
   assert.match(all.lines[1] ?? '', /^REQ-001\s+draft\s+Zebra$/);
+
+  // REQ-032 (WO-114): a hypothesis requirement is marked with its declared
+  // outcome; the kind-less constraint line above stays exactly as it was.
+  writeFileSync(
+    join(cwd, 'veri/requirements/REQ-002-bet.md'),
+    '---\nid: REQ-002\ntype: requirement\ntitle: Onboarding bet\nstatus: draft\ncreated: 2026-08-01\nupdated: 2026-08-01\nkind: hypothesis\noutcome:\n  metric: activation-rate\n  target: "> 40%"\n---\nBody.\n\n## Acceptance criteria\n\n- [ ] x\n',
+  );
+  const withBet = await list(cwd, 'requirement');
+  assert.match(
+    withBet.lines.join('\n'),
+    /^REQ-002\s+draft\s+Onboarding bet · hypothesis · outcome: activation-rate > 40%$/m,
+  );
+
   const filtered = await list(cwd, 'decision');
   assert.equal(filtered.lines.length, 1);
   assert.equal((await list(cwd, 'nonsense')).code, 1);

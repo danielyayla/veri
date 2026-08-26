@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFi
 import { createRequire } from 'node:module';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createDocument, deleteDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, lookupIntent, maintainerRegistry, migrateProject, moduleRegistry, nextDispatchable, nextIdNumber, originalStoragePath, recordIssuedId, renderArchitecture, renderIntent, renumberDocument, scaffoldProject, slugifyTitle, startWorkOrder, withdrawDocument, workOrdersTouching } from '@verikb/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createDocument, deleteDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, lookupIntent, maintainerRegistry, migrateProject, moduleRegistry, nextDispatchable, nextIdNumber, originalStoragePath, outcomeLabel, recordIssuedId, renderArchitecture, renderIntent, renumberDocument, requirementKind, scaffoldProject, slugifyTitle, startWorkOrder, withdrawDocument, workOrdersTouching } from '@verikb/core';
 import type { CheckReport, DocType } from '@verikb/core';
 import { collectGitFacts, gitUserName } from './git.ts';
 import { collectTestFacts } from './testfacts.ts';
@@ -517,9 +517,17 @@ export async function list(cwd: string, typeArg: string | undefined): Promise<Cm
   const docs = documents
     .filter((doc) => typeArg === undefined || doc.type === typeArg)
     .sort((a, b) => compareIds(a.id, b.id));
+  // REQ-032 (WO-114): a hypothesis requirement is marked, with its declared
+  // outcome beside it — the unmarked default is a constraint, so the compact
+  // list stays quiet for the common case while the bets stand out.
+  const kindSuffix = (doc: (typeof docs)[number]): string => {
+    if (doc.type !== 'requirement' || requirementKind(doc) !== 'hypothesis') return '';
+    const label = outcomeLabel(doc);
+    return ` · hypothesis${label === null ? '' : ` · outcome: ${label}`}`;
+  };
   return {
     code: 0,
-    lines: docs.map((doc) => `${doc.id.padEnd(8)} ${doc.status.padEnd(12)} ${doc.title}`),
+    lines: docs.map((doc) => `${doc.id.padEnd(8)} ${doc.status.padEnd(12)} ${doc.title}${kindSuffix(doc)}`),
   };
 }
 

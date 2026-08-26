@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildGraph } from './graph.ts';
 import { checkStructure } from './check.ts';
-import { isPending, isWithdrawn } from './pending.ts';
+import { isPending, isWithdrawn, outcomeLabel, requirementKind } from './pending.ts';
 import { checkSupersededLinks } from './drift.ts';
 import { DOC_TYPES, compareIds } from './ids.ts';
 import { loadProject } from './load.ts';
@@ -102,6 +102,16 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
   const linksLine = (doc: VeriDocument): string =>
     doc.links.length === 0 ? '' : `Links: ${doc.links.map((l) => `${l.id} (${l.rel})`).join(', ')}\n\n`;
 
+  // REQ-032 (WO-114): a requirement's kind rides its heading — constraint or
+  // hypothesis, the default made explicit so agents read the epistemic weight
+  // — and a declared outcome ships as its own line beside Links.
+  const kindTag = (doc: VeriDocument): string => (doc.type === 'requirement' ? ` · ${requirementKind(doc)}` : '');
+  const outcomeLine = (doc: VeriDocument): string => {
+    if (doc.type !== 'requirement') return '';
+    const label = outcomeLabel(doc);
+    return label === null ? '' : `Outcome: ${label}\n\n`;
+  };
+
   /** How a hop-2 document connects to the core: its first edge to a hop-1
       document in id order (then rel order), either direction. Deterministic. */
   const connection = (doc: VeriDocument): string => {
@@ -132,9 +142,9 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
       text: string;
     }
     const renderFull = (doc: VeriDocument, level: string): Rendered => {
-      const text = `${linksLine(doc)}${doc.body.trim()}\n`;
+      const text = `${linksLine(doc)}${outcomeLine(doc)}${doc.body.trim()}\n`;
       return {
-        heading: `${level} ${doc.id} — ${doc.title} · ${doc.status} · ~${estimateTokens(text)} tokens`,
+        heading: `${level} ${doc.id} — ${doc.title} · ${doc.status}${kindTag(doc)} · ~${estimateTokens(text)} tokens`,
         text,
       };
     };

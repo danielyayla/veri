@@ -2,6 +2,7 @@
 import { h, svgEl } from '../dom.ts';
 import { TYPE_META } from '../theme.ts';
 import { parseBlocks } from '../markdown.ts';
+import { outcomeLabel, requirementKind } from '@verikb/core/pending';
 import { DEFAULT_REL, autocomplete, connections, fileActivity, insertAutocomplete, localGraph, relsInUse } from '../derive.ts';
 import { decisionRules } from '../archderive.ts';
 import type { ConnectionGroups } from '../derive.ts';
@@ -26,6 +27,15 @@ export function frontmatterCard(ctx: Ctx, opts: { status?: boolean } = {}): HTML
     row('id', h('span', { class: 'fm-mono', style: `color:${meta.color};`, title: doc.id }, doc.id)),
     row('type', typeChip(doc.type)),
     ...(opts.status === false ? [] : [row('status', statusChip(doc.status))]),
+    // WO-114 (REQ-032): a requirement always shows its epistemic kind —
+    // absent frontmatter means constraint, and the card says so explicitly —
+    // with the declared outcome (metric + target) beside a hypothesis.
+    ...(doc.type === 'requirement'
+      ? [row('kind', h('span', { class: 'fm-mono', title: requirementKind(doc) }, requirementKind(doc)))]
+      : []),
+    ...(doc.type === 'requirement' && outcomeLabel(doc) !== null
+      ? [row('outcome', h('span', { class: 'fm-mono', title: outcomeLabel(doc)! }, outcomeLabel(doc)!))]
+      : []),
     ...(doc.approved !== undefined ? [row('approved', h('span', { class: 'fm-mono', title: doc.approved }, doc.approved))] : []),
     row('created', h('span', { class: 'fm-mono', title: doc.created }, doc.created)),
     row('updated', h('span', { class: 'fm-mono', title: doc.updated }, ctx.rel(doc.updated))),

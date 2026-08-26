@@ -31,6 +31,27 @@ const approvedByField = z.string().min(1).optional();
 // inbound [[ID]] link survive it. Hard removal is the separate, guarded verb.
 const WITHDRAWN = 'withdrawn' as const;
 
+// REQ-032 (WO-114): a requirement declares its epistemic kind. `constraint`
+// must be satisfied and stay satisfied; `hypothesis` is a bet, only *tested*
+// by implementation. Absent means constraint — the field is additive, never
+// a migration. A malformed value is an invalid-frontmatter issue like any
+// other field, never a silently ignored no-op (the DEC-058 posture).
+const requirementKindField = z.enum(['constraint', 'hypothesis']).optional();
+
+// The outcome that would confirm or refute a hypothesis: a metric name and a
+// target. `target` accepts a string or a bare YAML number ("< 5 minutes" or
+// 5); parse normalizes it to a string. Whether a hypothesis *must* declare
+// one is check's rule (hypothesis-without-outcome), not the schema's — a
+// half-drafted hypothesis still parses, renders, and round-trips.
+const outcomeSchema = z
+  .object({
+    metric: z.string().min(1),
+    target: z.union([z.string().min(1), z.number()]),
+  })
+  .passthrough();
+
+export type OutcomeBlock = z.infer<typeof outcomeSchema>;
+
 // Unknown extra keys are preserved (passthrough), never rejected — see REQ-001.
 const requirementSchema = z
   .object({
@@ -39,6 +60,8 @@ const requirementSchema = z
     status: z.enum(['draft', 'accepted', 'retired', WITHDRAWN]),
     approved: dateField.optional(),
     approved_by: approvedByField,
+    kind: requirementKindField,
+    outcome: outcomeSchema.optional(),
   })
   .passthrough();
 

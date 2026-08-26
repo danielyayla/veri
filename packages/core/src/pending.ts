@@ -27,3 +27,20 @@ export function isPending(doc: VeriDocument): boolean {
 export function isWithdrawn(doc: VeriDocument): boolean {
   return doc.status === 'withdrawn';
 }
+
+/**
+ * A requirement's effective epistemic kind (REQ-032, WO-114): absent means
+ * constraint, so every reader — CLI, context assembly, the renderer — agrees
+ * on the default through this one function instead of each re-deciding it.
+ * Lives here so the browser-bundled renderer reaches the one real
+ * implementation through the same dependency-free subpath (DEC-046).
+ */
+export function requirementKind(doc: Pick<VeriDocument, 'kind'>): 'constraint' | 'hypothesis' {
+  return doc.kind ?? 'constraint';
+}
+
+/** One rendering of an outcome declaration — `metric target` — shared by
+    every surface that shows it, or null when none is declared. */
+export function outcomeLabel(doc: Pick<VeriDocument, 'outcome'>): string | null {
+  return doc.outcome === undefined ? null : `${doc.outcome.metric} ${doc.outcome.target}`;
+}

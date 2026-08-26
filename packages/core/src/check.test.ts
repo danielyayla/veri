@@ -108,6 +108,15 @@ const CASES: BrokenCase[] = [
     expected: [{ kind: 'invalid-frontmatter', file: 'work-orders/WO-001-half-claimed.md', field: 'claimed_at' }],
   },
   {
+    // REQ-032 (WO-114): a hypothesis with no declared outcome is an
+    // untestable bet — flagged; constraints (and the kind-less default)
+    // never are.
+    dir: 'hypothesis-no-outcome',
+    expected: [
+      { kind: 'hypothesis-without-outcome', id: 'REQ-001', file: 'requirements/REQ-001-untestable-bet.md' },
+    ],
+  },
+  {
     dir: 'ui-wo-without-design',
     expected: [{ kind: 'ui-wo-without-design', id: 'WO-001', file: 'work-orders/WO-001-ui-no-design.md' }],
   },
@@ -134,6 +143,21 @@ for (const { dir, expected } of CASES) {
     }
   });
 }
+
+test('a hypothesis with an outcome and a kind-less constraint both pass the outcome rule (REQ-032)', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-hypothesis-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  mkdirSync(join(dir, 'requirements'), { recursive: true });
+  writeFileSync(
+    join(dir, 'requirements', 'REQ-001-bet.md'),
+    '---\nid: REQ-001\ntype: requirement\ntitle: A settled bet\nstatus: accepted\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\nkind: hypothesis\noutcome:\n  metric: activation-rate\n  target: "> 40%"\n---\nBody.\n\n## Acceptance criteria\n\n- [ ] x\n',
+  );
+  writeFileSync(
+    join(dir, 'requirements', 'REQ-002-constraint.md'),
+    '---\nid: REQ-002\ntype: requirement\ntitle: No kind declared\nstatus: accepted\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\n---\nBody.\n\n## Acceptance criteria\n\n- [ ] x\n',
+  );
+  assert.deepEqual(checkProject(await loadProject(dir)).issues, []);
+});
 
 test('a backlog work order may cite pending documents — the gate is on starting work', async () => {
   const load = await loadProject(new URL('../fixtures/pending-ok', import.meta.url));
