@@ -2,7 +2,10 @@
 id: WO-115
 type: work-order
 title: "Outcome sources: link relations, the untested-bet advisory, and context inclusion"
-status: backlog
+status: in-progress
+claimed_by: claude-wo115
+claimed_at: 2026-08-26
+approved: 2026-08-26
 created: 2026-08-26
 updated: 2026-08-26
 links:
