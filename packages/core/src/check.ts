@@ -8,6 +8,7 @@ import { checkSupersededLinks } from './drift.ts';
 import { checkArchitecture } from './architecture.ts';
 import { getTemplate } from './templates.ts';
 import { FORMAT_FILE, formatStatement } from './format.ts';
+import { sectionText, withoutSection } from './sections.ts';
 import type { FormatClassification } from './format.ts';
 
 export function checkDuplicateIds(documents: VeriDocument[]): Issue[] {
@@ -227,10 +228,16 @@ export function checkStaleClaims(documents: VeriDocument[], today: string, windo
  * one existing document with rel "designed-by". The trigger paths are
  * project-defined — declared as `design_gate_paths` on the workflow document
  * (DEC-039) — so core carries nothing specific to any repo's layout; with no
- * paths declared the gate is inert. Body-text mention is the v1 heuristic —
- * not git diffs or file lists. A designed-by link whose target id doesn't
+ * paths declared the gate is inert. A designed-by link whose target id doesn't
  * exist does not satisfy the gate; the broken-link check reports that link
  * separately.
+ *
+ * Mention is still the heuristic — not git diffs or declared file lists — but
+ * it reads intent, not spelling (WO-112): `## Out of scope` is excluded, so a
+ * sentence naming what the work will not touch never trips the gate, while
+ * the same path in Summary, In scope, or anywhere else does. Without that,
+ * the gate punished precision — the more carefully a work order drew its
+ * boundary, the more likely it fired.
  */
 export function checkDesignGate(documents: VeriDocument[]): Issue[] {
   const paths = documents
@@ -241,7 +248,8 @@ export function checkDesignGate(documents: VeriDocument[]): Issue[] {
   const issues: Issue[] = [];
   for (const doc of documents) {
     if (doc.type !== 'work-order' || doc.status === 'backlog' || isWithdrawn(doc)) continue;
-    const touched = paths.find((path) => doc.body.includes(path));
+    const claimed = withoutSection(doc.body, 'Out of scope');
+    const touched = paths.find((path) => claimed.includes(path));
     if (touched === undefined) continue;
     const designed = doc.links.some((link) => link.rel === 'designed-by' && ids.has(link.id));
     if (!designed) {
@@ -347,11 +355,7 @@ const UNCHECKED_BOX_RE = /^\s*[-*]\s+\[ \]/m;
 const LIST_ITEM_RE = /^\s*[-*]\s+\S/m;
 
 export function receiptsSection(body: string): string | null {
-  const start = body.search(/^##\s+Receipts\s*$/m);
-  if (start < 0) return null;
-  const afterHeading = body.slice(start).replace(/^.*(\r?\n|$)/, '');
-  const next = afterHeading.search(/^##\s/m);
-  return next >= 0 ? afterHeading.slice(0, next) : afterHeading;
+  return sectionText(body, 'Receipts');
 }
 
 /** A receipt is any list item under the "## Receipts" heading. */

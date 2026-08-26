@@ -184,6 +184,54 @@ test('a resolvable designed-by link satisfies the design gate; backlog is exempt
   assert.deepEqual(checkProject(await loadProject(dir)).issues, []);
 });
 
+test('the design gate ignores a gated path named only under "## Out of scope" (WO-112)', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-design-gate-scope-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  for (const sub of ['requirements', 'work-orders', 'sources']) mkdirSync(join(dir, sub), { recursive: true });
+  writeFileSync(
+    join(dir, 'workflow.md'),
+    '---\nid: WF-001\ntype: workflow\ntitle: W\nstatus: accepted\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\ndesign_gate_paths:\n  - packages/ui\n---\nRules.\n',
+  );
+  writeFileSync(
+    join(dir, 'requirements', 'REQ-001-ui.md'),
+    '---\nid: REQ-001\ntype: requirement\ntitle: T\nstatus: accepted\ncreated: 2026-08-01\nupdated: 2026-08-01\napproved: 2026-08-01\n---\n## Acceptance criteria\n\n- [ ] x\n',
+  );
+  writeFileSync(
+    join(dir, 'sources', 'SRC-001-design.md'),
+    '---\nid: SRC-001\ntype: source\ntitle: Design handoff\nstatus: imported\ncreated: 2026-08-01\nupdated: 2026-08-01\n---\nThe design.\n',
+  );
+  const woPath = join(dir, 'work-orders', 'WO-001-ui.md');
+  const wo = (body: string, links = '  - id: REQ-001\n    rel: implements\n'): string =>
+    `---\nid: WO-001\ntype: work-order\ntitle: T\nstatus: in-progress\nclaimed_by: session-a\nclaimed_at: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\nlinks:\n${links}---\n${body}`;
+  const gated = async (): Promise<string[]> =>
+    checkProject(await loadProject(dir)).issues.filter((issue) => issue.kind === 'ui-wo-without-design').map((issue) => issue.message);
+
+  // An exclusion is a promise not to touch the path — never a claim to it.
+  writeFileSync(woPath, wo('## Summary\n\nCore only.\n\n## Out of scope\n\n- Any change to packages/ui — its own work order.\n'));
+  assert.deepEqual(await gated(), []);
+
+  // Every other section still triggers, Summary and In scope alike.
+  writeFileSync(woPath, wo('## Summary\n\nTouches packages/ui.\n\n## Out of scope\n\n- Nothing.\n'));
+  assert.equal((await gated()).length, 1);
+  writeFileSync(woPath, wo('## Summary\n\nx\n\n## In scope\n\n- packages/ui work\n\n## Out of scope\n\n- Nothing.\n'));
+  assert.equal((await gated()).length, 1);
+
+  // Mentioned in both: the claim wins — excluding one sentence never licenses
+  // the other.
+  writeFileSync(woPath, wo('## In scope\n\n- packages/ui work\n\n## Out of scope\n\n- Other packages/ui screens.\n'));
+  assert.equal((await gated()).length, 1);
+
+  // A resolvable designed-by link satisfies the gate wherever the path sits.
+  const designed = '  - id: REQ-001\n    rel: implements\n  - id: SRC-001\n    rel: designed-by\n';
+  writeFileSync(woPath, wo('## In scope\n\n- packages/ui work\n\n## Out of scope\n\n- packages/ui elsewhere.\n', designed));
+  assert.deepEqual(await gated(), []);
+
+  // A designed-by link to a missing id still fails the gate, as before.
+  const broken = '  - id: REQ-001\n    rel: implements\n  - id: SRC-999\n    rel: designed-by\n';
+  writeFileSync(woPath, wo('## In scope\n\n- packages/ui work\n', broken));
+  assert.equal((await gated()).length, 1);
+});
+
 // --- Multi-maintainer stamps (REQ-026, DEC-071) ---
 
 test('maintainer stamps: unlisted approver is an issue, missing approver an advisory, solo repos untouched', async (t) => {

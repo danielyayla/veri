@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { appendToSection } from './sections.ts';
+import { appendToSection, sectionSpan, sectionText, withoutSection } from './sections.ts';
 
 const DOC = [
   '---',
@@ -46,4 +46,32 @@ test('multi-word headings match exactly; deeper headings and prose do not', () =
   const out = appendToSection(doc, 'Review notes', '- entry');
   // None of the lookalikes matched — the section was created fresh at the end.
   assert.ok(out.endsWith('\n\n## Review notes\n\n- entry\n'));
+});
+
+// --- Reading a section (WO-112): the same boundary rule as the splice ---
+
+test('sectionText returns a section body, and null when the heading is absent', () => {
+  // Only the heading's own newline is consumed — the blank line beneath a
+  // conventionally written heading survives.
+  assert.equal(sectionText(DOC, 'Summary'), '\nDo the thing.\n\n');
+  assert.equal(sectionText(DOC, 'Receipts'), '\n(none yet)\n');
+  assert.equal(sectionText(DOC, 'In scope'), null);
+});
+
+test('the heading match is exact — deeper headings and prose mentions never match', () => {
+  assert.equal(sectionSpan('### Receipts\n\nx\n', 'Receipts'), null);
+  assert.equal(sectionSpan('See the ## Receipts section.\n', 'Receipts'), null);
+  assert.equal(sectionSpan('##  Receipts  \n\nx\n', 'Receipts')?.start, 0);
+});
+
+test('withoutSection cuts heading and body, leaving everything else untouched', () => {
+  const cut = withoutSection(DOC, 'Receipts');
+  assert.ok(!cut.includes('Receipts'));
+  assert.ok(!cut.includes('(none yet)'));
+  assert.ok(cut.includes('Do the thing.'));
+  // A section between two others closes at the next heading, not the end.
+  const three = '## A\n\na\n\n## B\n\nb\n\n## C\n\nc\n';
+  assert.equal(withoutSection(three, 'B'), '## A\n\na\n\n## C\n\nc\n');
+  // An absent heading is a no-op, not an error.
+  assert.equal(withoutSection(three, 'D'), three);
 });
