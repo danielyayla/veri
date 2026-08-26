@@ -136,3 +136,36 @@ test('the Import row surfaces only on brownfield roots, with its action label', 
   const empty = paletteRows(result({}, []), { brownfield: true });
   assert.ok(empty.some((r) => r.kind === 'view' && r.view === 'import'), 'a destination, listed on the empty query');
 });
+
+// ---- withdrawn documents leave the default results (WO-110, SRC-052) ----
+
+function withdrawnHit(id: string, score: number): PaletteHit {
+  return { ...hit(id, score), status: 'withdrawn' };
+}
+
+test('the empty palette drops withdrawn hits — default results list active knowledge', () => {
+  const rows = paletteRows(result({}, [hit('WO-001', 1), withdrawnHit('WO-002', 1)]));
+  const docs = rows.filter((r) => r.kind === 'doc').map((r) => (r.kind === 'doc' ? r.hit.id : ''));
+  assert.deepEqual(docs, ['WO-001']);
+});
+
+test('a bare type filter also drops withdrawn hits (the sidebar-consistent listing)', () => {
+  const rows = paletteRows(result({ type: 'work-order' }, [hit('WO-001', 1), withdrawnHit('WO-002', 1)]));
+  assert.deepEqual(rows.map((r) => (r.kind === 'doc' ? r.hit.id : '')), ['WO-001']);
+});
+
+test('withdrawn documents stay findable: a text query matches them', () => {
+  const rows = paletteRows(result({ text: 'wo-002' }, [withdrawnHit('WO-002', 1000)]));
+  assert.deepEqual(rows.map((r) => (r.kind === 'doc' ? r.hit.id : '')), ['WO-002']);
+});
+
+test('is:withdrawn lists them explicitly', () => {
+  const rows = paletteRows(result({ statuses: ['withdrawn'] }, [withdrawnHit('WO-002', 1)]));
+  assert.deepEqual(rows.map((r) => (r.kind === 'doc' ? r.hit.id : '')), ['WO-002']);
+});
+
+test('the overflow count reflects the filtered default list, not the raw hits', () => {
+  const hits = [...Array.from({ length: 9 }, (_, i) => hit(`WO-00${i}`, 1)), withdrawnHit('WO-100', 1)];
+  const rows = paletteRows(result({ type: 'work-order' }, hits));
+  assert.deepEqual(rows[PALETTE_MAX_ROWS - 1], { kind: 'overflow', count: 9 });
+});

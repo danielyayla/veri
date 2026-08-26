@@ -96,3 +96,13 @@ test('writeStatus: IPC framing is stripped from the surfaced reason', async () =
   );
   assert.equal(surfaced, 'no document with id WO-999');
 });
+
+// ---- the withdrawn gate (WO-110, SRC-052) ----
+
+test('on a withdrawn work order every segment refuses — restoring is a git act', () => {
+  for (const target of ['backlog', 'ready', 'in-progress', 'done']) {
+    const refusal = segmentRefusal('withdrawn', target);
+    assert.match(refusal!, /withdrawn work order is terminal/, `target ${target}`);
+    assert.match(refusal!, /git/, `target ${target}`);
+  }
+});

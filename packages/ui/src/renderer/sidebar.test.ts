@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { VeriDocument } from '@verikb/core';
-import { livingCount, livingGroups, panelList, pushRecent } from './sidebar.ts';
+import { DEAD_LABEL, livingCount, livingGroups, panelList, pushRecent } from './sidebar.ts';
 
 function doc(id: string, type: VeriDocument['type'], status: string, title = id): VeriDocument {
   return {
@@ -159,4 +159,32 @@ test('ready is living (WO-098 via WO-103): counts, panel, and the READY subgroup
   const groups = livingGroups(list.living, 'work-order')!;
   assert.deepEqual(groups.map((g) => g.label), ['Backlog', 'Ready', 'In progress']);
   assert.deepEqual(groups[1].docs.map((d) => d.id), ['WO-002']);
+});
+
+// ---- withdrawn is terminal for every type (WO-110, DEC-110, SRC-052) ----
+
+test('a withdrawn doc of any type leaves the living list and joins the dead group', () => {
+  const docs = [
+    doc('REQ-001', 'requirement', 'accepted'),
+    doc('REQ-002', 'requirement', 'withdrawn'),
+    doc('WO-001', 'work-order', 'backlog'),
+    doc('WO-002', 'work-order', 'withdrawn'),
+  ];
+  const req = panelList(docs, 'requirement', '', []);
+  assert.deepEqual(req.living.map((d) => d.id), ['REQ-001']);
+  assert.deepEqual(req.dead.map((d) => d.id), ['REQ-002']);
+  const wo = panelList(docs, 'work-order', '', []);
+  assert.deepEqual(wo.living.map((d) => d.id), ['WO-001']);
+  assert.deepEqual(wo.dead.map((d) => d.id), ['WO-002']);
+  assert.equal(livingCount(docs, 'requirement'), 1);
+  assert.equal(livingCount(docs, 'work-order'), 1);
+});
+
+test('sources gain a dead state: withdrawn, behind the expander labeled withdrawn', () => {
+  const docs = [doc('SRC-001', 'source', 'imported'), doc('SRC-002', 'source', 'withdrawn')];
+  const src = panelList(docs, 'source', '', []);
+  assert.deepEqual(src.living.map((d) => d.id), ['SRC-001']);
+  assert.deepEqual(src.dead.map((d) => d.id), ['SRC-002']);
+  assert.equal(livingCount(docs, 'source'), 1);
+  assert.equal(DEAD_LABEL.source, 'withdrawn');
 });

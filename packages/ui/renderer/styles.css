@@ -1253,6 +1253,38 @@ a:hover { color: var(--link-hover); }
 }
 .rv-return:hover { border-color: var(--pop-border); }
 
+/* ---- Discard popover (WO-110, SRC-052) -------------------------------- */
+
+/* The quiet entry at the frontmatter card's foot. */
+.dc-wrap { position: relative; display: flex; justify-content: flex-end; padding: 6px 0 8px; }
+.dc-open { font-family: var(--mono); font-size: 11px; color: var(--faint); cursor: pointer; padding: 2px 0; }
+.dc-open:hover { color: var(--muted); }
+
+/* The confirm step: rv-pop chrome, anchored to the card's foot. */
+.dc-pop {
+  position: absolute; bottom: 28px; right: 0; width: 340px; z-index: 20; text-align: left;
+  background: var(--pop-2); border: 1px solid var(--pop-border); border-radius: 8px;
+  box-shadow: var(--shadow-tip); padding: 13px 14px; cursor: default;
+}
+.dc-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.dc-doc { font-size: 11.5px; color: var(--secondary); margin-top: 3px; line-height: 1.4; }
+.dc-verb { margin-top: 11px; }
+.dc-withdraw {
+  height: 28px; display: flex; align-items: center; padding: 0 14px; border-radius: 7px;
+  border: 1px solid var(--int-border); color: var(--body-text); font-weight: 600; font-size: 12px; cursor: pointer;
+}
+.dc-withdraw:hover { border-color: var(--pop-border); color: var(--text); }
+.dc-delete {
+  height: 28px; display: flex; align-items: center; padding: 0 14px; border-radius: 7px;
+  border: 1px solid var(--int-border); color: var(--ember); font-weight: 600; font-size: 12px; cursor: pointer;
+}
+.dc-delete:hover { border-color: var(--ember); }
+.dc-delete-refused { opacity: 0.4; cursor: not-allowed; }
+.dc-delete-refused:hover { border-color: var(--int-border); }
+.dc-cap { font-size: 11px; color: var(--muted); line-height: 1.45; margin-top: 5px; }
+.dc-refusal { color: var(--amber); }
+.dc-btns { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 11px; }
+
 /* Transient bottom-center toast. */
 .toast {
   position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 60;

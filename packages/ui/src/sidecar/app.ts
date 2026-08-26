@@ -18,13 +18,17 @@ import {
   ProjectExistsError,
   classifyFormat,
   createDocument,
+  deleteDocument,
+  deleteRefusal,
   formatStatement,
   getTemplate,
   isCustomized,
   isOperableFormat,
+  loadProject,
   saveDocumentFile,
   scaffoldProject,
   templateFile,
+  withdrawDocument,
 } from '@verikb/core';
 import type { DocType } from '@verikb/core';
 import { DEMO_ROOT } from '@verikb/cli';
@@ -268,6 +272,22 @@ export function createSidecar(options: SidecarOptions): Sidecar {
     },
     'save-doc': (file: string, text: string) => saveDocumentFile(join(projectRoot, 'veri'), file, text),
     'create-doc': (type: DocType, title: string) => createDocument(join(projectRoot, 'veri'), type, title),
+    // Discard (WO-110, DEC-110): the two verbs over core's own functions —
+    // the app never re-implements the guard. `withdraw-doc` flips to the
+    // terminal status; `delete-doc` with probe=true returns the guard's
+    // verdict without acting (so the popover states a refusal instead of
+    // hiding the control, SRC-052), and with probe=false removes the file.
+    'withdraw-doc': (id: string) => withdrawDocument(join(projectRoot, 'veri'), id),
+    'delete-doc': async (id: string, probe: boolean) => {
+      const veriDir = join(projectRoot, 'veri');
+      if (probe === true) {
+        const { documents } = await loadProject(veriDir);
+        const doc = documents.find((d) => d.id === id.toUpperCase());
+        if (doc === undefined) throw new Error(`no document with id ${id.toUpperCase()}`);
+        return { refusal: deleteRefusal(doc, documents) };
+      }
+      return deleteDocument(veriDir, id);
+    },
     // File import (WO-096, SRC-045): inspect derives what each dropped or
     // picked file would become — writing nothing, so Cancel is free; commit
     // files the accepted rows through core's intake seam (DEC-093, DEC-094).

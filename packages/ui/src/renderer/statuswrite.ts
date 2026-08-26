@@ -18,6 +18,12 @@ import { ipcErrorMessage } from './editlogic.ts';
  */
 export function segmentRefusal(current: string, target: string): string | null {
   if (target === current) return null;
+  // WO-110 (SRC-052): withdrawn is terminal — the ready exit-gate grammar
+  // extended to the second terminal state, so no click can resurrect a
+  // withdrawn work order (git is the undo, DEC-002).
+  if (current === 'withdrawn') {
+    return 'a withdrawn work order is terminal — restoring it is a git edit, not a status click';
+  }
   if (target === 'ready') return 'ready is entered via veri approve — the stamp is the only path';
   if (current !== 'ready') return null;
   if (target === 'backlog') {

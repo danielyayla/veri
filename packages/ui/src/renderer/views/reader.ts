@@ -1,10 +1,12 @@
 /** Screen 1 — Project home: reader column + Connections panel. */
+import type { VeriDocument } from '@verikb/core';
 import { h, svgEl } from '../dom.ts';
 import { TYPE_META } from '../theme.ts';
 import { parseBlocks } from '../markdown.ts';
 import { outcomeLabel, requirementKind } from '@verikb/core/pending';
 import { DEFAULT_REL, autocomplete, connections, fileActivity, insertAutocomplete, localGraph, relsInUse } from '../derive.ts';
 import { decisionRules } from '../archderive.ts';
+import { deleteCaption, discardOffered, withdrawCaption } from '../discardlogic.ts';
 import type { ConnectionGroups } from '../derive.ts';
 import { ipcErrorMessage } from '../editlogic.ts';
 import { activityFeed, attachPreview, dirtyStrip, displayTitle, idChip, imgDirFor, modeToggle, pinChip, renderBlocks, statusChip, typeChip } from '../widgets.ts';
@@ -62,6 +64,64 @@ export function frontmatterCard(ctx: Ctx, opts: { status?: boolean } = {}): HTML
       ),
     ),
     ...(open ? [linksEditor(ctx)] : []),
+    // Discard (WO-110, SRC-052): one quiet entry at the card's foot, absent
+    // on the workflow doc and on anything already withdrawn.
+    ...(discardOffered(doc) ? [discardRow(ctx, doc)] : []),
+  );
+}
+
+/** The `discard…` entry and its confirm popover (WO-110, SRC-052): the
+    popover IS the confirm step — it names the document, states each verb's
+    consequence, and shows delete only as core's guard allows, printing the
+    guard's own refusal otherwise. Cancel/Escape writes nothing. */
+function discardRow(ctx: Ctx, doc: VeriDocument): HTMLElement {
+  return h(
+    'div',
+    { class: 'dc-wrap' },
+    h(
+      'button',
+      {
+        class: 'btn-reset dc-open',
+        label: `Discard ${doc.id}…`,
+        fkey: 'dc-open',
+        onClick: () => ctx.openDiscard(),
+      },
+      'discard…',
+    ),
+    ctx.state.discardPop !== null ? discardPopover(ctx, doc, ctx.state.discardPop.refusal) : null,
+  );
+}
+
+function discardPopover(ctx: Ctx, doc: VeriDocument, refusal: string | null): HTMLElement {
+  return h(
+    'div',
+    { class: 'dc-pop', role: 'dialog', modal: true, label: `Discard ${doc.id}`, onClick: (e) => e.stopPropagation() },
+    h('div', { class: 'dc-title' }, `Discard ${doc.id}?`),
+    h('div', { class: 'dc-doc' }, displayTitle(doc.title)),
+    h(
+      'div',
+      { class: 'dc-verb' },
+      h('button', { class: 'btn-reset dc-withdraw', fkey: 'dc-withdraw', onClick: () => ctx.withdrawActive() }, 'Withdraw'),
+      h('div', { class: 'dc-cap' }, withdrawCaption(doc.id)),
+    ),
+    refusal === null
+      ? h(
+          'div',
+          { class: 'dc-verb' },
+          h('button', { class: 'btn-reset dc-delete', fkey: 'dc-delete', onClick: () => ctx.deleteActive() }, 'Delete file'),
+          h('div', { class: 'dc-cap' }, deleteCaption(doc.id, doc.file)),
+        )
+      : h(
+          'div',
+          { class: 'dc-verb' },
+          h('button', { class: 'btn-reset dc-delete dc-delete-refused', disabled: true, fkey: 'dc-delete', title: refusal }, 'Delete file'),
+          h('div', { class: 'dc-cap dc-refusal' }, refusal),
+        ),
+    h(
+      'div',
+      { class: 'dc-btns' },
+      h('button', { class: 'btn-reset rv-ghost', fkey: 'dc-cancel', onClick: () => ctx.update({ discardPop: null }) }, 'Cancel'),
+    ),
   );
 }
 
@@ -299,7 +359,8 @@ function localGraphEl(ctx: Ctx, doc: { id: string; type: keyof typeof TYPE_META 
   }
   const node = (n: { id: string; x: number; y: number }): HTMLElement => {
     const target = ctx.byId.get(n.id);
-    const dim = target?.status === 'superseded';
+    // Terminal neighbors dim: superseded, and withdrawn (WO-110, SRC-052).
+    const dim = target?.status === 'superseded' || target?.status === 'withdrawn';
     const btn = h(
       'button',
       {

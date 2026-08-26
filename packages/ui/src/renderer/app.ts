@@ -62,6 +62,7 @@ import { FOCUSABLE_SEL, resolveFocus, roveIndex, roveKey, trapTarget } from './a
 import { dismissPreview, resetChipKeys, setPreviewRoot } from './widgets.ts';
 import { ipcErrorMessage, reconcileDisk } from './editlogic.ts';
 import { writeStatus } from './statuswrite.ts';
+import { deleteToast, withdrawToast } from './discardlogic.ts';
 import { editorScreen } from './views/editor.ts';
 import { paletteRows } from './palette.ts';
 import type { PaletteRow } from './palette.ts';
@@ -124,6 +125,9 @@ export interface State {
   settingsSection: SettingsSection;
   /** Review banner (SRC-006): approve-confirm popover and note composer. */
   reviewPop: boolean;
+  /** Discard popover (WO-110, SRC-052): open with core's delete-guard
+      verdict for the active doc, fetched when it opens. Null = closed. */
+  discardPop: { refusal: string | null } | null;
   /** Non-null while the request-changes composer is open; holds its draft. */
   reviewText: string | null;
   /** Transient bottom-center toast (SRC-006 approve/return feedback). */
@@ -303,6 +307,15 @@ export interface Ctx {
   resolveConflict(action: 'reload' | 'keep' | 'restore' | 'closetab'): void;
   /** Sidebar `+` / ⌘N: open the type-plus-title creation popover. */
   openNewDoc(type: DocType, anchor: { x: number; y: number } | null): void;
+  /** Discard flow (WO-110, SRC-052): open the confirm popover, fetching
+      core's delete-guard verdict so a refusal is stated, never hidden. */
+  openDiscard(): void;
+  /** Discard verb 1: withdraw the active doc — the tab stays, the document
+      re-renders terminal, file and inbound links kept (DEC-110). */
+  withdrawActive(): void;
+  /** Discard verb 2: delete the active doc's file — its tab closes when the
+      refreshed snapshot no longer carries it. Core enforces the guard. */
+  deleteActive(): void;
   flashMcpCmdCopied(): void;
   /** LIVE CHECK (WO-030): one spawn per click; result is transient state. */
   runVerify(): void;
@@ -405,6 +418,7 @@ class App implements Ctx {
     settingsSection: 'templates',
     reviewPop: false,
     reviewText: null,
+    discardPop: null,
     toast: null,
     undoToast: null,
     dragImport: null,
@@ -535,6 +549,8 @@ class App implements Ctx {
       layers.push({ kind: 'tplReset', sel: '.tpl-reset-confirm', trap: true, initial: 'tpl-reset-no', close: () => this.update({ tplResetConfirm: false }) });
     if (this.state.reviewPop)
       layers.push({ kind: 'reviewPop', sel: '.rv-pop', trap: true, close: () => this.update({ reviewPop: false }) });
+    if (this.state.discardPop !== null)
+      layers.push({ kind: 'discardPop', sel: '.dc-pop', trap: true, initial: 'dc-cancel', close: () => this.update({ discardPop: null }) });
     if (this.state.paletteOpen)
       layers.push({ kind: 'palette', sel: '.pal-panel', trap: true, initial: 'pal-input', close: () => this.update({ paletteOpen: false }) });
     if (this.state.newProject !== null)
@@ -880,6 +896,7 @@ class App implements Ctx {
         agentLaunchMsg: null,
         reviewPop: false,
         reviewText: null,
+        discardPop: null,
         tplResetConfirm: false,
       });
       if (target !== 'settings') Object.assign(patch, this.leaveMcpPatch());
@@ -1956,6 +1973,57 @@ class App implements Ctx {
         this.sessionLog(result.id, { agent: false, text: 'Created in the app', time: 'today' });
       });
     });
+  }
+
+  // ---- discard (WO-110, SRC-052, DEC-110) ----
+
+  openDiscard(): void {
+    const doc = this.doc();
+    if (doc === null) return;
+    // The guard's verdict comes from core via the sidecar's probe — the
+    // renderer never re-implements the two conditions (SRC-052).
+    void this.guardIpc(() => this.api.deleteProbe(doc.id)).then((res) => {
+      if (res === undefined) return;
+      this.update({ discardPop: { refusal: res.refusal } });
+    });
+  }
+
+  withdrawActive(): void {
+    const doc = this.doc();
+    if (doc === null) return;
+    this.update({ discardPop: null });
+    void this.api
+      .withdrawDoc(doc.id)
+      .then(() => {
+        this.sessionLog(doc.id, { agent: false, text: 'Withdrawn — file and inbound links kept', time: 'today' });
+        this.flashToast(withdrawToast(doc.id));
+        void this.refresh();
+      })
+      .catch((err: Error) => {
+        // Core refused (e.g. withdrawn externally since render) — surface why.
+        this.flashToast(ipcErrorMessage(err));
+        void this.refresh();
+      });
+  }
+
+  deleteActive(): void {
+    const doc = this.doc();
+    if (doc === null) return;
+    this.update({ discardPop: null });
+    void this.api
+      .deleteDoc(doc.id)
+      .then(() => {
+        // The doc is gone from the next snapshot, so its tab closes through
+        // applySnapshot's existing deleted-doc path (REQ-009 §5).
+        this.flashToast(deleteToast(doc.id, doc.file));
+        void this.refresh();
+      })
+      .catch((err: Error) => {
+        // The guard refused between probe and press (a race with an external
+        // edit) — state the reason instead of silence.
+        this.flashToast(ipcErrorMessage(err));
+        void this.refresh();
+      });
   }
 
   // ---- rendering ----

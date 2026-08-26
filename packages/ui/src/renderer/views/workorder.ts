@@ -482,6 +482,10 @@ export function workOrderView(ctx: Ctx): HTMLElement {
           { class: 'wo-head' },
           h('h1', { class: 'doc-title wo-title' }, displayTitle(doc.title)),
           pinChip(ctx.state.pinned.includes(doc.id), () => ctx.togglePin(doc.id)),
+          // WO-110 (SRC-052): a withdrawn work order sits outside the four
+          // lifecycle segments — the chip names the terminal state while
+          // every segment renders gated and explains itself.
+          doc.status === 'withdrawn' ? statusChip(doc.status) : null,
           statusControl(ctx, doc),
         ),
         dirtyStrip(ctx, doc.id),

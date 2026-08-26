@@ -47,7 +47,15 @@ const VIEW_LABELS: Partial<Record<ViewKey, string>> = {
     filter is active (filters talk about documents, not views). */
 export function paletteRows(result: PaletteResult, opts: { brownfield?: boolean } = {}): PaletteRow[] {
   const { text, type, statuses, related } = result.query;
-  const scored: Array<{ row: PaletteRow; score: number }> = result.hits.map((hit) => ({
+  // WO-110 (DEC-110, SRC-052): withdrawn documents leave the default results
+  // — the empty palette and bare type filters list active knowledge, the way
+  // the CLI keeps withdrawn out of the queues. They stay findable: a text
+  // query matches them, and `is:withdrawn` lists them.
+  const hits =
+    text === '' && !statuses.includes('withdrawn')
+      ? result.hits.filter((hit) => hit.status !== 'withdrawn')
+      : result.hits;
+  const scored: Array<{ row: PaletteRow; score: number }> = hits.map((hit) => ({
     row: { kind: 'doc', hit },
     score: hit.score,
   }));
@@ -77,6 +85,6 @@ export function paletteRows(result: PaletteResult, opts: { brownfield?: boolean 
     .map((s) => s.row);
   // More doc hits than the cap can show: the last row becomes the door to
   // the full list (WO-048). The cap itself is untouched.
-  if (result.hits.length > PALETTE_MAX_ROWS) rows[PALETTE_MAX_ROWS - 1] = { kind: 'overflow', count: result.hits.length };
+  if (hits.length > PALETTE_MAX_ROWS) rows[PALETTE_MAX_ROWS - 1] = { kind: 'overflow', count: hits.length };
   return rows;
 }

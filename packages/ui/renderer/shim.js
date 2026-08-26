@@ -66,6 +66,11 @@
     readDoc: (file) => call('read-doc', file),
     saveDoc: (file, text) => call('save-doc', file, text),
     createDoc: (type, title) => call('create-doc', type, title),
+    // Discard (WO-110, DEC-110): two verbs, one guard. The probe reads the
+    // guard's verdict without acting so the popover can state a refusal.
+    withdrawDoc: (id) => call('withdraw-doc', id),
+    deleteProbe: (id) => call('delete-doc', id, true),
+    deleteDoc: (id) => call('delete-doc', id, false),
     templateRead: (type) => call('template-read', type),
     templateWrite: (type, body) => call('template-write', type, body),
     templateReset: (type) => call('template-reset', type),

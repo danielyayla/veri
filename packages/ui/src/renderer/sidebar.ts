@@ -6,6 +6,7 @@
  */
 import type { DocType, VeriDocument } from '@verikb/core';
 import { compareIds } from '@verikb/core/ids';
+import { isWithdrawn } from '@verikb/core/pending';
 
 /** Living statuses per type; null means no lifecycle (sources). */
 const LIVING: Record<DocType, string[] | null> = {
@@ -16,16 +17,20 @@ const LIVING: Record<DocType, string[] | null> = {
   workflow: ['draft', 'accepted'],
 };
 
-/** What a type's dead docs are called in the panel's expander. */
+/** What a type's dead docs are called in the panel's expander. Sources had
+    no dead state until `withdrawn` (WO-110, DEC-110) gave them one. */
 export const DEAD_LABEL: Record<DocType, string> = {
   requirement: 'retired',
   decision: 'superseded',
   'work-order': 'done',
-  source: '',
+  source: 'withdrawn',
   workflow: 'retired',
 };
 
 export function isLiving(doc: VeriDocument): boolean {
+  // Withdrawn is terminal for every type (DEC-110) — including sources,
+  // whose null lifecycle otherwise counts everything as living.
+  if (isWithdrawn(doc)) return false;
   const living = LIVING[doc.type];
   return living === null || living.includes(doc.status);
 }

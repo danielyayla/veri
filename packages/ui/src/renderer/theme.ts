@@ -31,6 +31,9 @@ export const STATUS_COLORS: Record<string, string> = {
   ready: 'var(--t-req)',
   retired: 'var(--muted)',
   superseded: 'var(--amber)',
+  // WO-110 (DEC-110, SRC-052): the discard terminal state — the same muted
+  // ink as retired, so every chip inherits the terminal treatment.
+  withdrawn: 'var(--muted)',
   'in-progress': 'var(--ember)',
   imported: 'var(--t-src)',
 };

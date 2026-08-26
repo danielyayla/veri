@@ -1,4 +1,4 @@
-import type { ApproveResult, CreateResult, DocType, SaveResult } from '@verikb/core';
+import type { ApproveResult, CreateResult, DeleteResult, DocType, SaveResult, WithdrawResult } from '@verikb/core';
 import type { ContextPackage, PaletteResult } from '@verikb/mcp';
 import type { AgentId, AgentInfo } from '../lib/agents.ts';
 import type { McpStatus } from '../lib/mcpconfig.ts';
@@ -36,6 +36,15 @@ export interface VeriApi {
   saveDoc(file: string, text: string): Promise<SaveResult>;
   /** Creation flow (REQ-009 §2): scaffold via core, next free id. */
   createDoc(type: DocType, title: string): Promise<CreateResult>;
+  /** Discard, verb 1 (WO-110, DEC-110): flip to the terminal `withdrawn`
+      status via core — file and inbound links kept. */
+  withdrawDoc(id: string): Promise<WithdrawResult>;
+  /** Core's delete guard's verdict without acting — read when the discard
+      popover opens, so a refusal is stated instead of hidden (SRC-052). */
+  deleteProbe(id: string): Promise<{ refusal: string | null }>;
+  /** Discard, verb 2: remove the file. Core refuses anything approved or
+      referenced; the rejection carries the guard's reason. */
+  deleteDoc(id: string): Promise<DeleteResult>;
   /** Template settings (WO-024): effective body + provenance from core. */
   templateRead(type: DocType): Promise<TemplateInfo>;
   /** Verbatim write of veri/templates/<type>.md, creating the dir if needed. */
