@@ -19,9 +19,27 @@ links:
     rel: constrained-by
   - id: DEC-002
     rel: constrained-by
-# binds:         # code this work order claims (optional)
-#   paths: []    # repo-root-relative globs
-#   tests: []    # test files proving it (path or path::name)
+  - id: SRC-052
+    rel: designed-by
+binds:
+  paths:
+    - packages/ui/src/sidecar/app.ts
+    - packages/ui/src/renderer/api.ts
+    - packages/ui/renderer/shim.js
+    - packages/ui/src/renderer/app.ts
+    - packages/ui/src/renderer/views/reader.ts
+    - packages/ui/src/renderer/discardlogic.ts
+    - packages/ui/src/renderer/statuswrite.ts
+    - packages/ui/src/renderer/sidebar.ts
+    - packages/ui/src/renderer/palette.ts
+    - packages/ui/src/renderer/theme.ts
+    - packages/ui/renderer/styles.css
+  tests:
+    - packages/ui/src/renderer/discardlogic.test.ts
+    - packages/ui/src/renderer/statuswrite.test.ts
+    - packages/ui/src/renderer/sidebar.test.ts
+    - packages/ui/src/renderer/palette.test.ts
+    - packages/ui/src/sidecar/discard.test.ts
 ---
 
 ## Summary
