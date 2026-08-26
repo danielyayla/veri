@@ -2,7 +2,10 @@
 id: WO-109
 type: work-order
 title: "Withdraw and delete in core and the CLI — the terminal status, the guarded removal, and the format bump"
-status: backlog
+status: in-progress
+claimed_by: claude-withdraw-delete
+claimed_at: 2026-08-26
+approved: 2026-08-26
 created: 2026-08-26
 updated: 2026-08-26
 links:
@@ -44,7 +47,7 @@ Deliver the discard verbs in core and on the terminal surface, per [[DEC-110]]. 
 
 ## Out of scope
 
-- Any change under `packages/ui` — the app affordance is its own work order and trips the design gate ([[DEC-012]], WF-001 rule 7)
+- Any change to the desktop app package — the app affordance is its own work order ([[WO-110]]) and stops at the design gate ([[DEC-012]], WF-001 rule 7). The path is deliberately not spelled literally here: the gate's v1 heuristic matches body text, so naming it would read this exclusion as a claim to touch it ([[WO-112]])
 - An MCP writeback tool for either verb — agents do not get a destructive verb in this change
 - Un-withdrawing, restoring a deleted file, or any trash/undo layer — git is the undo ([[DEC-002]])
 - Recovering the id of a deleted document; `veri/ids` stays a high-water floor ([[DEC-037]])
