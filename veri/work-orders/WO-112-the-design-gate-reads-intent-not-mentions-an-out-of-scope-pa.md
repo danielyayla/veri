@@ -2,7 +2,10 @@
 id: WO-112
 type: work-order
 title: "The design gate reads intent, not mentions — an out-of-scope path must not trip it"
-status: backlog
+status: in-progress
+claimed_by: claude-design-gate
+claimed_at: 2026-08-26
+approved: 2026-08-26
 created: 2026-08-26
 updated: 2026-08-26
 links:
