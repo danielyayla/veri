@@ -15,9 +15,15 @@ links:
     rel: constrained-by
   - id: SRC-050
     rel: derived-from
-# binds:         # code this work order claims (optional)
-#   paths: []    # repo-root-relative globs
-#   tests: []    # test files proving it (path or path::name)
+  - id: SRC-053
+    rel: designed-by
+binds:
+  paths:
+    - packages/ui/src/renderer/derive.ts
+    - packages/ui/src/renderer/views/home.ts
+    - packages/ui/renderer/styles.css
+  tests:
+    - packages/ui/src/renderer/derive.test.ts
 ---
 
 ## Summary
