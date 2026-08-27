@@ -69,8 +69,9 @@ test('the built server answers tools/list and get_context over stdio', { skip: !
 
   const toolNames = (responses.get(2)?.result?.tools ?? []).map((tool) => tool.name).sort();
   // The complete write surface: file_* only creates unapproved documents or
-  // appends receipts, and amend_document revises still-pending ones (DEC-103)
-  // — no tool approves or promotes (REQ-017).
+  // appends receipts, amend_document revises still-pending ones (DEC-103), and
+  // init_project brings an absent knowledge base into being without touching an
+  // existing one (WO-129) — no tool approves or promotes (REQ-017).
   assert.deepEqual(toolNames, [
     'amend_document',
     'file_decision',
@@ -85,6 +86,7 @@ test('the built server answers tools/list and get_context over stdio', { skip: !
     'get_neighbors',
     'get_queue',
     'get_receipts',
+    'init_project',
     'list_documents',
     'run_check',
     'search',
@@ -505,4 +507,57 @@ test('get_receipts answers over the wire, by id and corpus-wide, and refuses unk
 
   const tools = responses.get(6)?.result?.tools ?? [];
   assert.equal(tools.find((entry) => entry.name === 'get_receipts')?.inputSchema?.additionalProperties, false, 'get_receipts must advertise additionalProperties: false');
+});
+
+test('init_project opens on a bare repo, refuses a second time, and refuses unknown keys (WO-129)', { skip: !existsSync(SERVER) }, async (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'veri-mcp-init-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  writeFileSync(join(root, 'package.json'), '{}\n'); // a repo with code but no veri/
+
+  const init = {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'initialize',
+    params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test', version: '0.0.0' } },
+  };
+  const initialized = { jsonrpc: '2.0', method: 'notifications/initialized' };
+  const call = (id: number, name: string, args: object): object => ({ jsonrpc: '2.0', id, method: 'tools/call', params: { name, arguments: args } });
+
+  // Before: the server boots on a bare repo and lists its tools, but every
+  // loadProject-backed tool can only say there is nothing here.
+  const before = await rpcSession(
+    [init, initialized, { jsonrpc: '2.0', id: 2, method: 'tools/list' }, call(3, 'get_receipts', {}), call(4, 'init_project', { dir: '.' })],
+    [1, 2, 3, 4],
+    root,
+  );
+  const tools = before.get(2)?.result?.tools ?? [];
+  assert.equal(tools.find((entry) => entry.name === 'init_project')?.inputSchema?.additionalProperties, false, 'init_project must advertise additionalProperties: false');
+  const bare = before.get(3)?.result;
+  assert.equal(bare?.isError, true);
+  assert.match(bare?.content?.[0]?.text ?? '', /no veri\/ directory/);
+  // A near-miss key must refuse, never be dropped into a default that
+  // scaffolds somewhere the caller did not name (WO-118).
+  const misspelled = before.get(4)?.result;
+  assert.equal(misspelled?.isError, true, `unknown key must be a validation error, got: ${JSON.stringify(misspelled)}`);
+  assert.match(misspelled?.content?.[0]?.text ?? '', /dir/);
+  assert.ok(!existsSync(join(root, 'veri')), 'a refused call must create nothing');
+
+  // The door: one call, and the knowledge base exists. A second call refuses.
+  const after = await rpcSession([init, initialized, call(2, 'init_project', {}), call(3, 'init_project', {})], [1, 2, 3], root);
+  const created = after.get(2)?.result;
+  assert.ok(created && created.isError !== true, JSON.stringify(created));
+  const text = created.content?.[0]?.text ?? '';
+  assert.match(text, /^Initialized veri — 1 document/);
+  assert.match(text, /^Wrote AGENTS\.md/m);
+  assert.ok(existsSync(join(root, 'veri', 'workflow.md')) && existsSync(join(root, 'AGENTS.md')));
+  assert.equal(readFileSync(join(root, 'package.json'), 'utf8'), '{}\n');
+
+  const refused = after.get(3)?.result;
+  assert.equal(refused?.isError, true);
+  assert.match(refused?.content?.[0]?.text ?? '', /veri\/ already exists in .* — nothing was created/);
+
+  // And now the tools that needed a knowledge base answer, same server root.
+  const usable = await rpcSession([init, initialized, call(2, 'get_receipts', {})], [1, 2], root);
+  assert.equal(usable.get(2)?.result?.isError, undefined);
+  assert.match(usable.get(2)?.result?.content?.[0]?.text ?? '', /^no receipts —/);
 });

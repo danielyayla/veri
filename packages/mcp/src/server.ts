@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { runCheck } from './check.ts';
 import { assembleContext } from './context.ts';
 import { DOCUMENT_STATUSES, getQueue, listDocuments, renderDocuments, renderQueue } from './enumerate.ts';
+import { initProject, renderInit } from './init.ts';
 import { getDocument, getNeighbors } from './read.ts';
 import { getReceipts, renderReceipts } from './receipts.ts';
 import { intentForPath } from './intent.ts';
@@ -215,6 +216,42 @@ server.registerTool(
     try {
       guardFormat();
       return ok(renderReceipts(await getReceipts(projectRoot, id), id));
+    } catch (err) {
+      return fail(err);
+    }
+  },
+);
+
+server.registerTool(
+  'init_project',
+  {
+    description:
+      'Create a Veri knowledge base where there is none — the same scaffold `veri init` writes: a veri/ directory ' +
+      'holding requirements/, decisions/, work-orders/, sources/, the default workflow document, and the project ' +
+      'templates, plus AGENTS.md and CLAUDE.md pointer files (a file of either name that already exists is left ' +
+      'untouched). This is the only tool that works before a knowledge base exists; every other one needs one. ' +
+      'Ask the user first and call this only after they say yes — it writes files into their repository, and ' +
+      'having Veri installed is not consent to restructure a repo (DEC-125, DEC-133). Refused when a veri/ is ' +
+      'already there: an existing knowledge base is never overwritten, and bringing an older one to the current ' +
+      'format is `veri migrate` in a terminal. Optional path, relative to this server\'s project root, initializes ' +
+      'a subdirectory; omit it for the root itself.',
+    // Strict like every other schema on this surface (WO-118): a near-miss
+    // key must refuse loudly rather than be dropped — here a dropped path
+    // would silently scaffold the project root instead of the subdirectory
+    // the caller named.
+    inputSchema: z
+      .object({
+        path: z
+          .string()
+          .optional()
+          .describe('Directory to initialize, relative to this server\'s project root; omit for the root itself'),
+      })
+      .strict(),
+  },
+  async ({ path }) => {
+    try {
+      guardFormat();
+      return ok(renderInit(initProject(projectRoot, path)));
     } catch (err) {
       return fail(err);
     }
