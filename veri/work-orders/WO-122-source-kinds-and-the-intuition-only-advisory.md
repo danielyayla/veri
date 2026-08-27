@@ -2,7 +2,10 @@
 id: WO-122
 type: work-order
 title: "Source kinds and the intuition-only advisory"
-status: backlog
+status: in-progress
+claimed_by: fable-wo122
+claimed_at: 2026-08-27
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:
