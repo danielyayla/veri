@@ -367,3 +367,66 @@ test('requirement kind rides the heading and a declared outcome ships as its own
   const outcomeAt = text.indexOf('Outcome: activation-rate > 40%');
   assert.ok(outcomeAt >= 0 && outcomeAt < text.indexOf('HYPOTHESIS-BODY-MARKER'));
 });
+
+// --- Intent-led packages (REQ-039, WO-124) ---
+
+function writeIntentProject(root: string, focusStatus: 'accepted' | 'draft'): void {
+  const veri = join(root, 'veri');
+  for (const sub of ['requirements', 'work-orders', 'product']) mkdirSync(join(veri, sub), { recursive: true });
+  writeFileSync(
+    join(veri, 'workflow.md'),
+    '---\nid: WF-001\ntype: workflow\ntitle: W\nstatus: accepted\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\n---\nWORKFLOW-BODY.\n',
+  );
+  writeFileSync(
+    join(veri, 'product', 'vision.md'),
+    '---\nid: PRD-001\ntype: product\ntitle: Vision\nstatus: accepted\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\n---\nVISION-BODY the system of record.\n',
+  );
+  writeFileSync(
+    join(veri, 'product', 'current-focus.md'),
+    `---\nid: PRD-002\ntype: product\ntitle: Current focus\nstatus: ${focusStatus}\n${
+      focusStatus === 'accepted' ? 'approved: 2026-08-01\n' : ''
+    }created: 2026-08-01\nupdated: 2026-08-01\n---\nFOCUS-BODY landing the layer.\n`,
+  );
+  writeFileSync(
+    join(veri, 'requirements', 'REQ-001-bet.md'),
+    '---\nid: REQ-001\ntype: requirement\ntitle: The activation bet\nstatus: accepted\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\nkind: hypothesis\noutcome:\n  metric: activation-rate\n  target: "> 40%"\n---\nREQ-BODY.\n\n## Acceptance criteria\n\n- [ ] x\n',
+  );
+  writeFileSync(
+    join(veri, 'work-orders', 'WO-001-ship.md'),
+    '---\nid: WO-001\ntype: work-order\ntitle: Ship it\nstatus: ready\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\nlinks:\n  - id: REQ-001\n    rel: implements\n---\n## Summary\n\nWO-BODY.\n\n## Receipts\n\n(none yet)\n',
+  );
+}
+
+test('the package opens with the intent section — approved singletons in sanctioned order, ahead of workflow and requirements (REQ-039)', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-intent-ctx-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeIntentProject(dir, 'accepted');
+  const { text } = await assembleContext(dir, 'WO-001');
+
+  const order = ['## Intent', '### PRD-001 — Vision', '### PRD-002 — Current focus', '### The bet · REQ-001 · hypothesis', '## Workflow · WF-001', '## Work order WO-001', '## Requirements'].map((needle) => {
+    const at = text.indexOf(needle);
+    assert.ok(at >= 0, `package should contain "${needle}"`);
+    return at;
+  });
+  assert.deepEqual(order, [...order].sort((a, b) => a - b), 'intent precedes process precedes specifics');
+  assert.ok(text.includes('VISION-BODY'), 'vision body ships in full');
+  assert.ok(text.includes('FOCUS-BODY'), 'focus body ships in full');
+});
+
+test('the bet is stated with metric and target for a hypothesis-implementing work order (REQ-039)', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-intent-bet-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeIntentProject(dir, 'accepted');
+  const { text } = await assembleContext(dir, 'WO-001');
+  assert.match(text, /This work order tests \[\[REQ-001\]\] — The activation bet\. Confirm or refute: activation-rate > 40%\./);
+});
+
+test('draft singletons never enter a package (REQ-039)', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-intent-draft-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeIntentProject(dir, 'draft');
+  const { text } = await assembleContext(dir, 'WO-001');
+  assert.ok(text.includes('VISION-BODY'), 'the accepted vision still ships');
+  assert.ok(!text.includes('FOCUS-BODY'), 'the draft focus must not ship');
+  assert.ok(!text.includes('PRD-002'), 'the draft focus must not be named anywhere');
+});

@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildGraph } from './graph.ts';
 import { checkStructure } from './check.ts';
-import { isOutcomeRel, isPending, isWithdrawn, outcomeLabel, requirementKind, sourceKind } from './pending.ts';
+import { PRODUCT_FILES, isOutcomeRel, isPending, isWithdrawn, outcomeLabel, requirementKind, sourceKind } from './pending.ts';
 import { checkSupersededLinks } from './drift.ts';
 import { DOC_TYPES, compareIds } from './ids.ts';
 import { loadProject } from './load.ts';
@@ -101,6 +101,9 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
     .filter((id) => id !== workOrderId)
     .map((id) => graph.byId.get(id)!)
     .filter((doc) => !isWithdrawn(doc))
+    // Product singletons render in the intent section (REQ-039), never in
+    // the traversal buckets — the workflow exclusion, one type over.
+    .filter((doc) => doc.type !== 'product')
     .sort((a, b) => compareIds(a.id, b.id));
 
   // The project workflow (DEC-018) opens every package, reached or not — its
@@ -112,6 +115,30 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
           .filter((doc) => doc.type === 'workflow' && doc.status !== 'retired')
           .sort((a, b) => compareIds(a.id, b.id))[0]
       : undefined;
+
+  // The intent layer (REQ-039, WO-124): the accepted product singletons ship
+  // in every package, ahead of everything — intent precedes process precedes
+  // specifics. Drafts and retired singletons never ship (only ratified
+  // intent steers agents), and like the workflow they live outside the
+  // traversal buckets, in the sanctioned reading order.
+  const intentDocs =
+    ASSEMBLY_POLICY.product.include === 'always'
+      ? documents
+          .filter((doc) => doc.type === 'product' && doc.status === 'accepted')
+          .sort(
+            (a, b) =>
+              (PRODUCT_FILES as readonly string[]).indexOf(a.file) - (PRODUCT_FILES as readonly string[]).indexOf(b.file) ||
+              compareIds(a.id, b.id),
+          )
+      : [];
+
+  // The bet this work order tests (REQ-039): every accepted hypothesis
+  // requirement the work order links directly (either direction). Stated up
+  // front so an agent can push back when an implementation would satisfy the
+  // acceptance criteria without moving the metric.
+  const bets = reached
+    .filter((doc) => hopOf.get(doc.id) === 1)
+    .filter((doc) => doc.type === 'requirement' && doc.status === 'accepted' && requirementKind(doc) === 'hypothesis');
 
   const linksLine = (doc: VeriDocument): string =>
     doc.links.length === 0 ? '' : `Links: ${doc.links.map((l) => `${l.id} (${l.rel})`).join(', ')}\n\n`;
@@ -191,8 +218,26 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
       docCount += 1;
     };
 
-    // Deterministic ordering: workflow → work order → requirements → decisions
-    // → pending → sources → context map → templates.
+    // Deterministic ordering: intent → workflow → work order → requirements
+    // → decisions → pending → sources → context map → templates. Intent
+    // precedes process precedes specifics (REQ-039).
+    if (intentDocs.length > 0 || bets.length > 0) {
+      parts.push('## Intent');
+      for (const doc of intentDocs) {
+        const text = `${doc.body.trim()}\n`;
+        push(`### ${doc.id} — ${doc.title} · ~${estimateTokens(text)} tokens`, text);
+      }
+      // The bet rides the intent section as a pointer — the requirement's
+      // full body still ships below, so this adds the frame, not the spec.
+      for (const doc of bets) {
+        const label = outcomeLabel(doc);
+        const text = `This work order tests [[${doc.id}]] — ${doc.title}. ${
+          label === null ? 'Its outcome is undeclared.' : `Confirm or refute: ${label}.`
+        } Shipping does not settle the bet: an implementation that meets the acceptance criteria without moving this metric has not solved the product problem.\n`;
+        totalTokens += estimateTokens(text);
+        parts.push(`### The bet · ${doc.id} · hypothesis\n\n${text}`);
+      }
+    }
     if (workflow !== undefined) {
       const text = `${workflow.body.trim()}\n`;
       // A draft workflow is visible but non-binding, same labeling rule as REQ-008.

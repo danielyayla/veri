@@ -276,10 +276,10 @@ export const ASSEMBLY_POLICY: Record<DocType, AssemblyPolicy> = {
   },
   'work-order': { include: 'linked', packing: { mode: 'full' } },
   source: { include: 'linked', packing: { mode: 'excerpt', chars: 600 } },
-  // WO-121: product singletons ship full when linked. Intent-led assembly —
-  // the accepted singletons opening every package — is REQ-039's work order,
-  // which flips this to include: 'always'.
-  product: { include: 'linked', packing: { mode: 'full' } },
+  // REQ-039 (WO-124): the accepted product singletons open every package —
+  // intent precedes process precedes specifics. Drafts never ship: only
+  // ratified intent steers agents.
+  product: { include: 'always', packing: { mode: 'full' } },
 };
 
 /** The packing a document of `type` in `status` gets in a context package. */
