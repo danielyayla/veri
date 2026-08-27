@@ -2,7 +2,7 @@
 id: WO-129
 type: work-order
 title: "The front door opens on a bare repo: an init path over MCP"
-status: in-progress
+status: done
 claimed_by: opus-wo129
 claimed_at: 2026-08-27
 approved: 2026-08-27
@@ -62,13 +62,24 @@ Two facts checked before planning, both favourable. The server does not need a k
 
 ## Acceptance tests
 
-- [ ] `init_project` on a directory with no `veri/` creates one, returns the `veriDir`, `docCount`, `filesWritten` and `filesSkipped` that `scaffoldProject` reports, and the result passes `veri check` with zero issues
-- [ ] `init_project` on a directory that already holds a `veri/` refuses with a message naming the directory, and no file on disk is modified
-- [ ] The tool is registered with a strict schema that rejects unknown keys
-- [ ] The tool is callable on a bare repo — a test proves it succeeds where a `loadProject`-backed tool reports "no veri/ directory here"
-- [ ] No scaffold logic is duplicated: the only call path to project creation in `packages/mcp` is `scaffoldProject` from core
-- [ ] A proposed decision exists recording how user consent is obtained before the tool writes, with rejected alternatives
+- [x] `init_project` on a directory with no `veri/` creates one, returns the `veriDir`, `docCount`, `filesWritten` and `filesSkipped` that `scaffoldProject` reports, and the result passes `veri check` with zero issues
+- [x] `init_project` on a directory that already holds a `veri/` refuses with a message naming the directory, and no file on disk is modified
+- [x] The tool is registered with a strict schema that rejects unknown keys
+- [x] The tool is callable on a bare repo — a test proves it succeeds where a `loadProject`-backed tool reports "no veri/ directory here"
+- [x] No scaffold logic is duplicated: the only call path to project creation in `packages/mcp` is `scaffoldProject` from core
+- [x] A proposed decision exists recording how user consent is obtained before the tool writes, with rejected alternatives
 
 ## Receipts
 
-(none yet)
+- 2026-08-27 — 16e237e — packages/mcp/src/init.ts,
+  packages/mcp/src/init.test.ts, packages/mcp/src/server.ts,
+  packages/mcp/src/server.e2e.test.ts,
+  veri/decisions/DEC-133-consent-for-init-over-mcp-is-the-host-s-tool-prompt-over-a-b.md,
+  veri/ids — init_project lands as one MCP module over core's
+  scaffoldProject, adding only where it may write (inside the server's
+  project root, into a directory that exists) and how it refuses (an
+  existing veri/ named, never overwritten); every created path is reported
+  back and no existing file is modified; strict schema, 10 colocated tests
+  plus wire coverage proving the door opens where loadProject-backed tools
+  refuse, 837 tests green across the monorepo, check 0 issues with no new
+  advisories, and DEC-133 files the consent question as a proposal.
