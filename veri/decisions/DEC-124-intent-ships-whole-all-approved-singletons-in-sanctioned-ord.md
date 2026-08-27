@@ -2,7 +2,8 @@
 id: DEC-124
 type: decision
 title: "Intent ships whole: all approved singletons in sanctioned order, the bet as a hop-1 pointer, drafts invisible"
-status: proposed
+status: active
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:

@@ -2,7 +2,8 @@
 id: DEC-121
 type: decision
 title: "The product type lands as PRD documents whose filename is their identity; the format bumps to 3"
-status: proposed
+status: active
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:

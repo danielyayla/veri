@@ -2,7 +2,8 @@
 id: DEC-123
 type: decision
 title: "The worth-making trace follows outbound links breadth-first; the no-link case stays with wo-without-requirement"
-status: proposed
+status: active
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:

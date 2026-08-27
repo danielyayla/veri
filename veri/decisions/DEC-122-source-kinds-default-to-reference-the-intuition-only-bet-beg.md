@@ -2,7 +2,8 @@
 id: DEC-122
 type: decision
 title: "Source kinds default to reference; the intuition-only bet begins at acceptance and outcome evidence clears it"
-status: proposed
+status: active
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:
