@@ -2,7 +2,8 @@
 id: DEC-128
 type: decision
 title: "The v1 proving ground is a small external greenfield for the front half, with Veri-on-Veri as continuous dogfood for the back half"
-status: proposed
+status: active
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:

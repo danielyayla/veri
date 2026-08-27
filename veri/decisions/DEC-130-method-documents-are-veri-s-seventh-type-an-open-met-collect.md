@@ -2,7 +2,8 @@
 id: DEC-130
 type: decision
 title: "Method documents are Veri's seventh type — an open MET- collection whose frontmatter drives the emitter"
-status: proposed
+status: active
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:

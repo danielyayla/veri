@@ -2,7 +2,8 @@
 id: WO-135
 type: work-order
 title: "The shell emitter — veri skills install and upgrade, generating thin pointers from accepted methods"
-status: backlog
+status: ready
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:

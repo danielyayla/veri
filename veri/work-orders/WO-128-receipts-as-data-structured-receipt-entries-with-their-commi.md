@@ -2,7 +2,8 @@
 id: WO-128
 type: work-order
 title: "Receipts as data: structured receipt entries with their commit SHAs over MCP"
-status: backlog
+status: ready
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:

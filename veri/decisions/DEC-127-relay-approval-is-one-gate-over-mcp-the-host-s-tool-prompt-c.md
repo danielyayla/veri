@@ -2,7 +2,8 @@
 id: DEC-127
 type: decision
 title: "Relay approval is one gate over MCP: the host's tool prompt carries the ceremony, identity is collected rather than claimed"
-status: proposed
+status: active
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:

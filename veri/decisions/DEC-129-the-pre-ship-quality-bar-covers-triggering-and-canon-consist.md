@@ -2,7 +2,8 @@
 id: DEC-129
 type: decision
 title: "The pre-ship quality bar covers triggering and canon consistency only; coaching efficacy is post-ship evidence, not a gate"
-status: proposed
+status: active
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:

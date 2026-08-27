@@ -2,7 +2,8 @@
 id: WO-129
 type: work-order
 title: "The front door opens on a bare repo: an init path over MCP"
-status: backlog
+status: ready
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:

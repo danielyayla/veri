@@ -2,7 +2,8 @@
 id: WO-131
 type: work-order
 title: "The method type in core — MET- documents, format 4, and the assembly menu"
-status: backlog
+status: ready
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:

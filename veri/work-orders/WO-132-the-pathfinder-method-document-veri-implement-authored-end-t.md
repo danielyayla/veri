@@ -2,7 +2,8 @@
 id: WO-132
 type: work-order
 title: "The pathfinder method document — veri:implement authored end to end, establishing the form"
-status: backlog
+status: ready
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:

@@ -2,7 +2,8 @@
 id: WO-130
 type: work-order
 title: "The trigger corpus: utterances mapped to the gate that should answer them"
-status: backlog
+status: ready
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:

@@ -2,7 +2,8 @@
 id: WO-136
 type: work-order
 title: "Shell drift advisories — the host-fed tier learns to compare emitted shells against their methods"
-status: backlog
+status: ready
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:
