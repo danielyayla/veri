@@ -1200,6 +1200,23 @@ a:hover { color: var(--link-hover); }
 .hv-verdict:hover { filter: brightness(1.15); }
 .hv-row-split .hv-time { padding-right: 14px; }
 
+/* ===== Outcomes view (WO-119, SRC-054, REQ-036) ===== */
+
+/* DID IT WORK?'s full-depth surface: one column of full-width cards in the
+   home's card grammar — evidence rows get room to breathe (SRC-054). */
+.screen-outcomes { flex: 1; overflow-y: auto; min-width: 0; }
+.ov-wrap { max-width: 920px; margin: 0 auto; padding: 28px 36px 60px; display: flex; flex-direction: column; gap: 14px; }
+.ov-wrap .hv-head { margin-bottom: 6px; }
+.ov-row .hv-flight-title { flex: 1; }
+.ov-row.hv-row-split .hv-split-main { padding-top: 11px; padding-bottom: 11px; }
+.ov-teach { padding: 18px 14px; line-height: 1.55; }
+.ov-shipped { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--faint); flex: 0 0 auto; white-space: nowrap; }
+.ov-req { font-family: var(--mono); font-size: 10px; color: var(--t-req); flex: 0 0 auto; white-space: nowrap; }
+
+/* Sidebar layer headers (WO-119, SRC-054): WHY / WHAT / HOW / DID IT WORK?
+   — non-interactive labels in the RECENT-header register; grouping only. */
+.side-layer { margin: 12px 9px 4px; }
+
 /* ===== Approval gate (WO-017, SRC-006) ===== */
 
 /* Pending marker: 6px amber dot left of the id (sidebar + palette rows). */

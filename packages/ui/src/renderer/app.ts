@@ -69,9 +69,10 @@ import type { PaletteRow } from './palette.ts';
 import { TPL_TYPES } from './views/templates.ts';
 import { settingsView } from './views/settings.ts';
 import { boardView } from './views/board.ts';
+import { outcomesView } from './views/outcomes.ts';
 import { DEAD_LABEL, livingCount, livingGroups, panelList, pushRecent } from './sidebar.ts';
 
-export type View = 'home' | 'workorder' | 'homeview' | 'search' | 'settings' | 'import' | 'architecture' | 'board';
+export type View = 'home' | 'workorder' | 'homeview' | 'search' | 'settings' | 'import' | 'architecture' | 'board' | 'outcomes';
 
 /** Sections of the Settings view (WO-036, SRC-014). */
 export type SettingsSection = 'templates' | 'agent' | 'project' | 'updates' | 'appearance';
@@ -208,6 +209,9 @@ export interface State {
   /** Board view (WO-103, SRC-047): the DONE column's expander — session
       state, never persisted, like the Search view's query. */
   boardDone: boolean;
+  /** Outcomes view (WO-119, SRC-054): the RECENT RECEIPTS expander —
+      session state, never persisted, like the board's DONE window. */
+  outcomesDone: boolean;
 }
 
 /** The add-link inline row (WO-056): target + rel drafts, the inline error,
@@ -457,6 +461,7 @@ class App implements Ctx {
     archSel: null,
     archDrill: [],
     boardDone: false,
+    outcomesDone: false,
   };
   renderPane = 0;
   appInfo: AppInfo | null = null;
@@ -2779,19 +2784,34 @@ class App implements Ctx {
         h('span', { class: 'sb-recent-ttl' }, doc.title),
       );
     });
+    // Layer headers (WO-119, SRC-054, REQ-036): the pivot's four questions
+    // as non-interactive labels in the RECENT-header register — grouping,
+    // never containers. No collection, count, or panel behavior changes; a
+    // document's type is intrinsic, its layer is contextual.
+    const layer = (text: string): HTMLElement => h('div', { class: 'side-label side-layer' }, text);
     return h(
       'nav',
       { class: 'sidebar', label: 'Project' },
       viewItem('homeview', 'Home', '⌂'),
       h('div', { class: 'side-div' }),
-      ...App.COLLECTIONS.map(collItem),
+      layer('WHY'),
+      collItem('source'),
+      layer('WHAT'),
+      collItem('requirement'),
+      collItem('decision'),
+      layer('HOW'),
+      collItem('work-order'),
       // Architecture's promotion (WO-107, SRC-049, DEC-108): a persistent
       // view row where Board and Graph once sat — always rendered; with no
       // module registry the view's own empty-state card is the teaching
       // surface. The Home card, ⌘K entry, and `architecture ↗` affordances
-      // all remain.
-      h('div', { class: 'side-div' }),
+      // all remain. It sits in HOW: structure serves execution (SRC-054).
       viewItem('architecture', 'Architecture', '⌗'),
+      // DID IT WORK? has no collection — its first-class surface is the
+      // Outcomes view row, always rendered so the empty state can teach
+      // the learning loop (the DEC-108 posture).
+      layer('DID IT WORK?'),
+      viewItem('outcomes', 'Outcomes', '◎'),
       ...(recents.length > 0
         ? [h('div', { class: 'side-div' }), h('div', { class: 'side-label' }, 'RECENT'), ...recentRows]
         : []),
@@ -3244,6 +3264,7 @@ class App implements Ctx {
       else if (view === 'import') screen = importView(this);
       else if (view === 'architecture') screen = architectureView(this);
       else if (view === 'board') screen = boardView(this);
+      else if (view === 'outcomes') screen = outcomesView(this);
       else screen = readerView(this);
       this.state.view = saved.view;
       this.state.docId = saved.docId;

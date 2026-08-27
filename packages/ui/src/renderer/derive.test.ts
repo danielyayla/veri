@@ -31,6 +31,9 @@ import {
   BOARD_DONE_WINDOW,
   currentBets,
   recentlyLearned,
+  outcomeEvidence,
+  untestedBets,
+  recentReceipts,
 } from './derive.ts';
 import type { Connection } from './derive.ts';
 
@@ -602,4 +605,92 @@ test('recentlyLearned: capped', () => {
     doc({ id: `SRC-${String(i + 1).padStart(3, '0')}`, type: 'source', title: `s${i}`, status: 'imported', created: `2026-08-${String(i + 1).padStart(2, '0')}` }),
   );
   assert.equal(recentlyLearned(snap(many), (d) => d).length, 8);
+});
+
+// ---- the Outcomes view (WO-119, SRC-054) ----
+
+test('outcomeEvidence: outcome-linked sources only, newest first, every verdict carried', () => {
+  const s = snap([
+    doc({
+      id: 'SRC-001',
+      type: 'source',
+      title: 'metrics',
+      status: 'imported',
+      created: '2026-08-10',
+      links: [
+        { id: 'REQ-001', rel: 'supports' },
+        { id: 'WO-001', rel: 'outcome-of' },
+        { id: 'REQ-002', rel: 'refutes' },
+      ],
+    }),
+    doc({ id: 'SRC-002', type: 'source', title: 'plain note', status: 'imported', created: '2026-08-20' }),
+    doc({
+      id: 'SRC-003',
+      type: 'source',
+      title: 'follow-up',
+      status: 'imported',
+      created: '2026-08-15',
+      links: [{ id: 'REQ-001', rel: 'tests' }],
+    }),
+    doc({
+      id: 'SRC-004',
+      type: 'source',
+      title: 'withdrawn',
+      status: 'withdrawn',
+      created: '2026-08-25',
+      links: [{ id: 'REQ-001', rel: 'supports' }],
+    }),
+  ]);
+  const rows = outcomeEvidence(s, (d) => d);
+  assert.deepEqual(rows.map((r) => r.id), ['SRC-003', 'SRC-001']);
+  assert.deepEqual(rows[0].verdicts, [{ rel: 'tests', reqId: 'REQ-001' }]);
+  // outcome-of is not a verdict (DEC-113) — only tests/supports/refutes chip.
+  assert.deepEqual(rows[1].verdicts, [
+    { rel: 'supports', reqId: 'REQ-001' },
+    { rel: 'refutes', reqId: 'REQ-002' },
+  ]);
+});
+
+test('untestedBets reads the snapshot advisories, never recomputing the rule', () => {
+  const docs = [
+    doc({ id: 'REQ-002', type: 'requirement', title: 'B bet', status: 'accepted', kind: 'hypothesis' }),
+    doc({ id: 'REQ-001', type: 'requirement', title: 'A bet', status: 'accepted', kind: 'hypothesis' }),
+  ];
+  const s = snap(docs, [], [
+    { kind: 'untested-bet', file: docs[0].file, id: 'REQ-002', workOrderIds: ['WO-002', 'WO-003'], message: 'untested' },
+    { kind: 'untested-bet', file: docs[1].file, id: 'REQ-001', workOrderIds: ['WO-001'], message: 'untested' },
+  ]);
+  assert.deepEqual(untestedBets(s), [
+    { id: 'REQ-001', title: 'A bet', workOrderIds: ['WO-001'] },
+    { id: 'REQ-002', title: 'B bet', workOrderIds: ['WO-002', 'WO-003'] },
+  ]);
+  // No advisory, no row — even with a done-WO hypothesis in the documents.
+  assert.deepEqual(untestedBets(snap(docs)), []);
+});
+
+test('recentReceipts: done WOs with receipts, newest receipt first, implements REQ carried', () => {
+  const rcpt = (date: string, sha: string): string => `## Receipts\n\n- ${date} — ${sha} — a.ts — did it\n`;
+  const s = snap([
+    doc({
+      id: 'WO-001',
+      type: 'work-order',
+      title: 'older',
+      status: 'done',
+      links: [{ id: 'REQ-001', rel: 'implements' }, { id: 'DEC-001', rel: 'constrained-by' }],
+      body: rcpt('2026-08-10', 'abc1234'),
+    }),
+    doc({ id: 'WO-002', type: 'work-order', title: 'newer', status: 'done', body: rcpt('2026-08-20', 'def5678') }),
+    doc({ id: 'WO-003', type: 'work-order', title: 'no receipt', status: 'done' }),
+    doc({ id: 'WO-004', type: 'work-order', title: 'not done', status: 'in-progress', body: rcpt('2026-08-25', 'eee9999') }),
+  ]);
+  const rows = recentReceipts(s, (d) => d);
+  assert.deepEqual(rows.map((r) => [r.id, r.commit]), [['WO-002', 'def5678'], ['WO-001', 'abc1234']]);
+  assert.deepEqual(rows[1].reqIds, ['REQ-001']);
+  assert.deepEqual(rows[0].reqIds, []);
+});
+
+test('recentReceipts uses the latest receipt on a multi-receipt work order', () => {
+  const body = '## Receipts\n\n- 2026-08-01 — old1111 — a.ts — first pass\n- 2026-08-18 — new2222 — b.ts — done\n';
+  const s = snap([doc({ id: 'WO-001', type: 'work-order', title: 'multi', status: 'done', body })]);
+  assert.deepEqual(recentReceipts(s, (d) => d).map((r) => [r.commit, r.date]), [['new2222', '2026-08-18']]);
 });

@@ -14,7 +14,7 @@
     WO-103 (SRC-047) as the Work Orders board tab — a four-status kanban
     over the WO-098 lifecycle. Persisted graph tabs restore away via
     retainTabs. */
-export type ViewKey = 'homeview' | 'search' | 'settings' | 'import' | 'architecture' | 'board';
+export type ViewKey = 'homeview' | 'search' | 'settings' | 'import' | 'architecture' | 'board' | 'outcomes';
 
 export const VIEW_META: Record<ViewKey, { label: string; glyph: string }> = {
   homeview: { label: 'Home', glyph: '⌂' },
@@ -31,6 +31,10 @@ export const VIEW_META: Record<ViewKey, { label: string; glyph: string }> = {
   // via the Home card, ⌘K, and `architecture ↗` — the provisional placement;
   // promoting it to primary navigation later costs only a sidebar item.
   architecture: { label: 'Architecture', glyph: '⌗' },
+  // Outcomes (WO-119, SRC-054): DID IT WORK?'s first-class view — outcome
+  // evidence, untested bets, recent receipts. Opened from the sidebar's
+  // always-rendered ◎ row (the DEC-108 Architecture-row pattern).
+  outcomes: { label: 'Outcomes', glyph: '◎' },
 };
 
 export function isViewKey(id: string): id is ViewKey {

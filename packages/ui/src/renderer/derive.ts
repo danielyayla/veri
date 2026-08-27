@@ -527,6 +527,102 @@ export function recentlyLearned(snap: Snapshot, rel: (date: string) => string, c
     });
 }
 
+// ---- The Outcomes view (WO-119, SRC-054, REQ-036) ------------------------
+
+/** One verdict a source delivers: the outcome rel and the bet it answers. */
+export interface OutcomeVerdict {
+  rel: string;
+  reqId: string;
+}
+
+export interface OutcomeEvidenceRow {
+  id: string;
+  title: string;
+  time: string;
+  /** Every outcome link the source carries (DEC-113 vocabulary) — a
+      source may answer more than one bet; each verdict is its own chip. */
+  verdicts: OutcomeVerdict[];
+}
+
+/**
+ * OUTCOME EVIDENCE (SRC-054 section 1): non-withdrawn sources carrying at
+ * least one outcome link (`tests`/`supports`/`refutes`, core's DEC-113
+ * vocabulary), newest `created` first. Uncapped — the Outcomes view is the
+ * full-depth surface behind Home's RECENTLY LEARNED window.
+ */
+export function outcomeEvidence(snap: Snapshot, rel: (date: string) => string): OutcomeEvidenceRow[] {
+  return snap.documents
+    .filter((d) => d.type === 'source' && !isWithdrawn(d) && d.links.some((l) => isOutcomeRel(l.rel)))
+    .sort((a, b) => b.created.localeCompare(a.created) || compareIds(b.id, a.id))
+    .map((d) => ({
+      id: d.id,
+      title: d.title,
+      time: rel(d.created),
+      verdicts: d.links.filter((l) => isOutcomeRel(l.rel)).map((l) => ({ rel: l.rel, reqId: l.id })),
+    }));
+}
+
+export interface UntestedBetRow {
+  id: string;
+  title: string;
+  /** What shipped without evidence — the advisory's own list. */
+  workOrderIds: string[];
+}
+
+/**
+ * UNTESTED BETS (SRC-054 section 2): the snapshot's `untested-bet`
+ * advisories, never a renderer recomputation (the DEC-118 posture — one
+ * evaluation site, core's checkUntestedBets), joined with the document for
+ * its title. Id order, matching the check's own emission order.
+ */
+export function untestedBets(snap: Snapshot): UntestedBetRow[] {
+  const byId = docsById(snap);
+  return snap.advisories
+    .filter((a): a is Advisory & { kind: 'untested-bet' } => a.kind === 'untested-bet')
+    .map((a) => ({ id: a.id, title: byId.get(a.id)?.title ?? '', workOrderIds: a.workOrderIds }))
+    .sort((a, b) => compareIds(a.id, b.id));
+}
+
+/** The RECEIPTS window: rows shown before the expander opens (the board's
+    DONE-window posture, SRC-025). */
+export const OUTCOMES_RECEIPTS_WINDOW = 5;
+
+export interface RecentReceiptRow {
+  id: string;
+  title: string;
+  /** The latest receipt's commit pointer (short sha) and date. */
+  commit: string;
+  date: string;
+  time: string;
+  /** The requirements this work order implements (rel `implements`). */
+  reqIds: string[];
+}
+
+/**
+ * RECENT RECEIPTS (SRC-054 section 3): done work orders that carry at least
+ * one receipt, newest receipt date first — each with its latest receipt's
+ * commit pointer and the requirement it implements. The view windows this
+ * at OUTCOMES_RECEIPTS_WINDOW behind an expander; the derivation stays
+ * complete.
+ */
+export function recentReceipts(snap: Snapshot, rel: (date: string) => string): RecentReceiptRow[] {
+  const rows: RecentReceiptRow[] = [];
+  for (const doc of snap.documents) {
+    if (doc.type !== 'work-order' || doc.status !== 'done') continue;
+    const latest = receipts(doc).at(-1);
+    if (latest === undefined) continue;
+    rows.push({
+      id: doc.id,
+      title: doc.title,
+      commit: latest.commit,
+      date: latest.date,
+      time: rel(latest.date),
+      reqIds: doc.links.filter((l) => l.rel === 'implements' && l.id.startsWith('REQ-')).map((l) => l.id),
+    });
+  }
+  return rows.sort((a, b) => b.date.localeCompare(a.date) || compareIds(b.id, a.id));
+}
+
 /** Default rel for a new typed link (SRC-028). */
 export const DEFAULT_REL = 'relates-to';
 
