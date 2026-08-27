@@ -2,7 +2,10 @@
 id: WO-125
 type: work-order
 title: "Ship the format-3 release: app and npm carry the product-layer core"
-status: backlog
+status: in-progress
+claimed_by: fable-wo125
+claimed_at: 2026-08-27
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:
