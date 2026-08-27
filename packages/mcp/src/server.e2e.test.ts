@@ -83,6 +83,8 @@ test('the built server answers tools/list and get_context over stdio', { skip: !
     'get_import_instructions',
     'get_intent',
     'get_neighbors',
+    'get_queue',
+    'list_documents',
     'run_check',
     'search',
     'start_work_order',
@@ -365,4 +367,74 @@ test('amend_document revises a backlog work order and refuses past the approval 
   const refused = responses.get(3)?.result;
   assert.equal(refused?.isError, true);
   assert.match(refused?.content?.[0]?.text ?? '', /past the approval boundary \(REQ-008\)/);
+});
+
+test('list_documents and get_queue enumerate over the wire and refuse unknown keys (WO-127)', { skip: !existsSync(SERVER) }, async (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'veri-mcp-enumerate-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, 'veri', 'requirements'), { recursive: true });
+  mkdirSync(join(root, 'veri', 'work-orders'), { recursive: true });
+  writeFileSync(
+    join(root, 'veri', 'requirements', 'REQ-001-req.md'),
+    '---\nid: REQ-001\ntype: requirement\ntitle: R\nstatus: accepted\ncreated: 2026-08-01\nupdated: 2026-08-01\napproved: 2026-08-01\n---\n## Acceptance criteria\n\n- [ ] x\n',
+  );
+  const workOrder = (id: string, title: string, status: string, extra: string): string =>
+    `---\nid: ${id}\ntype: work-order\ntitle: ${title}\nstatus: ${status}\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\n${extra}links:\n  - id: REQ-001\n    rel: implements\n---\n## Summary\n\nWork.\n`;
+  writeFileSync(join(root, 'veri', 'work-orders', 'WO-002-head.md'), workOrder('WO-002', 'Head', 'ready', ''));
+  writeFileSync(join(root, 'veri', 'work-orders', 'WO-010-next.md'), workOrder('WO-010', 'Next', 'ready', ''));
+  writeFileSync(
+    join(root, 'veri', 'work-orders', 'WO-003-held.md'),
+    workOrder('WO-003', 'Held', 'in-progress', 'claimed_by: session-alpha\nclaimed_at: 2026-08-25\n'),
+  );
+
+  const call = (id: number, name: string, args: object): object => ({ jsonrpc: '2.0', id, method: 'tools/call', params: { name, arguments: args } });
+  const init = {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'initialize',
+    params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test', version: '0.0.0' } },
+  };
+  const initialized = { jsonrpc: '2.0', method: 'notifications/initialized' };
+  const responses = await rpcSession(
+    [
+      init,
+      initialized,
+      call(2, 'list_documents', { type: 'work-order', status: 'ready' }),
+      call(3, 'get_queue', {}),
+      // A near-miss key must refuse, never silently widen the answer (WO-118).
+      call(4, 'list_documents', { doc_type: 'work-order' }),
+      call(5, 'get_queue', { status: 'ready' }),
+      call(6, 'list_documents', { status: 'nonsense' }),
+      { jsonrpc: '2.0', id: 7, method: 'tools/list' },
+    ],
+    [1, 2, 3, 4, 5, 6, 7],
+    root,
+  );
+
+  const listed = responses.get(2)?.result;
+  assert.ok(listed && listed.isError !== true, JSON.stringify(listed));
+  const listText = listed.content?.[0]?.text ?? '';
+  assert.match(listText, /^2 documents:\nWO-002 {2}work-order {2}ready {2}updated 2026-08-01 {2}veri\/work-orders\/WO-002-head\.md {2}Head$/m);
+  assert.ok(!listText.includes('WO-003'), 'the status filter must narrow, not annotate');
+
+  const queue = responses.get(3)?.result;
+  assert.ok(queue && queue.isError !== true, JSON.stringify(queue));
+  const queueLines = (queue.content?.[0]?.text ?? '').split('\n');
+  assert.equal(queueLines[0], 'Ready (2) — dispatch order, head first:');
+  assert.match(queueLines[1] ?? '', /^WO-002 {2}veri\/work-orders\/WO-002-head\.md {2}Head$/);
+  assert.match(queue.content?.[0]?.text ?? '', /WO-003 {2}claimed by session-alpha since 2026-08-25/);
+
+  for (const [id, key] of [[4, 'doc_type'] as const, [5, 'status'] as const]) {
+    const refused = responses.get(id)?.result;
+    assert.equal(refused?.isError, true, `unknown key ${key} must be a validation error, got: ${JSON.stringify(refused)}`);
+    assert.match(refused?.content?.[0]?.text ?? '', new RegExp(key));
+  }
+  // An unknown status is refused too — a filter matching nothing would read
+  // as "the corpus has none of those", which is a lie (DEC-058's posture).
+  assert.equal(responses.get(6)?.result?.isError, true);
+
+  const tools = responses.get(7)?.result?.tools ?? [];
+  for (const name of ['list_documents', 'get_queue']) {
+    assert.equal(tools.find((entry) => entry.name === name)?.inputSchema?.additionalProperties, false, `${name} must advertise additionalProperties: false`);
+  }
 });

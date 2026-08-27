@@ -2,10 +2,11 @@
 import { join, resolve } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { SOURCE_KINDS, assembleImportInstructions, classifyFormat, formatStatement, isOperableFormat, loadProject, startWorkOrder } from '@verikb/core';
+import { DOC_TYPES, SOURCE_KINDS, assembleImportInstructions, classifyFormat, formatStatement, isOperableFormat, loadProject, startWorkOrder } from '@verikb/core';
 import { z } from 'zod';
 import { runCheck } from './check.ts';
 import { assembleContext } from './context.ts';
+import { DOCUMENT_STATUSES, getQueue, listDocuments, renderDocuments, renderQueue } from './enumerate.ts';
 import { getDocument, getNeighbors } from './read.ts';
 import { intentForPath } from './intent.ts';
 import { paletteSearch } from './search.ts';
@@ -134,6 +135,61 @@ server.registerTool(
           ...(hood.backlinks.length === 0 ? ['(none)'] : hood.backlinks.map((edge) => `← ${line(edge)}`)),
         ].join('\n'),
       );
+    } catch (err) {
+      return fail(err);
+    }
+  },
+);
+
+server.registerTool(
+  'list_documents',
+  {
+    description:
+      'Enumerate the knowledge base by lifecycle facts rather than by relevance: optional type, status, and ' +
+      'updated_before (a YYYY-MM-DD cutoff, strictly before) narrow the corpus, and the filters combine. ' +
+      'Returns every hit in id order — id, type, status, updated date, path, title — with no truncation, so ' +
+      'a review pass ("status: proposed"), a wayfinding pass, or a staleness sweep sees the whole set. ' +
+      'Documents awaiting the user\'s approval are marked (pending); withdrawn documents are excluded unless ' +
+      'asked for by status. Use search instead when looking for documents by what they say.',
+    // Read filters take a strict schema for the same reason writes do
+    // (WO-118): a near-miss key must refuse loudly, never widen the answer
+    // by being silently dropped.
+    inputSchema: z
+      .object({
+        type: z.enum(DOC_TYPES).optional().describe('Document type, e.g. requirement, decision, work-order, source'),
+        status: z.enum(DOCUMENT_STATUSES).optional().describe('Lifecycle status, e.g. draft, proposed, ready, in-progress'),
+        updated_before: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a YYYY-MM-DD date')
+          .optional()
+          .describe('Keep only documents whose updated date is strictly before this date'),
+      })
+      .strict(),
+  },
+  async ({ type, status, updated_before }) => {
+    try {
+      guardFormat();
+      return ok(renderDocuments(await listDocuments(projectRoot, { type, status, updatedBefore: updated_before })));
+    } catch (err) {
+      return fail(err);
+    }
+  },
+);
+
+server.registerTool(
+  'get_queue',
+  {
+    description:
+      'The dispatch queue: ready work orders in the order `veri next` dispatches them — lowest id first, the ' +
+      'head being the one to start — followed by the in-progress work orders and the claim held on each ' +
+      '(claimed_by, claimed_at). Call this to orient before starting work: take the ready head, then ' +
+      'start_work_order to claim it. A work order another session holds is never yours to pick up.',
+    inputSchema: z.object({}).strict(),
+  },
+  async () => {
+    try {
+      guardFormat();
+      return ok(renderQueue(await getQueue(projectRoot)));
     } catch (err) {
       return fail(err);
     }
