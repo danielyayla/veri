@@ -43,7 +43,7 @@ Nothing is written at install time and nothing is written without asking: [[DEC-
 - Idempotence: a second run over an unchanged project writes nothing and says so
 - Refusing to emit for `draft` and `retired` methods, and removing (or reporting) a shell whose method has since been retired
 - Asking before the first write, and a `--yes` for non-interactive use
-- The **tiering input**: which accepted methods get shells on a default install. Note an unresolved discrepancy in [[SRC-060]] — its per-skill tags mark nine defaults and five advanced, while its summary sentence says eight and six. The tiering must be stated somewhere authoritative before this command has a defensible default; resolving it is a prerequisite, not a detail to guess at
+- The **tiering input**: which accepted methods get shells on a default install. The authority is [[REQ-040]], which enumerates the nine defaults by name — wayfinder, product-discovery, evidence-intake, define, decide, plan-work, implement, did-it-work, health. The five advanced skills ship as method documents and get no shell unless asked for. Read the tiering from that list, not from prose: [[SRC-060]] carried a contradicting summary sentence until it was corrected against this requirement
 
 ## Out of scope
 

@@ -31,7 +31,7 @@ Fourteen skills in six categories mapped one-to-one onto WF-001's loop, plus a c
 - **Evaluate**: `veri:did-it-work` (default; separates built-what-we-said / holds-what-must-hold / did-the-bet-pay-off; files outcome SRCs, never auto-applies verdicts), `veri:review` (advanced; spec-fidelity code review — findings must cite the REQ/DEC/WO clause violated).
 - **Maintain**: `veri:health` (default; periodic sweep for decay veri check's hard rules don't catch — stale docs, arrived revisit conditions, abandoned claims, untested bets, orphans — filed as a health-report SRC so trends compare), `veri:onboard` (advanced; a tour built from graph centrality, teaching the gates before the tools).
 
-Eight defaults form a complete minimal loop; six advanced skills deepen individual gates.
+Nine defaults form a complete minimal loop; five advanced skills deepen individual gates.
 
 ## Design principles (inherited, not invented)
 
