@@ -9,6 +9,39 @@ git and the `veri/` knowledge base rather than backfilled here.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-27
+
+### Added
+
+- The product layer: `veri/product/` holds four gated singletons —
+  vision, users, principles, and current focus — as first-class `PRD`
+  documents with the full draft → approve lifecycle. Freeform files
+  there are check violations; only what the maintainer has approved
+  steers.
+- Context packages open with an Intent section: the approved product
+  singletons in full, and — when the work order implements a
+  hypothesis — the bet itself, with the metric that will confirm or
+  refute it.
+- Sources carry a `kind` (design, user-feedback, metric,
+  external-eval, investigation, outcome, reference). Absent means
+  `reference`, so existing sources stay valid; the MCP `file_source`
+  tool and search results show it.
+- An `intuition-only` advisory: an accepted requirement with no
+  `derived-from` evidence and no inbound outcome evidence is named as
+  a bet whose origin is undocumented — link the evidence or retire it.
+- A `stale-focus` advisory: an approved current-focus that hasn't been
+  touched within its window, or that references only finished work
+  orders, is called out — restate what comes next.
+- The worth-making trace: a ready or in-progress work order whose
+  links reach no live requirement is a check issue, and `veri approve`
+  refuses to ready one prospectively.
+
+### Changed
+
+- The on-disk format is now 3 (the `veri/format` marker). Older
+  readers — apps, CLIs, MCP servers, the action — refuse a format-3
+  project with "update Veri to open it" instead of half-loading it.
+
 ## [0.3.2] - 2026-08-25
 
 ### Added
