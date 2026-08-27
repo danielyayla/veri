@@ -3,9 +3,13 @@ id: REQ-035
 type: requirement
 title: "The app's home surfaces intent: current bets, what awaits human judgment, what was recently learned"
 status: accepted
-approved: 2026-08-26
+kind: hypothesis
+outcome:
+  metric: median-time-to-judgment
+  target: "< 48 hours"
+approved: 2026-08-27
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 links:
   - id: DEC-111
     rel: derived-from
@@ -26,6 +30,10 @@ The app presents a home view that aggregates, from existing documents and the ex
 - **Recently learned** — the newest sources, with outcome sources (tests/supports/refutes links) called out and linked to the hypothesis they answer.
 
 The view is derived and read-only in the sense that judgment actions link into the existing surfaces (approval queue, document reader); it introduces no authoritative state of its own. The execution board remains available; it is no longer the conceptual center.
+
+## The bet
+
+This requirement is a hypothesis, not a constraint: we believe that surfacing gate crossings on the home shortens the time documents wait for human judgment. The outcome metric is **median-time-to-judgment** — the elapsed time between a document being filed as `proposed`/`draft` and its promotion or rejection — with a target of under 48 hours. The metric is derivable from the corpus itself (filed dates against `approved:` stamps), so the outcome source that answers this bet can be computed from the knowledge base with no external telemetry.
 
 ## Acceptance criteria
 
