@@ -147,16 +147,21 @@ server.registerTool(
       'File a technical decision as a proposal — a new document with the next free DEC id and status: proposed, ' +
       'pending the user\'s review; it is not binding until they approve it. ' +
       'Use when a non-trivial choice is made during implementation; include the rejected alternatives.',
-    inputSchema: {
-      title: z.string(),
-      choice: z.string().describe('What was chosen'),
-      rejected_alternatives: z.string().optional().describe('Markdown list of alternatives and why they lost'),
-      rationale: z.string().optional(),
-      links: z
-        .array(z.object({ id: z.string(), rel: z.string() }))
-        .optional()
-        .describe('Documents this decision constrains, e.g. [{id: "WO-003", rel: "constrains"}]'),
-    },
+    // Write tools take strict schemas (WO-118): zod's default strip mode
+    // silently swallowed content sent under a near-miss key — DEC-112 lost
+    // its Rejected alternatives this way. Unknown keys must refuse loudly.
+    inputSchema: z
+      .object({
+        title: z.string(),
+        choice: z.string().describe('What was chosen'),
+        rejected_alternatives: z.string().optional().describe('Markdown list of alternatives and why they lost'),
+        rationale: z.string().optional(),
+        links: z
+          .array(z.object({ id: z.string(), rel: z.string() }))
+          .optional()
+          .describe('Documents this decision constrains, e.g. [{id: "WO-003", rel: "constrains"}]'),
+      })
+      .strict(),
   },
   async (input) => {
     try {
@@ -180,17 +185,19 @@ server.registerTool(
       'Propose a unit of work as a new work order with the next free WO id and status: backlog — ' +
       'planned, not started, and not binding until the user reviews it. ' +
       'Use when asked to implement something no existing work order covers.',
-    inputSchema: {
-      title: z.string(),
-      summary: z.string().describe('What this delivers'),
-      in_scope: z.string().optional().describe('Markdown list of what the work includes'),
-      out_of_scope: z.string().optional().describe('Markdown list of what is explicitly excluded'),
-      acceptance_tests: z.string().optional().describe('Markdown checklist, e.g. "- [ ] First test"'),
-      links: z
-        .array(z.object({ id: z.string(), rel: z.string() }))
-        .optional()
-        .describe('Documents this work order delivers or depends on, e.g. [{id: "REQ-002", rel: "implements"}]'),
-    },
+    inputSchema: z
+      .object({
+        title: z.string(),
+        summary: z.string().describe('What this delivers'),
+        in_scope: z.string().optional().describe('Markdown list of what the work includes'),
+        out_of_scope: z.string().optional().describe('Markdown list of what is explicitly excluded'),
+        acceptance_tests: z.string().optional().describe('Markdown checklist, e.g. "- [ ] First test"'),
+        links: z
+          .array(z.object({ id: z.string(), rel: z.string() }))
+          .optional()
+          .describe('Documents this work order delivers or depends on, e.g. [{id: "REQ-002", rel: "implements"}]'),
+      })
+      .strict(),
   },
   async (input) => {
     try {
@@ -214,15 +221,17 @@ server.registerTool(
       'File a requirement as a draft — a new document with the next free REQ id and status: draft, ' +
       'pending the user\'s review; it is not binding until they accept it. ' +
       'Used by brownfield import sessions and any session proposing a requirement.',
-    inputSchema: {
-      title: z.string(),
-      body: z.string().describe('What must hold, as markdown prose — the what, not the how'),
-      acceptance_criteria: z.string().optional().describe('Markdown checklist, e.g. "- [ ] First criterion"'),
-      links: z
-        .array(z.object({ id: z.string(), rel: z.string() }))
-        .optional()
-        .describe('Evidence and related documents, e.g. [{id: "SRC-002", rel: "derived-from"}]'),
-    },
+    inputSchema: z
+      .object({
+        title: z.string(),
+        body: z.string().describe('What must hold, as markdown prose — the what, not the how'),
+        acceptance_criteria: z.string().optional().describe('Markdown checklist, e.g. "- [ ] First criterion"'),
+        links: z
+          .array(z.object({ id: z.string(), rel: z.string() }))
+          .optional()
+          .describe('Evidence and related documents, e.g. [{id: "SRC-002", rel: "derived-from"}]'),
+      })
+      .strict(),
   },
   async (input) => {
     try {
@@ -245,14 +254,16 @@ server.registerTool(
       'File a source document — imported evidence or reference material — with the next free SRC id. ' +
       'Brownfield imports file their manifest and evidence documents here; the body should name ' +
       'concrete file paths, commit refs, and excerpts.',
-    inputSchema: {
-      title: z.string(),
-      body: z.string().describe('The evidence: file paths, commit refs, excerpts, provenance'),
-      links: z
-        .array(z.object({ id: z.string(), rel: z.string() }))
-        .optional()
-        .describe('Related documents, e.g. [{id: "SRC-001", rel: "imported-via"}] for the import manifest'),
-    },
+    inputSchema: z
+      .object({
+        title: z.string(),
+        body: z.string().describe('The evidence: file paths, commit refs, excerpts, provenance'),
+        links: z
+          .array(z.object({ id: z.string(), rel: z.string() }))
+          .optional()
+          .describe('Related documents, e.g. [{id: "SRC-001", rel: "imported-via"}] for the import manifest'),
+      })
+      .strict(),
   },
   async (input) => {
     try {
@@ -335,10 +346,12 @@ server.registerTool(
       'approve stamp is the dispatch clearance, and an already-claimed work order is refused, naming its ' +
       'holder. Call this before writing code for a work order, with a claimed_by that identifies this ' +
       'session; then commit the flip with a subject like "WO-042: started".',
-    inputSchema: {
-      id: z.string().describe('Work order id, e.g. WO-042'),
-      claimed_by: z.string().describe('This session\'s identity — free text, unique per session'),
-    },
+    inputSchema: z
+      .object({
+        id: z.string().describe('Work order id, e.g. WO-042'),
+        claimed_by: z.string().describe('This session\'s identity — free text, unique per session'),
+      })
+      .strict(),
   },
   async ({ id, claimed_by }) => {
     try {
@@ -362,13 +375,15 @@ server.registerTool(
       'Append a work-session receipt (date, commit, files touched, one-line summary) to a work order — ' +
       'or, for import sessions, to the import manifest source as the completion signal. ' +
       'Receipts accumulate; existing ones are never overwritten.',
-    inputSchema: {
-      work_order_id: z.string().describe('Work order id — or an import manifest SRC id (DEC-068)'),
-      commit: z.string().describe('Commit SHA of the session’s work'),
-      files: z.string().describe('Files touched, comma-separated'),
-      summary: z.string().describe('One-line summary of the session'),
-      date: z.string().optional().describe('YYYY-MM-DD, defaults to today'),
-    },
+    inputSchema: z
+      .object({
+        work_order_id: z.string().describe('Work order id — or an import manifest SRC id (DEC-068)'),
+        commit: z.string().describe('Commit SHA of the session’s work'),
+        files: z.string().describe('Files touched, comma-separated'),
+        summary: z.string().describe('One-line summary of the session'),
+        date: z.string().optional().describe('YYYY-MM-DD, defaults to today'),
+      })
+      .strict(),
   },
   async (input) => {
     try {
@@ -391,18 +406,20 @@ server.registerTool(
       'approval field exists to send, and receipts stay append-only via file_receipt (the body may not carry a ' +
       'Receipts section — the existing one is preserved). Create with the file_* tools; amend while unbinding; ' +
       'promotion stays the user’s act.',
-    inputSchema: {
-      id: z.string().describe('Document id, e.g. WO-002'),
-      title: z.string().optional().describe('Replacement title'),
-      body: z
-        .string()
-        .optional()
-        .describe('Complete replacement markdown body (everything below the frontmatter), without a Receipts section'),
-      links: z
-        .array(z.object({ id: z.string(), rel: z.string() }))
-        .optional()
-        .describe('Full replacement of the frontmatter links list; [] clears it'),
-    },
+    inputSchema: z
+      .object({
+        id: z.string().describe('Document id, e.g. WO-002'),
+        title: z.string().optional().describe('Replacement title'),
+        body: z
+          .string()
+          .optional()
+          .describe('Complete replacement markdown body (everything below the frontmatter), without a Receipts section'),
+        links: z
+          .array(z.object({ id: z.string(), rel: z.string() }))
+          .optional()
+          .describe('Full replacement of the frontmatter links list; [] clears it'),
+      })
+      .strict(),
   },
   async (input) => {
     try {
