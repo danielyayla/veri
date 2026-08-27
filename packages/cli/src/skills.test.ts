@@ -4,8 +4,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { check, init } from './commands.ts';
-import { SHIPPED_METHODS_ROOT, collectShells, loadShippedMethods, skillsInstall, skillsUpgrade } from './skills.ts';
+import { approve, check, init } from './commands.ts';
+import { SHIPPED_METHODS_ROOT, collectShellFacts, collectShells, loadShippedMethods, skillsInstall, skillsUpgrade } from './skills.ts';
 import { DEFAULT_SKILL_SLUGS, claudeCodeEmitter } from '@verikb/core';
 
 /**
@@ -330,4 +330,143 @@ test('the shipped library is byte-identical to the methods this repository autho
       `packages/cli/methods/${name} has drifted from veri/methods/${name} — re-copy it, the shipped library is the authored one`,
     );
   }
+});
+
+// --- Shell drift through veri check (WO-136) ----------------------------------
+
+/**
+ * The host half of WO-136: the collector feeding core's comparator, and the
+ * severity that whole design turns on. The rules themselves are unit-tested
+ * in core against fabricated facts; what needs a filesystem is that a real
+ * harness directory reaches them, and that a drifted shell leaves both gates
+ * open — `veri check` exits 0, and `veri approve` still works.
+ */
+
+function advisoriesIn(lines: string[]): string[] {
+  return lines.filter((line) => line.startsWith('(advisory) '));
+}
+
+test('a project that never installed shells is never nagged about drift', async (t) => {
+  const cwd = project(t);
+  writeMethod(cwd, 'define', methodText('MET-001', 'define'));
+
+  const checked = await check(cwd);
+  assert.equal(checked.code, 0, checked.lines.join('\n'));
+  assert.equal(existsSync(join(cwd, '.claude')), false);
+  assert.deepEqual(advisoriesIn(checked.lines).filter((line) => line.includes('SKILL.md')), []);
+  assert.deepEqual(checked.lines.filter((line) => line.startsWith('(shell drift: skipped')), []);
+});
+
+test('a freshly installed shell is not drift', async (t) => {
+  const cwd = project(t);
+  writeMethod(cwd, 'define', methodText('MET-001', 'define'));
+  await skillsInstall(cwd, { yes: true });
+
+  const checked = await check(cwd);
+  assert.equal(checked.code, 0, checked.lines.join('\n'));
+  assert.deepEqual(advisoriesIn(checked.lines).filter((line) => line.includes('SKILL.md')), []);
+});
+
+test('a hand-edited shell is an advisory: check reports it, names the repair, and still exits 0', async (t) => {
+  const cwd = project(t);
+  writeMethod(cwd, 'define', methodText('MET-001', 'define'));
+  await skillsInstall(cwd, { yes: true });
+
+  const shell = join(cwd, '.claude/skills/veri-define/SKILL.md');
+  writeFileSync(shell, readFileSync(shell, 'utf8').replace('description: "', 'description: "EDITED — '), 'utf8');
+
+  const checked = await check(cwd);
+  assert.equal(checked.code, 0, checked.lines.join('\n'));
+  const drift = advisoriesIn(checked.lines).filter((line) => line.includes('SKILL.md'));
+  assert.equal(drift.length, 1, checked.lines.join('\n'));
+  assert.match(drift[0], /MET-001 would emit/);
+  assert.match(drift[0], /veri skills install/);
+  assert.match(checked.lines.at(-1) ?? '', /0 issues/);
+});
+
+test('a method amended after install drifts from the other side', async (t) => {
+  const cwd = project(t);
+  const file = writeMethod(cwd, 'define', methodText('MET-001', 'define'));
+  await skillsInstall(cwd, { yes: true });
+  const before = readFileSync(join(cwd, '.claude/skills/veri-define/SKILL.md'), 'utf8');
+
+  writeFileSync(file, methodText('MET-001', 'define', { description: 'A sharper trigger, written after the shell was installed.' }), 'utf8');
+
+  const checked = await check(cwd);
+  assert.equal(checked.code, 0, checked.lines.join('\n'));
+  const drift = advisoriesIn(checked.lines).filter((line) => line.includes('SKILL.md'));
+  assert.equal(drift.length, 1, checked.lines.join('\n'));
+  // Nothing touched the file on disk — the method moved, not the shell.
+  assert.equal(readFileSync(join(cwd, '.claude/skills/veri-define/SKILL.md'), 'utf8'), before);
+
+  // And the repair the advisory names actually repairs it.
+  assert.equal((await skillsInstall(cwd, { yes: true })).code, 0);
+  assert.deepEqual(advisoriesIn((await check(cwd)).lines).filter((line) => line.includes('SKILL.md')), []);
+});
+
+test('retiring a method leaves an orphaned trigger until install is re-run', async (t) => {
+  const cwd = project(t);
+  const file = writeMethod(cwd, 'define', methodText('MET-001', 'define'));
+  await skillsInstall(cwd, { yes: true });
+  writeFileSync(file, readFileSync(file, 'utf8').replace('status: accepted', 'status: retired'), 'utf8');
+
+  const checked = await check(cwd);
+  assert.equal(checked.code, 0, checked.lines.join('\n'));
+  const orphan = advisoriesIn(checked.lines).filter((line) => line.includes('SKILL.md'));
+  assert.equal(orphan.length, 1, checked.lines.join('\n'));
+  assert.match(orphan[0], /still triggers MET-001, which is retired/);
+  assert.match(orphan[0], /veri skills install/);
+});
+
+test('drift blocks nothing: veri approve still succeeds on an otherwise clean document', async (t) => {
+  const cwd = project(t);
+  writeMethod(cwd, 'define', methodText('MET-001', 'define'));
+  await skillsInstall(cwd, { yes: true });
+  const shell = join(cwd, '.claude/skills/veri-define/SKILL.md');
+  writeFileSync(shell, `${readFileSync(shell, 'utf8')}\nedited by hand\n`, 'utf8');
+
+  mkdirSync(join(cwd, 'veri/requirements'), { recursive: true });
+  writeFileSync(
+    join(cwd, 'veri/requirements/REQ-001-a-clean-requirement.md'),
+    ['---', 'id: REQ-001', 'type: requirement', 'title: A clean requirement', 'status: draft', 'created: 2026-08-01', 'updated: 2026-08-01', '---', '', '## Statement', '', 'The gate holds.', '', '## Acceptance criteria', '', '- [ ] It holds.', ''].join('\n'),
+    'utf8',
+  );
+
+  const approved = await approve(cwd, 'REQ-001');
+  assert.equal(approved.code, 0, approved.lines.join('\n'));
+  assert.match(approved.lines.join('\n'), /draft → accepted/);
+
+  // The advisory is still there, still not blocking.
+  const checked = await check(cwd);
+  assert.equal(checked.code, 0);
+  assert.equal(advisoriesIn(checked.lines).filter((line) => line.includes('SKILL.md')).length, 1);
+});
+
+test('a hand-authored skill beside the generated ones is never reported', async (t) => {
+  const cwd = project(t);
+  writeMethod(cwd, 'define', methodText('MET-001', 'define'));
+  await skillsInstall(cwd, { yes: true });
+  mkdirSync(join(cwd, '.claude/skills/my-own-skill'), { recursive: true });
+  writeFileSync(join(cwd, '.claude/skills/my-own-skill/SKILL.md'), '---\nname: my-own-skill\n---\nmine\n', 'utf8');
+
+  const checked = await check(cwd);
+  assert.equal(checked.code, 0, checked.lines.join('\n'));
+  assert.deepEqual(advisoriesIn(checked.lines).filter((line) => line.includes('SKILL.md')), []);
+});
+
+test('the collector reports an unknown harness rather than guessing at one', async (t) => {
+  const cwd = project(t);
+  const facts = collectShellFacts(cwd, 'no-such-harness');
+  assert.equal(facts.kind, 'unavailable');
+  assert.match(facts.kind === 'unavailable' ? facts.reason : '', /unknown harness/);
+
+  // And the default harness collects what install wrote.
+  writeMethod(cwd, 'define', methodText('MET-001', 'define'));
+  await skillsInstall(cwd, { yes: true });
+  const collected = collectShellFacts(cwd);
+  assert.equal(collected.kind, 'ok');
+  assert.deepEqual(
+    collected.kind === 'ok' ? collected.shells.map((shell) => shell.path) : [],
+    ['.claude/skills/veri-define/SKILL.md'],
+  );
 });

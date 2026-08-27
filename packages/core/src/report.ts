@@ -10,6 +10,8 @@ import type { LoadResult } from './load.ts';
 import { checkProvenance } from './provenance.ts';
 import type { GitFacts } from './provenance.ts';
 import type { ModuleEntry } from './schema.ts';
+import { checkShellDrift } from './skills.ts';
+import type { ShellFacts } from './skills.ts';
 import type { Advisory, Issue } from './types.ts';
 
 /**
@@ -40,7 +42,19 @@ export interface HostFacts {
   /** Collected import edges and skipped modules, when the host scanned the
       registry's module paths (WO-067). Absent when there is no registry. */
   importFacts?: { edges: ImportEdge[]; skipped: ModuleEntry[] };
+  /** Emitted harness shells, for the drift comparator (WO-136). Absent when
+      the host emits no shells at all and therefore claims nothing about a
+      harness directory; `unavailable` when a host that could look is not the
+      one that writes them (the MCP server, DEC-130) — that surfaces as a
+      skip note rather than a false pass. */
+  shells?: ShellFactsInput;
 }
+
+/** Emitted shells as the host that owns the harness directory collected
+    them — or the reason it could not (WO-136, DEC-040). An existing but
+    empty harness directory and a missing one are the same fact: no shells,
+    and therefore nothing to report. */
+export type ShellFactsInput = ({ kind: 'ok' } & ShellFacts) | { kind: 'unavailable'; reason: string };
 
 /** The typed stage of the derivation (DEC-091): the same orchestration as
     buildCheckReport with the Issue/Advisory unions intact, for surfaces
@@ -110,6 +124,12 @@ export function deriveFindings(load: LoadResult, host: HostFacts): CheckFindings
   advisories.push(...checkStaleClaims(load.documents, host.today, staleAfterDays(load.documents)));
   // Current-focus staleness (REQ-037) likewise needs only the clock.
   advisories.push(...checkStaleFocus(load.documents, host.today, focusStaleAfterDays(load.documents)));
+  // Shell drift (WO-136, DEC-130): emitted shells against their methods.
+  // Filesystem, not git — the host that writes `.claude/skills/` is the one
+  // asked to look at it, and core stays pure over veri/ (DEC-040).
+  if (host.shells !== undefined && host.shells.kind === 'ok') {
+    advisories.push(...checkShellDrift(load.documents, host.shells));
+  }
   // Observed architecture (WO-067): import edges vs the intended
   // architecture, split by declared constraint severity (DEC-062) — error
   // violations join the issues (counted, exit 1); advisory violations stay
@@ -132,6 +152,12 @@ export function deriveFindings(load: LoadResult, host: HostFacts): CheckFindings
       // could not be read.
       ...(host.git.kind !== 'ok' && designGatePaths(load.documents).length > 0
         ? [`(design gate diff: skipped — ${host.git.reason})`]
+        : []),
+      // A host that cannot read the harness directory says so (REQ-021): a
+      // silent omission here would read as "no shells have drifted", which
+      // is a false pass rather than an absence of evidence.
+      ...(host.shells !== undefined && host.shells.kind === 'unavailable'
+        ? [`(shell drift: skipped — stale shells and orphaned triggers are not compared here: ${host.shells.reason})`]
         : []),
       ...importSkipNotes(host.importFacts?.skipped ?? []),
     ],

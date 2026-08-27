@@ -427,7 +427,8 @@ server.registerTool(
       'The project health check — the same derivation `veri check` runs, as structured JSON. ' +
       '`violations` are the gate (any entry fails the CLI with exit 1); `advisories` inform and never block; ' +
       '`skipped` names checks this server cannot run with the reason — the git-backed tier (provenance, drift) ' +
-      'needs a terminal `veri check`, since this server spawns no subprocesses. ' +
+      'needs a terminal `veri check`, since this server spawns no subprocesses, and the shell tier (stale shells, ' +
+      'orphaned triggers) belongs to the host that emits them. ' +
       'Call this before filing a receipt or declaring a work order done: pass true with zero violations is the bar.',
     inputSchema: {},
   },

@@ -92,6 +92,15 @@ export type Advisory =
   // two anchor to the work order that carries the binding.
   | { kind: 'drift-unclaimed-change'; file: string; id: string; sha: string; message: string }
   | { kind: 'drift-stale-wo'; file: string; id: string; message: string }
+  // Shell drift (WO-136, DEC-129, DEC-130): an emitted harness shell and the
+  // method behind it disagree. `path` is the shell, repo-root-relative and
+  // outside veri/ by definition; `file`/`id` anchor to the method document
+  // when one still exists, and to the shell itself when none does — no
+  // document anchors an orphan. Advisory by decision: a stale shell is a
+  // stale pointer, not a broken knowledge base, and the repair is one
+  // command, so check stays green and approve stays usable.
+  | { kind: 'drift-shell-stale'; file: string; id: string; path: string; message: string }
+  | { kind: 'drift-shell-orphan'; file: string; id: string; path: string; message: string }
   // Claim semantics (WO-099, REQ-026): declarations in the knowledge base,
   // checked mechanically — never OS-level locks. Advisories, because a
   // maintainer's slow-but-live work must inform, not fail, a shared gate.

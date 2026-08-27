@@ -5,6 +5,7 @@ import { AMENDMENTS_DIR, METHODS_DIR } from './pending.ts';
 import {
   DEFAULT_SKILL_SLUGS,
   SHELL_MARKER,
+  checkShellDrift,
   claudeCodeEmitter,
   isDefaultTier,
   isEmittable,
@@ -327,4 +328,120 @@ test('upgrade reports what it will not do: unknown upstreams and uninstalled gat
 
 test('shippedMethodFrom refuses a method with no upstream — the library is keyed on it', () => {
   assert.throws(() => shippedMethodFrom(method({ id: 'MET-001', slug: 'define', upstream: null })), /upstream/);
+});
+
+// --- checkShellDrift (WO-136) ------------------------------------------------
+
+/**
+ * The comparator's whole surface is fabricated facts: a `ShellFacts` literal
+ * and parsed documents, never a directory. That is the acceptance test — a
+ * rule that needed a filesystem to be tested would be a rule core had no
+ * business holding (DEC-040).
+ */
+const HARNESS = claudeCodeEmitter.harness;
+
+function installed(...documents: VeriDocument[]): { path: string; content: string }[] {
+  return documents.map((doc) => {
+    const shell = claudeCodeEmitter.emit(doc);
+    return { path: shell.path, content: shell.content };
+  });
+}
+
+test('a project with no harness directory raises neither rule', () => {
+  const documents = [method({ id: 'MET-001', slug: 'define' }), method({ id: 'MET-002', slug: 'decide' })];
+  assert.deepEqual(checkShellDrift(documents, { harness: HARNESS, shells: [] }), []);
+});
+
+test('a shell matching what its method emits now is silent', () => {
+  const doc = method({ id: 'MET-001', slug: 'define' });
+  assert.deepEqual(checkShellDrift([doc], { harness: HARNESS, shells: installed(doc) }), []);
+});
+
+test('a hand-edited shell drifts — the advisory names the method and the repair', () => {
+  const doc = method({ id: 'MET-001', slug: 'define' });
+  const shells = installed(doc);
+  shells[0].content = shells[0].content.replace('description: ', 'description: EDITED ');
+  const [advisory, ...rest] = checkShellDrift([doc], { harness: HARNESS, shells });
+  assert.deepEqual(rest, []);
+  assert.equal(advisory.kind, 'drift-shell-stale');
+  assert.equal(advisory.id, 'MET-001');
+  assert.equal(advisory.file, doc.file);
+  assert.match(advisory.message, /\.claude\/skills\/veri-define\/SKILL\.md/);
+  assert.match(advisory.message, /veri skills install/);
+});
+
+test('a method amended after install drifts too — detection is symmetric', () => {
+  // The shell is exactly what the method emitted at install time; the method
+  // moved afterwards. Nothing about the file on disk changed.
+  const before = method({ id: 'MET-001', slug: 'define', description: 'The old trigger text.' });
+  const after = method({ id: 'MET-001', slug: 'define', description: 'The amended trigger text.' });
+  const advisories = checkShellDrift([after], { harness: HARNESS, shells: installed(before) });
+  assert.equal(advisories.length, 1);
+  assert.equal(advisories[0].kind, 'drift-shell-stale');
+  assert.match(advisories[0].message, /the method was amended after it was installed/);
+});
+
+test('retiring a method leaves its shell an orphaned trigger', () => {
+  const accepted = method({ id: 'MET-001', slug: 'define' });
+  const retired = method({ id: 'MET-001', slug: 'define', status: 'retired' });
+  const [advisory, ...rest] = checkShellDrift([retired], { harness: HARNESS, shells: installed(accepted) });
+  assert.deepEqual(rest, []);
+  assert.equal(advisory.kind, 'drift-shell-orphan');
+  assert.equal(advisory.id, 'MET-001');
+  assert.match(advisory.message, /which is retired/);
+  assert.match(advisory.message, /veri skills install/);
+});
+
+test('a withdrawn method orphans its shell as surely as a retired one', () => {
+  const accepted = method({ id: 'MET-001', slug: 'define' });
+  const withdrawn = method({ id: 'MET-001', slug: 'define', status: 'withdrawn' });
+  const advisories = checkShellDrift([withdrawn], { harness: HARNESS, shells: installed(accepted) });
+  assert.equal(advisories.length, 1);
+  assert.equal(advisories[0].kind, 'drift-shell-orphan');
+  assert.match(advisories[0].message, /which is withdrawn/);
+});
+
+test('a shell whose method document is gone is an orphan anchored to the shell', () => {
+  const gone = method({ id: 'MET-001', slug: 'define' });
+  const [advisory, ...rest] = checkShellDrift([], { harness: HARNESS, shells: installed(gone) });
+  assert.deepEqual(rest, []);
+  assert.equal(advisory.kind, 'drift-shell-orphan');
+  assert.equal(advisory.file, '.claude/skills/veri-define/SKILL.md');
+  assert.equal(advisory.id, 'veri-define');
+  assert.match(advisory.message, /no method document claims it any more/);
+});
+
+test('a hand-authored skill in the same directory is never judged', () => {
+  // No marker, so it is not ours — the same rule that keeps install from
+  // deleting it (DEC-137). Drift and orphaning both look past it.
+  const shells = [{ path: '.claude/skills/my-own-skill/SKILL.md', content: '---\nname: my-own-skill\n---\nmine\n' }];
+  assert.deepEqual(checkShellDrift([], { harness: HARNESS, shells }), []);
+});
+
+test('a draft method with a shell still on disk is out of play, and says so', () => {
+  const accepted = method({ id: 'MET-001', slug: 'define' });
+  const draft = method({ id: 'MET-001', slug: 'define', status: 'draft' });
+  const advisories = checkShellDrift([draft], { harness: HARNESS, shells: installed(accepted) });
+  assert.equal(advisories.length, 1);
+  assert.equal(advisories[0].kind, 'drift-shell-orphan');
+});
+
+test('the comparator re-renders with the emitter that wrote the shells, never a second rendering', () => {
+  // What install would leave behind is by definition not drift: the plan's
+  // own output, fed straight back in, must be silent. This is the property
+  // that makes the two halves one definition of correct rather than two.
+  const documents = [
+    method({ id: 'MET-001', slug: 'define' }),
+    method({ id: 'MET-002', slug: 'decide' }),
+    method({ id: 'MET-003', slug: 'health' }),
+  ];
+  const plan = planSkillInstall(documents, []);
+  const shells = plan.write.map((shell) => ({ path: shell.path, content: shell.content }));
+  assert.equal(shells.length, 3);
+  assert.deepEqual(checkShellDrift(documents, { harness: HARNESS, shells }), []);
+});
+
+test('a harness this build cannot emit for is compared against nothing', () => {
+  const doc = method({ id: 'MET-001', slug: 'define' });
+  assert.deepEqual(checkShellDrift([doc], { harness: 'some-other-harness', shells: installed(doc) }), []);
 });

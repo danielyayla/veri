@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { GIT_SKIP_REASON, runCheck } from './check.ts';
+import { GIT_SKIP_REASON, SHELL_SKIP_REASON, runCheck } from './check.ts';
 
 const CLI = fileURLToPath(new URL('../../cli/src/cli.ts', import.meta.url));
 
@@ -192,6 +192,16 @@ test('run_check agrees with the CLI surface on one corpus (WO-089)', async () =>
       assert.ok(result.skips.some((note) => note.startsWith(prefix)), `run_check missing skip note ${prefix}`);
     }
     assert.ok(result.skips.some((note) => note.includes(GIT_SKIP_REASON)));
+
+    // The shell tier (WO-136) is the server's other posture skip: it emits
+    // no shells, so it does not read the harness directory either. Both
+    // rules are named as skipped rather than passing by omission — the CLI
+    // collects them and so has no such note.
+    const shellSkip = result.skips.find((note) => note.startsWith('(shell drift: skipped'));
+    assert.ok(shellSkip, `run_check missing the shell drift skip note: ${result.skips.join(' | ')}`);
+    assert.match(shellSkip, /stale shells and orphaned triggers/);
+    assert.ok(shellSkip.includes(SHELL_SKIP_REASON));
+    assert.ok(!out.includes('(shell drift: skipped'), 'the CLI collects shell facts and must not skip the tier');
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

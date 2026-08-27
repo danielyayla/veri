@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createDocument, deleteDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, lookupIntent, maintainerRegistry, migrateProject, moduleRegistry, nextDispatchable, nextIdNumber, originalStoragePath, outcomeLabel, recordIssuedId, renderArchitecture, renderIntent, renumberDocument, requirementKind, scaffoldProject, slugifyTitle, startWorkOrder, withdrawDocument, workOrdersTouching } from '@verikb/core';
 import type { CheckReport, DocType } from '@verikb/core';
 import { collectGitFacts, gitUserName } from './git.ts';
+import { collectShellFacts } from './skills.ts';
 import { collectTestFacts } from './testfacts.ts';
 import { collectImportFacts } from './imports.ts';
 
@@ -211,6 +212,10 @@ export async function checkReport(cwd: string): Promise<CheckReport | null> {
     today: localToday(),
     testFacts: collectTestFacts(root, boundTests(load.documents)),
     importFacts: modules.length > 0 ? collectImportFacts(cwd, modules) : undefined,
+    // Emitted shells (WO-136): this is the host that writes them, so it is
+    // the host asked to look at them. No harness directory means no shells
+    // collected, which both drift rules answer with silence.
+    shells: collectShellFacts(cwd),
   });
 }
 
