@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { approve, architecture, check, context, del, implemented, importFile, importPrompt, init, intent, list, migrate, newDoc, next, open, renumber, start, withdraw } from './commands.ts';
 import type { CmdResult } from './commands.ts';
+import { askTerminal, skillsInstall, skillsUpgrade } from './skills.ts';
 
 /** The value following `--flag`, or undefined when the flag is absent. */
 function flagValue(args: string[], flag: string): string | undefined {
@@ -43,6 +44,14 @@ const USAGE = `usage: veri <command>
                              receipts, and the module registry, never an index
   veri list [type]           list documents: id, status, title
   veri open [dir]            open the project in the Veri desktop app
+  veri skills install [--all] [--yes] [--harness <name>]
+                             write a skill shell per accepted method — a
+                             trigger description and a pointer, never the
+                             coaching (--all: the advanced tier too)
+  veri skills upgrade [--yes]
+                             compare this project's methods against the ones
+                             this build ships and propose the differences
+                             under veri/amendments/ — never an overwrite
 `;
 
 const [command, ...rest] = process.argv.slice(2);
@@ -109,6 +118,21 @@ switch (command) {
   case 'intent':
     result = await intent(cwd, rest[0]);
     break;
+  case 'skills': {
+    // Asking is the point (DEC-125): a terminal with a human on it gets the
+    // question, and anything else defers to --yes rather than guessing.
+    const interactive = process.stdin.isTTY === true && process.stdout.isTTY === true;
+    const confirm = interactive ? askTerminal : undefined;
+    const yes = rest.includes('--yes');
+    if (rest[0] === 'install') {
+      result = await skillsInstall(cwd, { yes, all: rest.includes('--all'), harness: flagValue(rest, '--harness') }, confirm);
+    } else if (rest[0] === 'upgrade') {
+      result = await skillsUpgrade(cwd, { yes }, confirm);
+    } else {
+      result = { code: 1, lines: ['usage: veri skills install [--all] [--yes] [--harness <name>] | veri skills upgrade [--yes]'] };
+    }
+    break;
+  }
   case 'open':
     result = open(cwd, rest[0]);
     break;

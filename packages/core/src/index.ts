@@ -33,3 +33,4 @@ export * from './start.ts';
 export * from './discard.ts';
 export * from './intent.ts';
 export * from './skill-corpus.ts';
+export * from './skills.ts';

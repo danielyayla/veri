@@ -29,7 +29,8 @@
   "files": [
     "dist",
     "demo",
-    "starters"
+    "starters",
+    "methods"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

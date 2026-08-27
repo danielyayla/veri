@@ -115,3 +115,16 @@ export const CURRENT_FOCUS_FILE = 'product/current-focus.md';
  * dependency-free subpath so every surface shares the one constant (DEC-046).
  */
 export const METHODS_DIR = 'methods';
+
+/**
+ * Where `veri skills upgrade` leaves its proposals (DEC-125, WO-135),
+ * veri/-relative.
+ *
+ * A method the user has approved cannot be amended in place — that is the
+ * guarantee upgrade-by-proposal exists to make — so the shipped text is
+ * written here instead, as plain markdown the user reads and then applies or
+ * deletes. Like `templates/` and `originals/` this directory holds files that
+ * are deliberately *not* documents: it carries no ids, binds nothing, and the
+ * loader skips it so a proposal can never be mistaken for canon.
+ */
+export const AMENDMENTS_DIR = 'amendments';

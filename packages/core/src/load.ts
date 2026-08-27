@@ -31,6 +31,10 @@ export async function loadProject(veriDir: string | URL): Promise<LoadResult> {
     // veri/originals/ holds preserved intake files, not documents (DEC-094):
     // an imported .md original must never parse as a knowledge-base document.
     .filter((file) => !file.startsWith('originals/'))
+    // veri/amendments/ holds `veri skills upgrade`'s proposals, not documents
+    // (DEC-125, WO-135): shipped method text a user reads and then applies or
+    // deletes. It carries no ids and must never be mistaken for canon.
+    .filter((file) => !file.startsWith('amendments/'))
     .sort();
 
   const documents: VeriDocument[] = [];
