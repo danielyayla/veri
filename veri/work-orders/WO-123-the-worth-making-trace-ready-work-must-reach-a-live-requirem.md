@@ -2,7 +2,10 @@
 id: WO-123
 type: work-order
 title: "The worth-making trace: ready work must reach a live requirement"
-status: backlog
+status: in-progress
+claimed_by: fable-wo123
+claimed_at: 2026-08-27
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:
