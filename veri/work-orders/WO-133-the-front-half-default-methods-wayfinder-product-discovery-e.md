@@ -65,7 +65,8 @@ These are also the five with the least existing canon to lean on. [[WF-001]] tel
 - [ ] All five parse, raise no `missing-section` advisory, and `veri check` reports 0 issues
 - [ ] Every `requires:` entry names a tool that exists in the MCP server's current list, or the method is honest that the skill is blocked on [[REQ-041]] — no method claims a capability the surface does not have
 - [ ] Each document's guardrails state that it files `draft`/`proposed` only and never stamps `approved:`
-- [ ] Each document's handoff names the next gate and the skill that staffs it, and the five handoffs chain: wayfinder routes into the others; product-discovery hands to define; define hands to decide
+- [ ] Each document's handoff names the gate that comes next and the skill that staffs it: product-discovery hands to define, define hands to decide
+- [ ] Two of the five are deliberately not links in that chain, and their documents say so. `veri:wayfinder` routes into any gate — it is the front door, not a stage. `veri:evidence-intake` feeds every stage rather than occupying one ([[SRC-060]]), so its handoff is conditional on what the evidence bears on: did-it-work when it answers a shipped bet, define or decide when it demands revised intent. A method that forces either into a single successor has mis-stated its gate
 - [ ] `veri:wayfinder`'s document contains no artifact-creating step at all — verified by reading its "What it files" section, which should say it files nothing
 - [ ] The [[WO-130]] corpus cases for these five are consistent with the `description:` text as authored; any case the authoring proves wrong is corrected in the corpus with its rationale line updated
 
