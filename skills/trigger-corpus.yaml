@@ -1,0 +1,585 @@
+# The Veri skill library's trigger corpus (WO-130, DEC-129, REQ-040, SRC-060).
+#
+# Utterances paired with the skill that should answer them, plus a negative
+# set that must fire nothing. The corpus is data only: there is no runner
+# here, and the floor DEC-129 sets is no regression against these cases plus
+# zero false triggers on the negative set — never a percentage. Coverage and
+# the stated boundaries, not a score, are what this file is for.
+#
+# SCHEMA (validated by packages/core/src/skill-corpus.ts)
+#
+#   version            integer, currently 1
+#   skills[]           the library's gates
+#     id               `veri:<name>` — must match SRC-060's fourteen skills
+#     tier             default | advanced (REQ-040 enumerates the nine defaults)
+#     gate             the gate this skill staffs, one line
+#   near_miss_pairs[]  the adjacent gates that actually need discriminating
+#     id               kebab-case `<skill>-vs-<skill>`
+#     skills           exactly two declared skill ids
+#     boundary         where one gate ends and the other begins
+#   cases[]            the corpus proper
+#     id               `TC-nnn`, stable — a case keeps its id when its
+#                      utterance is reworded, so no-regression tracking is
+#                      about the case, not the string
+#     utterance        what a user says, verbatim
+#     expect           a declared skill id, or `none` for a negative
+#     kind             coverage | front-door | negative
+#     pair             optional; a declared near_miss_pairs id. When present,
+#                      `expect` must be one of that pair's two skills and
+#                      `rationale` is required
+#     rationale        why this utterance belongs to this gate and not its
+#                      neighbour (required on paired cases, used freely
+#                      elsewhere)
+#
+# ROUTING PRINCIPLE (the one this corpus leans on most)
+#
+# A trigger description sees the utterance, not the project's state. Several
+# gate skills declare invoke-when conditions that depend on state SRC-060
+# describes but no utterance carries — product-discovery's "no documents
+# behind it", implement's "a ready work order". So: a bare, stateless
+# utterance goes to `veri:wayfinder`, which is read-only and routes; an
+# utterance carrying enough content for the gate's interview to open on goes
+# to that gate. This is why REQ-040's four examples are all front-door cases
+# and why the fuller versions of the same wants are not.
+
+version: 1
+
+skills:
+  - id: veri:wayfinder
+    tier: default
+    gate: "routing — which gate am I at?"
+  - id: veri:archaeology
+    tier: advanced
+    gate: "understanding the past"
+  - id: veri:product-discovery
+    tier: default
+    gate: "idea to problem and bets"
+  - id: veri:user-discovery
+    tier: advanced
+    gate: "who is this for, really"
+  - id: veri:evidence-intake
+    tier: default
+    gate: "reality through the evidence door"
+  - id: veri:define
+    tier: default
+    gate: "interpreting intent into requirements"
+  - id: veri:decide
+    tier: default
+    gate: "choosing tradeoffs"
+  - id: veri:approval-session
+    tier: advanced
+    gate: "the stamp itself"
+  - id: veri:plan-work
+    tier: default
+    gate: "intent to bounded work"
+  - id: veri:implement
+    tier: default
+    gate: "execution within intent"
+  - id: veri:did-it-work
+    tier: default
+    gate: "judging outcomes"
+  - id: veri:review
+    tier: advanced
+    gate: "spec fidelity of code"
+  - id: veri:health
+    tier: default
+    gate: "trust in the record over time"
+  - id: veri:onboard
+    tier: advanced
+    gate: "bringing newcomers inside the loop"
+
+near_miss_pairs:
+  - id: define-vs-decide
+    skills: [veri:define, veri:decide]
+    boundary: >-
+      define owns what must be true when this ships — a wanted property turned
+      into a requirement with observable criteria and an epistemic kind. decide
+      owns the fork: two or more real ways to satisfy something already wanted,
+      where choosing means knowingly sacrificing something. A want with no
+      alternatives on the table is define's, even when it is large; a choice
+      between named options is decide's, even when it is small.
+  - id: plan-work-vs-implement
+    skills: [veri:plan-work, veri:implement]
+    boundary: >-
+      plan-work runs before any code exists, cutting approved intent into work
+      orders that can be verified alone. implement runs inside one work order
+      that is already ready or already claimed. The discriminator is whether a
+      bounded work order exists: "build X" with no work order behind it is
+      plan-work's, because WF-001 rule 1 forbids implement from coding out of a
+      chat prompt.
+  - id: product-discovery-vs-user-discovery
+    skills: [veri:product-discovery, veri:user-discovery]
+    boundary: >-
+      product-discovery frames the problem, the direction, the non-goals and
+      the first bets when there is no brief to argue with. user-discovery runs
+      after that, or when the brief cannot name a user concretely: it
+      interrogates who the user is and separates observed from assumed. If the
+      thing in doubt is what the product is for, it is product-discovery; if
+      the thing in doubt is who it is for, it is user-discovery.
+  - id: did-it-work-vs-review
+    skills: [veri:did-it-work, veri:review]
+    boundary: >-
+      review asks whether the code matches what was specified — scope respected,
+      criteria genuinely met, linked decisions honoured — and runs before a work
+      order is marked done. did-it-work asks whether the specified thing achieved
+      the outcome it bet on, measured against the hypothesis's declared metric,
+      and runs after shipping. Fidelity to the record versus reality's answer to
+      the record.
+  - id: wayfinder-vs-archaeology
+    skills: [veri:wayfinder, veri:archaeology]
+    boundary: >-
+      archaeology fires when the utterance asks for the recorded rationale or
+      its authorship — who decided, what was rejected, why this over that — and
+      names an artifact concrete enough to walk backwards from. wayfinder fires
+      when a why-question is an entry point rather than a request for history:
+      no named target, or a user signalling they do not yet know what they are
+      asking about. SRC-060 puts "why is search built this way?" on the
+      wayfinder side by its own example, which is where this line was drawn from.
+
+cases:
+  # --- Front door: the four utterances REQ-040 names by example -------------
+  - id: TC-001
+    utterance: "I have an idea for a product."
+    expect: veri:wayfinder
+    kind: front-door
+    rationale: >-
+      Names an idea and nothing else — no problem, no user, no direction. The
+      discovery interview has nothing to open on, so the read-only front door
+      triages first and hands to product-discovery once there is content.
+  - id: TC-002
+    utterance: "I need to change something in this codebase."
+    expect: veri:wayfinder
+    kind: front-door
+    rationale: >-
+      A goal with no document and no named behaviour. It could become define,
+      plan-work or archaeology depending on one triage question, which is
+      exactly what wayfinder exists to ask.
+  - id: TC-003
+    utterance: "What should I work on next?"
+    expect: veri:wayfinder
+    kind: front-door
+    rationale: >-
+      SRC-060's wayfinder card names this utterance verbatim. It is a queue and
+      orientation question, answered by showing the ready work and the open
+      gates, not by entering any one of them.
+  - id: TC-004
+    utterance: "Why did we build this this way?"
+    expect: veri:wayfinder
+    kind: front-door
+    pair: wayfinder-vs-archaeology
+    rationale: >-
+      The deictic "this" names no artifact, so there is nothing to walk
+      backwards from. Archaeology needs a target before it can cite anything;
+      wayfinder gets the target named and then routes.
+
+  # --- Coverage: every gate answers at least one utterance ------------------
+  - id: TC-005
+    utterance: "Something feels off about how notifications work and I want to change it, but I have no idea where to start."
+    expect: veri:wayfinder
+    kind: coverage
+    rationale: >-
+      Session start with no claimed work order and an explicit statement of
+      disorientation — the front door's own invoke-when.
+  - id: TC-006
+    utterance: "Walk me back from the retry code in the uploader to whatever requirement asked for it."
+    expect: veri:archaeology
+    kind: coverage
+    rationale: >-
+      Asks for the backwards walk archaeology owns: implementation to receipt
+      to work order to decision to requirement.
+  - id: TC-007
+    utterance: "We are pivoting — the team-collaboration angle is not landing and I want to restart from the solo user's problem."
+    expect: veri:product-discovery
+    kind: coverage
+    rationale: >-
+      A pivot is product-discovery's named trigger: the problem and the bets
+      are being reopened, not the requirements written against the old ones.
+  - id: TC-008
+    utterance: "Before I build approvals I want to know what people do today instead, and which of our claims about them we have actually observed."
+    expect: veri:user-discovery
+    kind: coverage
+    rationale: >-
+      Jobs-to-be-done plus the known-versus-assumed split, which is the exact
+      discipline user-discovery's user model enforces.
+  - id: TC-009
+    utterance: "Here is a support thread where three customers hit the same import failure — get it on the record against whatever it bears on."
+    expect: veri:evidence-intake
+    kind: coverage
+    rationale: >-
+      External material pointed at the graph, to be filed as a source with the
+      right rels. Interpreting what it means stays the user's act.
+  - id: TC-010
+    utterance: "Last month's activation numbers came back for the onboarding release. File them."
+    expect: veri:evidence-intake
+    kind: coverage
+    rationale: >-
+      Metrics arriving from outside. The evidence door files them; whether they
+      settle a bet is did-it-work's question, and it needs them filed first.
+  - id: TC-011
+    utterance: "A competitor just shipped the thing REQ-021 bets against — where does that go?"
+    expect: veri:evidence-intake
+    kind: coverage
+    rationale: >-
+      A competitor move is evidence, and the utterance already names the
+      requirement it bears on — the link evidence-intake exists to make.
+  - id: TC-012
+    utterance: "Turn the export idea into a requirement with acceptance criteria I can actually check."
+    expect: veri:define
+    kind: coverage
+    rationale: >-
+      Names the artifact wanted and the property that makes it acceptable —
+      define's interview, down to the observable-criteria guardrail.
+  - id: TC-013
+    utterance: "DEC-062 says advisory by default and I now think that is wrong — I want to revisit it."
+    expect: veri:decide
+    kind: coverage
+    rationale: >-
+      An active decision being questioned routes to decide for supersession —
+      never a silent edit of the existing one.
+  - id: TC-014
+    utterance: "What is waiting on me?"
+    expect: veri:approval-session
+    kind: coverage
+    rationale: >-
+      The stamp queue, verbatim from approval-session's card. Wayfinder shows
+      where you are; this asks specifically for what needs a verdict.
+  - id: TC-015
+    utterance: "I have twenty minutes — walk me through everything that needs my stamp before we plan the next batch."
+    expect: veri:approval-session
+    kind: coverage
+    rationale: >-
+      End-of-batch promotion pass, with plan-work named as the thing it
+      unblocks — approval-session's own handoff.
+  - id: TC-016
+    utterance: "The backlog is empty but REQ-039 and REQ-041 are both accepted — turn them into work."
+    expect: veri:plan-work
+    kind: coverage
+    rationale: >-
+      Accepted intent with nothing queued against it is plan-work's named
+      trigger.
+  - id: TC-017
+    utterance: "I am starting WO-131 — claim it and walk the scope back to me before any code."
+    expect: veri:implement
+    kind: coverage
+    rationale: >-
+      A ready work order named, plus the claim and the orientation preamble
+      implement opens with.
+  - id: TC-018
+    utterance: "Did the caching work actually move p95 latency to the target REQ-028 declared?"
+    expect: veri:did-it-work
+    kind: coverage
+    rationale: >-
+      A shipped bet measured against the metric and target its requirement
+      declared — the learning gate's whole question.
+  - id: TC-019
+    utterance: "Read the last five receipts and tell me whether any of them smuggled a decision into code without a DEC."
+    expect: veri:review
+    kind: coverage
+    rationale: >-
+      Undeclared decisions found in code is one of review's four named
+      findings, and reviewing periodically over recent receipts is its cadence.
+  - id: TC-020
+    utterance: "How healthy is this project? Anything rotting?"
+    expect: veri:health
+    kind: coverage
+    rationale: >-
+      The periodic inspection, verbatim from health's card.
+  - id: TC-021
+    utterance: "It has been a quarter — sweep the record for decisions whose revisit conditions have arrived and claims nobody ever finished."
+    expect: veri:health
+    kind: coverage
+    rationale: >-
+      Decay that check's hard rules do not catch: arrived revisit conditions
+      and abandoned claims are both health's listed sweeps.
+  - id: TC-022
+    utterance: "A new engineer starts Monday — get them up to speed on how this project actually works."
+    expect: veri:onboard
+    kind: coverage
+    rationale: >-
+      A newcomer needing the guided tour built from the record, including the
+      gates, before any tool.
+  - id: TC-023
+    utterance: "I have configured a new agent on this repo; give it the tour before it touches anything."
+    expect: veri:onboard
+    kind: coverage
+    rationale: >-
+      Onboard's card names a newly configured agent alongside a new person; the
+      read-only tour is the same act.
+
+  # --- Near miss: define versus decide --------------------------------------
+  - id: TC-024
+    utterance: "Every uploaded file has to be virus-scanned before anyone can download it, and that has to stay true."
+    expect: veri:define
+    kind: coverage
+    pair: define-vs-decide
+    rationale: >-
+      States a property that must hold and keep holding — a constraint with an
+      observable criterion. No alternatives are on the table, so there is
+      nothing for decide to weigh.
+  - id: TC-025
+    utterance: "I want search results to feel faster — I think it would cut bounce on the results page."
+    expect: veri:define
+    kind: coverage
+    pair: define-vs-decide
+    rationale: >-
+      An outcome bet in need of a metric and a target: define's kind question
+      (constraint or hypothesis) and its untestable-criteria guardrail, not a
+      fork between two designs.
+  - id: TC-026
+    utterance: "Should we scan uploads inline on the request, or queue them to a worker?"
+    expect: veri:decide
+    kind: coverage
+    pair: define-vs-decide
+    rationale: >-
+      The requirement is settled; two real implementations with different
+      sacrifices are on the table. That is the fork decide is licensed to file.
+  - id: TC-027
+    utterance: "We already agreed uploads must be scanned; now it is a Postgres queue versus SQS and I keep going back and forth."
+    expect: veri:decide
+    kind: coverage
+    pair: define-vs-decide
+    rationale: >-
+      The utterance itself separates the settled requirement from the open
+      choice. Only the choice is live, and a choice folded into prose instead
+      of a DEC is what decide refuses.
+
+  # --- Near miss: plan-work versus implement --------------------------------
+  - id: TC-028
+    utterance: "REQ-014 is accepted — cut it into work orders."
+    expect: veri:plan-work
+    kind: coverage
+    pair: plan-work-vs-implement
+    rationale: >-
+      Newly accepted intent and no work order yet. Scope cutting happens before
+      an agent touches code, which is the side of the line plan-work owns.
+  - id: TC-029
+    utterance: "Start building the CSV export — there is no work order for it yet."
+    expect: veri:plan-work
+    kind: coverage
+    pair: plan-work-vs-implement
+    rationale: >-
+      The verb says implement but the state forbids it: WF-001 rule 1 bars
+      coding from a chat prompt alone, so the missing artifact is a bounded
+      work order and plan-work is the gate that creates one.
+  - id: TC-030
+    utterance: "This work order is too big to verify in one go; split it into slices that each ship on their own."
+    expect: veri:plan-work
+    kind: coverage
+    pair: plan-work-vs-implement
+    rationale: >-
+      Splitting a work order is planning even though a work order exists —
+      the question is boundedness and verifiability, not execution.
+  - id: TC-031
+    utterance: "WO-131 is ready — start it."
+    expect: veri:implement
+    kind: coverage
+    pair: plan-work-vs-implement
+    rationale: >-
+      A ready work order named by id. The claim, the context package and the
+      scope guard are implement's, and nothing about the plan is in question.
+  - id: TC-032
+    utterance: "Pick up my in-progress claim on WO-118 and keep going where I left off."
+    expect: veri:implement
+    kind: coverage
+    pair: plan-work-vs-implement
+    rationale: >-
+      Resuming an existing claim — implement's second named trigger. Planning
+      is finished; the lines are already drawn.
+
+  # --- Near miss: product-discovery versus user-discovery --------------------
+  - id: TC-033
+    utterance: "I have an idea for a tool that helps freelance designers chase unpaid invoices — nothing is written down yet."
+    expect: veri:product-discovery
+    kind: coverage
+    pair: product-discovery-vs-user-discovery
+    rationale: >-
+      Carries enough content for the discovery interview to open on, and names
+      an empty record. A user is mentioned in passing, but what is undefined is
+      the problem, so the brief comes before the user model.
+  - id: TC-034
+    utterance: "Nobody is using the free tier and I do not think we ever defined the problem it solves."
+    expect: veri:product-discovery
+    kind: coverage
+    pair: product-discovery-vs-user-discovery
+    rationale: >-
+      The gap named is a missing problem statement, not a fuzzy user. The brief
+      with its non-goals and first bets is what is absent.
+  - id: TC-035
+    utterance: "We keep writing 'small teams' into every requirement and I could not tell you who that actually is."
+    expect: veri:user-discovery
+    kind: coverage
+    pair: product-discovery-vs-user-discovery
+    rationale: >-
+      Product-discovery ran and could not name a user concretely, which is
+      user-discovery's first named trigger. The problem is not in doubt; the
+      segment is.
+  - id: TC-036
+    utterance: "The brief says our user is an ops lead, but the interviews we filed last month contradict that."
+    expect: veri:user-discovery
+    kind: coverage
+    pair: product-discovery-vs-user-discovery
+    rationale: >-
+      Evidence contradicting the current user model. The evidence is already
+      filed, so this is not intake; what needs rebuilding is the user model,
+      with each claim tagged observed or assumed.
+
+  # --- Near miss: did-it-work versus review ---------------------------------
+  - id: TC-037
+    utterance: "We shipped the onboarding rewrite six weeks ago — did it actually help activation?"
+    expect: veri:did-it-work
+    kind: coverage
+    pair: did-it-work-vs-review
+    rationale: >-
+      Post-ship, and the question is about an outcome rather than about the
+      code. Absence of evidence would be reported as untested, never as
+      confirmed.
+  - id: TC-038
+    utterance: "All of REQ-035's work orders are done. Was the bet right, or do we retire it?"
+    expect: veri:did-it-work
+    kind: coverage
+    pair: did-it-work-vs-review
+    rationale: >-
+      A hypothesis whose work orders have all shipped, with retire-revise-rebet
+      named. Reviewing the diffs would answer a different question entirely.
+  - id: TC-039
+    utterance: "Go through the diff on the wo-118 branch against its work order before I mark it done."
+    expect: veri:review
+    kind: coverage
+    pair: did-it-work-vs-review
+    rationale: >-
+      A diff, a work order, and the moment before done — spec fidelity, and
+      pre-ship, so no outcome exists to judge yet.
+  - id: TC-040
+    utterance: "WO-124's acceptance criteria are all ticked — check whether we actually did what we said."
+    expect: veri:review
+    kind: coverage
+    pair: did-it-work-vs-review
+    rationale: >-
+      Distrusts the ticks, not the bet. Criteria genuinely met versus merely
+      checked is the distinction review is built on.
+
+  # --- Near miss: wayfinder versus archaeology ------------------------------
+  - id: TC-041
+    utterance: "Why is search built this way?"
+    expect: veri:wayfinder
+    kind: coverage
+    pair: wayfinder-vs-archaeology
+    rationale: >-
+      SRC-060's wayfinder card lists this utterance verbatim as vague. It asks
+      about present shape rather than for the recorded rationale, and names an
+      area rather than an artifact to walk back from.
+  - id: TC-042
+    utterance: "Why does the importer normalise dates in two places, and who decided that?"
+    expect: veri:archaeology
+    kind: coverage
+    pair: wayfinder-vs-archaeology
+    rationale: >-
+      Names a concrete artifact and asks who decided — a request for the record
+      with a target to walk backwards from.
+  - id: TC-043
+    utterance: "What alternatives did we reject when we picked the file-based store?"
+    expect: veri:archaeology
+    kind: coverage
+    pair: wayfinder-vs-archaeology
+    rationale: >-
+      Asks for a decision's rejected alternatives, which archaeology reads
+      straight out of the DEC. Wayfinder would only route this.
+
+  # --- Negative set: nothing should fire ------------------------------------
+  - id: TC-044
+    utterance: "Add a null check to parseDate so it stops throwing on empty strings."
+    expect: none
+    kind: negative
+    rationale: >-
+      An ordinary edit inside existing intent. No gate is being crossed, and a
+      skill interrupting here is precisely the false trigger that gets a
+      library uninstalled.
+  - id: TC-045
+    utterance: "Where is the retry logic for the upload queue?"
+    expect: none
+    kind: negative
+    rationale: >-
+      A code-location question answered by reading the repository, not by the
+      graph.
+  - id: TC-046
+    utterance: "Run the test suite."
+    expect: none
+    kind: negative
+    rationale: "A command, not a gate."
+  - id: TC-047
+    utterance: "Rename userSvc to userService across the repo."
+    expect: none
+    kind: negative
+    rationale: >-
+      A mechanical refactor with no tradeoff and no intent change.
+  - id: TC-048
+    utterance: "What does this regex do?"
+    expect: none
+    kind: negative
+    rationale: "Code comprehension, with no history and no decision in question."
+  - id: TC-049
+    utterance: "Write a unit test for globToRegExp."
+    expect: none
+    kind: negative
+    rationale: >-
+      Ordinary implementation work. Bound tests belong to work orders, but
+      writing one is not an act at any gate.
+  - id: TC-050
+    utterance: "Why is this test flaky?"
+    expect: none
+    kind: negative
+    rationale: >-
+      A why-question about runtime behaviour rather than about a recorded
+      decision — the shape archaeology must not grab.
+  - id: TC-051
+    utterance: "Bump zod to the latest 3.x and fix whatever breaks."
+    expect: none
+    kind: negative
+    rationale: >-
+      A dependency chore. It would become decide only if the utterance put two
+      options against each other.
+  - id: TC-052
+    utterance: "git stash my changes and check out main."
+    expect: none
+    kind: negative
+    rationale: "Version-control mechanics."
+  - id: TC-053
+    utterance: "Explain how the frontmatter parser handles multi-line strings."
+    expect: none
+    kind: negative
+    rationale: >-
+      A question about how the code behaves today, not about why it was chosen.
+  - id: TC-054
+    utterance: "The CI matrix is failing on Node 18 — fix it."
+    expect: none
+    kind: negative
+    rationale: "A build break. Nothing about intent is in question."
+  - id: TC-055
+    utterance: "Good morning — ready when you are."
+    expect: none
+    kind: negative
+    rationale: "Chit-chat. A front door that opens on a greeting is a nuisance."
+  - id: TC-056
+    utterance: "Thanks, that worked."
+    expect: none
+    kind: negative
+    rationale: >-
+      Acknowledgement. Note how close it sits to did-it-work's vocabulary while
+      carrying no bet, no metric and no shipped change.
+  - id: TC-057
+    utterance: "What is the difference between a rebase and a merge?"
+    expect: none
+    kind: negative
+    rationale: "General knowledge, unrelated to this project's record."
+  - id: TC-058
+    utterance: "Summarise what you just changed."
+    expect: none
+    kind: negative
+    rationale: >-
+      A request about the current session. Receipts are implement's job during
+      a claimed work order, not something a bare summary request should start.
+  - id: TC-059
+    utterance: "Reformat this file and sort the imports."
+    expect: none
+    kind: negative
+    rationale: "Formatting."

@@ -13102,6 +13102,42 @@ function buildCheckReport(load, host) {
 var INTAKE_EXTENSIONS = ["md", "txt", "eml"];
 var REFUSAL = `supported formats: ${INTAKE_EXTENSIONS.map((e) => "." + e).join(" ")} \u2014 audio, PDF, and office formats need extraction Veri does not ship (no network, no heavy dependencies in v1)`;
 
+// ../core/dist/skill-corpus.js
+var import_yaml2 = __toESM(require_dist(), 1);
+var SKILL_ID_RE = /^veri:[a-z][a-z0-9-]*$/;
+var CASE_ID_RE = /^TC-\d{3,}$/;
+var PAIR_ID_RE = /^[a-z][a-z0-9-]*-vs-[a-z][a-z0-9-]*$/;
+var NO_SKILL = "none";
+var skillIdField = external_exports.string().regex(SKILL_ID_RE, "must be a `veri:<name>` skill id");
+var skillSchema = external_exports.object({
+  id: skillIdField,
+  /** REQ-040 enumerates the nine defaults; the rest are advanced (SRC-060). */
+  tier: external_exports.enum(["default", "advanced"]),
+  gate: external_exports.string().min(1)
+});
+var nearMissPairSchema = external_exports.object({
+  id: external_exports.string().regex(PAIR_ID_RE, "must be a `<skill>-vs-<skill>` pair id"),
+  skills: external_exports.tuple([skillIdField, skillIdField]),
+  /** Where one gate ends and its neighbour begins — the reviewable claim. */
+  boundary: external_exports.string().min(1)
+});
+var caseSchema = external_exports.object({
+  id: external_exports.string().regex(CASE_ID_RE, "must be a `TC-nnn` case id"),
+  utterance: external_exports.string().min(1),
+  /** A declared skill id, or `none` for a negative. */
+  expect: external_exports.union([skillIdField, external_exports.literal(NO_SKILL)]),
+  kind: external_exports.enum(["coverage", "front-door", "negative"]),
+  /** A declared near-miss pair this case discriminates, when it does. */
+  pair: external_exports.string().min(1).optional(),
+  rationale: external_exports.string().min(1).optional()
+});
+var corpusSchema = external_exports.object({
+  version: external_exports.literal(1),
+  skills: external_exports.array(skillSchema).min(1),
+  near_miss_pairs: external_exports.array(nearMissPairSchema).min(1),
+  cases: external_exports.array(caseSchema).min(1)
+});
+
 // ../cli/dist/git.js
 import { spawnSync } from "node:child_process";
 function git(cwd, args) {
