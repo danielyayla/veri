@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -13,10 +13,11 @@ const FIXTURE = fileURLToPath(new URL('../fixtures/superseded-chain', import.met
 interface RpcResponse {
   id?: number;
   result?: {
-    tools?: Array<{ name: string; description?: string }>;
+    tools?: Array<{ name: string; description?: string; inputSchema?: { additionalProperties?: boolean } }>;
     content?: Array<{ type: string; text: string }>;
     isError?: boolean;
   };
+  error?: { code: number; message: string };
 }
 
 /** Speak newline-delimited JSON-RPC to the server over stdio, as an MCP client would. */
@@ -221,6 +222,92 @@ test('start_work_order flips a ready work order and records the claim (WO-099)',
   const refused = second.get(3)?.result;
   assert.equal(refused?.isError, true);
   assert.match(refused?.content?.[0]?.text ?? '', /already in-progress, claimed by "agent-session-1"/);
+});
+
+// The DEC-112 incident (WO-118): a filing call carrying a section under a key
+// the schema does not declare must be refused naming the key — zod's default
+// strip mode silently discarded it, the call succeeded, and the document
+// landed with only the Choice section. Same class as the WO-100 body-drop.
+test('write tools refuse unknown argument keys instead of silently dropping content (WO-118)', { skip: !existsSync(SERVER) }, async (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'veri-mcp-strict-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, 'veri', 'decisions'), { recursive: true });
+
+  const init = {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'initialize',
+    params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test', version: '0.0.0' } },
+  };
+  const initialized = { jsonrpc: '2.0', method: 'notifications/initialized' };
+  const responses = await rpcSession(
+    [
+      init,
+      initialized,
+      {
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'tools/call',
+        params: {
+          name: 'file_decision',
+          // rejected_alternatives and rationale misspelled, as an agent or a
+          // host with a stale tool schema would send them.
+          arguments: {
+            title: 'Strictness repro',
+            choice: 'The chosen thing.',
+            alternatives_rejected: '- **Alt A** — too slow',
+            reasoning: 'Because reasons.',
+          },
+        },
+      },
+      { jsonrpc: '2.0', id: 3, method: 'tools/list' },
+      {
+        jsonrpc: '2.0',
+        id: 4,
+        method: 'tools/call',
+        params: {
+          name: 'file_decision',
+          arguments: {
+            title: 'Fully specified',
+            choice: 'The chosen thing.',
+            rejected_alternatives: '- **Alt A** — too slow',
+            rationale: 'Because reasons.',
+          },
+        },
+      },
+    ],
+    [1, 2, 3, 4],
+    root,
+  );
+
+  // The misspelled call is refused, naming the keys it did not recognize —
+  // never a success that silently drops the content.
+  const refused = responses.get(2)?.result;
+  assert.equal(refused?.isError, true, `unknown keys must be a validation error, got: ${JSON.stringify(refused)}`);
+  const refusal = refused?.content?.[0]?.text ?? '';
+  assert.match(refusal, /alternatives_rejected/);
+  assert.match(refusal, /reasoning/);
+  // The correctly-keyed call (sent after the refused one) persists every
+  // provided section — and lands as DEC-001, proving the refused call wrote
+  // nothing and consumed no id.
+  const filed = responses.get(4)?.result;
+  assert.ok(filed && filed.isError !== true, JSON.stringify(filed));
+  const written = readdirSync(join(root, 'veri', 'decisions'));
+  assert.deepEqual(written, ['DEC-001-fully-specified.md']);
+  const content = readFileSync(join(root, 'veri', 'decisions', written[0]!), 'utf8');
+  assert.match(content, /## Choice\n\nThe chosen thing\./);
+  assert.match(content, /## Rejected alternatives\n\n- \*\*Alt A\*\* — too slow/);
+  assert.match(content, /## Rationale\n\nBecause reasons\./);
+
+  // Every write tool advertises the strictness, so compliant hosts refuse
+  // near-miss keys client-side too.
+  const writeTools = ['file_decision', 'file_work_order', 'file_requirement', 'file_source', 'file_receipt', 'amend_document', 'start_work_order'];
+  const tools = responses.get(3)?.result?.tools ?? [];
+  for (const name of writeTools) {
+    const tool = tools.find((entry) => entry.name === name);
+    assert.ok(tool, `tools/list must include ${name}`);
+    assert.equal(tool.inputSchema?.additionalProperties, false, `${name} must advertise additionalProperties: false`);
+  }
 });
 
 test('amend_document revises a backlog work order and refuses past the approval boundary (WO-100)', { skip: !existsSync(SERVER) }, async (t) => {
