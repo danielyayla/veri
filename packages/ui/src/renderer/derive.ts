@@ -4,7 +4,7 @@
  */
 import type { Advisory, Edge, Issue, VeriDocument } from '@verikb/core';
 import { compareIds } from '@verikb/core/ids';
-import { isOutcomeRel, isPending, isWithdrawn, outcomeLabel, requirementKind } from '@verikb/core/pending';
+import { CURRENT_FOCUS_FILE, isOutcomeRel, isPending, isWithdrawn, outcomeLabel, requirementKind } from '@verikb/core/pending';
 import type { Snapshot } from '../lib/snapshot.ts';
 import { sections, parseBlocks, plainText } from './markdown.ts';
 
@@ -351,6 +351,33 @@ export function fileActivity(doc: VeriDocument, rel: (date: string) => string): 
 
 /** NEEDS REVIEW (SRC-006): pending docs, oldest first — the longest-waiting
     proposal is the most urgent, it may be gating work. */
+/** The Home focus strip (WO-126, SRC-059): the accepted current-focus, one
+    line, carrying the stale-focus advisory when the check raised it. Null
+    when no focus is accepted — only ratified intent steers (DEC-124), the
+    same rule the context package applies. */
+export interface FocusStrip {
+  id: string;
+  line: string;
+  /** The stale-focus advisory's message, or null when the focus is fresh. */
+  stale: string | null;
+}
+
+export function focusStrip(snap: Snapshot): FocusStrip | null {
+  const doc = snap.documents.find((d) => d.type === 'product' && d.file === CURRENT_FOCUS_FILE);
+  if (doc === undefined || doc.status !== 'accepted') return null;
+  let line = '';
+  for (const block of parseBlocks(doc.body)) {
+    if (block.kind === 'para' || block.kind === 'li' || block.kind === 'quote') {
+      // One-line register: refs read as bare ids, without wiki brackets.
+      line = plainText(block.segs).replace(/\[\[([^\]]+)\]\]/g, '$1');
+      break;
+    }
+  }
+  if (line === '') return null;
+  const stale = snap.advisories.find((a) => a.kind === 'stale-focus')?.message ?? null;
+  return { id: doc.id, line, stale };
+}
+
 export function pendingDocs(snap: Snapshot): VeriDocument[] {
   return snap.documents
     .filter(isPending)

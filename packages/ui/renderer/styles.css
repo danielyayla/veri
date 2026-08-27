@@ -55,6 +55,7 @@
   --t-wo: #E8703A;
   --t-src: #908BA8;
   --t-wf: #7FAF8A;
+  --t-prd: #C58FBB;
   --ember-tint: rgba(232,112,58,0.09);
   --ember-tint-2: rgba(232,112,58,0.1);
   --ember-tint-faint: rgba(232,112,58,0.05);
@@ -152,6 +153,7 @@
   --t-wo: #B54A18;
   --t-src: #655F80;
   --t-wf: #3E7350;
+  --t-prd: #8A4B7D;
   --ember-tint: rgba(181,74,24,0.10);
   --ember-tint-2: rgba(181,74,24,0.12);
   --ember-tint-faint: rgba(181,74,24,0.06);
@@ -529,6 +531,10 @@ a:hover { color: var(--link-hover); }
 /* Teaching empty state (WO-030), re-homed from the old tree: hint by
    default, the action on hover (CSS swap). */
 .tp-ghost { display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 3px 8px; border-radius: 6px; cursor: pointer; }
+/* WO-126 (SRC-059): the product panel's empty state teaches, never creates. */
+.tp-ghost-static { cursor: default; }
+.tp-ghost-static:hover { background: transparent; }
+.tp-ghost-static .tp-ghost-hint { white-space: normal; line-height: 1.45; }
 .tp-ghost:hover { background: var(--row-hover); }
 .tp-ghost-plus { color: var(--ghost-2); font-size: 12px; flex: 0 0 auto; }
 .tp-ghost-hint { font-size: 12px; font-style: italic; color: var(--ghost); }
@@ -1125,6 +1131,15 @@ a:hover { color: var(--link-hover); }
 .screen-homeview { flex: 1; overflow-y: auto; min-width: 0; }
 .hv-wrap { max-width: 920px; margin: 0 auto; padding: 28px 36px 60px; }
 .hv-head { display: flex; align-items: baseline; gap: 12px; }
+/* The focus strip (WO-126, SRC-059): one line of ratified intent at the top
+   of Home; the stale state carries the advisory's amber where it is read. */
+.hv-focus { display: flex; align-items: baseline; gap: 10px; padding: 8px 12px; border: 1px solid var(--hair); border-left: 3px solid var(--t-prd); border-radius: 8px; background: var(--panel); text-align: left; cursor: pointer; }
+.hv-focus:hover { background: var(--row-hover); }
+.hv-focus-label { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; color: var(--t-prd); flex: 0 0 auto; }
+.hv-focus-line { font-size: 12.5px; color: var(--primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hv-focus-stale { border-left-color: var(--amber); }
+.hv-focus-stale .hv-focus-label { color: var(--amber); }
+.hv-focus-msg { font-size: 11px; font-style: italic; color: var(--amber); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 0 1 auto; }
 .hv-title { margin: 0; font-size: 20px; font-weight: 600; }
 .hv-count { font-family: var(--mono); font-size: 11px; color: var(--faint); }
 .hv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 20px; align-items: start; }

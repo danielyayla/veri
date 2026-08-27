@@ -188,3 +188,33 @@ test('sources gain a dead state: withdrawn, behind the expander labeled withdraw
   assert.equal(livingCount(docs, 'source'), 1);
   assert.equal(DEAD_LABEL.source, 'withdrawn');
 });
+
+// --- The product panel (WO-126, SRC-059) ---
+
+const prd = (id: string, file: string, status = 'accepted'): VeriDocument => ({
+  ...doc(id, 'product', status),
+  file,
+});
+
+test('product panel rows follow the sanctioned singleton order, not id order', () => {
+  // Deliberately shuffled and id-reversed: file order must win.
+  const docs = [
+    prd('PRD-004', 'product/current-focus.md'),
+    prd('PRD-002', 'product/users.md'),
+    prd('PRD-001', 'product/vision.md'),
+    prd('PRD-003', 'product/principles.md'),
+  ];
+  const list = panelList(docs, 'product', '', []);
+  assert.deepEqual(
+    list.living.map((d) => d.file),
+    ['product/vision.md', 'product/users.md', 'product/principles.md', 'product/current-focus.md'],
+  );
+});
+
+test('a retired product singleton moves behind the dead expander', () => {
+  const docs = [prd('PRD-001', 'product/vision.md'), prd('PRD-003', 'product/principles.md', 'retired')];
+  const list = panelList(docs, 'product', '', []);
+  assert.deepEqual(list.living.map((d) => d.id), ['PRD-001']);
+  assert.deepEqual(list.dead.map((d) => d.id), ['PRD-003']);
+  assert.equal(DEAD_LABEL.product, 'retired');
+});

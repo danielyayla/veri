@@ -2795,6 +2795,9 @@ class App implements Ctx {
       viewItem('homeview', 'Home', '⌂'),
       h('div', { class: 'side-div' }),
       layer('WHY'),
+      // The product layer's home (WO-126, SRC-059): intent above the
+      // evidence that feeds it — WHY shows both halves of the question.
+      collItem('product'),
       collItem('source'),
       layer('WHAT'),
       collItem('requirement'),
@@ -2927,7 +2930,17 @@ class App implements Ctx {
       );
       if (showDead) rows.push(...list.dead.map((d) => row(d, false)));
     }
-    if (list.total === 0) {
+    if (list.total === 0 && type === 'product') {
+      // SRC-059: the set is fixed (REQ-037) — no creation affordance; the
+      // empty state teaches authoring the files instead.
+      rows.push(
+        h(
+          'div',
+          { class: 'tp-ghost tp-ghost-static' },
+          h('span', { class: 'tp-ghost-hint' }, 'Author veri/product/vision.md — four fixed files, approved by you, steer every package'),
+        ),
+      );
+    } else if (list.total === 0) {
       // The teaching empty state (WO-030), re-homed from the old tree.
       rows.push(
         h(
@@ -3024,21 +3037,27 @@ class App implements Ctx {
               ),
             ]
           : []),
-        h(
-          'button',
-          {
-            class: 'tp-new',
-            title: `New ${meta.label}`,
-            label: `New ${meta.label}`,
-            fkey: 'tp-new',
-            onClick: (e) => {
-              e.stopPropagation();
-              const rect = (e.currentTarget as Element).getBoundingClientRect();
-              this.openNewDoc(type, { x: rect.left, y: rect.bottom + 6 });
-            },
-          },
-          '+',
-        ),
+        // SRC-059: no NEW button for product — the singleton set is fixed
+        // (REQ-037); creation happens by authoring the file.
+        ...(type !== 'product'
+          ? [
+              h(
+                'button',
+                {
+                  class: 'tp-new',
+                  title: `New ${meta.label}`,
+                  label: `New ${meta.label}`,
+                  fkey: 'tp-new',
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    const rect = (e.currentTarget as Element).getBoundingClientRect();
+                    this.openNewDoc(type, { x: rect.left, y: rect.bottom + 6 });
+                  },
+                },
+                '+',
+              ),
+            ]
+          : []),
         h('button', { class: 'tp-close', title: 'Close panel', label: 'Close panel', fkey: 'tp-close', onClick: () => this.update({ panel: null }) }, '✕'),
       ),
       h('div', { class: 'tp-filter' }, input),

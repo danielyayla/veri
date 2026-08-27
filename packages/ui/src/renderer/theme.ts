@@ -17,9 +17,9 @@ export const TYPE_META: Record<DocType, TypeMeta> = {
   'work-order': { color: 'var(--t-wo)', label: 'work order', crumb: 'Work Orders', group: 'WORK ORDERS' },
   source: { color: 'var(--t-src)', label: 'source', crumb: 'Sources', group: 'SOURCES' },
   workflow: { color: 'var(--t-wf)', label: 'workflow', crumb: 'Workflow', group: 'WORKFLOW' },
-  // WO-121: compile-keeping entry — the workflow's tokens until the product
-  // layer gets its own design pass (design-gated).
-  product: { color: 'var(--t-wf)', label: 'product', crumb: 'Product', group: 'PRODUCT' },
+  // WO-126 (SRC-059): the WHY group's identity — its own hue, carried by
+  // palette hits, status dots, and the sidebar swatch.
+  product: { color: 'var(--t-prd)', label: 'product', crumb: 'Product', group: 'PRODUCT' },
 };
 
 export const STATUS_COLORS: Record<string, string> = {

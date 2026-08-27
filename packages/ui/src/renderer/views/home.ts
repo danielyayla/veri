@@ -2,7 +2,7 @@
     Agent activity, Recently changed. Every row opens its doc as a preview. */
 import { h } from '../dom.ts';
 import { TYPE_META, statusColor } from '../theme.ts';
-import { currentBets, importBatches, importGroupLabel, inFlight, isPending, issueDocId, pendingDocs, projectActivity, recentlyChanged, recentlyLearned } from '../derive.ts';
+import { currentBets, focusStrip, importBatches, importGroupLabel, inFlight, isPending, issueDocId, pendingDocs, projectActivity, recentlyChanged, recentlyLearned } from '../derive.ts';
 import { archSummary } from '../archderive.ts';
 import { isLiving } from '../sidebar.ts';
 import type { Ctx } from '../app.ts';
@@ -462,6 +462,26 @@ export function homeView(ctx: Ctx): HTMLElement {
 
   const docs = ctx.snap.documents;
   const living = docs.filter(isLiving).length;
+  // The focus strip (WO-126, SRC-059): Home is the at-a-glance answer, and
+  // the accepted current-focus is what a glance should return. Stale focus
+  // carries the advisory's amber treatment where the focus is read; a
+  // draft-only focus renders nothing — only ratified intent steers (DEC-124).
+  const focus = focusStrip(ctx.snap);
+  const focusRow =
+    focus === null
+      ? null
+      : h(
+          'button',
+          {
+            class: `btn-reset btn-block hv-focus${focus.stale !== null ? ' hv-focus-stale' : ''}`,
+            label: `Current focus — ${focus.line}`,
+            fkey: 'hv-focus',
+            onClick: open(focus.id),
+          },
+          h('span', { class: 'hv-focus-label' }, focus.stale !== null ? 'FOCUS · STALE' : 'FOCUS'),
+          h('span', { class: 'hv-focus-line' }, focus.line),
+          focus.stale !== null ? h('span', { class: 'hv-focus-msg' }, focus.stale) : null,
+        );
   return h(
     'div',
     { class: 'screen-homeview' },
@@ -474,6 +494,7 @@ export function homeView(ctx: Ctx): HTMLElement {
         h('h1', { class: 'hv-title' }, ctx.snap.projectName),
         h('span', { class: 'hv-count' }, `${docs.length} docs · ${living} living`),
       ),
+      focusRow,
       reviewCard,
       betsCard,
       h('div', { class: 'hv-grid' }, health, ...(archCard !== null ? [archCard] : []), inFlightCard, activityCard, learnedCard, changedCard),

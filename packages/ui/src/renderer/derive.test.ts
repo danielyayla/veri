@@ -4,6 +4,7 @@ import type { VeriDocument } from '@verikb/core';
 import { buildGraph } from '@verikb/core';
 import type { Snapshot } from '../lib/snapshot.ts';
 import {
+  focusStrip,
   advisoriesByDoc,
   autocomplete,
   connections,
@@ -710,4 +711,32 @@ test('recentReceipts uses the latest receipt on a multi-receipt work order', () 
   const body = '## Receipts\n\n- 2026-08-01 — old1111 — a.ts — first pass\n- 2026-08-18 — new2222 — b.ts — done\n';
   const s = snap([doc({ id: 'WO-001', type: 'work-order', title: 'multi', status: 'done', body })]);
   assert.deepEqual(recentReceipts(s, (d) => d).map((r) => [r.commit, r.date]), [['new2222', '2026-08-18']]);
+});
+
+// --- The focus strip (WO-126, SRC-059) ---
+
+const focusDoc = (status: string, body = 'Closing the loop the product layer opened.\n\nMore.\n'): VeriDocument =>
+  doc({ id: 'PRD-004', type: 'product', title: 'Current focus', status, body, file: 'product/current-focus.md' });
+
+test('focusStrip renders the accepted focus as one plain-text line', () => {
+  const s = snap([focusDoc('accepted', '**Closing the loop** ([[REQ-037]]): the layer is live.\n')]);
+  assert.deepEqual(focusStrip(s), {
+    id: 'PRD-004',
+    line: 'Closing the loop (REQ-037): the layer is live.',
+    stale: null,
+  });
+});
+
+test('focusStrip carries the stale-focus advisory where the focus is read', () => {
+  const s = snap(
+    [focusDoc('accepted')],
+    [],
+    [{ kind: 'stale-focus', file: 'product/current-focus.md', id: 'PRD-004', message: 'restate what comes next' }],
+  );
+  assert.equal(focusStrip(s)?.stale, 'restate what comes next');
+});
+
+test('focusStrip is absent for a draft focus — only ratified intent steers (DEC-124)', () => {
+  assert.equal(focusStrip(snap([focusDoc('draft')])), null);
+  assert.equal(focusStrip(snap([])), null);
 });

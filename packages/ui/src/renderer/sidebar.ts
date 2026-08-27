@@ -6,7 +6,7 @@
  */
 import type { DocType, VeriDocument } from '@verikb/core';
 import { compareIds } from '@verikb/core/ids';
-import { isWithdrawn } from '@verikb/core/pending';
+import { isWithdrawn, PRODUCT_FILES } from '@verikb/core/pending';
 
 /** Living statuses per type; null means no lifecycle (sources). */
 const LIVING: Record<DocType, string[] | null> = {
@@ -54,8 +54,18 @@ const newestFirst = (a: VeriDocument, b: VeriDocument): number => compareIds(b.i
 const newestCreatedFirst = (a: VeriDocument, b: VeriDocument): number =>
   a.created === b.created ? newestFirst(a, b) : b.created.localeCompare(a.created);
 
+/** Product panel rows follow the sanctioned singleton order — vision, users,
+    principles, current focus (DEC-124's assembly order, SRC-059) — never id
+    order; an off-list file (impossible past `veri check`) sinks to the end. */
+const SANCTIONED: readonly string[] = PRODUCT_FILES;
+const sanctionedOrder = (a: VeriDocument, b: VeriDocument): number => {
+  const ia = SANCTIONED.indexOf(a.file);
+  const ib = SANCTIONED.indexOf(b.file);
+  return (ia === -1 ? SANCTIONED.length : ia) - (ib === -1 ? SANCTIONED.length : ib);
+};
+
 const panelOrder = (type: DocType): ((a: VeriDocument, b: VeriDocument) => number) =>
-  type === 'decision' ? newestCreatedFirst : newestFirst;
+  type === 'decision' ? newestCreatedFirst : type === 'product' ? sanctionedOrder : newestFirst;
 
 export interface PanelList {
   /** PINNED group: this type's pinned docs, in the workspace-state order. */
