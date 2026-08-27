@@ -2,7 +2,9 @@
 id: WO-133
 type: work-order
 title: "The front-half default methods — wayfinder, product-discovery, evidence-intake, define, decide"
-status: ready
+status: in-progress
+claimed_by: opus-wo133
+claimed_at: 2026-08-27
 approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
