@@ -257,7 +257,7 @@ test('kickoffPrompt names the work order and the MCP fetch, provider-free', () =
 
 // ---- Home view derivations (WO-015) ----
 
-test('inFlight lists backlog/in-progress work orders with REQ counts and agent markers', () => {
+test('inFlight lists backlog/ready/in-progress work orders with REQ counts and agent markers', () => {
   const s = snap([
     doc({ id: 'WO-010', type: 'work-order', title: 'Later', status: 'backlog' }),
     doc({
@@ -269,13 +269,15 @@ test('inFlight lists backlog/in-progress work orders with REQ counts and agent m
       body: '## Receipts\n\n- 2026-08-09 — abc1234 — a.ts — claude session receipt\n',
     }),
     doc({ id: 'WO-012', type: 'work-order', title: 'Done', status: 'done' }),
+    doc({ id: 'WO-013', type: 'work-order', title: 'Pickable', status: 'ready' }),
   ]);
   const rows = inFlight(s);
-  assert.deepEqual(rows.map((r) => r.id), ['WO-010', 'WO-011']);
+  assert.deepEqual(rows.map((r) => r.id), ['WO-010', 'WO-011', 'WO-013']);
   assert.equal(rows[0].reqCount, 0);
   assert.equal(rows[0].agent, false);
   assert.equal(rows[1].reqCount, 1);
   assert.equal(rows[1].agent, true);
+  assert.equal(rows[2].status, 'ready');
 });
 
 test('projectActivity interleaves receipts and filed decisions newest-first, capped', () => {
@@ -292,7 +294,8 @@ test('projectActivity interleaves receipts and filed decisions newest-first, cap
   ]);
   const rows = projectActivity(s, (d) => d);
   assert.deepEqual(rows.map((r) => r.id), ['DEC-020', 'WO-020', 'DEC-021']);
-  assert.match(rows[1].text, /Receipt filed: commit abc1234 · 2 files/);
+  assert.match(rows[1].text, /Receipt: Work · 2 files/);
+  assert.doesNotMatch(rows[1].text, /abc1234/);
   assert.match(rows[0].text, /Decision filed: Newest choice/);
   assert.equal(projectActivity(s, (d) => d, 2).length, 2);
 });
@@ -305,6 +308,20 @@ test('recentlyChanged orders by updated desc and caps', () => {
   ]);
   assert.deepEqual(recentlyChanged(s, (d) => d).map((r) => r.id), ['DEC-001', 'SRC-001', 'REQ-001']);
   assert.equal(recentlyChanged(s, (d) => d, 1).length, 1);
+});
+
+test('recentlyChanged drops excluded ids before the cap (SRC-055)', () => {
+  const s = snap([
+    doc({ id: 'REQ-001', type: 'requirement', title: 'A', status: 'draft', updated: '2026-08-02' }),
+    doc({ id: 'DEC-001', type: 'decision', title: 'B', status: 'active', updated: '2026-08-09' }),
+    doc({ id: 'SRC-001', type: 'source', title: 'C', status: 'imported', updated: '2026-08-05' }),
+  ]);
+  assert.deepEqual(
+    recentlyChanged(s, (d) => d, 8, new Set(['DEC-001'])).map((r) => r.id),
+    ['SRC-001', 'REQ-001'],
+  );
+  // The cap applies after the exclusion, so filtered rows free their slot.
+  assert.deepEqual(recentlyChanged(s, (d) => d, 1, new Set(['DEC-001'])).map((r) => r.id), ['SRC-001']);
 });
 
 // ---- approval gate (WO-017, SRC-006) ----

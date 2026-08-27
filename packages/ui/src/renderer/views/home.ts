@@ -230,11 +230,15 @@ export function homeView(ctx: Ctx): HTMLElement {
               'span',
               {
                 class: 'hv-bet-wos',
+                // Shipped ≠ proven: while the bet is untested, a finished WO
+                // count must not read as success (SRC-055).
                 style:
                   bet.woTotal === 0
                     ? 'color:var(--faint);'
                     : bet.woDone === bet.woTotal
-                      ? 'color:var(--green);'
+                      ? bet.untested
+                        ? 'color:var(--faint);'
+                        : 'color:var(--green);'
                       : 'color:var(--ember);',
               },
               bet.woTotal === 0 ? 'no WOs yet' : `${bet.woDone}/${bet.woTotal} WOs done`,
@@ -245,7 +249,10 @@ export function homeView(ctx: Ctx): HTMLElement {
   );
 
   const issues = ctx.snap.issues;
-  const advisories = ctx.snap.advisories;
+  // CURRENT BETS owns bet state (SRC-055): an untested-bet advisory whose
+  // hypothesis is a bets row above would state the same fact twice.
+  const betIds = new Set(bets.map((b) => b.id));
+  const advisories = ctx.snap.advisories.filter((a) => !(a.kind === 'untested-bet' && betIds.has(a.id)));
   // The green/amber word and its color follow issues alone (DEC-025); the
   // advisory count is a visually parenthetical grey span (SRC-010).
   const healthMeta = h(
@@ -277,7 +284,7 @@ export function homeView(ctx: Ctx): HTMLElement {
           ),
         ];
   const health = card(
-    [dot('var(--amber)'), label('HEALTH'), healthMeta],
+    [dot(issues.length > 0 ? 'var(--amber)' : 'var(--green)'), label('HEALTH'), healthMeta],
     [
       ...issues.map((issue) => {
         const docId = issueDocId(ctx.snap, issue);
@@ -371,9 +378,10 @@ export function homeView(ctx: Ctx): HTMLElement {
     .sessionAll()
     .map(({ id, row }) => ({ id, text: row.text, time: row.time }));
   const filed = projectActivity(ctx.snap, ctx.rel, 8 - Math.min(session.length, 4));
+  const activityRows = [...session.slice(0, 4), ...filed].slice(0, 8);
   const activityCard = card(
     [h('span', { class: 'hv-agent-glyph' }, '⌁'), label('AGENT ACTIVITY')],
-    [...session.slice(0, 4), ...filed].slice(0, 8).map((r) =>
+    activityRows.map((r) =>
       row(
         ctx.byId.has(r.id) ? r.id : null,
         'hv-row hv-row-feed',
@@ -390,9 +398,10 @@ export function homeView(ctx: Ctx): HTMLElement {
   // chip is its own button opening the hypothesis it answers; the rest of
   // the row opens the source (one row, two honest targets — never nested
   // buttons).
+  const learnedRows = recentlyLearned(ctx.snap, ctx.rel);
   const learnedCard = card(
     [dot('var(--t-src)'), label('RECENTLY LEARNED')],
-    recentlyLearned(ctx.snap, ctx.rel).map((r) =>
+    learnedRows.map((r) =>
       r.outcome === null
         ? row(
             r.id,
@@ -427,9 +436,19 @@ export function homeView(ctx: Ctx): HTMLElement {
     'No sources yet — evidence comes first',
   );
 
+  // Ids the cards above already rendered (SRC-055): RECENTLY CHANGED shows
+  // only the edits no other feed explains.
+  const shown = new Set<string>([
+    ...pending.map((d) => d.id),
+    ...batches.flatMap((b) => b.evidence.map((d) => d.id)),
+    ...betIds,
+    ...flight.map((wo) => wo.id),
+    ...activityRows.map((r) => r.id),
+    ...learnedRows.map((r) => r.id),
+  ]);
   const changedCard = card(
     [label('RECENTLY CHANGED')],
-    recentlyChanged(ctx.snap, ctx.rel).map((r) =>
+    recentlyChanged(ctx.snap, ctx.rel, 8, shown).map((r) =>
       row(
         r.id,
         'hv-row hv-row-feed',

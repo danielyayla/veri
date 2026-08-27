@@ -1132,7 +1132,9 @@ a:hover { color: var(--link-hover); }
 .hv-card-head { display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-bottom: 1px solid var(--hair-2); }
 .hv-dot { width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto; }
 .hv-label { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; color: var(--secondary); }
-.hv-meta { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--ghost-2); }
+/* Load-bearing counts ("clean · 4 advisories"): --faint clears the AA
+   contrast floor the ghost tokens fail at this size (SRC-055). */
+.hv-meta { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
 .hv-agent-glyph { font-family: var(--mono); font-size: 11px; color: var(--ember); }
 .hv-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--hair-3); cursor: pointer; }
 .hv-row:hover { background: var(--row-hover-2); }
@@ -1156,13 +1158,16 @@ a:hover { color: var(--link-hover); }
 .hv-status { font-family: var(--mono); font-size: 10px; flex: 0 0 auto; width: 70px; text-align: right; }
 .hv-feed-text { font-size: 12.5px; color: var(--secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hv-changed-title { font-size: 12.5px; color: var(--body-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hv-time { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--ghost); flex: 0 0 auto; }
+.hv-time { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--faint); flex: 0 0 auto; }
 .hv-empty { padding: 14px; font-size: 12px; color: var(--faint); }
 
 /* ===== The intent home (WO-117, SRC-053) ===== */
 
 /* CURRENT BETS: full-width under the judgment queue. */
 .hv-card-bets { margin-bottom: 14px; }
+/* The title is the bet: it wraps rather than ceding width to the
+   metadata spans (SRC-055). */
+.hv-card-bets .hv-flight-title { white-space: normal; overflow: visible; text-overflow: clip; }
 
 /* The bet's win condition: `→ metric target`. Amber variant when the
    hypothesis declares no outcome (check flags it; the row agrees). */

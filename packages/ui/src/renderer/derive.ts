@@ -377,12 +377,14 @@ export interface HomeFlightRow {
   gates: string[];
 }
 
-/** IN FLIGHT: work orders in backlog/in-progress, id order, with the
-    receipt-derived agent marker and linked-REQ count. */
+/** IN FLIGHT: work orders in backlog/ready/in-progress, id order, with the
+    receipt-derived agent marker and linked-REQ count. Ready rows are the
+    pickable work — hiding them made the card claim "nothing in flight"
+    while the sidebar counted them (SRC-055). */
 export function inFlight(snap: Snapshot): HomeFlightRow[] {
   const byId = docsById(snap);
   return snap.documents
-    .filter((d) => d.type === 'work-order' && (d.status === 'backlog' || d.status === 'in-progress'))
+    .filter((d) => d.type === 'work-order' && (d.status === 'backlog' || d.status === 'ready' || d.status === 'in-progress'))
     .sort((a, b) => compareIds(a.id, b.id))
     .map((wo) => ({
       id: wo.id,
@@ -412,9 +414,11 @@ export function projectActivity(snap: Snapshot, rel: (date: string) => string, c
   for (const doc of snap.documents) {
     if (doc.type === 'work-order') {
       for (const r of receipts(doc)) {
+        // The title is the payload; the commit hash lives on the work order
+        // the row opens (SRC-055).
         rows.push({
           id: doc.id,
-          text: `Receipt filed: commit ${r.commit} · ${r.files.length} file${r.files.length === 1 ? '' : 's'}`,
+          text: `Receipt: ${doc.title} · ${r.files.length} file${r.files.length === 1 ? '' : 's'}`,
           time: rel(r.date),
           date: r.date,
         });
@@ -433,10 +437,12 @@ export interface ChangedRow {
 }
 
 /** RECENTLY CHANGED: docs by `updated` desc, so external and agent edits
-    surface without hunting. */
-export function recentlyChanged(snap: Snapshot, rel: (date: string) => string, cap = 8): ChangedRow[] {
+    surface without hunting. `exclude` holds ids the home's other cards
+    already rendered (SRC-055): filtered before the cap, the card catches
+    the edits no other feed explains instead of repeating them. */
+export function recentlyChanged(snap: Snapshot, rel: (date: string) => string, cap = 8, exclude?: ReadonlySet<string>): ChangedRow[] {
   return snap.documents
-    .slice()
+    .filter((d) => exclude === undefined || !exclude.has(d.id))
     .sort((a, b) => b.updated.localeCompare(a.updated) || compareIds(b.id, a.id))
     .slice(0, cap)
     .map((d) => ({ id: d.id, title: d.title, time: rel(d.updated) }));
