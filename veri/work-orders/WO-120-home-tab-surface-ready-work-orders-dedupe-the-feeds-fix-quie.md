@@ -2,7 +2,7 @@
 id: WO-120
 type: work-order
 title: "Home tab: surface ready work orders, dedupe the feeds, fix quiet-text contrast"
-status: in-progress
+status: done
 claimed_by: claude-wo120-home-critique
 claimed_at: 2026-08-27
 approved: 2026-08-27
@@ -58,14 +58,14 @@ Implements SRC-055's critique design on the intent home: IN FLIGHT includes read
 
 ## Acceptance tests
 
-- [ ] A `ready` work order renders on IN FLIGHT with its status chip; the card count includes it
-- [ ] A document rendered by AGENT ACTIVITY, RECENTLY LEARNED, CURRENT BETS, IN FLIGHT, or the judgment queue does not repeat in RECENTLY CHANGED
-- [ ] Receipt activity rows show the work order title and file count, no commit hash
-- [ ] With zero issues the HEALTH dot is green; an `untested-bet` advisory for a rendered bet appears only on the bets row, and the advisory count matches the rows shown
-- [ ] An untested bet's done-WO count is not green; its title wraps at narrow widths instead of truncating
-- [ ] `.hv-time` and `.hv-meta` computed colors are `--faint` in both themes
-- [ ] `npm test` in packages/ui passes; terminal `veri check` reports zero issues
+- [x] A `ready` work order renders on IN FLIGHT with its status chip; the card count includes it
+- [x] A document rendered by AGENT ACTIVITY, RECENTLY LEARNED, CURRENT BETS, IN FLIGHT, or the judgment queue does not repeat in RECENTLY CHANGED
+- [x] Receipt activity rows show the work order title and file count, no commit hash
+- [x] With zero issues the HEALTH dot is green; an `untested-bet` advisory for a rendered bet appears only on the bets row, and the advisory count matches the rows shown
+- [x] An untested bet's done-WO count is not green; its title wraps at narrow widths instead of truncating
+- [x] `.hv-time` and `.hv-meta` computed colors are `--faint` in both themes
+- [x] `npm test` in packages/ui passes; terminal `veri check` reports zero issues
 
 ## Receipts
 
-(none yet)
+- 2026-08-27 — 371ff49 — packages/ui/src/renderer/derive.ts, packages/ui/src/renderer/views/home.ts, packages/ui/renderer/styles.css, packages/ui/src/renderer/derive.test.ts — Implemented all eight SRC-055 findings; 366 UI tests pass, harness-verified against the live snapshot (ready WO surfaced, feeds deduped, faint/green states confirmed by computed style), terminal veri check 0 issues.
