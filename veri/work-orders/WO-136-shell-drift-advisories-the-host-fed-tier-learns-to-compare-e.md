@@ -2,7 +2,7 @@
 id: WO-136
 type: work-order
 title: "Shell drift advisories — the host-fed tier learns to compare emitted shells against their methods"
-status: in-progress
+status: done
 claimed_by: opus-wo136
 claimed_at: 2026-08-27
 approved: 2026-08-27
@@ -19,9 +19,16 @@ links:
     rel: constrained-by
   - id: WO-135
     rel: depends-on
-# binds:         # code this work order claims (optional)
-#   paths: []    # repo-root-relative globs
-#   tests: []    # test files proving it (path or path::name)
+binds:
+  paths:
+    - packages/core/src/skills.ts
+    - packages/core/src/report.ts
+    - packages/cli/src/skills.ts
+    - packages/mcp/src/check.ts
+  tests:
+    - packages/core/src/skills.test.ts
+    - packages/cli/src/skills.test.ts
+    - packages/mcp/src/check.test.ts
 ---
 
 ## Summary
@@ -59,14 +66,14 @@ Advisory severity, deliberately. A stale shell is a stale pointer, not a broken 
 
 ## Acceptance tests
 
-- [ ] An emitted shell edited by hand raises the drift advisory naming the method and the repair command
-- [ ] A method amended after its shell was written raises the same advisory — drift is detected from either side
-- [ ] Retiring a method whose shell is still on disk raises the orphaned-trigger advisory
-- [ ] A project with no harness directory raises neither advisory
-- [ ] Both are advisories: `veri check` exits 0 with drift present, and `veri approve` still succeeds on an otherwise clean document
-- [ ] The core comparator is unit-tested against fabricated shell facts with no filesystem access, proving the purity boundary holds
-- [ ] `run_check` over MCP lists both rules under `skipped` with a reason, rather than reporting a false pass
+- [x] An emitted shell edited by hand raises the drift advisory naming the method and the repair command
+- [x] A method amended after its shell was written raises the same advisory — drift is detected from either side
+- [x] Retiring a method whose shell is still on disk raises the orphaned-trigger advisory
+- [x] A project with no harness directory raises neither advisory
+- [x] Both are advisories: `veri check` exits 0 with drift present, and `veri approve` still succeeds on an otherwise clean document
+- [x] The core comparator is unit-tested against fabricated shell facts with no filesystem access, proving the purity boundary holds
+- [x] `run_check` over MCP lists both rules under `skipped` with a reason, rather than reporting a false pass
 
 ## Receipts
 
-(none yet)
+- 2026-08-27 — 624df3c — packages/core/src/skills.ts, packages/core/src/types.ts, packages/core/src/report.ts, packages/core/src/skills.test.ts, packages/cli/src/skills.ts, packages/cli/src/commands.ts, packages/cli/src/skills.test.ts, packages/mcp/src/check.ts, packages/mcp/src/server.ts, packages/mcp/src/check.test.ts, action/dist/index.js, veri/decisions/DEC-138-shell-facts-are-an-optional-host-input-and-an-orphan-is-anch.md — the pure comparator beside the emitter, the CLI's shell-facts collector on the collectGitFacts pattern, and the tier reported as skipped over MCP; 19 new tests, full suite 911 green, check 0 issues and no new advisories
