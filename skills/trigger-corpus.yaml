@@ -289,8 +289,10 @@ cases:
     expect: veri:health
     kind: coverage
     rationale: >-
-      Decay that check's hard rules do not catch: arrived revisit conditions
-      and abandoned claims are both health's listed sweeps.
+      Both halves are health's listed sweeps, and they sit either side of the
+      line MET-009 draws: an arrived revisit condition is judgment no rule
+      computes, while an abandoned claim already has a stale-claim advisory —
+      what health adds there is triage, not detection.
   - id: TC-022
     utterance: "A new engineer starts Monday — get them up to speed on how this project actually works."
     expect: veri:onboard
