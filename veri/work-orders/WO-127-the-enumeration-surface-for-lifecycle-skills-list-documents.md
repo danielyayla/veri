@@ -2,7 +2,7 @@
 id: WO-127
 type: work-order
 title: "The enumeration surface for lifecycle skills: list_documents and the dispatch queue over MCP"
-status: in-progress
+status: done
 claimed_by: opus-wo127
 claimed_at: 2026-08-27
 approved: 2026-08-27
@@ -47,13 +47,20 @@ Two read-only MCP tools that let a skill orient without shelling out to the CLI 
 
 ## Acceptance tests
 
-- [ ] `list_documents` with no filters returns every non-withdrawn document; each filter narrows as specified and combines with the others
-- [ ] `list_documents({status: 'draft'})` and `{status: 'proposed'}` together enumerate exactly the set `isPending` identifies
-- [ ] `get_queue` returns ready work orders in the same order `veri next` prints, with the head first
-- [ ] `get_queue` reports in-progress work orders with their claim holder and claim date
-- [ ] Both tools refuse unknown parameter keys
-- [ ] `veri check` passes with zero violations
+- [x] `list_documents` with no filters returns every non-withdrawn document; each filter narrows as specified and combines with the others
+- [x] `list_documents({status: 'draft'})` and `{status: 'proposed'}` together enumerate exactly the set `isPending` identifies
+- [x] `get_queue` returns ready work orders in the same order `veri next` prints, with the head first
+- [x] `get_queue` reports in-progress work orders with their claim holder and claim date
+- [x] Both tools refuse unknown parameter keys
+- [x] `veri check` passes with zero violations
 
 ## Receipts
 
-(none yet)
+- 2026-08-27 · 2d83c13 · packages/mcp/src/enumerate.ts,
+  packages/mcp/src/enumerate.test.ts, packages/mcp/src/server.ts,
+  packages/mcp/src/server.e2e.test.ts,
+  veri/decisions/DEC-131-the-enumeration-surface-answers-as-ranked-free-text-lines-wi.md
+  — list_documents and get_queue land as one MCP read module over core's
+  isPending/isWithdrawn/nextDispatchable, registered with strict schemas;
+  13 colocated tests plus wire coverage, and DEC-131 files the shape
+  choices as a proposal.
