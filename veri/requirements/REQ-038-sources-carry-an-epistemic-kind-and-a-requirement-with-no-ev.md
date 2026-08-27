@@ -2,7 +2,8 @@
 id: REQ-038
 type: requirement
 title: "Sources carry an epistemic kind, and a requirement with no evidence is a visible intuition-only bet"
-status: draft
+status: accepted
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:

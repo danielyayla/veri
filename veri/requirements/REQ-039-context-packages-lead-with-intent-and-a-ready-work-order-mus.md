@@ -2,7 +2,8 @@
 id: REQ-039
 type: requirement
 title: "Context packages lead with intent, and a ready work order must trace to a live requirement"
-status: draft
+status: accepted
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:

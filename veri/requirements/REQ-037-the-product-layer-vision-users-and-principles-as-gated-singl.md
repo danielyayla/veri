@@ -2,7 +2,8 @@
 id: REQ-037
 type: requirement
 title: "The product layer: vision, users, and principles as gated singleton documents; bets and outcomes derived, never authored"
-status: draft
+status: accepted
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:
