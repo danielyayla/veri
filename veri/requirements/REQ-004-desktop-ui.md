@@ -3,9 +3,9 @@ id: REQ-004
 type: requirement
 title: Desktop UI for browsing and editing the knowledge base
 status: accepted
-approved: 2026-08-19
+approved: 2026-08-27
 created: 2026-08-07
-updated: 2026-08-19
+updated: 2026-08-27
 links:
   - id: REQ-001
     rel: depends-on
@@ -22,26 +22,26 @@ MCP server read. The UI is a viewer/editor for the knowledge base — files
 remain the source of truth per [[DEC-002]]; the UI never holds state the
 files don't. Everything works offline with no accounts.
 
-Two screens, per the design reference in [[SRC-001]] as amended by
-[[SRC-023]] (the Decision log screen is retired; its chronological feed,
-status signals, and supersession pointers live on in the Decisions type
-panel, the documents themselves, and hover previews), [[SRC-024]]
-(the Graph screen is retired; the graph lives on the document surface
-instead — a local 1-hop neighborhood map at the top of the Connections
-panel, not a screen), [[SRC-025]] (the Board screen is retired; its
-status columns live on as status subgroups in the Work Orders type
-panel's living list, with done behind the panel's expander), and
-[[SRC-047]] (the board returns as the ▤ Board view tab — a
-four-column kanban over the [[WO-098]] lifecycle, opened from a
-`▤ Board` row atop the Work Orders type panel, DONE windowed behind an
-expander; the collection row stays a panel toggle like every other
-collection, and the panel's subgroups are unchanged), and [[SRC-049]]
-(Architecture is promoted to primary navigation — an always-rendered
-`⌗ Architecture` sidebar view row below the four collections opens the
-existing one-instance Architecture tab, the view's empty-state card
-serving projects with no module registry; the Home ARCHITECTURE card,
-⌘K entry, and `architecture ↗` affordances remain, and no collection
-panel gains a promoted row for it, per [[DEC-108]]):
+The shape, per the design reference in [[SRC-001]] and its successor
+design sources:
+
+- **Sidebar** — four collection panels (the type-grouped doc tree). The
+  Work Orders panel groups its living list into status subgroups with
+  done behind an expander ([[SRC-025]]), and carries a `▤ Board` row
+  opening the Board view tab: a four-column kanban over the [[WO-098]]
+  lifecycle, DONE windowed behind an expander; the collection row stays
+  a panel toggle like every other collection ([[SRC-047]]). Below the
+  collections, an always-rendered `⌗ Architecture` view row opens the
+  one-instance Architecture tab, its empty-state card serving projects
+  with no module registry; no collection panel carries a promoted row
+  for it ([[SRC-049]], [[DEC-108]]).
+- **No dedicated Decision log or Graph screens** — the decisions
+  chronology, status signals, and supersession pointers live in the
+  Decisions panel, the documents themselves, and hover previews
+  ([[SRC-023]]); the graph lives on the document surface as a local
+  1-hop neighborhood map atop the Connections panel ([[SRC-024]]).
+
+Two screens:
 
 1. **Project home** — three panes: doc tree grouped by type; markdown
    reader with frontmatter rendered as a properties header; Connections
