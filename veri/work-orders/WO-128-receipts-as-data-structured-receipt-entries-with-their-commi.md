@@ -2,7 +2,7 @@
 id: WO-128
 type: work-order
 title: "Receipts as data: structured receipt entries with their commit SHAs over MCP"
-status: in-progress
+status: done
 claimed_by: opus-wo128
 claimed_at: 2026-08-27
 approved: 2026-08-27
@@ -44,12 +44,22 @@ Exposes receipts as structured entries rather than prose ([[REQ-041]] item 3), s
 
 ## Acceptance tests
 
-- [ ] `get_receipts({id: 'WO-126'})` returns that work order's receipts with date, SHA, files, and summary
-- [ ] `get_receipts()` returns receipts for every work order that has them, and omits those that have none
-- [ ] An unknown or non-work-order id returns an empty result, not an error
-- [ ] The tool spawns no subprocess and performs no git access
-- [ ] `veri check` passes with zero violations
+- [x] `get_receipts({id: 'WO-126'})` returns that work order's receipts with date, SHA, files, and summary
+- [x] `get_receipts()` returns receipts for every work order that has them, and omits those that have none
+- [x] An unknown or non-work-order id returns an empty result, not an error
+- [x] The tool spawns no subprocess and performs no git access
+- [x] `veri check` passes with zero violations
 
 ## Receipts
 
-(none yet)
+- 2026-08-27 — 1b3f5b3 — packages/mcp/src/receipts.ts,
+  packages/mcp/src/receipts.test.ts, packages/mcp/src/server.ts,
+  packages/mcp/src/server.e2e.test.ts, packages/core/src/provenance.ts,
+  packages/core/src/provenance.test.ts, action/dist/index.js,
+  veri/decisions/DEC-132-one-receipt-parser-core-s-parsereceipts-gains-the-date-and-s.md
+  — get_receipts lands as one MCP read module over core's parseReceipts,
+  which now returns the date and summary it was already splitting and
+  discarding; strict schema, DEC-131's line shape, SHAs reported as filed
+  with no git anywhere; 10 colocated tests plus wire coverage, 826 tests
+  green across the monorepo, check 0 issues and no new advisories, and
+  DEC-132 files the shape choices as a proposal.
