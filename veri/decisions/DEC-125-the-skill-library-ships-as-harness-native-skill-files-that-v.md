@@ -2,7 +2,8 @@
 id: DEC-125
 type: decision
 title: "The skill library ships as harness-native skill files that Veri scaffolds, with the coaching method held in Veri documents"
-status: proposed
+status: active
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:

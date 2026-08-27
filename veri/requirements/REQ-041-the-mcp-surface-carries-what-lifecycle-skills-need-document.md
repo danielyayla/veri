@@ -2,7 +2,8 @@
 id: REQ-041
 type: requirement
 title: "The MCP surface carries what lifecycle skills need: document listing, queue introspection, structured receipts, relay approval"
-status: draft
+status: accepted
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:

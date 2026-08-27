@@ -2,7 +2,8 @@
 id: REQ-040
 type: requirement
 title: "Veri ships a skill library that coaches users through the lifecycle loop, not just the commands"
-status: draft
+status: accepted
+approved: 2026-08-27
 kind: hypothesis
 outcome:
   metric: skill-operated project graph health — share of requirements with evidence links, decisions with recorded alternatives, and hypotheses with outcome sources, plus continued skill use after first invocation
