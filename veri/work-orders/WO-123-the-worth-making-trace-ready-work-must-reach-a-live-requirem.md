@@ -2,7 +2,7 @@
 id: WO-123
 type: work-order
 title: "The worth-making trace: ready work must reach a live requirement"
-status: in-progress
+status: done
 claimed_by: fable-wo123
 claimed_at: 2026-08-27
 approved: 2026-08-27
@@ -42,12 +42,12 @@ links:
 
 ## Acceptance tests
 
-- [ ] A ready WO linked only to a withdrawn requirement fails `veri check`
-- [ ] A ready WO reaching a live requirement transitively (e.g. via a DEC) passes
-- [ ] A backlog WO with no links passes
-- [ ] Existing repo state passes, or every failure was shown to the user first
-- [ ] Zero `veri check` violations repo-wide
+- [x] A ready WO linked only to a withdrawn requirement fails `veri check`
+- [x] A ready WO reaching a live requirement transitively (e.g. via a DEC) passes
+- [x] A backlog WO with no links passes
+- [x] Existing repo state passes, or every failure was shown to the user first
+- [x] Zero `veri check` violations repo-wide
 
 ## Receipts
 
-(none yet)
+- 2026-08-27 — d138faa — packages/core/src (types, check, approve + check.test, approve.test), [[DEC-123]] — the worth-making trace lands: breadth-first outbound traversal, orphan-wo for ready/in-progress work whose requirement links all lead out of play, prospective refusal in veri approve, backlog/done exempt, no-link case left to wo-without-requirement. Audit: zero existing work orders fail at landing; full workspace suite green (300 core tests, 792 total).
