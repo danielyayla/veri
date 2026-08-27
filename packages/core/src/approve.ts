@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadProject } from './load.ts';
-import { checkProject, maintainerRegistry } from './check.ts';
+import { checkProject, maintainerRegistry, tracesToLiveRequirement } from './check.ts';
 import { isPending } from './pending.ts';
 import { parseDocument } from './parse.ts';
 import { localToday } from './dates.ts';
@@ -102,6 +102,14 @@ export async function approveDocument(
           `refusing to ready ${wanted} — it depends on ${target.id}, which is still ${target.status} — approve it first (veri approve ${target.id})`,
         );
       }
+    }
+    // The worth-making trace (REQ-039, WO-123): ready means dispatchable,
+    // and dispatch clearance over only retired or withdrawn requirements
+    // would fail the orphan check the moment the stamp landed.
+    if (!tracesToLiveRequirement(load.documents, doc)) {
+      throw new Error(
+        `refusing to ready ${wanted} — it traces to no live requirement; every requirement it reaches is retired or withdrawn (REQ-039)`,
+      );
     }
   }
 

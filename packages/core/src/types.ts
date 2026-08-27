@@ -152,6 +152,12 @@ export type Issue =
       message: string;
     }
   | { kind: 'wo-without-requirement'; file: string; id: string; message: string }
+  // The worth-making trace (REQ-039, WO-123): a ready or in-progress work
+  // order that reaches no live requirement through its link graph is orphan
+  // execution — work nothing current asks for. Backlog is exempt (sketching
+  // is free; readiness is the gate) and done is history, never re-judged
+  // when a requirement later retires.
+  | { kind: 'orphan-wo'; file: string; id: string; message: string }
   // Claim semantics (WO-099): in-progress asserts a session holds the work,
   // and the claim is how it says which one — absence is unaccounted work.
   | { kind: 'unclaimed-wo'; file: string; id: string; message: string }

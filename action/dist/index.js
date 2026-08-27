@@ -12454,6 +12454,43 @@ function checkWorkOrderRequirements(documents) {
   }
   return issues;
 }
+function tracesToLiveRequirement(documents, start) {
+  const byId = new Map(documents.map((doc) => [doc.id, doc]));
+  const queue = start.links.map((link) => link.id);
+  const seen = /* @__PURE__ */ new Set();
+  while (queue.length > 0) {
+    const id = queue.shift();
+    if (seen.has(id))
+      continue;
+    seen.add(id);
+    const doc = byId.get(id);
+    if (doc === void 0 || isWithdrawn(doc))
+      continue;
+    if (doc.type === "requirement" && doc.status !== "retired")
+      return true;
+    for (const link of doc.links)
+      queue.push(link.id);
+  }
+  return false;
+}
+function checkOrphanWorkOrders(documents) {
+  const issues = [];
+  for (const doc of documents) {
+    if (doc.type !== "work-order" || doc.status !== "ready" && doc.status !== "in-progress")
+      continue;
+    if (!doc.links.some((link) => link.id.startsWith("REQ-")))
+      continue;
+    if (tracesToLiveRequirement(documents, doc))
+      continue;
+    issues.push({
+      kind: "orphan-wo",
+      file: doc.file,
+      id: doc.id,
+      message: `work order ${doc.id} is ${doc.status} but traces to no live requirement \u2014 orphan execution; link what it implements, or take it out of play (REQ-039)`
+    });
+  }
+  return issues;
+}
 function checkGatedWorkOrders(documents) {
   const byId = new Map(documents.map((doc) => [doc.id, doc]));
   const issues = [];
@@ -12961,6 +12998,7 @@ function checkProject(load) {
       ...checkDuplicateIds(load.documents),
       ...checkBrokenLinks(load.documents),
       ...checkWorkOrderRequirements(load.documents),
+      ...checkOrphanWorkOrders(load.documents),
       ...checkStampedBacklog(load.documents),
       ...checkHypothesisOutcomes(load.documents),
       ...checkOutcomeLinks(load.documents),

@@ -233,3 +233,12 @@ test('approving a draft product singleton makes it accepted with the stamp (REQ-
   assert.match(after, /^status: accepted$/m);
   assert.match(after, /^approved: 2026-08-10$/m);
 });
+
+test('approving a work order whose only requirements are dead is refused (REQ-039, WO-123)', async (t) => {
+  const dir = sandbox(t);
+  await approveDocument(dir, 'REQ-001', '2026-08-25');
+  // Retire the only linked requirement: the trace now reaches nothing live.
+  const reqFile = join(dir, 'requirements/REQ-001-clean-draft.md');
+  writeFileSync(reqFile, readFileSync(reqFile, 'utf8').replace('status: accepted', 'status: retired'));
+  await assert.rejects(() => approveDocument(dir, 'WO-001'), /refusing to ready WO-001 — it traces to no live requirement/);
+});

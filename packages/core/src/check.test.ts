@@ -10,6 +10,7 @@ import {
   checkDesignGateDiff,
   checkDesignGateMentions,
   checkIntuitionOnly,
+  checkOrphanWorkOrders,
   checkProductFiles,
   checkProject,
   checkSharedClaims,
@@ -955,4 +956,78 @@ test('intuition-only: an accepted requirement with no evidence advises; derived-
   assert.deepEqual(checkIntuitionOnly([reqDoc('REQ-002', 'draft')]), []);
   assert.deepEqual(checkIntuitionOnly([reqDoc('REQ-003', 'retired')]), []);
   assert.deepEqual(checkIntuitionOnly([reqDoc('REQ-004', 'withdrawn')]), []);
+});
+
+// --- The worth-making trace (REQ-039, WO-123) ---
+
+function linkedWo(id: string, status: string, links: Array<{ id: string; rel: string }>): VeriDocument {
+  const wo = claimedWo(id, status, status === 'in-progress' ? { by: 's', at: '2026-08-01' } : {});
+  wo.links = links;
+  return wo;
+}
+
+function decDoc(id: string, links: Array<{ id: string; rel: string }> = []): VeriDocument {
+  return {
+    id,
+    type: 'decision',
+    title: `D ${id}`,
+    status: 'active',
+    created: '2026-08-01',
+    updated: '2026-08-01',
+    links,
+    frontmatter: {},
+    body: 'Chosen.\n',
+    file: `decisions/${id}-d.md`,
+    inlineRefs: [],
+  };
+}
+
+test('orphan work orders: ready work reaching only dead requirements fails; a transitive live trace passes', () => {
+  const live = reqDoc('REQ-001', 'accepted');
+  const retired = reqDoc('REQ-002', 'retired');
+  const gone = reqDoc('REQ-003', 'withdrawn');
+
+  // Only-dead trace: orphan execution.
+  const orphan = linkedWo('WO-001', 'ready', [{ id: 'REQ-002', rel: 'implements' }]);
+  const issues = checkOrphanWorkOrders([orphan, retired, live]);
+  assert.equal(issues.length, 1);
+  assert.partialDeepStrictEqual(issues[0], { kind: 'orphan-wo', id: 'WO-001', file: 'work-orders/WO-001-t.md' });
+
+  // A direct live link passes; so does in-progress with one.
+  assert.deepEqual(checkOrphanWorkOrders([linkedWo('WO-002', 'ready', [{ id: 'REQ-001', rel: 'implements' }]), live]), []);
+  assert.deepEqual(checkOrphanWorkOrders([linkedWo('WO-003', 'in-progress', [{ id: 'REQ-001', rel: 'implements' }]), live]), []);
+
+  // Transitive: WO → dead REQ, but also WO → DEC → live REQ.
+  const dec = decDoc('DEC-001', [{ id: 'REQ-001', rel: 'implements' }]);
+  const viaDec = linkedWo('WO-004', 'ready', [
+    { id: 'REQ-002', rel: 'implements' },
+    { id: 'DEC-001', rel: 'constrained-by' },
+  ]);
+  assert.deepEqual(checkOrphanWorkOrders([viaDec, dec, retired, live]), []);
+
+  // A retired requirement's links still carry the trace to its successor.
+  const retiredWithSuccessor = reqDoc('REQ-002', 'retired', [{ id: 'REQ-001', rel: 'superseded-by' }]);
+  const viaRetired = linkedWo('WO-005', 'ready', [{ id: 'REQ-002', rel: 'implements' }]);
+  assert.deepEqual(checkOrphanWorkOrders([viaRetired, retiredWithSuccessor, live]), []);
+
+  // A withdrawn document neither satisfies nor extends it.
+  const viaGone = linkedWo('WO-006', 'ready', [{ id: 'REQ-003', rel: 'implements' }]);
+  assert.equal(checkOrphanWorkOrders([viaGone, gone]).length, 1);
+
+  // Backlog sketches freely; done is history, never re-judged.
+  assert.deepEqual(checkOrphanWorkOrders([linkedWo('WO-007', 'backlog', []), retired]), []);
+  assert.deepEqual(checkOrphanWorkOrders([linkedWo('WO-008', 'done', [{ id: 'REQ-002', rel: 'implements' }]), retired]), []);
+
+  // A cycle with no live requirement terminates and flags.
+  const decA = decDoc('DEC-002', [{ id: 'DEC-003', rel: 'relates-to' }]);
+  const decB = decDoc('DEC-003', [{ id: 'DEC-002', rel: 'relates-to' }]);
+  const cyclic = linkedWo('WO-009', 'ready', [
+    { id: 'REQ-002', rel: 'implements' },
+    { id: 'DEC-002', rel: 'constrained-by' },
+  ]);
+  assert.equal(checkOrphanWorkOrders([cyclic, decA, decB, retired]).length, 1);
+
+  // The no-link case belongs to wo-without-requirement — orphan-wo stays
+  // silent so one root cause yields one issue.
+  assert.deepEqual(checkOrphanWorkOrders([linkedWo('WO-010', 'ready', [{ id: 'DEC-002', rel: 'constrained-by' }]), decA, decB]), []);
 });

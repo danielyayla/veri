@@ -99,6 +99,56 @@ export function checkWorkOrderRequirements(documents: VeriDocument[]): Issue[] {
   return issues;
 }
 
+/**
+ * The worth-making trace (REQ-039, WO-123): does this document's link graph
+ * reach a live requirement — one neither withdrawn nor retired? Breadth-
+ * first over outbound frontmatter links; withdrawn documents neither
+ * satisfy nor extend the trace, while a retired requirement's links still
+ * carry it (a retirement often names its successor). Cycle-safe via the
+ * visited set. Draft requirements count as live — pending targets are the
+ * gated-wo check's business, not this one's.
+ */
+export function tracesToLiveRequirement(documents: VeriDocument[], start: VeriDocument): boolean {
+  const byId = new Map(documents.map((doc) => [doc.id, doc]));
+  const queue = start.links.map((link) => link.id);
+  const seen = new Set<string>();
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const doc = byId.get(id);
+    if (doc === undefined || isWithdrawn(doc)) continue;
+    if (doc.type === 'requirement' && doc.status !== 'retired') return true;
+    for (const link of doc.links) queue.push(link.id);
+  }
+  return false;
+}
+
+/**
+ * Orphan execution (REQ-039, WO-123): a ready or in-progress work order
+ * whose links reach no live requirement. The direct-link rule
+ * (wo-without-requirement) already demands *a* requirement and owns the
+ * no-link case; this one takes over where a link exists but everything it
+ * reaches has left play — enforcing the work order's definition as the
+ * smallest bounded product change currently believed worth making, not a
+ * ticket outliving its reason. One root cause, one issue.
+ */
+export function checkOrphanWorkOrders(documents: VeriDocument[]): Issue[] {
+  const issues: Issue[] = [];
+  for (const doc of documents) {
+    if (doc.type !== 'work-order' || (doc.status !== 'ready' && doc.status !== 'in-progress')) continue;
+    if (!doc.links.some((link) => link.id.startsWith('REQ-'))) continue; // wo-without-requirement's case
+    if (tracesToLiveRequirement(documents, doc)) continue;
+    issues.push({
+      kind: 'orphan-wo',
+      file: doc.file,
+      id: doc.id,
+      message: `work order ${doc.id} is ${doc.status} but traces to no live requirement — orphan execution; link what it implements, or take it out of play (REQ-039)`,
+    });
+  }
+  return issues;
+}
+
 // The gate is on starting work, not on planning: backlog work orders may cite
 // pending documents so a proposal and its work orders review as one package.
 export function checkGatedWorkOrders(documents: VeriDocument[]): Issue[] {
@@ -834,6 +884,7 @@ export function checkProject(load: LoadResult): CheckResult {
       ...checkDuplicateIds(load.documents),
       ...checkBrokenLinks(load.documents),
       ...checkWorkOrderRequirements(load.documents),
+      ...checkOrphanWorkOrders(load.documents),
       ...checkStampedBacklog(load.documents),
       ...checkHypothesisOutcomes(load.documents),
       ...checkOutcomeLinks(load.documents),
