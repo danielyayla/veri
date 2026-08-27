@@ -7,6 +7,23 @@ to `v<packages/ui version>` is an app release; any other `v*` tag (the
 action's `v1`, `v1.0.0`, …) passes through green with a notice and
 builds nothing.
 
+## Before any release: the format-bump check
+
+- [ ] A document-schema addition an older reader would misparse — a
+  new status value, a new member of a validated enum, or a new
+  required field — ships with a `CURRENT_FORMAT` bump
+  (`packages/core/src/format.ts`) and its migration step in the same
+  change. New *optional* keys are exempt: schemas are passthrough, so
+  an old reader preserves unknown frontmatter untouched (REQ-001).
+  The failure mode the bump prevents: an old reader does not error on
+  frontmatter it can't validate — it silently drops the document from
+  its set, then misreports every `[[reference]]` to it as a broken
+  link (this is how the installed 0.2.1 app reported "no document has
+  that id" for work orders WO-098 had marked `ready`). The bump turns
+  that silent corruption into a clear refusal: the plain-text
+  `veri/format` marker (DEC-030) makes any newer-format project state
+  "update Veri to open it" instead of half-loading (REQ-015).
+
 ## App release
 
 The app version has one source: `packages/ui/package.json`
