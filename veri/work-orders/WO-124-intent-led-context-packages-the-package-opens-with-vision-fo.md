@@ -2,7 +2,10 @@
 id: WO-124
 type: work-order
 title: "Intent-led context packages: the package opens with vision, focus, and the bet"
-status: backlog
+status: in-progress
+claimed_by: fable-wo124
+claimed_at: 2026-08-27
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:
