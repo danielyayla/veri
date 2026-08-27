@@ -7412,6 +7412,14 @@ function isPending(doc) {
 function isWithdrawn(doc) {
   return doc.status === "withdrawn";
 }
+function requirementKind(doc) {
+  return doc.kind ?? "constraint";
+}
+var OUTCOME_RELS = ["tests", "supports", "refutes"];
+function isOutcomeRel(rel) {
+  return OUTCOME_RELS.includes(rel);
+}
+var OUTCOME_OF_REL = "outcome-of";
 
 // ../../node_modules/zod/v3/external.js
 var external_exports = {};
@@ -11470,12 +11478,19 @@ var baseFields = {
 };
 var approvedByField = external_exports.string().min(1).optional();
 var WITHDRAWN = "withdrawn";
+var requirementKindField = external_exports.enum(["constraint", "hypothesis"]).optional();
+var outcomeSchema = external_exports.object({
+  metric: external_exports.string().min(1),
+  target: external_exports.union([external_exports.string().min(1), external_exports.number()])
+}).passthrough();
 var requirementSchema = external_exports.object({
   ...baseFields,
   type: external_exports.literal("requirement"),
   status: external_exports.enum(["draft", "accepted", "retired", WITHDRAWN]),
   approved: dateField.optional(),
-  approved_by: approvedByField
+  approved_by: approvedByField,
+  kind: requirementKindField,
+  outcome: outcomeSchema.optional()
 }).passthrough();
 var moduleRef = external_exports.union([external_exports.string().min(1), external_exports.array(external_exports.string().min(1)).min(1)]);
 var severityField = external_exports.enum(["advisory", "error"]).optional();
@@ -11602,6 +11617,12 @@ function parseDocument(file, content) {
     links: fm.links.map(({ id, rel }) => ({ id, rel })),
     ...fm.type === "decision" && fm.superseded_by !== void 0 ? { supersededBy: fm.superseded_by } : {},
     ...fm.type === "work-order" && fm.binds !== void 0 ? { binds: { paths: fm.binds.paths, tests: fm.binds.tests } } : {},
+    // REQ-032 (WO-114): a requirement's declared kind and outcome. `kind`
+    // stays absent when undeclared — "absent means constraint" is the
+    // readers' rule (requirementKind), so round-tripping never invents a
+    // field the file does not have. Outcome targets normalize to strings.
+    ...fm.type === "requirement" && fm.kind !== void 0 ? { kind: fm.kind } : {},
+    ...fm.type === "requirement" && fm.outcome !== void 0 ? { outcome: { metric: fm.outcome.metric, target: String(fm.outcome.target) } } : {},
     ...fm.type === "work-order" && fm.claimed_by !== void 0 ? { claimedBy: fm.claimed_by } : {},
     ...fm.type === "work-order" && fm.claimed_at !== void 0 ? { claimedAt: fm.claimed_at } : {},
     ...(fm.type === "requirement" || fm.type === "decision" || fm.type === "workflow" || fm.type === "work-order") && fm.approved !== void 0 ? { approved: fm.approved } : {},
@@ -11821,6 +11842,17 @@ function subjectWorkOrders(subject) {
   if (colon < 0)
     return [];
   return subject.slice(0, colon).match(/WO-\d+/g) ?? [];
+}
+function commitsByWorkOrder(facts) {
+  const byWorkOrder = /* @__PURE__ */ new Map();
+  for (const commit of facts.commits) {
+    for (const id of subjectWorkOrders(commit.subject)) {
+      const commits = byWorkOrder.get(id) ?? [];
+      commits.push(commit);
+      byWorkOrder.set(id, commits);
+    }
+  }
+  return byWorkOrder;
 }
 
 // ../core/dist/binds.js
@@ -12287,6 +12319,27 @@ function getTemplate(veriDir, type) {
   }
 }
 
+// ../core/dist/sections.js
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function sectionSpan(content, heading) {
+  const match = new RegExp(`^##[ \\t]+${escapeRegExp(heading)}[ \\t]*$`, "m").exec(content);
+  if (match === null)
+    return null;
+  const afterHeading = match.index + match[0].length;
+  const next = content.slice(afterHeading).search(/^##\s/m);
+  return { start: match.index, afterHeading, end: next >= 0 ? afterHeading + next : content.length };
+}
+function sectionText(content, heading) {
+  const span = sectionSpan(content, heading);
+  return span === null ? null : content.slice(span.afterHeading, span.end).replace(/^\r?\n/, "");
+}
+function withoutSection(content, heading) {
+  const span = sectionSpan(content, heading);
+  return span === null ? content : content.slice(0, span.start) + content.slice(span.end);
+}
+
 // ../core/dist/check.js
 function checkDuplicateIds(documents) {
   const filesById = /* @__PURE__ */ new Map();
@@ -12389,6 +12442,20 @@ function checkGatedWorkOrders(documents) {
   }
   return issues;
 }
+function checkStampedBacklog(documents) {
+  const issues = [];
+  for (const doc of documents) {
+    if (doc.type !== "work-order" || doc.status !== "backlog" || doc.approved === void 0)
+      continue;
+    issues.push({
+      kind: "stamped-backlog",
+      file: doc.file,
+      id: doc.id,
+      message: `work order ${doc.id} is backlog but carries an approved: ${doc.approved} stamp \u2014 it left ready without discarding the record; re-approve it (veri approve ${doc.id}), or remove the approved:/approved_by: lines in the commit that demotes it`
+    });
+  }
+  return issues;
+}
 function checkUnclaimedWorkOrders(documents) {
   const issues = [];
   for (const doc of documents) {
@@ -12404,6 +12471,78 @@ function checkUnclaimedWorkOrders(documents) {
     });
   }
   return issues;
+}
+function checkHypothesisOutcomes(documents) {
+  const issues = [];
+  for (const doc of documents) {
+    if (doc.type !== "requirement" || isWithdrawn(doc))
+      continue;
+    if (requirementKind(doc) !== "hypothesis" || doc.outcome !== void 0)
+      continue;
+    issues.push({
+      kind: "hypothesis-without-outcome",
+      file: doc.file,
+      id: doc.id,
+      message: `requirement ${doc.id} is a hypothesis but declares no outcome \u2014 add outcome: {metric: ..., target: ...} naming what would confirm or refute it`
+    });
+  }
+  return issues;
+}
+function checkOutcomeLinks(documents) {
+  const byId = new Map(documents.map((doc) => [doc.id, doc]));
+  const issues = [];
+  const flag = (doc, link, message) => {
+    issues.push({ kind: "invalid-outcome-link", file: doc.file, id: doc.id, targetId: link.id, rel: link.rel, message });
+  };
+  for (const doc of documents) {
+    for (const link of doc.links) {
+      const outcome = isOutcomeRel(link.rel);
+      if (!outcome && link.rel !== OUTCOME_OF_REL)
+        continue;
+      const target = byId.get(link.id);
+      if (doc.type === "source") {
+        const expected = outcome ? "requirement" : "work-order";
+        if (target !== void 0 && target.type !== expected) {
+          flag(doc, link, `${doc.id} links to ${link.id} (a ${target.type}) with rel "${link.rel}", which must target a ${expected}`);
+        }
+      } else if (outcome && target?.type === "source") {
+        flag(doc, link, `${doc.id} links to source ${link.id} with rel "${link.rel}" \u2014 an outcome link points the other way: the source links the requirement it ${link.rel} (REQ-033)`);
+      } else if (!outcome) {
+        flag(doc, link, `${doc.id} links to ${link.id} with rel "outcome-of", which belongs to sources \u2014 evidence enters as a SRC linked to the work order that shipped it (REQ-033)`);
+      }
+    }
+  }
+  return issues;
+}
+function checkUntestedBets(documents) {
+  const advisories = [];
+  const tested = /* @__PURE__ */ new Set();
+  for (const doc of documents) {
+    if (doc.type !== "source" || isWithdrawn(doc))
+      continue;
+    for (const link of doc.links)
+      if (isOutcomeRel(link.rel))
+        tested.add(link.id);
+  }
+  const workOrders = documents.filter((doc) => doc.type === "work-order" && !isWithdrawn(doc));
+  for (const doc of documents) {
+    if (doc.type !== "requirement" || isWithdrawn(doc) || doc.status === "retired")
+      continue;
+    if (requirementKind(doc) !== "hypothesis" || tested.has(doc.id))
+      continue;
+    const linked = workOrders.filter((wo) => wo.links.some((link) => link.id === doc.id) || doc.links.some((link) => link.id === wo.id)).sort((a, b) => compareIds(a.id, b.id));
+    if (linked.length === 0 || !linked.every((wo) => wo.status === "done"))
+      continue;
+    const ids = linked.map((wo) => wo.id);
+    advisories.push({
+      kind: "untested-bet",
+      file: doc.file,
+      id: doc.id,
+      workOrderIds: ids,
+      message: `${doc.id} is a hypothesis and its work ${ids.length === 1 ? "order" : "orders"} (${ids.join(", ")}) ${ids.length === 1 ? "is" : "are all"} done, but no outcome source reports what reality said \u2014 an untested bet; file the evidence as a SRC linked ${OUTCOME_RELS.join("/")} to ${doc.id}`
+    });
+  }
+  return advisories;
 }
 function chained(a, b) {
   return a.links.some((link) => link.id === b.id) || b.links.some((link) => link.id === a.id) || a.inlineRefs.includes(b.id) || b.inlineRefs.includes(a.id);
@@ -12462,29 +12601,104 @@ function checkStaleClaims(documents, today, windowDays) {
   }
   return advisories;
 }
+function designGatePaths(documents) {
+  return documents.filter((doc) => doc.type === "workflow" && doc.status !== "retired").flatMap((doc) => doc.frontmatter["design_gate_paths"] ?? []);
+}
+function designGateApplies(doc) {
+  return doc.type === "work-order" && doc.status !== "backlog" && !isWithdrawn(doc);
+}
+function hasDesign(doc, ids) {
+  return doc.links.some((link) => link.rel === "designed-by" && ids.has(link.id));
+}
+function bindsClaimGatedPath(patterns, gatePath) {
+  const gate = gatePath.replace(/\/+$/, "");
+  if (gate === "")
+    return false;
+  return patterns.some((pattern) => pattern.includes(gate) || pathMatchesBinds(gate, [pattern]));
+}
+function fileUnderGatePath(file, gatePath) {
+  const gate = gatePath.replace(/\/+$/, "");
+  return gate !== "" && (file === gate || file.startsWith(`${gate}/`));
+}
 function checkDesignGate(documents) {
-  const paths = documents.filter((doc) => doc.type === "workflow" && doc.status !== "retired").flatMap((doc) => doc.frontmatter["design_gate_paths"] ?? []);
+  const paths = designGatePaths(documents);
   if (paths.length === 0)
     return [];
   const ids = new Set(documents.map((doc) => doc.id));
   const issues = [];
   for (const doc of documents) {
-    if (doc.type !== "work-order" || doc.status === "backlog" || isWithdrawn(doc))
+    if (!designGateApplies(doc))
       continue;
-    const touched = paths.find((path) => doc.body.includes(path));
-    if (touched === void 0)
+    const claimed = paths.find((path) => bindsClaimGatedPath(doc.binds?.paths ?? [], path));
+    if (claimed === void 0)
       continue;
-    const designed = doc.links.some((link) => link.rel === "designed-by" && ids.has(link.id));
-    if (!designed) {
+    if (!hasDesign(doc, ids)) {
       issues.push({
         kind: "ui-wo-without-design",
         file: doc.file,
         id: doc.id,
-        message: `work order ${doc.id} touches design-gated ${touched} but links no designed-by design document \u2014 this project's workflow requires the design first`
+        message: `work order ${doc.id} declares design-gated ${claimed} in binds.paths but links no designed-by design document \u2014 this project's workflow requires the design first`
       });
     }
   }
   return issues;
+}
+function checkDesignGateMentions(documents) {
+  const paths = designGatePaths(documents);
+  if (paths.length === 0)
+    return [];
+  const ids = new Set(documents.map((doc) => doc.id));
+  const advisories = [];
+  for (const doc of documents) {
+    if (!designGateApplies(doc))
+      continue;
+    if ((doc.binds?.paths.length ?? 0) > 0 || hasDesign(doc, ids))
+      continue;
+    const prose = withoutSection(withoutSection(doc.body, "Out of scope"), "Receipts");
+    const mentioned = paths.find((path) => prose.includes(path));
+    if (mentioned === void 0)
+      continue;
+    advisories.push({
+      kind: "design-mention",
+      file: doc.file,
+      id: doc.id,
+      path: mentioned,
+      message: `${doc.id}'s prose names design-gated ${mentioned} but it declares no binds.paths and links no designed-by document \u2014 if the work touches it, declare the path in binds.paths or link the design (evidence: body text only)`
+    });
+  }
+  return advisories;
+}
+function checkDesignGateDiff(documents, facts) {
+  const paths = designGatePaths(documents);
+  if (paths.length === 0)
+    return [];
+  const ids = new Set(documents.map((doc) => doc.id));
+  const byWorkOrder = commitsByWorkOrder(facts);
+  const advisories = [];
+  for (const doc of documents) {
+    if (doc.type !== "work-order" || doc.status !== "in-progress" || isWithdrawn(doc))
+      continue;
+    if (hasDesign(doc, ids))
+      continue;
+    const commits = byWorkOrder.get(doc.id) ?? [];
+    for (const path of paths) {
+      if (bindsClaimGatedPath(doc.binds?.paths ?? [], path))
+        continue;
+      const commit = commits.find((entry) => entry.files.some((file2) => fileUnderGatePath(file2, path)));
+      if (commit === void 0)
+        continue;
+      const file = commit.files.find((entry) => fileUnderGatePath(entry, path));
+      advisories.push({
+        kind: "design-undeclared-touch",
+        file: doc.file,
+        id: doc.id,
+        sha: commit.sha,
+        path,
+        message: `${doc.id}'s commit ${commit.sha.slice(0, 7)} touched design-gated ${file} but the work order neither declares ${path} in binds.paths nor links a designed-by document (evidence: the commit diff)`
+      });
+    }
+  }
+  return advisories;
 }
 function isPromoted(doc) {
   return doc.type === "requirement" && doc.status === "accepted" || doc.type === "decision" && doc.status === "active" || doc.type === "workflow" && doc.status === "accepted" || doc.type === "work-order" && doc.status === "ready";
@@ -12544,12 +12758,7 @@ function checkApprovalStamps(documents) {
 var UNCHECKED_BOX_RE = /^\s*[-*]\s+\[ \]/m;
 var LIST_ITEM_RE = /^\s*[-*]\s+\S/m;
 function receiptsSection(body) {
-  const start = body.search(/^##\s+Receipts\s*$/m);
-  if (start < 0)
-    return null;
-  const afterHeading = body.slice(start).replace(/^.*(\r?\n|$)/, "");
-  const next = afterHeading.search(/^##\s/m);
-  return next >= 0 ? afterHeading.slice(0, next) : afterHeading;
+  return sectionText(body, "Receipts");
 }
 function hasReceipt(body) {
   const section = receiptsSection(body);
@@ -12627,6 +12836,9 @@ function checkProject(load) {
       ...checkDuplicateIds(load.documents),
       ...checkBrokenLinks(load.documents),
       ...checkWorkOrderRequirements(load.documents),
+      ...checkStampedBacklog(load.documents),
+      ...checkHypothesisOutcomes(load.documents),
+      ...checkOutcomeLinks(load.documents),
       ...checkUnclaimedWorkOrders(load.documents),
       ...checkDoneWorkOrders(load.documents),
       ...checkGatedWorkOrders(load.documents),
@@ -12642,7 +12854,9 @@ function checkProject(load) {
       ...checkStructure(load.dir, load.documents),
       ...checkSupersededLinks(load.documents),
       ...checkMissingApprovers(load.documents),
-      ...checkSharedClaims(load.documents)
+      ...checkSharedClaims(load.documents),
+      ...checkUntestedBets(load.documents),
+      ...checkDesignGateMentions(load.documents)
       // Stale claims need a clock (host territory, DEC-076) — deriveFindings
       // adds checkStaleClaims with the host's today.
     ]
@@ -12670,6 +12884,7 @@ function deriveFindings(load, host) {
   if (host.git.kind === "ok") {
     advisories.push(...checkProvenance(load.documents, host.git.facts));
     advisories.push(...checkDrift(load.documents, host.git.facts, host.git.veriPath));
+    advisories.push(...checkDesignGateDiff(load.documents, host.git.facts));
     advisories.push(...checkBindingDrift(load.documents, host.git.facts, {
       veriPath: host.git.veriPath,
       today: host.today,
@@ -12689,6 +12904,10 @@ function deriveFindings(load, host) {
     skips: [
       ...host.git.kind === "ok" ? [] : [`(provenance: skipped \u2014 ${host.git.reason})`],
       ...host.git.kind !== "ok" && bindingClaimants(load.documents).length > 0 ? [`(binding drift: skipped \u2014 ${host.git.reason})`] : [],
+      // The diff tier degrades loudly, never silently (REQ-021): a project
+      // with gated paths and no git facts is told the gate's diff evidence
+      // could not be read.
+      ...host.git.kind !== "ok" && designGatePaths(load.documents).length > 0 ? [`(design gate diff: skipped \u2014 ${host.git.reason})`] : [],
       ...importSkipNotes(host.importFacts?.skipped ?? [])
     ]
   };
