@@ -2,9 +2,10 @@
 id: DEC-118
 type: decision
 title: "The intent home is the existing Home view evolved; derivations are renderer-pure over the snapshot, and the untested flag is the advisory itself"
-status: proposed
+status: active
+approved: 2026-08-27
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 links:
   - id: WO-117
     rel: decided-during

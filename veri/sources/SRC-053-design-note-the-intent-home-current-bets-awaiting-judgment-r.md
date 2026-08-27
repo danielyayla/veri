@@ -23,8 +23,8 @@ links:
 > [[WO-117]], under Daniel's blanket authorization to implement the
 > pivot batch in its entirety — the same authorization and provenance
 > shape as [[SRC-051]] and [[SRC-052]]. Stamped `approved:` on that
-> authorization; the stamp is Daniel's to revoke if the design should
-> have waited.
+> authorization; Daniel reviewed and confirmed the approval on
+> 2026-08-27.
 
 ## The question
 

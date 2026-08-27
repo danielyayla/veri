@@ -2,9 +2,10 @@
 id: DEC-112
 type: decision
 title: "Hypothesis-without-outcome is an issue-tier check rule, not a schema refinement or advisory"
-status: proposed
+status: active
+approved: 2026-08-27
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 ---
 
 ## Choice

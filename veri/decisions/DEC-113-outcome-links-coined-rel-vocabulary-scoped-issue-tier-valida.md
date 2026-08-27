@@ -2,9 +2,10 @@
 id: DEC-113
 type: decision
 title: "Outcome links: coined rel vocabulary, scoped issue-tier validation, and evidence riding its requirement"
-status: proposed
+status: active
+approved: 2026-08-27
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 links:
   - id: REQ-033
     rel: implements

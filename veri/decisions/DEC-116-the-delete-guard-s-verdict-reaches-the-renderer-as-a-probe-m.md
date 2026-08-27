@@ -2,9 +2,10 @@
 id: DEC-116
 type: decision
 title: "The delete guard's verdict reaches the renderer as a probe mode on the delete-doc channel"
-status: proposed
+status: active
+approved: 2026-08-27
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 links:
   - id: WO-110
     rel: decided-during

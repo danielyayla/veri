@@ -20,8 +20,8 @@ links:
 > Drafted 2026-08-26 by an agent session (Claude Code) implementing
 > [[WO-111]], under Daniel's blanket authorization to implement all
 > backlogged work orders (the same authorization cited by the batch
-> approval precedent). Stamped `approved:` on that authorization; the
-> stamp is Daniel's to revoke if the design should have waited.
+> approval precedent). Stamped `approved:` on that authorization;
+> Daniel reviewed and confirmed the approval on 2026-08-27.
 
 ## The question
 

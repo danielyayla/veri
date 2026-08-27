@@ -2,9 +2,10 @@
 id: DEC-114
 type: decision
 title: "The design gate reads declarations pre-flight and diffs post-hoc; mention matching demotes to an advisory"
-status: proposed
+status: active
+approved: 2026-08-27
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 links:
   - id: WO-113
     rel: derived-from

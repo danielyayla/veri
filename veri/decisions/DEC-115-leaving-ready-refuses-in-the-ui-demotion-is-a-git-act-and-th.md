@@ -2,9 +2,10 @@
 id: DEC-115
 type: decision
 title: "Leaving ready refuses in the UI, demotion is a git act, and the stranded stamp is an issue-tier check"
-status: proposed
+status: active
+approved: 2026-08-27
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 links:
   - id: WO-111
     rel: derived-from

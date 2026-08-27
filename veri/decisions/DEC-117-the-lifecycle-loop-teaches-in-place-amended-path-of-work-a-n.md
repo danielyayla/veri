@@ -2,9 +2,10 @@
 id: DEC-117
 type: decision
 title: "The lifecycle loop teaches in place: amended path-of-work, a ninth rule, and the thesis as the headline"
-status: proposed
+status: active
+approved: 2026-08-27
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-08-27
 links:
   - id: REQ-034
     rel: implements
