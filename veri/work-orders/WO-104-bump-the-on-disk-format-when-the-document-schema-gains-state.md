@@ -2,7 +2,9 @@
 id: WO-104
 type: work-order
 title: "Bump the on-disk format when the document schema gains states old readers misread"
-status: ready
+status: in-progress
+claimed_by: claude-wo104-releasing-rule
+claimed_at: 2026-08-27
 approved: 2026-08-27
 created: 2026-08-25
 updated: 2026-08-27
