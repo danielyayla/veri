@@ -37,11 +37,11 @@ Filing DEC-112 (2026-08-26), an agent passed rejected_alternatives to file_decis
 
 ## Acceptance tests
 
-- [ ] e2e: file_decision with an unknown argument key returns an InvalidParams error naming the key; the veri/ tree is untouched
-- [ ] e2e: file_decision with title, choice, rejected_alternatives, rationale lands all three sections in the written document
-- [ ] e2e: tools/list shows additionalProperties: false on every write tool input schema
-- [ ] veri check reports zero issues
+- [x] e2e: file_decision with an unknown argument key returns an InvalidParams error naming the key; the veri/ tree is untouched
+- [x] e2e: file_decision with title, choice, rejected_alternatives, rationale lands all three sections in the written document
+- [x] e2e: tools/list shows additionalProperties: false on every write tool input schema
+- [x] veri check reports zero issues
 
 ## Receipts
 
-(none yet)
+- 2026-08-27 — 7c4ff0f — packages/mcp/src/server.ts, packages/mcp/src/server.e2e.test.ts — Strict schemas on the seven write tools; e2e reproduces the DEC-112 drop and proves refusal + full-section persistence (DEC-119)
