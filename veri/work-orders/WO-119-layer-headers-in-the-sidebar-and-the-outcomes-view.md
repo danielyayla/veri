@@ -2,7 +2,10 @@
 id: WO-119
 type: work-order
 title: "Layer headers in the sidebar and the Outcomes view"
-status: backlog
+status: in-progress
+claimed_by: claude-wo119
+claimed_at: 2026-08-27
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:
@@ -11,10 +14,18 @@ links:
   - id: DEC-111
     rel: constrained-by
   - id: SRC-054
-    rel: derived-from
-# binds:         # code this work order claims (optional)
-#   paths: []    # repo-root-relative globs
-#   tests: []    # test files proving it (path or path::name)
+    rel: designed-by
+binds:
+  paths:
+    - packages/ui/src/renderer/app.ts
+    - packages/ui/src/renderer/tabs.ts
+    - packages/ui/src/renderer/palette.ts
+    - packages/ui/src/renderer/derive.ts
+    - packages/ui/src/renderer/views/outcomes.ts
+    - packages/ui/renderer/styles.css
+  tests:
+    - packages/ui/src/renderer/derive.test.ts
+    - packages/ui/src/renderer/views/outcomes.test.ts
 ---
 
 ## Summary
@@ -41,7 +52,7 @@ Implements REQ-036 per SRC-054's design (Daniel's chosen full variant). The side
 
 - [[REQ-036]] — implements
 - [[DEC-111]] — constrained-by
-- [[SRC-054]] — derived-from
+- [[SRC-054]] — designed-by
 
 ## Acceptance tests
 
