@@ -12,6 +12,6 @@ test("this repository's own veri/ directory yields zero issues", async () => {
   // open-loop advisories are exempt: an untested bet (REQ-033) or a stale
   // focus (REQ-037) is designed to persist until the user judges evidence —
   // a live project legitimately carries them, and only the user closes them.
-  const OPEN_LOOP_KINDS = new Set(['untested-bet', 'stale-focus']);
+  const OPEN_LOOP_KINDS = new Set(['untested-bet', 'stale-focus', 'intuition-only']);
   assert.deepEqual(advisories.filter((advisory) => !OPEN_LOOP_KINDS.has(advisory.kind)), []);
 });

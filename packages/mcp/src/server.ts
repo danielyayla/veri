@@ -2,7 +2,7 @@
 import { join, resolve } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { assembleImportInstructions, classifyFormat, formatStatement, isOperableFormat, loadProject, startWorkOrder } from '@verikb/core';
+import { SOURCE_KINDS, assembleImportInstructions, classifyFormat, formatStatement, isOperableFormat, loadProject, startWorkOrder } from '@verikb/core';
 import { z } from 'zod';
 import { runCheck } from './check.ts';
 import { assembleContext } from './context.ts';
@@ -77,7 +77,7 @@ server.registerTool(
         .slice(0, SEARCH_CAP)
         .map(
           (hit) =>
-            `${hit.id}  ${hit.type}  ${hit.status}  ${hit.title}` +
+            `${hit.id}  ${hit.type}${hit.kind !== undefined ? ` (${hit.kind})` : ''}  ${hit.status}  ${hit.title}` +
             `  [score ${hit.score}${hit.matched.length > 0 ? ` · ${hit.matched.join(',')}` : ''}]`,
         );
       if (hits.length > SEARCH_CAP) lines.unshift(`top ${SEARCH_CAP} of ${hits.length} matches by score:`);
@@ -262,6 +262,10 @@ server.registerTool(
           .array(z.object({ id: z.string(), rel: z.string() }))
           .optional()
           .describe('Related documents, e.g. [{id: "SRC-001", rel: "imported-via"}] for the import manifest'),
+        kind: z
+          .enum(SOURCE_KINDS)
+          .optional()
+          .describe('The evidence class (REQ-038): design, user-feedback, metric, external-eval, investigation, outcome, or reference. Absent means reference.'),
       })
       .strict(),
   },

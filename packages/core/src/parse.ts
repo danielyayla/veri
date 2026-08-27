@@ -58,6 +58,9 @@ export function parseDocument(file: string, content: string): ParseOutcome {
     // readers' rule (requirementKind), so round-tripping never invents a
     // field the file does not have. Outcome targets normalize to strings.
     ...(fm.type === 'requirement' && fm.kind !== undefined ? { kind: fm.kind } : {}),
+    // REQ-038 (WO-122): a source's declared evidence class. Absent stays
+    // absent — "absent means reference" is the readers' rule (sourceKind).
+    ...(fm.type === 'source' && fm.kind !== undefined ? { kind: fm.kind } : {}),
     ...(fm.type === 'requirement' && fm.outcome !== undefined
       ? { outcome: { metric: fm.outcome.metric, target: String(fm.outcome.target) } }
       : {}),

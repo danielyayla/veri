@@ -8,9 +8,9 @@ created: 2026-07-14
 updated: 2026-07-25
 links:
   - id: SRC-001
-    rel: raw-material
+    rel: derived-from
   - id: SRC-002
-    rel: survey-evidence
+    rel: derived-from
 ---
 
 Invoices can be created, edited, and numbered with no network connection.

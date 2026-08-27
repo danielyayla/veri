@@ -1,4 +1,5 @@
 import type { DocType } from './ids.ts';
+import type { SourceKind } from './pending.ts';
 
 export interface Link {
   id: string;
@@ -25,8 +26,10 @@ export interface VeriDocument {
   binds?: { paths: string[]; tests: string[] };
   /** A requirement's epistemic kind (REQ-032, WO-114): `constraint` must be
       satisfied and stay satisfied; `hypothesis` is a bet tested by shipping.
-      Absent means constraint — use `requirementKind` for the effective value. */
-  kind?: 'constraint' | 'hypothesis';
+      Absent means constraint — use `requirementKind` for the effective value.
+      On sources (REQ-038, WO-122) the same field carries the evidence class;
+      absent means reference — use `sourceKind` for the effective value. */
+  kind?: 'constraint' | 'hypothesis' | SourceKind;
   /** What would confirm or refute a hypothesis (REQ-032): a metric and its
       target, normalized to strings. Only on requirements that declare one. */
   outcome?: { metric: string; target: string };
@@ -111,6 +114,13 @@ export type Advisory =
   // present. Advisory by design — a focus statement informs, never gates,
   // and revising it is the user's act.
   | { kind: 'stale-focus'; file: string; id: string; message: string }
+  // The intuition-only bet (REQ-038, WO-122): an accepted requirement with
+  // no derived-from link to any source and no inbound outcome evidence —
+  // legitimate (intuition is a real origin) but visible, the front-side
+  // mirror of untested-bet; drafts are proposals, not yet bets. Together
+  // they bracket a requirement's life: where did this come from, and did
+  // it work. Advisory by design — evidence never gates, it informs.
+  | { kind: 'intuition-only'; file: string; id: string; message: string }
   | { kind: 'design-mention'; file: string; id: string; path: string; message: string }
   | { kind: 'design-undeclared-touch'; file: string; id: string; sha: string; path: string; message: string }
   | {

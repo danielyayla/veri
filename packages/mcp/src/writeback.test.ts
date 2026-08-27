@@ -203,6 +203,22 @@ test('file_source is born imported and rejects unknown link targets', async (t) 
   );
 });
 
+test('file_source persists a declared kind and refuses an unknown one (REQ-038, WO-122)', async (t) => {
+  const root = sandbox(t);
+  const result = await fileSource(root, {
+    title: 'Usability session notes',
+    body: 'Three participants; all missed the approve control.',
+    kind: 'user-feedback',
+  });
+  await assertClean(root);
+  const content = readFileSync(join(root, result.file), 'utf8');
+  assert.match(content, /^kind: user-feedback$/m);
+  const load = await loadProject(join(root, 'veri'));
+  assert.equal(load.documents.find((doc) => doc.id === result.id)?.kind, 'user-feedback');
+
+  await assert.rejects(() => fileSource(root, { title: 'Bad kind', body: 'x', kind: 'vibes' }), /unknown source kind "vibes"/);
+});
+
 test('file_receipt accepts an import manifest but no other source (DEC-068)', async (t) => {
   const root = sandbox(t);
   const manifest = await fileSource(root, { title: 'Import manifest — repo mining', body: 'What was read.' });

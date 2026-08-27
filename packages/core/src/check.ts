@@ -387,6 +387,45 @@ export function checkProductFiles(documents: VeriDocument[]): Issue[] {
   return issues;
 }
 
+/**
+ * The intuition-only bet (REQ-038, WO-122): an accepted requirement with no
+ * `derived-from` link to any existing source and no inbound outcome
+ * evidence. Advisory, never an issue: intuition is a legitimate origin, but
+ * it should be visible until evidence lands or the requirement leaves play.
+ * Drafts are exempt — a proposal is not yet a bet; the gate crossing into
+ * accepted is where the origin question starts to matter. The front-side
+ * mirror of checkUntestedBets.
+ */
+export function checkIntuitionOnly(documents: VeriDocument[]): Advisory[] {
+  const byId = new Map(documents.map((doc) => [doc.id, doc]));
+  // Inbound outcome evidence (REQ-033): a source reporting tests/supports/
+  // refutes on a requirement is evidence too — a tested bet is not an
+  // intuition-only one, whatever its origin links say.
+  const reportedOn = new Set<string>();
+  for (const doc of documents) {
+    if (doc.type !== 'source' || isWithdrawn(doc)) continue;
+    for (const link of doc.links) {
+      if (isOutcomeRel(link.rel)) reportedOn.add(link.id);
+    }
+  }
+  const advisories: Advisory[] = [];
+  for (const doc of documents) {
+    if (doc.type !== 'requirement' || doc.status !== 'accepted') continue;
+    if (reportedOn.has(doc.id)) continue;
+    const hasEvidence = doc.links.some(
+      (link) => link.rel === 'derived-from' && byId.get(link.id)?.type === 'source',
+    );
+    if (hasEvidence) continue;
+    advisories.push({
+      kind: 'intuition-only',
+      file: doc.file,
+      id: doc.id,
+      message: `${doc.id} has no derived-from link to any source — an intuition-only bet; link the evidence it came from, or retire it if reality never asked for it (REQ-038)`,
+    });
+  }
+  return advisories;
+}
+
 /** Days of silence before an accepted current-focus counts as stale
     (REQ-037). Project-tunable as `focus_stale_after_days` on the workflow
     document; a deliberately separate knob from the binding detectors'
@@ -816,6 +855,7 @@ export function checkProject(load: LoadResult): CheckResult {
       ...checkMissingApprovers(load.documents),
       ...checkSharedClaims(load.documents),
       ...checkUntestedBets(load.documents),
+      ...checkIntuitionOnly(load.documents),
       ...checkDesignGateMentions(load.documents),
       // Stale claims need a clock (host territory, DEC-076) — deriveFindings
       // adds checkStaleClaims with the host's today.

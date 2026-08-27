@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildGraph } from './graph.ts';
 import { checkStructure } from './check.ts';
-import { isOutcomeRel, isPending, isWithdrawn, outcomeLabel, requirementKind } from './pending.ts';
+import { isOutcomeRel, isPending, isWithdrawn, outcomeLabel, requirementKind, sourceKind } from './pending.ts';
 import { checkSupersededLinks } from './drift.ts';
 import { DOC_TYPES, compareIds } from './ids.ts';
 import { loadProject } from './load.ts';
@@ -253,7 +253,7 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
         const chars = mode.mode === 'excerpt' ? mode.chars : body.length;
         const excerpt = body.length > chars ? `${body.slice(0, chars)}…` : body;
         const text = `${excerpt}\n`;
-        push(`### ${doc.id} — ${doc.title} · excerpt · ~${estimateTokens(text)} tokens`, text);
+        push(`### ${doc.id} — ${doc.title} · ${sourceKind(doc)} · excerpt · ~${estimateTokens(text)} tokens`, text);
       }
     }
     if (mapped.length > 0) {

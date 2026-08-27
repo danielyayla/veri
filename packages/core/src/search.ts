@@ -48,6 +48,10 @@ export interface PaletteHit {
   /** One-line context around the first body-matched term; null when the
       match is entirely id/title. */
   snippet: string | null;
+  /** The document's declared epistemic kind (REQ-032 requirements, REQ-038
+      sources), when it declares one — surfaces render effective defaults
+      via requirementKind/sourceKind themselves. */
+  kind?: string;
 }
 
 export interface PaletteResult {
@@ -198,7 +202,16 @@ export function rankDocs(documents: VeriDocument[], query: PaletteQuery, recents
     if (score === 0) continue;
     const recency = recents.indexOf(doc.id);
     if (recency >= 0) score += Math.max(0, 12 - recency * 2);
-    hits.push({ id: doc.id, type: doc.type, status: doc.status, title: doc.title, score, matched, snippet });
+    hits.push({
+      id: doc.id,
+      type: doc.type,
+      status: doc.status,
+      title: doc.title,
+      score,
+      matched,
+      snippet,
+      ...(doc.kind !== undefined ? { kind: doc.kind } : {}),
+    });
   }
   return hits.sort((a, b) => b.score - a.score || compareIds(a.id, b.id));
 }

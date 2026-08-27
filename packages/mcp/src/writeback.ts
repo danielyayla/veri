@@ -32,6 +32,8 @@ export interface FileSourceInput {
   title: string;
   body: string;
   links?: Array<{ id: string; rel: string }>;
+  /** The source's epistemic kind (REQ-038); absent means reference. */
+  kind?: string;
 }
 
 export interface FileReceiptInput {
@@ -64,11 +66,13 @@ async function fileDocument(
   title: string,
   sections: string[],
   links: Link[] | undefined,
+  kind?: string,
 ): Promise<{ id: string; file: string }> {
   const veriDir = requireVeriDir(projectRoot);
   const { id, file } = await createDocument(veriDir, type, title, {
     body: `\n${sections.join('\n\n')}\n`,
     links,
+    ...(kind !== undefined ? { kind } : {}),
   });
   return { id, file: `veri/${file}` };
 }
@@ -140,7 +144,7 @@ export async function fileSource(
   projectRoot: string,
   input: FileSourceInput,
 ): Promise<{ id: string; file: string }> {
-  return fileDocument(projectRoot, 'source', input.title, [input.body.trim()], input.links);
+  return fileDocument(projectRoot, 'source', input.title, [input.body.trim()], input.links, input.kind);
 }
 
 /**

@@ -6,7 +6,7 @@ import { nextIdNumber, recordIssuedId, type IdPrefix } from './idstore.ts';
 import { loadProject } from './load.ts';
 import { getTemplate } from './templates.ts';
 import { localToday } from './dates.ts';
-import { PRODUCT_FILES } from './pending.ts';
+import { PRODUCT_FILES, SOURCE_KINDS } from './pending.ts';
 import type { Link } from './types.ts';
 
 /**
@@ -71,6 +71,9 @@ export interface CreateOptions {
   /** Outbound frontmatter links. Every target must exist in the project —
       an unknown id throws before anything is written or any id consumed. */
   links?: Link[];
+  /** A source's epistemic kind (REQ-038, WO-122). Sources only — validated
+      against SOURCE_KINDS so a bad value throws before an id is consumed. */
+  kind?: string;
 }
 
 /**
@@ -99,6 +102,12 @@ export async function createDocument(
   const root = typeof veriDir === 'string' ? veriDir : fileURLToPath(veriDir);
   const date = options.date ?? localToday();
   const links = options.links ?? [];
+  if (options.kind !== undefined) {
+    if (type !== 'source') throw new Error(`kind is a source field (REQ-038) — a ${type} does not take one here`);
+    if (!(SOURCE_KINDS as readonly string[]).includes(options.kind)) {
+      throw new Error(`unknown source kind "${options.kind}" — one of: ${SOURCE_KINDS.join(', ')}`);
+    }
+  }
 
   const { documents } = await loadProject(root);
   const known = new Set(documents.map((doc) => doc.id));
@@ -121,6 +130,7 @@ export async function createDocument(
     `type: ${type}`,
     `title: ${JSON.stringify(trimmed)}`,
     `status: ${INITIAL_STATUS[type]}`,
+    ...(options.kind !== undefined ? [`kind: ${options.kind}`] : []),
     `created: ${date}`,
     `updated: ${date}`,
     ...(links.length > 0 ? ['links:', ...links.flatMap((link) => [`  - id: ${link.id}`, `    rel: ${link.rel}`])] : []),

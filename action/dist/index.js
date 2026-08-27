@@ -7414,13 +7414,14 @@ function isWithdrawn(doc) {
   return doc.status === "withdrawn";
 }
 function requirementKind(doc) {
-  return doc.kind ?? "constraint";
+  return doc.kind === "hypothesis" ? "hypothesis" : "constraint";
 }
 var OUTCOME_RELS = ["tests", "supports", "refutes"];
 function isOutcomeRel(rel) {
   return OUTCOME_RELS.includes(rel);
 }
 var OUTCOME_OF_REL = "outcome-of";
+var SOURCE_KINDS = ["design", "user-feedback", "metric", "external-eval", "investigation", "outcome", "reference"];
 var PRODUCT_FILES = [
   "product/vision.md",
   "product/users.md",
@@ -11542,7 +11543,11 @@ var sourceSchema = external_exports.object({
   ...baseFields,
   type: external_exports.literal("source"),
   status: external_exports.enum(["imported", WITHDRAWN]),
-  original: external_exports.string().min(1).optional()
+  original: external_exports.string().min(1).optional(),
+  // REQ-038 (WO-122): the source's epistemic class. Absent means reference
+  // — additive, never a migration (the REQ-032 pattern). A malformed value
+  // is an invalid-frontmatter issue, never a silently ignored no-op.
+  kind: external_exports.enum(SOURCE_KINDS).optional()
 }).passthrough();
 var workflowSchema = external_exports.object({
   ...baseFields,
@@ -11642,6 +11647,9 @@ function parseDocument(file, content) {
     // readers' rule (requirementKind), so round-tripping never invents a
     // field the file does not have. Outcome targets normalize to strings.
     ...fm.type === "requirement" && fm.kind !== void 0 ? { kind: fm.kind } : {},
+    // REQ-038 (WO-122): a source's declared evidence class. Absent stays
+    // absent — "absent means reference" is the readers' rule (sourceKind).
+    ...fm.type === "source" && fm.kind !== void 0 ? { kind: fm.kind } : {},
     ...fm.type === "requirement" && fm.outcome !== void 0 ? { outcome: { metric: fm.outcome.metric, target: String(fm.outcome.target) } } : {},
     ...fm.type === "work-order" && fm.claimed_by !== void 0 ? { claimedBy: fm.claimed_by } : {},
     ...fm.type === "work-order" && fm.claimed_at !== void 0 ? { claimedAt: fm.claimed_at } : {},
@@ -12650,6 +12658,35 @@ function checkProductFiles(documents) {
   }
   return issues;
 }
+function checkIntuitionOnly(documents) {
+  const byId = new Map(documents.map((doc) => [doc.id, doc]));
+  const reportedOn = /* @__PURE__ */ new Set();
+  for (const doc of documents) {
+    if (doc.type !== "source" || isWithdrawn(doc))
+      continue;
+    for (const link of doc.links) {
+      if (isOutcomeRel(link.rel))
+        reportedOn.add(link.id);
+    }
+  }
+  const advisories = [];
+  for (const doc of documents) {
+    if (doc.type !== "requirement" || doc.status !== "accepted")
+      continue;
+    if (reportedOn.has(doc.id))
+      continue;
+    const hasEvidence = doc.links.some((link) => link.rel === "derived-from" && byId.get(link.id)?.type === "source");
+    if (hasEvidence)
+      continue;
+    advisories.push({
+      kind: "intuition-only",
+      file: doc.file,
+      id: doc.id,
+      message: `${doc.id} has no derived-from link to any source \u2014 an intuition-only bet; link the evidence it came from, or retire it if reality never asked for it (REQ-038)`
+    });
+  }
+  return advisories;
+}
 var DEFAULT_FOCUS_STALE_AFTER_DAYS = 14;
 function focusStaleAfterDays(documents) {
   for (const doc of documents) {
@@ -12945,6 +12982,7 @@ function checkProject(load) {
       ...checkMissingApprovers(load.documents),
       ...checkSharedClaims(load.documents),
       ...checkUntestedBets(load.documents),
+      ...checkIntuitionOnly(load.documents),
       ...checkDesignGateMentions(load.documents)
       // Stale claims need a clock (host territory, DEC-076) — deriveFindings
       // adds checkStaleClaims with the host's today.

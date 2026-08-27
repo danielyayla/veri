@@ -12,7 +12,7 @@ links:
   - id: WO-002
     rel: implementation
   - id: SRC-001
-    rel: cited
+    rel: derived-from
 ---
 
 Invoices must export to print-ready PDF using a user-selectable template.

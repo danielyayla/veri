@@ -36,7 +36,9 @@ test('every document type scaffolds a file that passes veri check untouched', as
   const load = await loadProject(dir);
   assert.equal(load.documents.length, 4);
   // A fresh WO with no linked requirement is fine in backlog; zero issues —
-  // and zero advisories: template-born documents match their own structure (DEC-025).
+  // and zero advisories: template-born documents match their own structure
+  // (DEC-025), and a draft requirement is not yet an intuition-only bet
+  // (REQ-038 flags acceptance without evidence, never drafting).
   assert.deepEqual(checkProject(load), { issues: [], advisories: [] });
 });
 

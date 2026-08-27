@@ -180,10 +180,11 @@ test('init --demo installs skiff; check reports exactly the 2 intended issues', 
 
   const checked = await check(cwd);
   assert.equal(checked.code, 1);
-  // The two intended issues, plus the stale-claim advisories the demo's
-  // frozen claim dates keep permanently in the past (WO-099) — advisories
+  // The two intended issues, plus the advisories the demo keeps on purpose:
+  // stale claims from its frozen claim dates (WO-099) and the two
+  // evidence-less requirements' intuition-only flags (REQ-038) — advisories
   // whisper, so the demo's teaching issues stay exactly two.
-  assert.equal(checked.lines.at(-1), '2 issue(s) · 2 advisories', checked.lines.join('\n'));
+  assert.equal(checked.lines.at(-1), '2 issue(s) · 3 advisories', checked.lines.join('\n'));
   const issues = checked.lines.slice(1, -1).join('\n');
   assert.match(issues, /WO-004/, 'WO-004 must be flagged for its missing requirement');
   assert.match(issues, /SRC-003/, 'REQ-004 must be flagged for its broken SRC-003 link');
@@ -291,14 +292,14 @@ test('check on the five-issues fixture reports exactly 5 issues and exits 1', as
   cpSync(FIVE_ISSUES, cwd, { recursive: true });
   const result = await check(cwd);
   assert.equal(result.code, 1);
-  assert.equal(result.lines.at(-1), '5 issue(s) · 12 advisories', result.lines.join('\n'));
+  assert.equal(result.lines.at(-1), '5 issue(s) · 14 advisories', result.lines.join('\n'));
   // The fixture predates the marker: the leading format line says so.
   assert.match(result.lines[0] ?? '', /^format 0 \(pre-marker/);
   const body = result.lines.slice(1, -1).filter((line) => !line.startsWith('(provenance:'));
   const issueLines = body.filter((line) => !line.startsWith('(advisory) '));
   const advisoryLines = body.filter((line) => line.startsWith('(advisory) '));
   assert.equal(issueLines.length, 5);
-  assert.equal(advisoryLines.length, 12);
+  assert.equal(advisoryLines.length, 14);
   // Advisories print after every issue (DEC-025), each one line with a file.
   assert.deepEqual(body.slice(0, 5), issueLines);
   for (const line of body) {
@@ -363,7 +364,7 @@ test('checkReport is the structured source check renders from (WO-076)', async (
   const report = await checkReport(cwd);
   assert.ok(report !== null);
   assert.equal(report.issues.length, 5);
-  assert.equal(report.advisories.length, 12);
+  assert.equal(report.advisories.length, 14);
   for (const advisory of report.advisories) {
     assert.ok(advisory.kind.length > 0 && advisory.file.endsWith('.md'), `advisory carries kind and file: ${JSON.stringify(advisory)}`);
   }

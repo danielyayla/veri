@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ID_RE, typeOfId } from './ids.ts';
 import type { DocType } from './ids.ts';
+import { SOURCE_KINDS } from './pending.ts';
 
 const idField = z.string().regex(ID_RE, 'must be REQ-, DEC-, WO-, SRC-, WF- or PRD- plus a number of three or more digits (e.g. REQ-001)');
 const dateField = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a YYYY-MM-DD date');
@@ -166,6 +167,10 @@ const sourceSchema = z
     type: z.literal('source'),
     status: z.enum(['imported', WITHDRAWN]),
     original: z.string().min(1).optional(),
+    // REQ-038 (WO-122): the source's epistemic class. Absent means reference
+    // — additive, never a migration (the REQ-032 pattern). A malformed value
+    // is an invalid-frontmatter issue, never a silently ignored no-op.
+    kind: z.enum(SOURCE_KINDS).optional(),
   })
   .passthrough();
 

@@ -37,7 +37,9 @@ export function isWithdrawn(doc: VeriDocument): boolean {
  * implementation through the same dependency-free subpath (DEC-046).
  */
 export function requirementKind(doc: Pick<VeriDocument, 'kind'>): 'constraint' | 'hypothesis' {
-  return doc.kind ?? 'constraint';
+  // The shared `kind` field also carries source kinds (REQ-038); only the
+  // requirement vocabulary is meaningful here — anything else defaults.
+  return doc.kind === 'hypothesis' ? 'hypothesis' : 'constraint';
 }
 
 /** One rendering of an outcome declaration — `metric target` — shared by
@@ -66,6 +68,26 @@ export function isOutcomeRel(rel: string): rel is OutcomeRel {
 /** The rel an outcome source uses toward the work order that shipped the
     change it observed (REQ-033): source → work-order, validated by check. */
 export const OUTCOME_OF_REL = 'outcome-of';
+
+/**
+ * The source kind vocabulary (REQ-038, WO-122): a source's epistemic class,
+ * mirroring what REQ-032 did for requirements. `reference` is the neutral
+ * default for the absent field — chosen so the existing corpus (imported
+ * material of every stripe) needs no migration and no false labels; a
+ * design note is only a `design` source once someone says so.
+ */
+export const SOURCE_KINDS = ['design', 'user-feedback', 'metric', 'external-eval', 'investigation', 'outcome', 'reference'] as const;
+
+export type SourceKind = (typeof SOURCE_KINDS)[number];
+
+/**
+ * A source's effective kind: absent means reference, decided here once so
+ * every reader — CLI, context assembly, the renderer — agrees on the
+ * default (the requirementKind pattern, DEC-046).
+ */
+export function sourceKind(doc: Pick<VeriDocument, 'kind'>): SourceKind {
+  return (SOURCE_KINDS as readonly string[]).includes(doc.kind ?? '') ? (doc.kind as SourceKind) : 'reference';
+}
 
 /**
  * The product layer's sanctioned files (REQ-037, WO-121), veri/-relative:

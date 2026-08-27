@@ -19,7 +19,7 @@ test('get_context("WO-002") on the demo matches the mockup context panel', async
   assert.match(pkg.text, /REQ-002 — PDF export with templates/);
   assert.match(pkg.text, /DEC-005 — Typst for PDF rendering/);
   assert.match(pkg.text, /DEC-002 — Tauri over Electron/);
-  assert.match(pkg.text, /### SRC-001 — Client interview transcript · excerpt/);
+  assert.match(pkg.text, /### SRC-001 — Client interview transcript · reference · excerpt/);
 
   assert.match(pkg.text, /### Already rejected \(superseded — bodies omitted\)/);
   assert.match(pkg.text, /- DEC-003 — Handlebars templates \(superseded by DEC-005\)/);

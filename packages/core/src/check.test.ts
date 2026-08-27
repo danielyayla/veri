@@ -9,6 +9,7 @@ import {
   bindsClaimGatedPath,
   checkDesignGateDiff,
   checkDesignGateMentions,
+  checkIntuitionOnly,
   checkProductFiles,
   checkProject,
   checkSharedClaims,
@@ -20,6 +21,7 @@ import {
   missingSections,
 } from './check.ts';
 import type { GitFacts } from './provenance.ts';
+import { sourceKind } from './pending.ts';
 import type { VeriDocument } from './types.ts';
 
 interface BrokenCase {
@@ -867,4 +869,90 @@ test('a freeform file under product/ fails the load; sanctioned singletons pass 
   const issues = checkProject(load).issues;
   assert.equal(issues.length, 1);
   assert.partialDeepStrictEqual(issues[0], { kind: 'invalid-frontmatter', file: 'product/notes.md' });
+});
+
+// --- Source kinds and the intuition-only bet (REQ-038, WO-122) ---
+
+test('source kinds: a declared kind parses, an unknown kind is an invalid-frontmatter issue, absent means reference', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-srckind-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  mkdirSync(join(dir, 'sources'), { recursive: true });
+  const src = (id: string, kindLine: string): string =>
+    `---\nid: ${id}\ntype: source\ntitle: S ${id}\nstatus: imported\n${kindLine}created: 2026-08-01\nupdated: 2026-08-01\n---\nEvidence.\n`;
+  writeFileSync(join(dir, 'sources', 'SRC-001-declared.md'), src('SRC-001', 'kind: user-feedback\n'));
+  writeFileSync(join(dir, 'sources', 'SRC-002-bare.md'), src('SRC-002', ''));
+  writeFileSync(join(dir, 'sources', 'SRC-003-bad.md'), src('SRC-003', 'kind: vibes\n'));
+
+  const load = await loadProject(dir);
+  const issues = checkProject(load).issues;
+  assert.equal(issues.length, 1, JSON.stringify(issues));
+  assert.partialDeepStrictEqual(issues[0], { kind: 'invalid-frontmatter', file: 'sources/SRC-003-bad.md', field: 'kind' });
+
+  const declared = load.documents.find((doc) => doc.id === 'SRC-001')!;
+  const bare = load.documents.find((doc) => doc.id === 'SRC-002')!;
+  assert.equal(declared.kind, 'user-feedback');
+  assert.equal(sourceKind(declared), 'user-feedback');
+  assert.equal(bare.kind, undefined);
+  assert.equal(sourceKind(bare), 'reference');
+});
+
+/** Minimal in-memory requirement for the pure intuition-only checks. */
+function reqDoc(id: string, status: string, links: Array<{ id: string; rel: string }> = []): VeriDocument {
+  return {
+    id,
+    type: 'requirement',
+    title: `R ${id}`,
+    status,
+    created: '2026-08-01',
+    updated: '2026-08-01',
+    links,
+    frontmatter: {},
+    body: 'Must hold.\n',
+    file: `requirements/${id}-r.md`,
+    inlineRefs: [],
+  };
+}
+
+function srcDoc(id: string, links: Array<{ id: string; rel: string }> = []): VeriDocument {
+  return {
+    id,
+    type: 'source',
+    title: `S ${id}`,
+    status: 'imported',
+    created: '2026-08-01',
+    updated: '2026-08-01',
+    links,
+    frontmatter: {},
+    body: 'Evidence.\n',
+    file: `sources/${id}-s.md`,
+    inlineRefs: [],
+  };
+}
+
+test('intuition-only: an accepted requirement with no evidence advises; derived-from or outcome evidence clears it', () => {
+  const evidence = srcDoc('SRC-001');
+
+  // Accepted with no evidence link — the bet is visible.
+  const bare = reqDoc('REQ-001', 'accepted');
+  const flagged = checkIntuitionOnly([bare, evidence]);
+  assert.equal(flagged.length, 1);
+  assert.partialDeepStrictEqual(flagged[0], { kind: 'intuition-only', id: 'REQ-001', file: 'requirements/REQ-001-r.md' });
+
+  // A derived-from link to a real source clears it.
+  const derived = reqDoc('REQ-001', 'accepted', [{ id: 'SRC-001', rel: 'derived-from' }]);
+  assert.deepEqual(checkIntuitionOnly([derived, evidence]), []);
+
+  // derived-from at a non-source (a DEC) is not evidence.
+  const fromDec = reqDoc('REQ-001', 'accepted', [{ id: 'DEC-001', rel: 'derived-from' }]);
+  assert.equal(checkIntuitionOnly([fromDec, evidence]).length, 1);
+
+  // Inbound outcome evidence (REQ-033) also clears it: a tested bet is not
+  // an intuition-only one.
+  const reported = srcDoc('SRC-002', [{ id: 'REQ-001', rel: 'supports' }]);
+  assert.deepEqual(checkIntuitionOnly([bare, reported]), []);
+
+  // Drafts are proposals, not bets; retired and withdrawn have left play.
+  assert.deepEqual(checkIntuitionOnly([reqDoc('REQ-002', 'draft')]), []);
+  assert.deepEqual(checkIntuitionOnly([reqDoc('REQ-003', 'retired')]), []);
+  assert.deepEqual(checkIntuitionOnly([reqDoc('REQ-004', 'withdrawn')]), []);
 });
