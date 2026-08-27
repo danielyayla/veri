@@ -64,14 +64,27 @@ export function parseGitLog(stdout: string): GitFacts {
 export interface ParsedReceipt {
   /** The receipt text, joined to one line. */
   raw: string;
+  /**
+   * The convention's leading date, YYYY-MM-DD, or null when the first
+   * segment is not one — a pre-convention receipt claims no date rather
+   * than being assigned a wrong one.
+   */
+  date: string | null;
   /** SHAs (abbreviated or full) the receipt cites. */
   shas: string[];
   /** Path-like tokens from the files segment, braces expanded. */
   paths: string[];
+  /**
+   * Everything after the files segment, separators normalized to " — ".
+   * Empty when the receipt has no fourth segment; `raw` always holds the
+   * whole item for a reader that wants the unsegmented text.
+   */
+  summary: string;
 }
 
 const SEGMENT_SEPARATOR_RE = /\s+[—·]\s+/;
 const SHA_RE = /^[0-9a-f]{7,40}$/i;
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Receipt items under "## Receipts": top-level list items with wrapped continuation lines joined. */
 function receiptItems(section: string): string[] {
@@ -136,7 +149,17 @@ export function parseReceipts(body: string): ParsedReceipt[] {
     // Paths come from the files segment alone — a summary mentioning a
     // runtime-written path must not count against the commit.
     const paths = shas.length > 0 ? pathTokens(segments[2] ?? '') : [];
-    return { raw: item, shas, paths };
+    // The same segmentation read for display (WO-128): the date leads, the
+    // summary is everything past the files segment. Derived here so no
+    // second surface re-splits the receipt text (DEC-132).
+    const first = (segments[0] ?? '').trim();
+    const date = ISO_DATE_RE.test(first) ? first : null;
+    const summary = segments
+      .slice(3)
+      .map((segment) => segment.trim())
+      .join(' — ')
+      .trim();
+    return { raw: item, date, shas, paths, summary };
   });
 }
 

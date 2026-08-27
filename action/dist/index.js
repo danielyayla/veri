@@ -11762,6 +11762,7 @@ function parseGitLog(stdout) {
 }
 var SEGMENT_SEPARATOR_RE = /\s+[—·]\s+/;
 var SHA_RE = /^[0-9a-f]{7,40}$/i;
+var ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 function receiptItems(section) {
   const items = [];
   for (const line of section.split("\n")) {
@@ -11795,7 +11796,10 @@ function parseReceipts(body) {
     const shaSegment = segments[1] ?? "";
     const shas = shaSegment.split(/[\s+,]+/).filter((token) => token !== "commit" && SHA_RE.test(token)).map((token) => token.toLowerCase());
     const paths = shas.length > 0 ? pathTokens(segments[2] ?? "") : [];
-    return { raw: item, shas, paths };
+    const first = (segments[0] ?? "").trim();
+    const date = ISO_DATE_RE.test(first) ? first : null;
+    const summary = segments.slice(3).map((segment) => segment.trim()).join(" \u2014 ").trim();
+    return { raw: item, date, shas, paths, summary };
   });
 }
 function findCommit(facts, sha) {

@@ -50,6 +50,28 @@ test('parseReceipts reads the canonical date — sha — files — summary shape
   );
   assert.deepEqual(receipt.shas, ['aaaa111']);
   assert.deepEqual(receipt.paths, ['packages/core/src/thing.ts', 'README.md']);
+  assert.equal(receipt.date, '2026-08-18');
+  assert.equal(receipt.summary, 'did the thing');
+});
+
+test('parseReceipts reads the date and the summary from the same segmentation (WO-128)', () => {
+  const receipts = parseReceipts(
+    [
+      '## Receipts',
+      '',
+      // A summary spanning further separators keeps them, normalized.
+      '- 2026-08-10 · abc1234 · no code changes · verified live — .cursor/mcp.json written at runtime',
+      // Nothing before the first separator that looks like a date.
+      '- session note — abc1234 — packages/core — tidy up',
+      // Nothing past the files segment at all.
+      '- 2026-08-11 — abc1234 — packages/core',
+    ].join('\n'),
+  );
+  assert.equal(receipts[0].date, '2026-08-10');
+  assert.equal(receipts[0].summary, 'verified live — .cursor/mcp.json written at runtime');
+  assert.equal(receipts[1].date, null);
+  assert.equal(receipts[1].summary, 'tidy up');
+  assert.equal(receipts[2].summary, '');
 });
 
 test('parseReceipts handles middle dots, "commit" prefixes, and dual SHAs', () => {
@@ -117,6 +139,10 @@ test('parseReceipts yields nothing verifiable from a pre-convention receipt', ()
   const [receipt] = parseReceipts('## Receipts\n\n- an early receipt with no sha at all\n');
   assert.deepEqual(receipt.shas, []);
   assert.deepEqual(receipt.paths, []);
+  // It claims no date and no summary either; `raw` still holds the text.
+  assert.equal(receipt.date, null);
+  assert.equal(receipt.summary, '');
+  assert.equal(receipt.raw, 'an early receipt with no sha at all');
 });
 
 // --- subjectWorkOrders: the commit convention read back ---

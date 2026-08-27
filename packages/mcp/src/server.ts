@@ -8,6 +8,7 @@ import { runCheck } from './check.ts';
 import { assembleContext } from './context.ts';
 import { DOCUMENT_STATUSES, getQueue, listDocuments, renderDocuments, renderQueue } from './enumerate.ts';
 import { getDocument, getNeighbors } from './read.ts';
+import { getReceipts, renderReceipts } from './receipts.ts';
 import { intentForPath } from './intent.ts';
 import { paletteSearch } from './search.ts';
 import { amendDocument } from './amend.ts';
@@ -190,6 +191,30 @@ server.registerTool(
     try {
       guardFormat();
       return ok(renderQueue(await getQueue(projectRoot)));
+    } catch (err) {
+      return fail(err);
+    }
+  },
+);
+
+server.registerTool(
+  'get_receipts',
+  {
+    description:
+      'Receipts as data rather than prose: what each work order recorded when it shipped — date, the commit ' +
+      'SHAs it cites, the files it names, and its summary — one entry per line, work order first and summary ' +
+      'last. Pass id for a single work order; omit it for every work order that has filed one (those with none ' +
+      'are simply absent, as are withdrawn work orders unless asked for by id). An unknown id answers with an ' +
+      'empty result, never an error. The SHAs are as filed and unverified: this server runs no git, so ' +
+      'confirming a commit exists is `veri check` in a terminal.',
+    inputSchema: z
+      .object({ id: z.string().optional().describe('Work order id, e.g. WO-126; omit for every work order') })
+      .strict(),
+  },
+  async ({ id }) => {
+    try {
+      guardFormat();
+      return ok(renderReceipts(await getReceipts(projectRoot, id), id));
     } catch (err) {
       return fail(err);
     }

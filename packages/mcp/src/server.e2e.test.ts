@@ -84,6 +84,7 @@ test('the built server answers tools/list and get_context over stdio', { skip: !
     'get_intent',
     'get_neighbors',
     'get_queue',
+    'get_receipts',
     'list_documents',
     'run_check',
     'search',
@@ -437,4 +438,71 @@ test('list_documents and get_queue enumerate over the wire and refuse unknown ke
   for (const name of ['list_documents', 'get_queue']) {
     assert.equal(tools.find((entry) => entry.name === name)?.inputSchema?.additionalProperties, false, `${name} must advertise additionalProperties: false`);
   }
+});
+
+test('get_receipts answers over the wire, by id and corpus-wide, and refuses unknown keys (WO-128)', { skip: !existsSync(SERVER) }, async (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'veri-mcp-receipts-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, 'veri', 'requirements'), { recursive: true });
+  mkdirSync(join(root, 'veri', 'work-orders'), { recursive: true });
+  writeFileSync(
+    join(root, 'veri', 'requirements', 'REQ-001-req.md'),
+    '---\nid: REQ-001\ntype: requirement\ntitle: R\nstatus: accepted\ncreated: 2026-08-01\nupdated: 2026-08-01\napproved: 2026-08-01\n---\n## Acceptance criteria\n\n- [ ] x\n',
+  );
+  const workOrder = (id: string, title: string, status: string, receipts: string[]): string =>
+    `---\nid: ${id}\ntype: work-order\ntitle: ${title}\nstatus: ${status}\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\nlinks:\n  - id: REQ-001\n    rel: implements\n---\n## Summary\n\nWork.\n\n## Receipts\n\n${receipts.map((entry) => `- ${entry}`).join('\n')}\n`;
+  writeFileSync(
+    join(root, 'veri', 'work-orders', 'WO-002-shipped.md'),
+    workOrder('WO-002', 'Shipped', 'done', ['2026-08-20 — aaaa111 — packages/core/src/thing.ts — did the thing', '2026-08-21 — bbbb222 — README.md — wrote it down']),
+  );
+  writeFileSync(join(root, 'veri', 'work-orders', 'WO-003-also.md'), workOrder('WO-003', 'Also shipped', 'done', ['2026-08-22 — cccc333 — packages/cli/src/cli.ts — shipped the flag']));
+  writeFileSync(join(root, 'veri', 'work-orders', 'WO-010-pending.md'), workOrder('WO-010', 'Nothing yet', 'ready', ['(none yet)']).replace('- (none yet)', '(none yet)'));
+
+  const call = (id: number, name: string, args: object): object => ({ jsonrpc: '2.0', id, method: 'tools/call', params: { name, arguments: args } });
+  const responses = await rpcSession(
+    [
+      {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test', version: '0.0.0' } },
+      },
+      { jsonrpc: '2.0', method: 'notifications/initialized' },
+      call(2, 'get_receipts', { id: 'WO-002' }),
+      call(3, 'get_receipts', {}),
+      // An unknown id is a question with an answer, not a fault.
+      call(4, 'get_receipts', { id: 'WO-999' }),
+      // A near-miss key must refuse, never silently widen the answer (WO-118).
+      call(5, 'get_receipts', { work_order: 'WO-002' }),
+      { jsonrpc: '2.0', id: 6, method: 'tools/list' },
+    ],
+    [1, 2, 3, 4, 5, 6],
+    root,
+  );
+
+  const one = responses.get(2)?.result;
+  assert.ok(one && one.isError !== true, JSON.stringify(one));
+  const oneText = one.content?.[0]?.text ?? '';
+  assert.match(oneText, /^2 receipts across 1 work order \(SHAs as filed/m);
+  assert.match(oneText, /^WO-002 {2}2026-08-20 {2}aaaa111 {2}packages\/core\/src\/thing\.ts {2}did the thing$/m);
+  assert.ok(!oneText.includes('WO-003'), 'an id narrows to that work order');
+
+  const all = responses.get(3)?.result;
+  assert.ok(all && all.isError !== true, JSON.stringify(all));
+  const allText = all.content?.[0]?.text ?? '';
+  assert.match(allText, /^3 receipts across 2 work orders \(SHAs as filed/m);
+  assert.match(allText, /^WO-003 {2}2026-08-22 {2}cccc333 {2}packages\/cli\/src\/cli\.ts {2}shipped the flag$/m);
+  // A work order that has filed none is simply absent, never an empty row.
+  assert.ok(!allText.includes('WO-010'));
+
+  const unknown = responses.get(4)?.result;
+  assert.equal(unknown?.isError, undefined);
+  assert.match(unknown?.content?.[0]?.text ?? '', /^no receipts for WO-999 —/);
+
+  const refused = responses.get(5)?.result;
+  assert.equal(refused?.isError, true, `unknown key must be a validation error, got: ${JSON.stringify(refused)}`);
+  assert.match(refused?.content?.[0]?.text ?? '', /work_order/);
+
+  const tools = responses.get(6)?.result?.tools ?? [];
+  assert.equal(tools.find((entry) => entry.name === 'get_receipts')?.inputSchema?.additionalProperties, false, 'get_receipts must advertise additionalProperties: false');
 });
