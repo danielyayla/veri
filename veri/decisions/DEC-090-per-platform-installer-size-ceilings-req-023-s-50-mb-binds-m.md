@@ -2,7 +2,8 @@
 id: DEC-090
 type: decision
 title: "Per-platform installer size ceilings: REQ-023's 50 MB binds macOS and Windows; Linux ships with platform-honest ceilings (AppImage 150 MB, .deb 60 MB)"
-status: proposed
+status: active
+approved: 2026-08-25
 created: 2026-08-25
 updated: 2026-08-25
 links:
