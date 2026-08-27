@@ -2,7 +2,7 @@
 id: WO-124
 type: work-order
 title: "Intent-led context packages: the package opens with vision, focus, and the bet"
-status: in-progress
+status: done
 claimed_by: fable-wo124
 claimed_at: 2026-08-27
 approved: 2026-08-27
@@ -45,11 +45,11 @@ Context assembly (`veri context` / `get_context`) opens with an intent section �
 
 ## Acceptance tests
 
-- [ ] A context package for any WO opens with the intent section before workflow and REQ/DEC content
-- [ ] A WO implementing a hypothesis requirement gets the bet stated with metric and target
-- [ ] Draft singletons never appear in packages
-- [ ] Zero `veri check` violations repo-wide
+- [x] A context package for any WO opens with the intent section before workflow and REQ/DEC content
+- [x] A WO implementing a hypothesis requirement gets the bet stated with metric and target
+- [x] Draft singletons never appear in packages
+- [x] Zero `veri check` violations repo-wide
 
 ## Receipts
 
-(none yet)
+- 2026-08-27 — 4275df5 — packages/core/src (schema, context), packages/mcp/src/context.test.ts, [[DEC-124]] — intent-led assembly lands: accepted product singletons ship whole at the top of every package in sanctioned order ahead of the workflow; hop-1 accepted hypotheses get the bet block (metric, target, shipping-does-not-settle-it); drafts are invisible and product docs leave the traversal buckets. Full workspace suite green (795 tests). Note: this repo's packages show no intent section until PRD-001..004 are approved — only ratified intent steers, by design.
