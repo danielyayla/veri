@@ -107,3 +107,11 @@ test('slugifyTitle handles hostile input', () => {
   assert.equal(slugifyTitle('ALL CAPS AND    SPACES'), 'all-caps-and-spaces');
   assert.equal(slugifyTitle('x'.repeat(100)).length <= 60, true);
 });
+
+test('createDocument refuses the product type — singletons are authored at fixed paths (REQ-037, WO-121)', async (t) => {
+  const dir = sandbox(t);
+  await assert.rejects(
+    createDocument(dir, 'product', 'A fifth singleton'),
+    /product documents are fixed singletons — author one of product\/vision\.md/,
+  );
+});

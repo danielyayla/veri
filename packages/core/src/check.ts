@@ -1,6 +1,6 @@
 import type { Advisory, Issue, VeriDocument } from './types.ts';
 import type { LoadResult } from './load.ts';
-import { OUTCOME_OF_REL, OUTCOME_RELS, isOutcomeRel, isPending, isWithdrawn, requirementKind } from './pending.ts';
+import { CURRENT_FOCUS_FILE, OUTCOME_OF_REL, OUTCOME_RELS, PRODUCT_FILES, isOutcomeRel, isPending, isWithdrawn, requirementKind } from './pending.ts';
 import { compareIds } from './ids.ts';
 import type { DocType } from './ids.ts';
 import { daysBetween, pathMatchesBinds } from './binds.ts';
@@ -353,6 +353,93 @@ export function checkStaleClaims(documents: VeriDocument[], today: string, windo
     });
   }
   return advisories;
+}
+
+/**
+ * The product layer's placement rule (REQ-037, WO-121): veri/product/ holds
+ * exactly the sanctioned gated singletons — gated or derived, never freeform.
+ * A product document anywhere but its sanctioned path is unplaceable (there
+ * is no fifth singleton to be), and any other type parked inside product/
+ * smuggles ungated content into the layer. Frontmatter-less files there
+ * already fail the load as invalid-frontmatter.
+ */
+export function checkProductFiles(documents: VeriDocument[]): Issue[] {
+  const issues: Issue[] = [];
+  const sanctioned = new Set<string>(PRODUCT_FILES);
+  for (const doc of documents) {
+    if (doc.type === 'product' && !sanctioned.has(doc.file)) {
+      issues.push({
+        kind: 'product-file',
+        file: doc.file,
+        id: doc.id,
+        message: `${doc.id} is a product document but ${doc.file} is not a sanctioned singleton — the product layer is exactly ${PRODUCT_FILES.join(', ')} (REQ-037)`,
+      });
+    }
+    if (doc.type !== 'product' && doc.file.startsWith('product/')) {
+      issues.push({
+        kind: 'product-file',
+        file: doc.file,
+        id: doc.id,
+        message: `${doc.id} is a ${doc.type} filed under product/ — that directory holds only the gated product singletons (REQ-037)`,
+      });
+    }
+  }
+  return issues;
+}
+
+/** Days of silence before an accepted current-focus counts as stale
+    (REQ-037). Project-tunable as `focus_stale_after_days` on the workflow
+    document; a deliberately separate knob from the binding detectors'
+    `stale_after_days`, whose silence is about code, not intent. */
+export const DEFAULT_FOCUS_STALE_AFTER_DAYS = 14;
+
+export function focusStaleAfterDays(documents: VeriDocument[]): number {
+  for (const doc of documents) {
+    if (doc.type !== 'workflow' || doc.status === 'retired') continue;
+    const days = doc.frontmatter['focus_stale_after_days'];
+    if (typeof days === 'number' && Number.isInteger(days) && days > 0) return days;
+  }
+  return DEFAULT_FOCUS_STALE_AFTER_DAYS;
+}
+
+/**
+ * The current-focus staleness advisory (REQ-037, WO-121): an accepted focus
+ * that was last touched outside the window, or whose referenced work orders
+ * have all finished, has stopped describing the present — it cannot quietly
+ * lie. Pure over documents plus the host's today (DEC-076), like
+ * checkStaleClaims. Drafts are exempt: a pending focus already sits in the
+ * approval queue.
+ */
+export function checkStaleFocus(documents: VeriDocument[], today: string, windowDays: number): Advisory[] {
+  const focus = documents.find((doc) => doc.type === 'product' && doc.file === CURRENT_FOCUS_FILE);
+  if (focus === undefined || focus.status !== 'accepted') return [];
+
+  if (daysBetween(focus.updated, today) >= windowDays) {
+    return [
+      {
+        kind: 'stale-focus',
+        file: focus.file,
+        id: focus.id,
+        message: `${focus.id} (current focus) was last updated ${focus.updated}, over ${windowDays} days ago — restate or reaffirm what the project is steering toward (edit it, then re-approve)`,
+      },
+    ];
+  }
+
+  const byId = new Map(documents.map((doc) => [doc.id, doc]));
+  const referenced = focus.inlineRefs
+    .map((id) => byId.get(id))
+    .filter((doc): doc is VeriDocument => doc !== undefined && doc.type === 'work-order');
+  if (referenced.length > 0 && referenced.every((doc) => doc.status === 'done' || isWithdrawn(doc))) {
+    return [
+      {
+        kind: 'stale-focus',
+        file: focus.file,
+        id: focus.id,
+        message: `${focus.id} (current focus) references only finished work orders (${referenced.map((doc) => doc.id).join(', ')}) — the focus it describes has shipped; restate what comes next`,
+      },
+    ];
+  }
+  return [];
 }
 
 /** The design gate's trigger paths, declared as `design_gate_paths` on the
@@ -715,6 +802,7 @@ export function checkProject(load: LoadResult): CheckResult {
       ...checkDoneWorkOrders(load.documents),
       ...checkGatedWorkOrders(load.documents),
       ...checkDesignGate(load.documents),
+      ...checkProductFiles(load.documents),
       ...checkApprovalStamps(load.documents),
       ...checkApprovers(load.documents),
       ...checkArchitecture(load.documents),

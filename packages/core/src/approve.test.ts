@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -67,7 +67,7 @@ test('approve refuses documents in a non-approvable status', async (t) => {
 
 test('approve refuses non-approvable types and unknown ids', async (t) => {
   const dir = sandbox(t);
-  await assert.rejects(() => approveDocument(dir, 'SRC-001'), /is a source — only requirements, decisions, workflows and work orders/);
+  await assert.rejects(() => approveDocument(dir, 'SRC-001'), /is a source — only requirements, decisions, workflows, work orders and product documents/);
   await assert.rejects(() => approveDocument(dir, 'REQ-999'), /no document with id REQ-999/);
 });
 
@@ -211,4 +211,25 @@ test('re-approving an already-accepted document re-stamps in place (WO-045 drift
   assert.match(after, /^status: accepted$/m);
   assert.match(after, /^approved: 2026-08-18$/m);
   assert.equal((after.match(/^approved: /gm) ?? []).length, 1, 'one approved line, replaced not duplicated');
+});
+
+test('approving a draft product singleton makes it accepted with the stamp (REQ-037, WO-121)', async (t) => {
+  const dir = sandbox(t);
+  mkdirSync(join(dir, 'product'), { recursive: true });
+  writeFileSync(
+    join(dir, 'product', 'vision.md'),
+    '---\nid: PRD-001\ntype: product\ntitle: Vision\nstatus: draft\ncreated: 2026-08-01\nupdated: 2026-08-01\n---\nThe vision.\n',
+  );
+
+  const result = await approveDocument(dir, 'prd-001', '2026-08-10');
+  assert.deepEqual(result, {
+    id: 'PRD-001',
+    file: 'product/vision.md',
+    from: 'draft',
+    to: 'accepted',
+    approved: '2026-08-10',
+  });
+  const after = readFileSync(join(dir, 'product', 'vision.md'), 'utf8');
+  assert.match(after, /^status: accepted$/m);
+  assert.match(after, /^approved: 2026-08-10$/m);
 });

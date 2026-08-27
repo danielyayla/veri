@@ -7372,20 +7372,21 @@ import { basename, dirname as dirname2, join as join6, relative as relative2, re
 import { fileURLToPath as fileURLToPath4 } from "node:url";
 
 // ../core/dist/ids.js
-var DOC_TYPES = ["requirement", "decision", "work-order", "source", "workflow"];
-var ID_RE = /^(REQ|DEC|WO|SRC|WF)-\d{3,}$/;
+var DOC_TYPES = ["requirement", "decision", "work-order", "source", "workflow", "product"];
+var ID_RE = /^(REQ|DEC|WO|SRC|WF|PRD)-\d{3,}$/;
 var PREFIX_TO_TYPE = {
   REQ: "requirement",
   DEC: "decision",
   WO: "work-order",
   SRC: "source",
-  WF: "workflow"
+  WF: "workflow",
+  PRD: "product"
 };
 function typeOfId(id) {
   const prefix = /^([A-Z]+)-/.exec(id)?.[1];
   return prefix ? PREFIX_TO_TYPE[prefix] : void 0;
 }
-var INLINE_REF_RE = /\[\[((?:REQ|DEC|WO|SRC|WF)-\d{3,})\]\]/g;
+var INLINE_REF_RE = /\[\[((?:REQ|DEC|WO|SRC|WF|PRD)-\d{3,})\]\]/g;
 function compareIds(a, b) {
   return a.localeCompare(b, void 0, { numeric: true });
 }
@@ -7407,7 +7408,7 @@ function localToday(now = /* @__PURE__ */ new Date()) {
 
 // ../core/dist/pending.js
 function isPending(doc) {
-  return doc.type === "requirement" && doc.status === "draft" || doc.type === "decision" && doc.status === "proposed" || doc.type === "workflow" && doc.status === "draft";
+  return doc.type === "requirement" && doc.status === "draft" || doc.type === "decision" && doc.status === "proposed" || doc.type === "workflow" && doc.status === "draft" || doc.type === "product" && doc.status === "draft";
 }
 function isWithdrawn(doc) {
   return doc.status === "withdrawn";
@@ -7420,6 +7421,13 @@ function isOutcomeRel(rel) {
   return OUTCOME_RELS.includes(rel);
 }
 var OUTCOME_OF_REL = "outcome-of";
+var PRODUCT_FILES = [
+  "product/vision.md",
+  "product/users.md",
+  "product/principles.md",
+  "product/current-focus.md"
+];
+var CURRENT_FOCUS_FILE = "product/current-focus.md";
 
 // ../../node_modules/zod/v3/external.js
 var external_exports = {};
@@ -11463,7 +11471,7 @@ var coerce = {
 var NEVER = INVALID;
 
 // ../core/dist/schema.js
-var idField = external_exports.string().regex(ID_RE, "must be REQ-, DEC-, WO-, SRC- or WF- plus a number of three or more digits (e.g. REQ-001)");
+var idField = external_exports.string().regex(ID_RE, "must be REQ-, DEC-, WO-, SRC-, WF- or PRD- plus a number of three or more digits (e.g. REQ-001)");
 var dateField = external_exports.string().regex(/^\d{4}-\d{2}-\d{2}$/, "must be a YYYY-MM-DD date");
 var linkSchema = external_exports.object({
   id: idField,
@@ -11554,9 +11562,21 @@ var workflowSchema = external_exports.object({
   modules: external_exports.array(moduleEntrySchema).optional(),
   // WO-088: days of bound-path silence before an in-progress work order
   // counts as stale. Absent → the core default (DEFAULT_STALE_AFTER_DAYS).
-  stale_after_days: external_exports.number().int().positive().optional()
+  stale_after_days: external_exports.number().int().positive().optional(),
+  // REQ-037 (WO-121): days of silence before the accepted current-focus
+  // singleton counts as stale. A separate knob from stale_after_days —
+  // that one's silence is about code, this one's about intent. Absent →
+  // the core default (DEFAULT_FOCUS_STALE_AFTER_DAYS).
+  focus_stale_after_days: external_exports.number().int().positive().optional()
 }).passthrough();
-var frontmatterSchema = external_exports.discriminatedUnion("type", [requirementSchema, decisionSchema, workOrderSchema, sourceSchema, workflowSchema]).superRefine((fm, ctx) => {
+var productSchema = external_exports.object({
+  ...baseFields,
+  type: external_exports.literal("product"),
+  status: external_exports.enum(["draft", "accepted", "retired"]),
+  approved: dateField.optional(),
+  approved_by: approvedByField
+}).passthrough();
+var frontmatterSchema = external_exports.discriminatedUnion("type", [requirementSchema, decisionSchema, workOrderSchema, sourceSchema, workflowSchema, productSchema]).superRefine((fm, ctx) => {
   const implied = typeOfId(fm.id);
   if (implied && implied !== fm.type) {
     ctx.addIssue({
@@ -11625,8 +11645,8 @@ function parseDocument(file, content) {
     ...fm.type === "requirement" && fm.outcome !== void 0 ? { outcome: { metric: fm.outcome.metric, target: String(fm.outcome.target) } } : {},
     ...fm.type === "work-order" && fm.claimed_by !== void 0 ? { claimedBy: fm.claimed_by } : {},
     ...fm.type === "work-order" && fm.claimed_at !== void 0 ? { claimedAt: fm.claimed_at } : {},
-    ...(fm.type === "requirement" || fm.type === "decision" || fm.type === "workflow" || fm.type === "work-order") && fm.approved !== void 0 ? { approved: fm.approved } : {},
-    ...(fm.type === "requirement" || fm.type === "decision" || fm.type === "workflow" || fm.type === "work-order") && fm.approved_by !== void 0 ? { approvedBy: fm.approved_by } : {},
+    ...(fm.type === "requirement" || fm.type === "decision" || fm.type === "workflow" || fm.type === "work-order" || fm.type === "product") && fm.approved !== void 0 ? { approved: fm.approved } : {},
+    ...(fm.type === "requirement" || fm.type === "decision" || fm.type === "workflow" || fm.type === "work-order" || fm.type === "product") && fm.approved_by !== void 0 ? { approvedBy: fm.approved_by } : {},
     frontmatter: fm,
     body,
     file,
@@ -11647,7 +11667,7 @@ function invalidFrontmatter(file, field, message) {
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-var CURRENT_FORMAT = 2;
+var CURRENT_FORMAT = 3;
 var FORMAT_FILE = "format";
 function toPath(veriDir) {
   return typeof veriDir === "string" ? veriDir : fileURLToPath(veriDir);
@@ -12297,12 +12317,18 @@ decisions \u2192 work orders \u2192 implementation with receipts.)
 
 1. (First rule)
 `;
+var PRODUCT_BODY = `
+(The product model, in your own words. This is one of the gated
+singletons under veri/product/ \u2014 vision, users, principles, or
+current-focus.)
+`;
 var BODY_TEMPLATES = {
   requirement: REQUIREMENT_BODY,
   decision: DECISION_BODY,
   "work-order": WORK_ORDER_BODY,
   source: SOURCE_BODY,
-  workflow: WORKFLOW_BODY
+  workflow: WORKFLOW_BODY,
+  product: PRODUCT_BODY
 };
 function templateFile(type) {
   return join3(TEMPLATES_SUBDIR, `${type}.md`);
@@ -12601,6 +12627,68 @@ function checkStaleClaims(documents, today, windowDays) {
   }
   return advisories;
 }
+function checkProductFiles(documents) {
+  const issues = [];
+  const sanctioned = new Set(PRODUCT_FILES);
+  for (const doc of documents) {
+    if (doc.type === "product" && !sanctioned.has(doc.file)) {
+      issues.push({
+        kind: "product-file",
+        file: doc.file,
+        id: doc.id,
+        message: `${doc.id} is a product document but ${doc.file} is not a sanctioned singleton \u2014 the product layer is exactly ${PRODUCT_FILES.join(", ")} (REQ-037)`
+      });
+    }
+    if (doc.type !== "product" && doc.file.startsWith("product/")) {
+      issues.push({
+        kind: "product-file",
+        file: doc.file,
+        id: doc.id,
+        message: `${doc.id} is a ${doc.type} filed under product/ \u2014 that directory holds only the gated product singletons (REQ-037)`
+      });
+    }
+  }
+  return issues;
+}
+var DEFAULT_FOCUS_STALE_AFTER_DAYS = 14;
+function focusStaleAfterDays(documents) {
+  for (const doc of documents) {
+    if (doc.type !== "workflow" || doc.status === "retired")
+      continue;
+    const days = doc.frontmatter["focus_stale_after_days"];
+    if (typeof days === "number" && Number.isInteger(days) && days > 0)
+      return days;
+  }
+  return DEFAULT_FOCUS_STALE_AFTER_DAYS;
+}
+function checkStaleFocus(documents, today, windowDays) {
+  const focus = documents.find((doc) => doc.type === "product" && doc.file === CURRENT_FOCUS_FILE);
+  if (focus === void 0 || focus.status !== "accepted")
+    return [];
+  if (daysBetween(focus.updated, today) >= windowDays) {
+    return [
+      {
+        kind: "stale-focus",
+        file: focus.file,
+        id: focus.id,
+        message: `${focus.id} (current focus) was last updated ${focus.updated}, over ${windowDays} days ago \u2014 restate or reaffirm what the project is steering toward (edit it, then re-approve)`
+      }
+    ];
+  }
+  const byId = new Map(documents.map((doc) => [doc.id, doc]));
+  const referenced = focus.inlineRefs.map((id) => byId.get(id)).filter((doc) => doc !== void 0 && doc.type === "work-order");
+  if (referenced.length > 0 && referenced.every((doc) => doc.status === "done" || isWithdrawn(doc))) {
+    return [
+      {
+        kind: "stale-focus",
+        file: focus.file,
+        id: focus.id,
+        message: `${focus.id} (current focus) references only finished work orders (${referenced.map((doc) => doc.id).join(", ")}) \u2014 the focus it describes has shipped; restate what comes next`
+      }
+    ];
+  }
+  return [];
+}
 function designGatePaths(documents) {
   return documents.filter((doc) => doc.type === "workflow" && doc.status !== "retired").flatMap((doc) => doc.frontmatter["design_gate_paths"] ?? []);
 }
@@ -12843,6 +12931,7 @@ function checkProject(load) {
       ...checkDoneWorkOrders(load.documents),
       ...checkGatedWorkOrders(load.documents),
       ...checkDesignGate(load.documents),
+      ...checkProductFiles(load.documents),
       ...checkApprovalStamps(load.documents),
       ...checkApprovers(load.documents),
       ...checkArchitecture(load.documents)
@@ -12893,6 +12982,7 @@ function deriveFindings(load, host) {
   }
   advisories.push(...checkBoundTests(load.documents, host.testFacts));
   advisories.push(...checkStaleClaims(load.documents, host.today, staleAfterDays(load.documents)));
+  advisories.push(...checkStaleFocus(load.documents, host.today, focusStaleAfterDays(load.documents)));
   if (host.importFacts !== void 0) {
     const observed = checkObservedArchitecture(load.documents, host.importFacts.edges);
     issues.push(...observed.issues);

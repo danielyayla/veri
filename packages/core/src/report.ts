@@ -2,7 +2,7 @@ import { checkObservedArchitecture } from './architecture.ts';
 import type { ImportEdge } from './architecture.ts';
 import { bindingClaimants, checkBindingDrift, checkBoundTests, staleAfterDays } from './binds.ts';
 import type { TestFact } from './binds.ts';
-import { checkDesignGateDiff, checkProject, checkStaleClaims, designGatePaths } from './check.ts';
+import { checkDesignGateDiff, checkProject, checkStaleClaims, checkStaleFocus, designGatePaths, focusStaleAfterDays } from './check.ts';
 import { checkDrift } from './drift.ts';
 import { formatStatement } from './format.ts';
 import type { FormatClassification } from './format.ts';
@@ -108,6 +108,8 @@ export function deriveFindings(load: LoadResult, host: HostFacts): CheckFindings
   // Stale claims (WO-099) need only the host's clock — they too run either
   // way, sharing the binding detectors' staleness window.
   advisories.push(...checkStaleClaims(load.documents, host.today, staleAfterDays(load.documents)));
+  // Current-focus staleness (REQ-037) likewise needs only the clock.
+  advisories.push(...checkStaleFocus(load.documents, host.today, focusStaleAfterDays(load.documents)));
   // Observed architecture (WO-067): import edges vs the intended
   // architecture, split by declared constraint severity (DEC-062) — error
   // violations join the issues (counted, exit 1); advisory violations stay

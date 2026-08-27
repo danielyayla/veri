@@ -12,7 +12,8 @@ export function isPending(doc: VeriDocument): boolean {
   return (
     (doc.type === 'requirement' && doc.status === 'draft') ||
     (doc.type === 'decision' && doc.status === 'proposed') ||
-    (doc.type === 'workflow' && doc.status === 'draft')
+    (doc.type === 'workflow' && doc.status === 'draft') ||
+    (doc.type === 'product' && doc.status === 'draft')
   );
 }
 
@@ -65,3 +66,20 @@ export function isOutcomeRel(rel: string): rel is OutcomeRel {
 /** The rel an outcome source uses toward the work order that shipped the
     change it observed (REQ-033): source → work-order, validated by check. */
 export const OUTCOME_OF_REL = 'outcome-of';
+
+/**
+ * The product layer's sanctioned files (REQ-037, WO-121), veri/-relative:
+ * filename is the singleton's identity, so there is no facet field to drift
+ * from it. The set is closed — a new member is a decision, not a habit
+ * (DEC-111's filter). Lives on the dependency-free subpath so every surface
+ * shares the one list (DEC-046).
+ */
+export const PRODUCT_FILES = [
+  'product/vision.md',
+  'product/users.md',
+  'product/principles.md',
+  'product/current-focus.md',
+] as const;
+
+/** The veri/-relative path of the current-focus singleton (REQ-037). */
+export const CURRENT_FOCUS_FILE = 'product/current-focus.md';

@@ -81,12 +81,22 @@ decisions → work orders → implementation with receipts.)
 1. (First rule)
 `;
 
+// Product singletons (REQ-037) are free-form prose — no `##` skeleton, so
+// the structure check expects no sections of them. The user's product model
+// should read like their thinking, not like a form.
+const PRODUCT_BODY = `
+(The product model, in your own words. This is one of the gated
+singletons under veri/product/ — vision, users, principles, or
+current-focus.)
+`;
+
 export const BODY_TEMPLATES: Record<DocType, string> = {
   requirement: REQUIREMENT_BODY,
   decision: DECISION_BODY,
   'work-order': WORK_ORDER_BODY,
   source: SOURCE_BODY,
   workflow: WORKFLOW_BODY,
+  product: PRODUCT_BODY,
 };
 
 /** Path of a type's template file, relative to the veri/ directory. */

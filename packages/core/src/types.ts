@@ -105,6 +105,12 @@ export type Advisory =
   // never declared — git-backed, so advisory (DEC-081: the git tier is out
   // of reach over MCP, and an issue only some surfaces could compute would
   // fork the gate's verdict).
+  // The product layer's staleness advisory (REQ-037, WO-121): an accepted
+  // current-focus that has not been touched inside the window, or whose
+  // referenced work orders have all finished, has stopped describing the
+  // present. Advisory by design — a focus statement informs, never gates,
+  // and revising it is the user's act.
+  | { kind: 'stale-focus'; file: string; id: string; message: string }
   | { kind: 'design-mention'; file: string; id: string; path: string; message: string }
   | { kind: 'design-undeclared-touch'; file: string; id: string; sha: string; path: string; message: string }
   | {
@@ -156,6 +162,11 @@ export type Issue =
   // with no declared outcome cannot be confirmed or refuted — an untestable
   // claim is an issue, never a silent no-op (the DEC-058 posture).
   | { kind: 'hypothesis-without-outcome'; file: string; id: string; message: string }
+  // The product layer (REQ-037, WO-121): veri/product/ holds exactly the
+  // sanctioned gated singletons. A product document outside its sanctioned
+  // path, or any other document type inside veri/product/, is a violation —
+  // the layer is gated or derived, never freeform.
+  | { kind: 'product-file'; file: string; id: string; message: string }
   // Team semantics (DEC-071): approved_by names someone the workflow's
   // maintainers list does not — a misattributed stamp fails, unlike a
   // merely missing one (see the missing-approver advisory).

@@ -8,6 +8,10 @@ test("this repository's own veri/ directory yields zero issues", async () => {
   assert.ok(load.documents.length >= 11, `expected the full knowledge base, got ${load.documents.length} documents`);
   const { issues, advisories } = checkProject(load);
   assert.deepEqual(issues, []);
-  // WO-025: this repo also holds itself to its own templates.
-  assert.deepEqual(advisories, []);
+  // WO-025: this repo also holds itself to its own templates. Epistemic
+  // open-loop advisories are exempt: an untested bet (REQ-033) or a stale
+  // focus (REQ-037) is designed to persist until the user judges evidence —
+  // a live project legitimately carries them, and only the user closes them.
+  const OPEN_LOOP_KINDS = new Set(['untested-bet', 'stale-focus']);
+  assert.deepEqual(advisories.filter((advisory) => !OPEN_LOOP_KINDS.has(advisory.kind)), []);
 });

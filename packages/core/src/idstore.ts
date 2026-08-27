@@ -11,10 +11,10 @@ import { join } from 'node:path';
  * the next successful create repairs the record.
  */
 
-const PREFIX_ORDER = ['REQ', 'DEC', 'WO', 'SRC', 'WF'] as const;
+const PREFIX_ORDER = ['REQ', 'DEC', 'WO', 'SRC', 'WF', 'PRD'] as const;
 export type IdPrefix = (typeof PREFIX_ORDER)[number];
 
-const ID_LINE_RE = /^(REQ|DEC|WO|SRC|WF)[ \t]+(\d+)$/;
+const ID_LINE_RE = /^(REQ|DEC|WO|SRC|WF|PRD)[ \t]+(\d+)$/;
 
 export function readIdRecord(veriDir: string): Partial<Record<IdPrefix, number>> {
   let text: string;

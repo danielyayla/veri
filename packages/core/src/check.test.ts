@@ -9,9 +9,11 @@ import {
   bindsClaimGatedPath,
   checkDesignGateDiff,
   checkDesignGateMentions,
+  checkProductFiles,
   checkProject,
   checkSharedClaims,
   checkStaleClaims,
+  checkStaleFocus,
   checkStampedBacklog,
   checkStructure,
   expectedSections,
@@ -762,4 +764,107 @@ test('stale claims: silence past the window advises; a receipt inside it resets 
   assert.deepEqual(checkStaleClaims([claimedWo('WO-002', 'ready', {})], '2027-01-01', 14), []);
   assert.deepEqual(checkStaleClaims([claimedWo('WO-003', 'done', { by: 'a', at: '2026-01-01' })], '2027-01-01', 14), []);
   assert.deepEqual(checkStaleClaims([claimedWo('WO-004', 'in-progress', {})], '2027-01-01', 14), []);
+});
+
+// --- The product layer (REQ-037, WO-121) ---
+
+/** Minimal in-memory document for the pure product-layer checks. */
+function productDoc(id: string, file: string, status = 'accepted', overrides: Partial<VeriDocument> = {}): VeriDocument {
+  return {
+    id,
+    type: 'product',
+    title: `P ${id}`,
+    status,
+    created: '2026-08-01',
+    updated: '2026-08-01',
+    links: [],
+    frontmatter: {},
+    body: 'The model.\n',
+    file,
+    inlineRefs: [],
+    ...overrides,
+  };
+}
+
+test('product files: the four sanctioned singletons are clean; a fifth path and a foreign type are violations', () => {
+  const sanctioned = [
+    productDoc('PRD-001', 'product/vision.md'),
+    productDoc('PRD-002', 'product/users.md'),
+    productDoc('PRD-003', 'product/principles.md'),
+    productDoc('PRD-004', 'product/current-focus.md'),
+  ];
+  assert.deepEqual(checkProductFiles(sanctioned), []);
+
+  // A product document outside the sanctioned set — there is no fifth singleton.
+  const stray = checkProductFiles([productDoc('PRD-005', 'product/current-bets.md')]);
+  assert.equal(stray.length, 1);
+  assert.partialDeepStrictEqual(stray[0], { kind: 'product-file', id: 'PRD-005', file: 'product/current-bets.md' });
+
+  // A non-product document parked inside product/ smuggles ungated content in.
+  const foreign = claimedWo('WO-001', 'backlog', {});
+  foreign.file = 'product/WO-001-t.md';
+  const smuggled = checkProductFiles([foreign]);
+  assert.equal(smuggled.length, 1);
+  assert.partialDeepStrictEqual(smuggled[0], { kind: 'product-file', id: 'WO-001', file: 'product/WO-001-t.md' });
+
+  // The same work order in its own directory is nobody's business here.
+  assert.deepEqual(checkProductFiles([claimedWo('WO-002', 'backlog', {})]), []);
+});
+
+test('stale focus: silence past the window advises; a fresh or draft focus never does', () => {
+  const focus = productDoc('PRD-004', 'product/current-focus.md', 'accepted', { updated: '2026-08-01' });
+  assert.deepEqual(checkStaleFocus([focus], '2026-08-14', 14), []);
+
+  const stale = checkStaleFocus([focus], '2026-08-15', 14);
+  assert.equal(stale.length, 1);
+  assert.partialDeepStrictEqual(stale[0], { kind: 'stale-focus', id: 'PRD-004', file: 'product/current-focus.md' });
+  assert.match(stale[0]!.message, /2026-08-01/);
+
+  // A draft focus already sits in the approval queue — no advisory on top.
+  const draft = productDoc('PRD-004', 'product/current-focus.md', 'draft', { updated: '2026-08-01' });
+  assert.deepEqual(checkStaleFocus([draft], '2027-01-01', 14), []);
+
+  // The other singletons never trip the focus rule.
+  const vision = productDoc('PRD-001', 'product/vision.md', 'accepted', { updated: '2026-01-01' });
+  assert.deepEqual(checkStaleFocus([vision], '2027-01-01', 14), []);
+});
+
+test('stale focus: a focus referencing only finished work orders advises even inside the window', () => {
+  const doneWo = claimedWo('WO-010', 'done', { by: 'a', at: '2026-08-01' });
+  const openWo = claimedWo('WO-011', 'in-progress', { by: 'a', at: '2026-08-01' });
+  const focus = productDoc('PRD-004', 'product/current-focus.md', 'accepted', {
+    updated: '2026-08-10',
+    inlineRefs: ['WO-010'],
+  });
+
+  const shipped = checkStaleFocus([focus, doneWo], '2026-08-12', 14);
+  assert.equal(shipped.length, 1);
+  assert.match(shipped[0]!.message, /WO-010/);
+
+  // One live referenced work order keeps the focus current.
+  const stillLive = productDoc('PRD-004', 'product/current-focus.md', 'accepted', {
+    updated: '2026-08-10',
+    inlineRefs: ['WO-010', 'WO-011'],
+  });
+  assert.deepEqual(checkStaleFocus([stillLive, doneWo, openWo], '2026-08-12', 14), []);
+
+  // A focus that references no work orders is judged by its date alone.
+  const noRefs = productDoc('PRD-004', 'product/current-focus.md', 'accepted', { updated: '2026-08-10' });
+  assert.deepEqual(checkStaleFocus([noRefs, doneWo], '2026-08-12', 14), []);
+});
+
+test('a freeform file under product/ fails the load; sanctioned singletons pass checkProject', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-product-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  mkdirSync(join(dir, 'product'), { recursive: true });
+  writeFileSync(
+    join(dir, 'product', 'vision.md'),
+    '---\nid: PRD-001\ntype: product\ntitle: Vision\nstatus: draft\ncreated: 2026-08-01\nupdated: 2026-08-01\n---\nThe vision.\n',
+  );
+  writeFileSync(join(dir, 'product', 'notes.md'), 'Some ungated notes.\n');
+
+  const load = await loadProject(dir);
+  const issues = checkProject(load).issues;
+  assert.equal(issues.length, 1);
+  assert.partialDeepStrictEqual(issues[0], { kind: 'invalid-frontmatter', file: 'product/notes.md' });
 });

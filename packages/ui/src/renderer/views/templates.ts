@@ -11,7 +11,9 @@ import { h } from '../dom.ts';
 import { TYPE_META } from '../theme.ts';
 import type { ActiveTpl, Ctx } from '../app.ts';
 
-/** List order per SRC-009; the renderer can't runtime-import core (DEC-021). */
+/** List order per SRC-009; the renderer can't runtime-import core (DEC-021).
+    Product stays off the list (WO-121): singletons are authored at fixed
+    paths, not created from a template — their surfacing is design-gated. */
 export const TPL_TYPES: readonly DocType[] = ['requirement', 'decision', 'work-order', 'source', 'workflow'];
 
 const TPL_LABEL: Record<DocType, string> = {
@@ -20,6 +22,7 @@ const TPL_LABEL: Record<DocType, string> = {
   'work-order': 'Work order',
   source: 'Source',
   workflow: 'Workflow',
+  product: 'Product',
 };
 
 const TYPE_PREFIX: Record<DocType, string> = {
@@ -28,6 +31,7 @@ const TYPE_PREFIX: Record<DocType, string> = {
   'work-order': 'WO',
   source: 'SRC',
   workflow: 'WF',
+  product: 'PRD',
 };
 
 const INITIAL_STATUS: Record<DocType, string> = {
@@ -36,6 +40,7 @@ const INITIAL_STATUS: Record<DocType, string> = {
   'work-order': 'backlog',
   source: 'imported',
   workflow: 'draft',
+  product: 'draft',
 };
 
 /** The frontmatter `veri new` will generate, as the locked preview shows it —

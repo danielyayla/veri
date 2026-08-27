@@ -63,11 +63,11 @@ export function parseDocument(file: string, content: string): ParseOutcome {
       : {}),
     ...(fm.type === 'work-order' && fm.claimed_by !== undefined ? { claimedBy: fm.claimed_by } : {}),
     ...(fm.type === 'work-order' && fm.claimed_at !== undefined ? { claimedAt: fm.claimed_at } : {}),
-    ...((fm.type === 'requirement' || fm.type === 'decision' || fm.type === 'workflow' || fm.type === 'work-order') &&
+    ...((fm.type === 'requirement' || fm.type === 'decision' || fm.type === 'workflow' || fm.type === 'work-order' || fm.type === 'product') &&
     fm.approved !== undefined
       ? { approved: fm.approved }
       : {}),
-    ...((fm.type === 'requirement' || fm.type === 'decision' || fm.type === 'workflow' || fm.type === 'work-order') &&
+    ...((fm.type === 'requirement' || fm.type === 'decision' || fm.type === 'workflow' || fm.type === 'work-order' || fm.type === 'product') &&
     fm.approved_by !== undefined
       ? { approvedBy: fm.approved_by }
       : {}),

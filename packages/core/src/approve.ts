@@ -25,6 +25,8 @@ const PROMOTION: Record<string, { from: string; to: string }> = {
   // WO-098: the fourth stamped promotion — dispatch clearance. A started
   // work order (in-progress/done) is past approving, same as superseded.
   'work-order': { from: 'backlog', to: 'ready' },
+  // WO-121: product singletons promote like the workflow they mirror.
+  product: { from: 'draft', to: 'accepted' },
 };
 
 /**
@@ -65,7 +67,7 @@ export async function approveDocument(
 
   const promotion = PROMOTION[doc.type];
   if (promotion === undefined) {
-    throw new Error(`${wanted} is a ${doc.type} — only requirements, decisions, workflows and work orders are approved`);
+    throw new Error(`${wanted} is a ${doc.type} — only requirements, decisions, workflows, work orders and product documents are approved`);
   }
   // Already-promoted documents may be approved again: a re-approval
   // re-stamps `approved:` in place, ratifying the current text — the remedy

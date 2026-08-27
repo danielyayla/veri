@@ -6,6 +6,7 @@ import { nextIdNumber, recordIssuedId, type IdPrefix } from './idstore.ts';
 import { loadProject } from './load.ts';
 import { getTemplate } from './templates.ts';
 import { localToday } from './dates.ts';
+import { PRODUCT_FILES } from './pending.ts';
 import type { Link } from './types.ts';
 
 /**
@@ -22,6 +23,7 @@ export const INITIAL_STATUS: Record<DocType, string> = {
   'work-order': 'backlog',
   source: 'imported',
   workflow: 'draft',
+  product: 'draft',
 };
 
 export const TYPE_SUBDIR: Record<DocType, string> = {
@@ -31,6 +33,7 @@ export const TYPE_SUBDIR: Record<DocType, string> = {
   source: 'sources',
   // The workflow lives at the veri/ root — one per project, no collection dir.
   workflow: '',
+  product: 'product',
 };
 
 export const TYPE_PREFIX: Record<DocType, string> = {
@@ -39,6 +42,7 @@ export const TYPE_PREFIX: Record<DocType, string> = {
   'work-order': 'WO',
   source: 'SRC',
   workflow: 'WF',
+  product: 'PRD',
 };
 
 export function slugifyTitle(title: string): string {
@@ -84,6 +88,14 @@ export async function createDocument(
 ): Promise<CreateResult> {
   const trimmed = title.trim();
   if (trimmed === '') throw new Error('a title is required');
+  // REQ-037: product singletons are fixed files, not a growing collection —
+  // generic creation would mint product/PRD-00N-<slug>.md, which the
+  // product-file check refuses. They are authored at their sanctioned paths.
+  if (type === 'product') {
+    throw new Error(
+      `product documents are fixed singletons — author one of ${PRODUCT_FILES.join(', ')} directly (REQ-037)`,
+    );
+  }
   const root = typeof veriDir === 'string' ? veriDir : fileURLToPath(veriDir);
   const date = options.date ?? localToday();
   const links = options.links ?? [];

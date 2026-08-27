@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { ID_RE, typeOfId } from './ids.ts';
 import type { DocType } from './ids.ts';
 
-const idField = z.string().regex(ID_RE, 'must be REQ-, DEC-, WO-, SRC- or WF- plus a number of three or more digits (e.g. REQ-001)');
+const idField = z.string().regex(ID_RE, 'must be REQ-, DEC-, WO-, SRC-, WF- or PRD- plus a number of three or more digits (e.g. REQ-001)');
 const dateField = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a YYYY-MM-DD date');
 
 const linkSchema = z
@@ -190,11 +190,31 @@ const workflowSchema = z
     // WO-088: days of bound-path silence before an in-progress work order
     // counts as stale. Absent → the core default (DEFAULT_STALE_AFTER_DAYS).
     stale_after_days: z.number().int().positive().optional(),
+    // REQ-037 (WO-121): days of silence before the accepted current-focus
+    // singleton counts as stale. A separate knob from stale_after_days —
+    // that one's silence is about code, this one's about intent. Absent →
+    // the core default (DEFAULT_FOCUS_STALE_AFTER_DAYS).
+    focus_stale_after_days: z.number().int().positive().optional(),
+  })
+  .passthrough();
+
+// The product layer (REQ-037, WO-121): gated singletons under veri/product/
+// on the WF-001 precedent — same draft → accepted lifecycle as the workflow,
+// retirement as the exit. Which file each document may live in is check's
+// rule (product-file), not the schema's: identity is the filename, so the
+// frontmatter carries no facet field to drift from it.
+const productSchema = z
+  .object({
+    ...baseFields,
+    type: z.literal('product'),
+    status: z.enum(['draft', 'accepted', 'retired']),
+    approved: dateField.optional(),
+    approved_by: approvedByField,
   })
   .passthrough();
 
 export const frontmatterSchema = z
-  .discriminatedUnion('type', [requirementSchema, decisionSchema, workOrderSchema, sourceSchema, workflowSchema])
+  .discriminatedUnion('type', [requirementSchema, decisionSchema, workOrderSchema, sourceSchema, workflowSchema, productSchema])
   .superRefine((fm, ctx) => {
     const implied = typeOfId(fm.id);
     if (implied && implied !== fm.type) {
@@ -251,6 +271,10 @@ export const ASSEMBLY_POLICY: Record<DocType, AssemblyPolicy> = {
   },
   'work-order': { include: 'linked', packing: { mode: 'full' } },
   source: { include: 'linked', packing: { mode: 'excerpt', chars: 600 } },
+  // WO-121: product singletons ship full when linked. Intent-led assembly —
+  // the accepted singletons opening every package — is REQ-039's work order,
+  // which flips this to include: 'always'.
+  product: { include: 'linked', packing: { mode: 'full' } },
 };
 
 /** The packing a document of `type` in `status` gets in a context package. */

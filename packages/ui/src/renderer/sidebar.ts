@@ -15,6 +15,9 @@ const LIVING: Record<DocType, string[] | null> = {
   'work-order': ['backlog', 'ready', 'in-progress'],
   source: null,
   workflow: ['draft', 'accepted'],
+  // WO-121: compile-keeping entry — product documents mirror the workflow's
+  // lifecycle. Their surfacing in the sidebar is design-gated future work.
+  product: ['draft', 'accepted'],
 };
 
 /** What a type's dead docs are called in the panel's expander. Sources had
@@ -25,6 +28,7 @@ export const DEAD_LABEL: Record<DocType, string> = {
   'work-order': 'done',
   source: 'withdrawn',
   workflow: 'retired',
+  product: 'retired',
 };
 
 export function isLiving(doc: VeriDocument): boolean {

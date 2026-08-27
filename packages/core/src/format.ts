@@ -15,7 +15,11 @@ import { fileURLToPath } from 'node:url';
 // reference to it as a broken link. That is the exact failure WO-104 names,
 // and the format bump is its remedy: a stale reader states the format and
 // refuses, instead of opening the project and lying about it.
-export const CURRENT_FORMAT = 2;
+// WO-121 bumps to 3: the product document type (REQ-037) joins the
+// discriminated union — an older reader drops every PRD document and
+// misreports its inline references, the same WO-104 failure class, so the
+// bump ships with the type per the RELEASING.md rule.
+export const CURRENT_FORMAT = 3;
 
 export const FORMAT_FILE = 'format';
 
@@ -95,6 +99,12 @@ export const MIGRATIONS: readonly MigrationStep[] = [
     to: 2,
     summary: 'the withdrawn status joins every type (marker only; documents are already valid)',
     apply: (veriDir) => writeFormatMarker(veriDir, 2),
+  },
+  {
+    from: 2,
+    to: 3,
+    summary: 'the product document type joins the schema (marker only; documents are already valid)',
+    apply: (veriDir) => writeFormatMarker(veriDir, 3),
   },
 ];
 
