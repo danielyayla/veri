@@ -2,7 +2,7 @@
 id: WO-121
 type: work-order
 title: "The product layer lands in core: gated singletons under veri/product/, seeded as drafts"
-status: in-progress
+status: done
 claimed_by: fable-wo121
 claimed_at: 2026-08-27
 approved: 2026-08-27
@@ -45,12 +45,12 @@ Core learns the product-layer document type: `veri/product/` singletons (vision,
 
 ## Acceptance tests
 
-- [ ] `veri check` passes with the four seeded singletons present as drafts
-- [ ] A freeform `veri/product/notes.md` fails `veri check`
-- [ ] A stale `current-focus.md` surfaces the advisory; a fresh one does not
-- [ ] `veri approve` promotes a product singleton and stamps `approved:`
-- [ ] Zero `veri check` violations repo-wide
+- [x] `veri check` passes with the four seeded singletons present as drafts
+- [x] A freeform `veri/product/notes.md` fails `veri check`
+- [x] A stale `current-focus.md` surfaces the advisory; a fresh one does not
+- [x] `veri approve` promotes a product singleton and stamps `approved:`
+- [x] Zero `veri check` violations repo-wide
 
 ## Receipts
 
-(none yet)
+- 2026-08-27 — f21a943 — packages/core/src (ids, idstore, schema, parse, pending, create, approve, templates, format, types, check, report + tests), packages/ui/src/renderer (sidebar, theme, views/templates — compile-keeping entries only), veri/format, veri/ids, veri/product/{vision,users,principles,current-focus}.md, [[DEC-121]] — the product type lands: PRD gated singletons with placement violation and stale-focus advisory, CURRENT_FORMAT 3 (marker-only migration), four seeds filed as drafts pending approval. Full workspace suite green (296 core tests, 787 total); freeform-file, staleness, and approve paths covered in check.test.ts / approve.test.ts / create.test.ts. Note: touched design-gated packages/ui with compile-keeping map entries only — the diff-tier advisory will flag it; product UI surfacing remains a separate designed WO.
