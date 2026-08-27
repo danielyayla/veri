@@ -2,7 +2,7 @@
 id: DEC-126
 type: decision
 title: "The skill library ships as a committed Claude Code plugin built from a host-neutral core, served by npx @verikb/mcp"
-status: proposed
+status: withdrawn
 created: 2026-08-27
 updated: 2026-08-27
 links:
@@ -23,6 +23,21 @@ links:
   - id: REQ-008
     rel: constrained-by
 ---
+
+## Withdrawn in favour of [[DEC-125]]
+
+This decision was filed concurrently with [[DEC-125]] from the same route
+document ([[SRC-061]]), by a session that had not seen it, and reached the
+opposite answer on content ownership. [[DEC-125]] stands: the coaching method
+lives in `veri/` as Veri documents, with generated harness-native shells as
+thin pointers, per [[DEC-018]].
+
+The text below is kept unedited because the two disagreed on a real question
+and the reasoning is worth reading. Its mechanical conclusions — capability
+probing over the tool list, refusing rather than degrading, writing nothing at
+install time, no new `v*` tag claimant, `veri` as the user-facing name — were
+carried into [[DEC-125]] and hold there. Its content-ownership and carrier
+claims do not.
 
 ## Choice
 
