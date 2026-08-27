@@ -2,7 +2,7 @@
 id: WO-133
 type: work-order
 title: "The front-half default methods — wayfinder, product-discovery, evidence-intake, define, decide"
-status: in-progress
+status: done
 claimed_by: opus-wo133
 claimed_at: 2026-08-27
 approved: 2026-08-27
@@ -65,14 +65,14 @@ These are also the five with the least existing canon to lean on. [[WF-001]] tel
 
 ## Acceptance tests
 
-- [ ] All five parse, raise no `missing-section` advisory, and `veri check` reports 0 issues
-- [ ] Every `requires:` entry names a tool that exists in the MCP server's current list, or the method is honest that the skill is blocked on [[REQ-041]] — no method claims a capability the surface does not have
-- [ ] Each document's guardrails state that it files `draft`/`proposed` only and never stamps `approved:`
-- [ ] Each document's handoff names the gate that comes next and the skill that staffs it: product-discovery hands to define, define hands to decide
-- [ ] Two of the five are deliberately not links in that chain, and their documents say so. `veri:wayfinder` routes into any gate — it is the front door, not a stage. `veri:evidence-intake` feeds every stage rather than occupying one ([[SRC-060]]), so its handoff is conditional on what the evidence bears on: did-it-work when it answers a shipped bet, define or decide when it demands revised intent. A method that forces either into a single successor has mis-stated its gate
-- [ ] `veri:wayfinder`'s document contains no artifact-creating step at all — verified by reading its "What it files" section, which should say it files nothing
-- [ ] The [[WO-130]] corpus cases for these five are consistent with the `description:` text as authored; any case the authoring proves wrong is corrected in the corpus with its rationale line updated
+- [x] All five parse, raise no `missing-section` advisory, and `veri check` reports 0 issues
+- [x] Every `requires:` entry names a tool that exists in the MCP server's current list, or the method is honest that the skill is blocked on [[REQ-041]] — no method claims a capability the surface does not have
+- [x] Each document's guardrails state that it files `draft`/`proposed` only and never stamps `approved:`
+- [x] Each document's handoff names the gate that comes next and the skill that staffs it: product-discovery hands to define, define hands to decide
+- [x] Two of the five are deliberately not links in that chain, and their documents say so. `veri:wayfinder` routes into any gate — it is the front door, not a stage. `veri:evidence-intake` feeds every stage rather than occupying one ([[SRC-060]]), so its handoff is conditional on what the evidence bears on: did-it-work when it answers a shipped bet, define or decide when it demands revised intent. A method that forces either into a single successor has mis-stated its gate
+- [x] `veri:wayfinder`'s document contains no artifact-creating step at all — verified by reading its "What it files" section, which should say it files nothing
+- [x] The [[WO-130]] corpus cases for these five are consistent with the `description:` text as authored; any case the authoring proves wrong is corrected in the corpus with its rationale line updated
 
 ## Receipts
 
-(none yet)
+- 2026-08-27 — 76faa8a — veri/methods/wayfinder.md, veri/methods/product-discovery.md, veri/methods/evidence-intake.md, veri/methods/define.md, veri/methods/decide.md, veri/ids, veri/work-orders/WO-133-the-front-half-default-methods-wayfinder-product-discovery-e.md — MET-002 through MET-006, the five front-half default methods authored draft under the six-section template and SRC-063's form (193-220 body lines each, 185-190 word descriptions quoting the WO-130 corpus utterances for both the positive and the near-miss side); every requires: entry verified present in packages/mcp/src/server.ts by inspection; veri:wayfinder files nothing and carries no file_* tool, veri:evidence-intake's handoff is conditional with "nowhere at all" named as a legitimate exit, and both say outright that they are not links in the loop chain; two capability gaps stated rather than routed around (file_requirement takes no kind/outcome, so a hypothesis lands as a constraint; superseded_by has no MCP path) with the exact frontmatter edit shown in each case; no corpus case needed correcting; 371 core tests plus 486 across the workspaces green, veri check 0 issues and 17 advisories, unchanged from before the session
