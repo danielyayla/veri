@@ -2,7 +2,10 @@
 id: WO-121
 type: work-order
 title: "The product layer lands in core: gated singletons under veri/product/, seeded as drafts"
-status: backlog
+status: in-progress
+claimed_by: fable-wo121
+claimed_at: 2026-08-27
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:
