@@ -2,7 +2,7 @@
 id: WO-130
 type: work-order
 title: "The trigger corpus: utterances mapped to the gate that should answer them"
-status: in-progress
+status: done
 claimed_by: opus-wo130
 claimed_at: 2026-08-27
 approved: 2026-08-27
@@ -17,9 +17,12 @@ links:
     rel: derived-from
   - id: DEC-125
     rel: constrained-by
-# binds:         # code this work order claims (optional)
-#   paths: []    # repo-root-relative globs
-#   tests: []    # test files proving it (path or path::name)
+binds:
+  paths:
+    - skills/trigger-corpus.yaml
+    - packages/core/src/skill-corpus.ts
+  tests:
+    - packages/core/src/skill-corpus.test.ts
 ---
 
 ## Summary
@@ -58,14 +61,14 @@ The corpus is data plus a schema — no runner. A runner needs emitted shells to
 
 ## Acceptance tests
 
-- [ ] A corpus file exists with a documented schema, committed to the repo
-- [ ] Every one of [[SRC-060]]'s fourteen skills appears as the expected answer for at least one utterance
-- [ ] Each of the five named near-miss pairs has at least one case on each side, with a rationale line explaining the boundary
-- [ ] A negative set exists whose expected answer is that no skill fires, covering ordinary coding requests and codebase questions
-- [ ] The four front-door utterances [[REQ-040]] names by example are present
-- [ ] Schema tests pass: every entry well-formed, every skill id recognised, no duplicate utterances
-- [ ] `veri check` reports zero issues
+- [x] A corpus file exists with a documented schema, committed to the repo
+- [x] Every one of [[SRC-060]]'s fourteen skills appears as the expected answer for at least one utterance
+- [x] Each of the five named near-miss pairs has at least one case on each side, with a rationale line explaining the boundary
+- [x] A negative set exists whose expected answer is that no skill fires, covering ordinary coding requests and codebase questions
+- [x] The four front-door utterances [[REQ-040]] names by example are present
+- [x] Schema tests pass: every entry well-formed, every skill id recognised, no duplicate utterances
+- [x] `veri check` reports zero issues
 
 ## Receipts
 
-(none yet)
+- 2026-08-27 — b4121b2 — skills/trigger-corpus.yaml, packages/core/src/skill-corpus.ts, packages/core/src/skill-corpus.test.ts, packages/core/src/index.ts, action/dist/index.js, veri/decisions/DEC-134-the-trigger-corpus-is-a-repo-level-yaml-data-file-with-its-s.md, veri/ids — the corpus lands: 59 cases covering all fourteen [[SRC-060]] skills, the five near-miss pairs with a boundary statement each and a rationale on every discriminating case, 16 negatives that must fire nothing, plus the schema, its invariants, and ten tests; [[DEC-134]] files format, location and schema shape as proposed; no runner, no shells, no method documents (all out of scope); core suite 311 green, check 0 issues
