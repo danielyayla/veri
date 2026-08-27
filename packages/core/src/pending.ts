@@ -13,7 +13,8 @@ export function isPending(doc: VeriDocument): boolean {
     (doc.type === 'requirement' && doc.status === 'draft') ||
     (doc.type === 'decision' && doc.status === 'proposed') ||
     (doc.type === 'workflow' && doc.status === 'draft') ||
-    (doc.type === 'product' && doc.status === 'draft')
+    (doc.type === 'product' && doc.status === 'draft') ||
+    (doc.type === 'method' && doc.status === 'draft')
   );
 }
 
@@ -105,3 +106,12 @@ export const PRODUCT_FILES = [
 
 /** The veri/-relative path of the current-focus singleton (REQ-037). */
 export const CURRENT_FOCUS_FILE = 'product/current-focus.md';
+
+/**
+ * Where the method layer lives (REQ-040, DEC-130, WO-131), veri/-relative.
+ * Unlike the product layer this is an *open* collection — any file under it,
+ * ids minted on demand — so what is closed is the directory, not the set of
+ * documents: methods live here and nothing else does. Lives on the
+ * dependency-free subpath so every surface shares the one constant (DEC-046).
+ */
+export const METHODS_DIR = 'methods';

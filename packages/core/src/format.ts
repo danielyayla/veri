@@ -19,7 +19,11 @@ import { fileURLToPath } from 'node:url';
 // discriminated union — an older reader drops every PRD document and
 // misreports its inline references, the same WO-104 failure class, so the
 // bump ships with the type per the RELEASING.md rule.
-export const CURRENT_FORMAT = 3;
+// WO-131 bumps to 4: the method document type (REQ-040, DEC-130) joins the
+// discriminated union and MET- joins ID_RE — a format-3 reader drops every
+// method document and misreports its inline references, the same WO-104
+// failure class the last two bumps answered.
+export const CURRENT_FORMAT = 4;
 
 export const FORMAT_FILE = 'format';
 
@@ -105,6 +109,12 @@ export const MIGRATIONS: readonly MigrationStep[] = [
     to: 3,
     summary: 'the product document type joins the schema (marker only; documents are already valid)',
     apply: (veriDir) => writeFormatMarker(veriDir, 3),
+  },
+  {
+    from: 3,
+    to: 4,
+    summary: 'the method document type joins the schema (marker only; documents are already valid)',
+    apply: (veriDir) => writeFormatMarker(veriDir, 4),
   },
 ];
 

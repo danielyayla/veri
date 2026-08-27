@@ -3,7 +3,7 @@ import { ID_RE, typeOfId } from './ids.ts';
 import type { DocType } from './ids.ts';
 import { SOURCE_KINDS } from './pending.ts';
 
-const idField = z.string().regex(ID_RE, 'must be REQ-, DEC-, WO-, SRC-, WF- or PRD- plus a number of three or more digits (e.g. REQ-001)');
+const idField = z.string().regex(ID_RE, 'must be REQ-, DEC-, WO-, SRC-, WF-, PRD- or MET- plus a number of three or more digits (e.g. REQ-001)');
 const dateField = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a YYYY-MM-DD date');
 
 const linkSchema = z
@@ -218,8 +218,51 @@ const productSchema = z
   })
   .passthrough();
 
+// The method layer (REQ-040, DEC-130, WO-131): the coaching method for one
+// lifecycle gate, held as a Veri document so the project owns and approves it
+// (DEC-125). An *open* collection under veri/methods/ — ids minted on demand,
+// slug filenames, the sources-and-decisions shape — not the product layer's
+// gated singletons. Placement is check's rule (method-file), not the schema's.
+//
+// Two fields beyond the base are required rather than optional, because both
+// are machine-read and a silently absent one produces a working-looking skill
+// that does nothing:
+//   description — one paragraph, the text the emitted shell triggers on.
+//                 Empty (or whitespace) would emit a shell matching nothing.
+//   requires    — the MCP tool names the skill cannot run without, so the
+//                 capability probe can refuse with a named repair. An empty
+//                 list is legal and meaningful: a skill needing no tools.
+// Whether those names exist on any server is deliberately not checked here:
+// core cannot know the MCP surface without inverting the dependency direction.
+const methodSchema = z
+  .object({
+    ...baseFields,
+    type: z.literal('method'),
+    status: z.enum(['draft', 'accepted', 'retired', WITHDRAWN]),
+    approved: dateField.optional(),
+    approved_by: approvedByField,
+    description: z
+      .string()
+      .refine((text) => text.trim() !== '', { message: 'must not be empty — it is the text the emitted skill shell triggers on' }),
+    requires: z.array(z.string().min(1)),
+    // DEC-130: the stable slug of the shipped method this file was scaffolded
+    // from — `original:` one type over. Absent means the project authored it,
+    // which is the signal upgrade-by-proposal reads: nothing is ever proposed
+    // to a method with no upstream.
+    upstream: z.string().min(1).optional(),
+  })
+  .passthrough();
+
 export const frontmatterSchema = z
-  .discriminatedUnion('type', [requirementSchema, decisionSchema, workOrderSchema, sourceSchema, workflowSchema, productSchema])
+  .discriminatedUnion('type', [
+    requirementSchema,
+    decisionSchema,
+    workOrderSchema,
+    sourceSchema,
+    workflowSchema,
+    productSchema,
+    methodSchema,
+  ])
   .superRefine((fm, ctx) => {
     const implied = typeOfId(fm.id);
     if (implied && implied !== fm.type) {
@@ -280,6 +323,12 @@ export const ASSEMBLY_POLICY: Record<DocType, AssemblyPolicy> = {
   // intent precedes process precedes specifics. Drafts never ship: only
   // ratified intent steers agents.
   product: { include: 'always', packing: { mode: 'full' } },
+  // DEC-130 (WO-131): every package carries the menu of gates that exist,
+  // name-only — the body is fetched on demand. `always` because a harness
+  // with no skill mechanism must still learn the gates are there; name-only
+  // because fourteen coaching documents packed full would spend the whole
+  // inline budget delivering thirteen gates the agent is not standing at.
+  method: { include: 'always', packing: { mode: 'name-only' } },
 };
 
 /** The packing a document of `type` in `status` gets in a context package. */

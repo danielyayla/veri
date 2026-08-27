@@ -8,8 +8,11 @@ import { FORMAT_FILE, writeFormatMarker } from './format.ts';
 import { AGENTS_MD, CLAUDE_MD_POINTER, defaultWorkflowMd } from './workflow-default.ts';
 import { localToday } from './dates.ts';
 
-/** The four subdirectories every Veri project has (REQ-001). */
-export const VERI_SUBDIRS = ['requirements', 'decisions', 'work-orders', 'sources'] as const;
+/** The subdirectories every Veri project has (REQ-001). `methods` joins
+    them with the seventh document type (DEC-130, WO-131): unlike the
+    product layer's singletons a method collection grows, so the directory
+    is scaffolded empty and waits, like requirements and decisions do. */
+export const VERI_SUBDIRS = ['requirements', 'decisions', 'work-orders', 'sources', 'methods'] as const;
 
 export interface ScaffoldOptions {
   /**

@@ -71,7 +71,7 @@ test('migrating a pre-marker project writes the marker and touches nothing else'
   assert.equal(readFileSync(join(dir, 'requirements', 'REQ-001-t.md'), 'utf8'), doc);
 });
 
-test('a format-1 project migrates to current by markers alone — withdrawn (1→2) and the product type (2→3) need no document rewrite', (t) => {
+test('a format-1 project migrates to current by markers alone — withdrawn (1→2), the product type (2→3) and the method type (3→4) need no document rewrite', (t) => {
   const dir = tmpVeriDir(t);
   writeFormatMarker(dir, 1);
   const doc = '---\nid: REQ-001\ntype: requirement\ntitle: T\nstatus: draft\ncreated: 2026-08-01\nupdated: 2026-08-01\nlinks: []\n---\n\nBody.\n';
@@ -79,10 +79,11 @@ test('a format-1 project migrates to current by markers alone — withdrawn (1�
 
   const result = migrateProject(dir);
   assert.equal(result.from, 1);
-  assert.equal(result.to, 3);
-  assert.equal(result.applied.length, 2);
+  assert.equal(result.to, 4);
+  assert.equal(result.applied.length, 3);
   assert.match(result.applied[0] ?? '', /withdrawn status/);
   assert.match(result.applied[1] ?? '', /product document type/);
+  assert.match(result.applied[2] ?? '', /method document type/);
   assert.equal(readFileSync(join(dir, 'requirements', 'REQ-001-t.md'), 'utf8'), doc);
 });
 

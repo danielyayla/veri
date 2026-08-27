@@ -101,9 +101,10 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
     .filter((id) => id !== workOrderId)
     .map((id) => graph.byId.get(id)!)
     .filter((doc) => !isWithdrawn(doc))
-    // Product singletons render in the intent section (REQ-039), never in
-    // the traversal buckets — the workflow exclusion, one type over.
-    .filter((doc) => doc.type !== 'product')
+    // Product singletons render in the intent section (REQ-039), and methods
+    // in the gate menu (DEC-130) — never in the traversal buckets. The
+    // workflow exclusion, two types over.
+    .filter((doc) => doc.type !== 'product' && doc.type !== 'method')
     .sort((a, b) => compareIds(a.id, b.id));
 
   // The project workflow (DEC-018) opens every package, reached or not — its
@@ -130,6 +131,20 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
               (PRODUCT_FILES as readonly string[]).indexOf(a.file) - (PRODUCT_FILES as readonly string[]).indexOf(b.file) ||
               compareIds(a.id, b.id),
           )
+      : [];
+
+  // The gate menu (REQ-040, DEC-130, WO-131): the accepted methods this
+  // project staffs, named in every package and packed name-only — the body is
+  // fetched on demand. `always`, so an agent in a harness with no skill
+  // mechanism still learns the gates exist; name-only, so learning that costs
+  // a menu rather than fourteen coaching documents. Drafts and retired
+  // methods never ship: only a ratified gate is a gate. Outside the traversal
+  // buckets, like the workflow and the intent singletons.
+  const methods =
+    ASSEMBLY_POLICY.method.include === 'always'
+      ? documents
+          .filter((doc) => doc.type === 'method' && doc.status === 'accepted')
+          .sort((a, b) => compareIds(a.id, b.id))
       : [];
 
   // The bet this work order tests (REQ-039): every accepted hypothesis
@@ -218,9 +233,9 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
       docCount += 1;
     };
 
-    // Deterministic ordering: intent → workflow → work order → requirements
-    // → decisions → pending → sources → context map → templates. Intent
-    // precedes process precedes specifics (REQ-039).
+    // Deterministic ordering: intent → workflow → methods → work order →
+    // requirements → decisions → pending → sources → context map →
+    // templates. Intent precedes process precedes specifics (REQ-039).
     if (intentDocs.length > 0 || bets.length > 0) {
       parts.push('## Intent');
       for (const doc of intentDocs) {
@@ -243,6 +258,17 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
       // A draft workflow is visible but non-binding, same labeling rule as REQ-008.
       const pendingNote = isPending(workflow) ? ` · ${workflow.status} — not ratified, do not treat as binding` : '';
       push(`## Workflow · ${workflow.id} — ${workflow.title}${pendingNote} · ~${estimateTokens(text)} tokens`, text);
+    }
+    // The gate menu sits between the process and the specifics: the workflow
+    // says how work moves, the menu says which gates are staffed and how to
+    // reach one, and everything below is this work order. Name-only rows add
+    // tokens but no bodies, so they count toward totalTokens and never toward
+    // docCount (the superseded-decision rule, DEC-025).
+    if (methods.length > 0) {
+      const rows = methods.map((doc) => `- ${doc.id} — ${doc.title}`);
+      const text = `The gates this project staffs, named rather than inlined. Retrieve one in full with get_document(<id>).\n\n${rows.join('\n')}\n`;
+      totalTokens += estimateTokens(text);
+      parts.push(`## Methods — ${methods.length} gates available\n\n${text}`);
     }
     {
       const { heading, text } = renderFull(workOrder, '## Work order');

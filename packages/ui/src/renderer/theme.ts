@@ -20,6 +20,9 @@ export const TYPE_META: Record<DocType, TypeMeta> = {
   // WO-126 (SRC-059): the WHY group's identity — its own hue, carried by
   // palette hits, status dots, and the sidebar swatch.
   product: { color: 'var(--t-prd)', label: 'product', crumb: 'Product', group: 'PRODUCT' },
+  // WO-131: compile-keeping entry — the method layer has had no design pass,
+  // so it borrows the workflow's tokens rather than claiming a hue.
+  method: { color: 'var(--t-wf)', label: 'method', crumb: 'Methods', group: 'METHODS' },
 };
 
 export const STATUS_COLORS: Record<string, string> = {

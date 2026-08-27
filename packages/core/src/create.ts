@@ -6,7 +6,7 @@ import { nextIdNumber, recordIssuedId, type IdPrefix } from './idstore.ts';
 import { loadProject } from './load.ts';
 import { getTemplate } from './templates.ts';
 import { localToday } from './dates.ts';
-import { PRODUCT_FILES, SOURCE_KINDS } from './pending.ts';
+import { METHODS_DIR, PRODUCT_FILES, SOURCE_KINDS } from './pending.ts';
 import type { Link } from './types.ts';
 
 /**
@@ -24,6 +24,7 @@ export const INITIAL_STATUS: Record<DocType, string> = {
   source: 'imported',
   workflow: 'draft',
   product: 'draft',
+  method: 'draft',
 };
 
 export const TYPE_SUBDIR: Record<DocType, string> = {
@@ -34,6 +35,7 @@ export const TYPE_SUBDIR: Record<DocType, string> = {
   // The workflow lives at the veri/ root — one per project, no collection dir.
   workflow: '',
   product: 'product',
+  method: METHODS_DIR,
 };
 
 export const TYPE_PREFIX: Record<DocType, string> = {
@@ -43,7 +45,19 @@ export const TYPE_PREFIX: Record<DocType, string> = {
   source: 'SRC',
   workflow: 'WF',
   product: 'PRD',
+  method: 'MET',
 };
+
+/**
+ * What generic creation writes into a new method's required `description`
+ * (DEC-130): a prompt, not a guess. It is deliberately unmistakable as a
+ * placeholder — the field is the text an emitted skill shell triggers on, and
+ * a plausible-sounding invention would trigger on the wrong utterances. The
+ * document is born `draft`, so nothing emits until the user has replaced it
+ * and approved (DEC-135, proposed).
+ */
+export const METHOD_DESCRIPTION_PLACEHOLDER =
+  'TODO — one paragraph: which utterances should route to this gate, and how it differs from the adjacent ones. This is the text the emitted skill shell triggers on.';
 
 export function slugifyTitle(title: string): string {
   const slug = title
@@ -131,6 +145,12 @@ export async function createDocument(
     `title: ${JSON.stringify(trimmed)}`,
     `status: ${INITIAL_STATUS[type]}`,
     ...(options.kind !== undefined ? [`kind: ${options.kind}`] : []),
+    // DEC-130 (WO-131): `description` and `requires` are required on a
+    // method, so generic creation has to write them or hand back a file that
+    // fails its own schema. It writes a visible placeholder rather than
+    // refusing: methods are an open collection, and authoring the fifteenth
+    // gate must stay a change to the project, not to Veri (DEC-135, proposed).
+    ...(type === 'method' ? [`description: ${JSON.stringify(METHOD_DESCRIPTION_PLACEHOLDER)}`, 'requires: []'] : []),
     `created: ${date}`,
     `updated: ${date}`,
     ...(links.length > 0 ? ['links:', ...links.flatMap((link) => [`  - id: ${link.id}`, `    rel: ${link.rel}`])] : []),

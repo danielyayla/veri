@@ -64,13 +64,30 @@ export function parseDocument(file: string, content: string): ParseOutcome {
     ...(fm.type === 'requirement' && fm.outcome !== undefined
       ? { outcome: { metric: fm.outcome.metric, target: String(fm.outcome.target) } }
       : {}),
+    // DEC-130 (WO-131): a method's machine-read fields lifted out of the
+    // frontmatter bag so the emitter and the capability probe read one typed
+    // shape. `description` and `requires` are required by the schema, so on a
+    // method they are always present; `upstream` stays absent when the
+    // project authored the file itself.
+    ...(fm.type === 'method' ? { description: fm.description, requires: [...fm.requires] } : {}),
+    ...(fm.type === 'method' && fm.upstream !== undefined ? { upstream: fm.upstream } : {}),
     ...(fm.type === 'work-order' && fm.claimed_by !== undefined ? { claimedBy: fm.claimed_by } : {}),
     ...(fm.type === 'work-order' && fm.claimed_at !== undefined ? { claimedAt: fm.claimed_at } : {}),
-    ...((fm.type === 'requirement' || fm.type === 'decision' || fm.type === 'workflow' || fm.type === 'work-order' || fm.type === 'product') &&
+    ...((fm.type === 'requirement' ||
+      fm.type === 'decision' ||
+      fm.type === 'workflow' ||
+      fm.type === 'work-order' ||
+      fm.type === 'product' ||
+      fm.type === 'method') &&
     fm.approved !== undefined
       ? { approved: fm.approved }
       : {}),
-    ...((fm.type === 'requirement' || fm.type === 'decision' || fm.type === 'workflow' || fm.type === 'work-order' || fm.type === 'product') &&
+    ...((fm.type === 'requirement' ||
+      fm.type === 'decision' ||
+      fm.type === 'workflow' ||
+      fm.type === 'work-order' ||
+      fm.type === 'product' ||
+      fm.type === 'method') &&
     fm.approved_by !== undefined
       ? { approvedBy: fm.approved_by }
       : {}),

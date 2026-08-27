@@ -90,6 +90,39 @@ singletons under veri/product/ — vision, users, principles, or
 current-focus.)
 `;
 
+// The method skeleton (DEC-130): six sections, in the order a gate is
+// actually run. Purpose says which gate this is; What it reads says where the
+// agent looks before asking anything; The interview is the coaching itself;
+// What it files names the documents that may be created, always draft or
+// proposed (REQ-008); Guardrails names what the gate must refuse; Handoff
+// names the next gate, which is how the library composes. Advisory like every
+// template — a project may edit it (DEC-023, DEC-025).
+const METHOD_BODY = `
+## Purpose
+
+(Which gate this staffs, and what a user gets from standing at it.)
+
+## What it reads
+
+(The documents and tools consulted before the first question.)
+
+## The interview
+
+(The questions, in order, and what each one is for.)
+
+## What it files
+
+(The documents this may create — draft or proposed only, never approved.)
+
+## Guardrails
+
+(What this must refuse to do, and what it says when it refuses.)
+
+## Handoff
+
+(Which documents now await which act, and which gate picks them up.)
+`;
+
 export const BODY_TEMPLATES: Record<DocType, string> = {
   requirement: REQUIREMENT_BODY,
   decision: DECISION_BODY,
@@ -97,6 +130,7 @@ export const BODY_TEMPLATES: Record<DocType, string> = {
   source: SOURCE_BODY,
   workflow: WORKFLOW_BODY,
   product: PRODUCT_BODY,
+  method: METHOD_BODY,
 };
 
 /** Path of a type's template file, relative to the veri/ directory. */

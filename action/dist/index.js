@@ -7372,21 +7372,22 @@ import { basename, dirname as dirname2, join as join6, relative as relative2, re
 import { fileURLToPath as fileURLToPath4 } from "node:url";
 
 // ../core/dist/ids.js
-var DOC_TYPES = ["requirement", "decision", "work-order", "source", "workflow", "product"];
-var ID_RE = /^(REQ|DEC|WO|SRC|WF|PRD)-\d{3,}$/;
+var DOC_TYPES = ["requirement", "decision", "work-order", "source", "workflow", "product", "method"];
+var ID_RE = /^(REQ|DEC|WO|SRC|WF|PRD|MET)-\d{3,}$/;
 var PREFIX_TO_TYPE = {
   REQ: "requirement",
   DEC: "decision",
   WO: "work-order",
   SRC: "source",
   WF: "workflow",
-  PRD: "product"
+  PRD: "product",
+  MET: "method"
 };
 function typeOfId(id) {
   const prefix = /^([A-Z]+)-/.exec(id)?.[1];
   return prefix ? PREFIX_TO_TYPE[prefix] : void 0;
 }
-var INLINE_REF_RE = /\[\[((?:REQ|DEC|WO|SRC|WF|PRD)-\d{3,})\]\]/g;
+var INLINE_REF_RE = /\[\[((?:REQ|DEC|WO|SRC|WF|PRD|MET)-\d{3,})\]\]/g;
 function compareIds(a, b) {
   return a.localeCompare(b, void 0, { numeric: true });
 }
@@ -7408,7 +7409,7 @@ function localToday(now = /* @__PURE__ */ new Date()) {
 
 // ../core/dist/pending.js
 function isPending(doc) {
-  return doc.type === "requirement" && doc.status === "draft" || doc.type === "decision" && doc.status === "proposed" || doc.type === "workflow" && doc.status === "draft" || doc.type === "product" && doc.status === "draft";
+  return doc.type === "requirement" && doc.status === "draft" || doc.type === "decision" && doc.status === "proposed" || doc.type === "workflow" && doc.status === "draft" || doc.type === "product" && doc.status === "draft" || doc.type === "method" && doc.status === "draft";
 }
 function isWithdrawn(doc) {
   return doc.status === "withdrawn";
@@ -7429,6 +7430,7 @@ var PRODUCT_FILES = [
   "product/current-focus.md"
 ];
 var CURRENT_FOCUS_FILE = "product/current-focus.md";
+var METHODS_DIR = "methods";
 
 // ../../node_modules/zod/v3/external.js
 var external_exports = {};
@@ -11472,7 +11474,7 @@ var coerce = {
 var NEVER = INVALID;
 
 // ../core/dist/schema.js
-var idField = external_exports.string().regex(ID_RE, "must be REQ-, DEC-, WO-, SRC-, WF- or PRD- plus a number of three or more digits (e.g. REQ-001)");
+var idField = external_exports.string().regex(ID_RE, "must be REQ-, DEC-, WO-, SRC-, WF-, PRD- or MET- plus a number of three or more digits (e.g. REQ-001)");
 var dateField = external_exports.string().regex(/^\d{4}-\d{2}-\d{2}$/, "must be a YYYY-MM-DD date");
 var linkSchema = external_exports.object({
   id: idField,
@@ -11581,7 +11583,29 @@ var productSchema = external_exports.object({
   approved: dateField.optional(),
   approved_by: approvedByField
 }).passthrough();
-var frontmatterSchema = external_exports.discriminatedUnion("type", [requirementSchema, decisionSchema, workOrderSchema, sourceSchema, workflowSchema, productSchema]).superRefine((fm, ctx) => {
+var methodSchema = external_exports.object({
+  ...baseFields,
+  type: external_exports.literal("method"),
+  status: external_exports.enum(["draft", "accepted", "retired", WITHDRAWN]),
+  approved: dateField.optional(),
+  approved_by: approvedByField,
+  description: external_exports.string().refine((text) => text.trim() !== "", { message: "must not be empty \u2014 it is the text the emitted skill shell triggers on" }),
+  requires: external_exports.array(external_exports.string().min(1)),
+  // DEC-130: the stable slug of the shipped method this file was scaffolded
+  // from — `original:` one type over. Absent means the project authored it,
+  // which is the signal upgrade-by-proposal reads: nothing is ever proposed
+  // to a method with no upstream.
+  upstream: external_exports.string().min(1).optional()
+}).passthrough();
+var frontmatterSchema = external_exports.discriminatedUnion("type", [
+  requirementSchema,
+  decisionSchema,
+  workOrderSchema,
+  sourceSchema,
+  workflowSchema,
+  productSchema,
+  methodSchema
+]).superRefine((fm, ctx) => {
   const implied = typeOfId(fm.id);
   if (implied && implied !== fm.type) {
     ctx.addIssue({
@@ -11651,10 +11675,17 @@ function parseDocument(file, content) {
     // absent — "absent means reference" is the readers' rule (sourceKind).
     ...fm.type === "source" && fm.kind !== void 0 ? { kind: fm.kind } : {},
     ...fm.type === "requirement" && fm.outcome !== void 0 ? { outcome: { metric: fm.outcome.metric, target: String(fm.outcome.target) } } : {},
+    // DEC-130 (WO-131): a method's machine-read fields lifted out of the
+    // frontmatter bag so the emitter and the capability probe read one typed
+    // shape. `description` and `requires` are required by the schema, so on a
+    // method they are always present; `upstream` stays absent when the
+    // project authored the file itself.
+    ...fm.type === "method" ? { description: fm.description, requires: [...fm.requires] } : {},
+    ...fm.type === "method" && fm.upstream !== void 0 ? { upstream: fm.upstream } : {},
     ...fm.type === "work-order" && fm.claimed_by !== void 0 ? { claimedBy: fm.claimed_by } : {},
     ...fm.type === "work-order" && fm.claimed_at !== void 0 ? { claimedAt: fm.claimed_at } : {},
-    ...(fm.type === "requirement" || fm.type === "decision" || fm.type === "workflow" || fm.type === "work-order" || fm.type === "product") && fm.approved !== void 0 ? { approved: fm.approved } : {},
-    ...(fm.type === "requirement" || fm.type === "decision" || fm.type === "workflow" || fm.type === "work-order" || fm.type === "product") && fm.approved_by !== void 0 ? { approvedBy: fm.approved_by } : {},
+    ...(fm.type === "requirement" || fm.type === "decision" || fm.type === "workflow" || fm.type === "work-order" || fm.type === "product" || fm.type === "method") && fm.approved !== void 0 ? { approved: fm.approved } : {},
+    ...(fm.type === "requirement" || fm.type === "decision" || fm.type === "workflow" || fm.type === "work-order" || fm.type === "product" || fm.type === "method") && fm.approved_by !== void 0 ? { approvedBy: fm.approved_by } : {},
     frontmatter: fm,
     body,
     file,
@@ -11675,7 +11706,7 @@ function invalidFrontmatter(file, field, message) {
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-var CURRENT_FORMAT = 3;
+var CURRENT_FORMAT = 4;
 var FORMAT_FILE = "format";
 function toPath(veriDir) {
   return typeof veriDir === "string" ? veriDir : fileURLToPath(veriDir);
@@ -12334,13 +12365,39 @@ var PRODUCT_BODY = `
 singletons under veri/product/ \u2014 vision, users, principles, or
 current-focus.)
 `;
+var METHOD_BODY = `
+## Purpose
+
+(Which gate this staffs, and what a user gets from standing at it.)
+
+## What it reads
+
+(The documents and tools consulted before the first question.)
+
+## The interview
+
+(The questions, in order, and what each one is for.)
+
+## What it files
+
+(The documents this may create \u2014 draft or proposed only, never approved.)
+
+## Guardrails
+
+(What this must refuse to do, and what it says when it refuses.)
+
+## Handoff
+
+(Which documents now await which act, and which gate picks them up.)
+`;
 var BODY_TEMPLATES = {
   requirement: REQUIREMENT_BODY,
   decision: DECISION_BODY,
   "work-order": WORK_ORDER_BODY,
   source: SOURCE_BODY,
   workflow: WORKFLOW_BODY,
-  product: PRODUCT_BODY
+  product: PRODUCT_BODY,
+  method: METHOD_BODY
 };
 function templateFile(type) {
   return join3(TEMPLATES_SUBDIR, `${type}.md`);
@@ -12699,6 +12756,29 @@ function checkProductFiles(documents) {
   }
   return issues;
 }
+function checkMethodFiles(documents) {
+  const issues = [];
+  const prefix = `${METHODS_DIR}/`;
+  for (const doc of documents) {
+    if (doc.type === "method" && !doc.file.startsWith(prefix)) {
+      issues.push({
+        kind: "method-file",
+        file: doc.file,
+        id: doc.id,
+        message: `${doc.id} is a method but ${doc.file} is outside ${prefix} \u2014 every method lives there, so the gates a project staffs are one directory (DEC-130)`
+      });
+    }
+    if (doc.type !== "method" && doc.file.startsWith(prefix)) {
+      issues.push({
+        kind: "method-file",
+        file: doc.file,
+        id: doc.id,
+        message: `${doc.id} is a ${doc.type} filed under ${prefix} \u2014 that directory holds only method documents (DEC-130)`
+      });
+    }
+  }
+  return issues;
+}
 function checkIntuitionOnly(documents) {
   const byId = new Map(documents.map((doc) => [doc.id, doc]));
   const reportedOn = /* @__PURE__ */ new Set();
@@ -13011,6 +13091,7 @@ function checkProject(load) {
       ...checkGatedWorkOrders(load.documents),
       ...checkDesignGate(load.documents),
       ...checkProductFiles(load.documents),
+      ...checkMethodFiles(load.documents),
       ...checkApprovalStamps(load.documents),
       ...checkApprovers(load.documents),
       ...checkArchitecture(load.documents)

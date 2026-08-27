@@ -67,7 +67,7 @@ test('approve refuses documents in a non-approvable status', async (t) => {
 
 test('approve refuses non-approvable types and unknown ids', async (t) => {
   const dir = sandbox(t);
-  await assert.rejects(() => approveDocument(dir, 'SRC-001'), /is a source — only requirements, decisions, workflows, work orders and product documents/);
+  await assert.rejects(() => approveDocument(dir, 'SRC-001'), /is a source — only requirements, decisions, workflows, work orders, product documents and methods/);
   await assert.rejects(() => approveDocument(dir, 'REQ-999'), /no document with id REQ-999/);
 });
 

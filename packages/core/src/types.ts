@@ -33,6 +33,18 @@ export interface VeriDocument {
   /** What would confirm or refute a hypothesis (REQ-032): a metric and its
       target, normalized to strings. Only on requirements that declare one. */
   outcome?: { metric: string; target: string };
+  /** A method's trigger paragraph (DEC-130, WO-131): the text the emitted
+      skill shell matches on. Required on methods, absent everywhere else. */
+  description?: string;
+  /** The MCP tool names a method cannot run without (DEC-130): what the
+      capability probe compares against the tool list, and what the
+      refuse-with-repair message names. Required on methods — possibly
+      empty, for a gate needing no tools. */
+  requires?: string[];
+  /** The stable slug of the shipped method this one was scaffolded from
+      (DEC-130). Absent on project-authored methods, which is what tells
+      upgrade-by-proposal to leave them alone. */
+  upstream?: string;
   /** Who holds this work order (WO-099): free-text session/agent identity,
       written by the start transition. Only on claimed work orders. */
   claimedBy?: string;
@@ -183,6 +195,12 @@ export type Issue =
   // path, or any other document type inside veri/product/, is a violation —
   // the layer is gated or derived, never freeform.
   | { kind: 'product-file'; file: string; id: string; message: string }
+  // The method layer (REQ-040, DEC-130, WO-131): veri/methods/ is an open
+  // collection, but a closed *place*. A method filed anywhere else is
+  // invisible to the emitter and to anyone looking for the project's gates,
+  // and another type parked inside methods/ claims a directory whose whole
+  // meaning is "these are the gates".
+  | { kind: 'method-file'; file: string; id: string; message: string }
   // Team semantics (DEC-071): approved_by names someone the workflow's
   // maintainers list does not — a misattributed stamp fails, unlike a
   // merely missing one (see the missing-approver advisory).

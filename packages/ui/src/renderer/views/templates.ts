@@ -13,7 +13,9 @@ import type { ActiveTpl, Ctx } from '../app.ts';
 
 /** List order per SRC-009; the renderer can't runtime-import core (DEC-021).
     Product stays off the list (WO-121): singletons are authored at fixed
-    paths, not created from a template — their surfacing is design-gated. */
+    paths, not created from a template — their surfacing is design-gated.
+    Method stays off it too (WO-131): it does have a template, but putting a
+    seventh row on this list is a surface, and that needs a design first. */
 export const TPL_TYPES: readonly DocType[] = ['requirement', 'decision', 'work-order', 'source', 'workflow'];
 
 const TPL_LABEL: Record<DocType, string> = {
@@ -23,6 +25,7 @@ const TPL_LABEL: Record<DocType, string> = {
   source: 'Source',
   workflow: 'Workflow',
   product: 'Product',
+  method: 'Method',
 };
 
 const TYPE_PREFIX: Record<DocType, string> = {
@@ -32,6 +35,7 @@ const TYPE_PREFIX: Record<DocType, string> = {
   source: 'SRC',
   workflow: 'WF',
   product: 'PRD',
+  method: 'MET',
 };
 
 const INITIAL_STATUS: Record<DocType, string> = {
@@ -41,6 +45,7 @@ const INITIAL_STATUS: Record<DocType, string> = {
   source: 'imported',
   workflow: 'draft',
   product: 'draft',
+  method: 'draft',
 };
 
 /** The frontmatter `veri new` will generate, as the locked preview shows it —

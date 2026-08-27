@@ -27,6 +27,10 @@ const PROMOTION: Record<string, { from: string; to: string }> = {
   'work-order': { from: 'backlog', to: 'ready' },
   // WO-121: product singletons promote like the workflow they mirror.
   product: { from: 'draft', to: 'accepted' },
+  // WO-131: methods carry the workflow's lifecycle exactly (DEC-130) —
+  // approval is what makes "the user can amend and approve the method"
+  // (DEC-125) true, and the emitter writes a shell only once it has been.
+  method: { from: 'draft', to: 'accepted' },
 };
 
 /**
@@ -67,7 +71,7 @@ export async function approveDocument(
 
   const promotion = PROMOTION[doc.type];
   if (promotion === undefined) {
-    throw new Error(`${wanted} is a ${doc.type} — only requirements, decisions, workflows, work orders and product documents are approved`);
+    throw new Error(`${wanted} is a ${doc.type} — only requirements, decisions, workflows, work orders, product documents and methods are approved`);
   }
   // Already-promoted documents may be approved again: a re-approval
   // re-stamps `approved:` in place, ratifying the current text — the remedy

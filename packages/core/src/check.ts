@@ -1,6 +1,6 @@
 import type { Advisory, Issue, VeriDocument } from './types.ts';
 import type { LoadResult } from './load.ts';
-import { CURRENT_FOCUS_FILE, OUTCOME_OF_REL, OUTCOME_RELS, PRODUCT_FILES, isOutcomeRel, isPending, isWithdrawn, requirementKind } from './pending.ts';
+import { CURRENT_FOCUS_FILE, METHODS_DIR, OUTCOME_OF_REL, OUTCOME_RELS, PRODUCT_FILES, isOutcomeRel, isPending, isWithdrawn, requirementKind } from './pending.ts';
 import { compareIds } from './ids.ts';
 import type { DocType } from './ids.ts';
 import { daysBetween, pathMatchesBinds } from './binds.ts';
@@ -431,6 +431,39 @@ export function checkProductFiles(documents: VeriDocument[]): Issue[] {
         file: doc.file,
         id: doc.id,
         message: `${doc.id} is a ${doc.type} filed under product/ — that directory holds only the gated product singletons (REQ-037)`,
+      });
+    }
+  }
+  return issues;
+}
+
+/**
+ * The method layer's placement rule (REQ-040, DEC-130, WO-131): the product
+ * rule one type over, and inverted where the layers differ. The set of
+ * methods is open — any file, ids minted on demand — so nothing here objects
+ * to a filename; what is closed is the *place*. A method filed outside
+ * veri/methods/ is invisible to anyone (or anything) looking for the gates
+ * this project staffs, and another type parked inside methods/ claims a
+ * directory whose whole meaning is "these are the gates".
+ */
+export function checkMethodFiles(documents: VeriDocument[]): Issue[] {
+  const issues: Issue[] = [];
+  const prefix = `${METHODS_DIR}/`;
+  for (const doc of documents) {
+    if (doc.type === 'method' && !doc.file.startsWith(prefix)) {
+      issues.push({
+        kind: 'method-file',
+        file: doc.file,
+        id: doc.id,
+        message: `${doc.id} is a method but ${doc.file} is outside ${prefix} — every method lives there, so the gates a project staffs are one directory (DEC-130)`,
+      });
+    }
+    if (doc.type !== 'method' && doc.file.startsWith(prefix)) {
+      issues.push({
+        kind: 'method-file',
+        file: doc.file,
+        id: doc.id,
+        message: `${doc.id} is a ${doc.type} filed under ${prefix} — that directory holds only method documents (DEC-130)`,
       });
     }
   }
@@ -893,6 +926,7 @@ export function checkProject(load: LoadResult): CheckResult {
       ...checkGatedWorkOrders(load.documents),
       ...checkDesignGate(load.documents),
       ...checkProductFiles(load.documents),
+      ...checkMethodFiles(load.documents),
       ...checkApprovalStamps(load.documents),
       ...checkApprovers(load.documents),
       ...checkArchitecture(load.documents),

@@ -1,7 +1,7 @@
-export const DOC_TYPES = ['requirement', 'decision', 'work-order', 'source', 'workflow', 'product'] as const;
+export const DOC_TYPES = ['requirement', 'decision', 'work-order', 'source', 'workflow', 'product', 'method'] as const;
 export type DocType = (typeof DOC_TYPES)[number];
 
-export const ID_RE = /^(REQ|DEC|WO|SRC|WF|PRD)-\d{3,}$/;
+export const ID_RE = /^(REQ|DEC|WO|SRC|WF|PRD|MET)-\d{3,}$/;
 
 const PREFIX_TO_TYPE: Record<string, DocType> = {
   REQ: 'requirement',
@@ -10,6 +10,7 @@ const PREFIX_TO_TYPE: Record<string, DocType> = {
   SRC: 'source',
   WF: 'workflow',
   PRD: 'product',
+  MET: 'method',
 };
 
 /** The document type an id's prefix implies, or undefined for a malformed id. */
@@ -18,7 +19,7 @@ export function typeOfId(id: string): DocType | undefined {
   return prefix ? PREFIX_TO_TYPE[prefix] : undefined;
 }
 
-const INLINE_REF_RE = /\[\[((?:REQ|DEC|WO|SRC|WF|PRD)-\d{3,})\]\]/g;
+const INLINE_REF_RE = /\[\[((?:REQ|DEC|WO|SRC|WF|PRD|MET)-\d{3,})\]\]/g;
 
 /**
  * Numeric-aware id order: WO-999 sorts before WO-1000. At uniform 3-digit

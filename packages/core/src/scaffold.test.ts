@@ -21,7 +21,7 @@ function fakeDemo(): string {
   return root;
 }
 
-test('empty scaffold creates the four subdirectories, the default workflow, and pointer files', () => {
+test('empty scaffold creates the type subdirectories, the default workflow, and pointer files', () => {
   const root = tmp();
   const result = scaffoldProject(root);
 
@@ -38,7 +38,7 @@ test('empty scaffold creates the four subdirectories, the default workflow, and 
   // excluded from docCount — templates are not documents.
   assert.deepEqual(
     readdirSync(join(result.veriDir, 'templates')).sort(),
-    ['decision.md', 'product.md', 'requirement.md', 'source.md', 'work-order.md', 'workflow.md'],
+    ['decision.md', 'method.md', 'product.md', 'requirement.md', 'source.md', 'work-order.md', 'workflow.md'],
   );
 
   const workflow = readFileSync(join(result.veriDir, 'workflow.md'), 'utf8');

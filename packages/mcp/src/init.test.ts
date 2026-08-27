@@ -148,7 +148,7 @@ test('the door opens on a bare repo where every loadProject-backed tool refuses'
 test('the rendering names every path created, so the write is legible and undoable', (t) => {
   const text = renderInit(initProject(sandbox(t)));
   assert.deepEqual(text.split('\n'), [
-    'Initialized veri — 1 document (the project workflow), the requirements/, decisions/, work-orders/, sources/ collections, and the document templates.',
+    'Initialized veri — 1 document (the project workflow), the requirements/, decisions/, work-orders/, sources/, methods/ collections, and the document templates.',
     'Wrote AGENTS.md — a pointer at the workflow, not content (DEC-018).',
     'Wrote CLAUDE.md — a pointer at the workflow, not content (DEC-018).',
     'Nothing else on disk was changed: everything above is newly created, so this is undone by deleting exactly those paths.',
