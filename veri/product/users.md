@@ -2,7 +2,8 @@
 id: PRD-002
 type: product
 title: "Users"
-status: draft
+status: accepted
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:

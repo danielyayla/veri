@@ -2,7 +2,8 @@
 id: PRD-003
 type: product
 title: "Principles"
-status: draft
+status: accepted
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:
