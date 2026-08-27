@@ -2,7 +2,8 @@
 id: DEC-119
 type: decision
 title: "MCP write tools validate with strict schemas — unknown keys refuse, never strip"
-status: proposed
+status: active
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:

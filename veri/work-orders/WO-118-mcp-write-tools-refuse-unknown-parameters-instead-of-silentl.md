@@ -2,7 +2,8 @@
 id: WO-118
 type: work-order
 title: "MCP write tools refuse unknown parameters instead of silently dropping content"
-status: backlog
+status: done
+approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
 links:
