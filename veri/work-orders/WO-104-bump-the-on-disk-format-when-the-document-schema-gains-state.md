@@ -2,7 +2,7 @@
 id: WO-104
 type: work-order
 title: "Bump the on-disk format when the document schema gains states old readers misread"
-status: in-progress
+status: done
 claimed_by: claude-wo104-releasing-rule
 claimed_at: 2026-08-27
 approved: 2026-08-27
@@ -49,9 +49,9 @@ The installed Veri.app 0.2.1 showed "DEC-097 references [[WO-101]] inline but no
 
 ## Acceptance tests
 
-- [ ] RELEASING.md names the schema-change → format-bump rule as a checklist item
-- [ ] The item names the concrete triggers (new status value, new required field, new enum member) rather than "schema changes" alone
-- [ ] The item states the failure mode — an old reader drops the document and misreports its references — and points at [[REQ-015]] and [[DEC-030]]
+- [x] RELEASING.md names the schema-change → format-bump rule as a checklist item
+- [x] The item names the concrete triggers (new status value, new required field, new enum member) rather than "schema changes" alone
+- [x] The item states the failure mode — an old reader drops the document and misreports its references — and points at [[REQ-015]] and [[DEC-030]]
 - [x] A veri/ directory with `format` = 2 makes a core built at CURRENT_FORMAT 1 classify it as `newer` and refuse to open, stating the format
 - [x] `veri migrate` on a format-1 project writes `format` = 2 and leaves every document byte-identical
 - [x] `veri check` on the migrated project reports 0 issues
@@ -59,3 +59,4 @@ The installed Veri.app 0.2.1 showed "DEC-097 references [[WO-101]] inline but no
 ## Receipts
 
 - 2026-08-26 — 8fc577d — packages/core/src/format.ts, packages/core/src/format.test.ts, packages/core/src/scaffold.test.ts, packages/cli/src/commands.test.ts, veri/format — the format half, delivered under WO-109: CURRENT_FORMAT 2 with a marker-only 1→2 migration step, this project migrated, and the shipped Veri.app 0.2.1 core verified to answer "this project uses veri format 2 … update Veri to open it" instead of dropping the documents and misreporting their references. The RELEASING.md rule is what remains open here.
+- 2026-08-27 — c33955e — RELEASING.md — the durable half: a "Before any release" checklist item making any misparse-class schema addition (new status value, new validated-enum member, new required field) bump CURRENT_FORMAT in the same change, with the exemption for optional passthrough keys (REQ-001), the silent-drop failure mode, and pointers to [[REQ-015]] and [[DEC-030]]. Checked while writing it that the recent hypothesis fields (`kind`, `outcome`, REQ-032) are optional passthrough keys and owe no bump.
