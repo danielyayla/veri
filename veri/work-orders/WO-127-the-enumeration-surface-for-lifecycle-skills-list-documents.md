@@ -2,7 +2,9 @@
 id: WO-127
 type: work-order
 title: "The enumeration surface for lifecycle skills: list_documents and the dispatch queue over MCP"
-status: ready
+status: in-progress
+claimed_by: opus-wo127
+claimed_at: 2026-08-27
 approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
