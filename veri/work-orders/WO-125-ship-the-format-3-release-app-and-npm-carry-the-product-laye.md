@@ -35,9 +35,12 @@ the rebuilt action bundle.
   covering the product layer (product singletons, source kinds,
   intuition-only and stale-focus advisories, worth-making trace,
   intent-led context packages, format 3)
-- Bump `packages/ui/package.json` to 0.4.0 (a format bump is not a
-  patch), tag `v0.4.0`, and follow the RELEASING.md app checklist —
-  including the Electron-bridge asset copy-forward
+- Bump the app version to 0.4.0 in its single source manifest (per
+  RELEASING.md; a format bump is not a patch), tag `v0.4.0`, and
+  follow the RELEASING.md app checklist — including the
+  Electron-bridge asset copy-forward. No UI code changes: version
+  bumps ship under the `vX.Y.Z` commit convention, outside this work
+  order's diffs
 - Lockstep `@verikb/*` bump to 0.1.2 and publish (2FA blocks CI token
   publish — either the OIDC trusted-publishing conversion lands first
   or the publish is run locally with an OTP)
