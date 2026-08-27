@@ -66,15 +66,15 @@ Derived from [[REQ-037]]'s format bump.
 
 ## Acceptance tests
 
-- [ ] `git tag v0.4.0` release completes the RELEASING.md checklist:
+- [x] `git tag v0.4.0` release completes the RELEASING.md checklist:
       draft reviewed and published, updater feed serves 0.4.0,
       bridge assets copied forward
 - [ ] A machine on the installed app updates and opens this project
       (no format refusal)
 - [ ] `@verikb/core@0.1.2`, `@verikb/cli@0.1.2`, `@verikb/mcp@0.1.2`
       are live on npm and `npx @verikb/cli check` passes on this repo
-- [ ] The Veri Check action run on main is green with the new bundle
-- [ ] A freshly started MCP server answers `run_check` with the same
+- [x] The Veri Check action run on main is green with the new bundle
+- [x] A freshly started MCP server answers `run_check` with the same
       result as terminal `veri check`
 
 ## Receipts
