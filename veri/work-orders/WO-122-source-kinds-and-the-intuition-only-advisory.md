@@ -2,7 +2,7 @@
 id: WO-122
 type: work-order
 title: "Source kinds and the intuition-only advisory"
-status: in-progress
+status: done
 claimed_by: fable-wo122
 claimed_at: 2026-08-27
 approved: 2026-08-27
@@ -43,12 +43,12 @@ Sources gain an epistemic `kind` field (design, user-feedback, metric, external-
 
 ## Acceptance tests
 
-- [ ] A source with `kind: user-feedback` parses; an unknown kind fails `veri check`
-- [ ] Existing kind-less sources validate unchanged
-- [ ] A requirement with no `derived-from` source link raises the intuition-only advisory; linking evidence clears it
-- [ ] `file_source` via MCP accepts and persists `kind`
-- [ ] Zero `veri check` violations repo-wide
+- [x] A source with `kind: user-feedback` parses; an unknown kind fails `veri check`
+- [x] Existing kind-less sources validate unchanged
+- [x] A requirement with no `derived-from` source link raises the intuition-only advisory; linking evidence clears it
+- [x] `file_source` via MCP accepts and persists `kind`
+- [x] Zero `veri check` violations repo-wide
 
 ## Receipts
 
-(none yet)
+- 2026-08-27 — e7a9577 — packages/core/src (pending, types, schema, parse, check, context, search, create, self.test + tests), packages/mcp/src (writeback, server + tests), packages/cli (demo corpus rels, test expectations), [[DEC-122]] — source kinds land with the reference default; the intuition-only advisory fires on accepted evidence-less requirements and clears on derived-from or inbound outcome evidence; kind visible in package headings, PaletteHit, and file_source. Full workspace suite green (298 core tests, 790 total). Scoping note recorded in DEC-122: drafts exempt (starters and fresh documents stay quiet); this repo now surfaces 27 intuition-only advisories on its own accepted requirements — backfilling evidence links is the user's judgment, not this WO.
