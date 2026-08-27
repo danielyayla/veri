@@ -2,7 +2,7 @@
 id: WO-126
 type: work-order
 title: "The product layer enters the app: the Product collection under WHY and the focus strip on Home"
-status: in-progress
+status: done
 claimed_by: fable-wo126
 claimed_at: 2026-08-27
 approved: 2026-08-27
@@ -68,18 +68,18 @@ never renders).
 
 ## Acceptance tests
 
-- [ ] The sidebar shows `◇ Product` under WHY with a living count of 4
+- [x] The sidebar shows `◇ Product` under WHY with a living count of 4
       on this repository
-- [ ] The Product panel lists vision, users, principles, current focus
+- [x] The Product panel lists vision, users, principles, current focus
       in that order with status chips; a retired singleton moves behind
       the expander
-- [ ] Home opens with the accepted current-focus strip linking to
+- [x] Home opens with the accepted current-focus strip linking to
       PRD-004; with a `stale-focus` advisory in the snapshot the strip
       shows the amber treatment and message; with no accepted focus the
       strip is absent
-- [ ] The command palette's PRD hits carry the product hue
-- [ ] `npm test --workspace @verikb/ui` green; `veri check` zero issues
+- [x] The command palette's PRD hits carry the product hue
+- [x] `npm test --workspace @verikb/ui` green; `veri check` zero issues
 
 ## Receipts
 
-(none yet)
+- 2026-08-27 — 1d99218 — packages/ui/src/renderer/sidebar.ts, packages/ui/src/renderer/theme.ts, packages/ui/src/renderer/app.ts, packages/ui/src/renderer/derive.ts, packages/ui/src/renderer/views/home.ts, packages/ui/renderer/styles.css — the Product collection under WHY (sanctioned order, no NEW, teaching empty state), the Home focus strip with the stale-focus treatment, and the product hue on TYPE_META; ui suite 371 green, check 0 issues
