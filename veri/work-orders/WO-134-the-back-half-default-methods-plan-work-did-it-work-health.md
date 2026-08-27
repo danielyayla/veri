@@ -2,7 +2,7 @@
 id: WO-134
 type: work-order
 title: "The back-half default methods — plan-work, did-it-work, health"
-status: in-progress
+status: done
 claimed_by: opus-wo134
 claimed_at: 2026-08-27
 approved: 2026-08-27
@@ -68,15 +68,15 @@ These are the half [[DEC-128]] says Veri **can** prove on itself, by continuous 
 
 ## Acceptance tests
 
-- [ ] All three parse, raise no `missing-section` advisory, and `veri check` reports 0 issues
-- [ ] `veri:did-it-work`'s document names *inconclusive* as a valid, expected outcome and says what to file for it — the case [[SRC-062]] hit on the project's first attempt
-- [ ] `veri:did-it-work`'s guardrails state that it never changes a requirement's status: outcome evidence never auto-applies a verdict ([[WF-001]] rule 9)
-- [ ] `veri:plan-work`'s document states the design gate as a precondition on starting, not on planning — matching [[WF-001]] rule 7 rather than overstating it
-- [ ] `veri:health`'s document names the health-report source shape concretely enough that two sweeps a month apart are comparable
-- [ ] Every `requires:` entry names a tool that exists, or the method is honest that the skill is blocked on [[REQ-041]]
-- [ ] Each document's handoff names the next gate and the skill that staffs it, closing the loop back to the front half: did-it-work hands to evidence-intake, and health hands to wayfinder
-- [ ] The [[WO-130]] corpus cases for these three are consistent with the `description:` text as authored
+- [x] All three parse, raise no `missing-section` advisory, and `veri check` reports 0 issues
+- [x] `veri:did-it-work`'s document names *inconclusive* as a valid, expected outcome and says what to file for it — the case [[SRC-062]] hit on the project's first attempt
+- [x] `veri:did-it-work`'s guardrails state that it never changes a requirement's status: outcome evidence never auto-applies a verdict ([[WF-001]] rule 9)
+- [x] `veri:plan-work`'s document states the design gate as a precondition on starting, not on planning — matching [[WF-001]] rule 7 rather than overstating it
+- [x] `veri:health`'s document names the health-report source shape concretely enough that two sweeps a month apart are comparable
+- [x] Every `requires:` entry names a tool that exists, or the method is honest that the skill is blocked on [[REQ-041]]
+- [x] Each document's handoff names the next gate and the skill that staffs it, closing the loop back to the front half: did-it-work hands to evidence-intake, and health hands to wayfinder
+- [x] The [[WO-130]] corpus cases for these three are consistent with the `description:` text as authored
 
 ## Receipts
 
-(none yet)
+- 2026-08-27 — fc60c6e — veri/methods/plan-work.md, veri/methods/did-it-work.md, veri/methods/health.md, veri/ids, skills/trigger-corpus.yaml — MET-007 veri:plan-work, MET-008 veri:did-it-work and MET-009 veri:health authored as drafts under the six-section template, completing the nine default skills; requires: lists (file_work_order/amend_document/search/get_neighbors/run_check; file_source/get_document/get_neighbors/get_receipts/run_check; run_check/list_documents/get_queue/get_receipts/file_source) all verified present in packages/mcp/src/server.ts by inspection, with three capability gaps stated rather than routed around (binds: paths: has no file_work_order parameter; file_requirement carries no kind or outcome; no MCP path to a requirement status flip, which did-it-work records as a correct boundary rather than a gap); TC-021's rationale corrected where the authoring showed abandoned claims are already detected by the stale-claim advisory; bodies run 229/226/228 lines, a few over SRC-063's 220 ceiling, and descriptions 186/188/185 words; 857 tests green across the workspace, veri check 0 issues and 17 advisories, unchanged from before the session.
