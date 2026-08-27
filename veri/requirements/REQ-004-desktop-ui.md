@@ -25,16 +25,23 @@ files don't. Everything works offline with no accounts.
 The shape, per the design reference in [[SRC-001]] and its successor
 design sources:
 
-- **Sidebar** — four collection panels (the type-grouped doc tree). The
+- **Sidebar** — four collection panels (the type-grouped doc tree),
+  grouped under the pivot's non-interactive layer headers WHY (Sources)
+  / WHAT (Requirements, Decisions) / HOW (Work Orders, Architecture) /
+  DID IT WORK? (Outcomes) — grouping, never containers: no collection,
+  count, or panel behavior changes ([[SRC-054]], [[REQ-036]]). The
   Work Orders panel groups its living list into status subgroups with
   done behind an expander ([[SRC-025]]), and carries a `▤ Board` row
   opening the Board view tab: a four-column kanban over the [[WO-098]]
   lifecycle, DONE windowed behind an expander; the collection row stays
-  a panel toggle like every other collection ([[SRC-047]]). Below the
-  collections, an always-rendered `⌗ Architecture` view row opens the
-  one-instance Architecture tab, its empty-state card serving projects
-  with no module registry; no collection panel carries a promoted row
-  for it ([[SRC-049]], [[DEC-108]]).
+  a panel toggle like every other collection ([[SRC-047]]). Under HOW,
+  an always-rendered `⌗ Architecture` view row opens the one-instance
+  Architecture tab, its empty-state card serving projects with no
+  module registry; no collection panel carries a promoted row for it
+  ([[SRC-049]], [[DEC-108]]). Under DID IT WORK?, an always-rendered
+  `◎ Outcomes` view row opens the one-instance Outcomes tab — outcome
+  evidence, untested bets, recent receipts, derived and stateless, with
+  a teaching empty state ([[SRC-054]], [[REQ-036]]).
 - **No dedicated Decision log or Graph screens** — the decisions
   chronology, status signals, and supersession pointers live in the
   Decisions panel, the documents themselves, and hover previews
