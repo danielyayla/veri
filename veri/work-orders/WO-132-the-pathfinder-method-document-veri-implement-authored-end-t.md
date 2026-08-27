@@ -21,6 +21,8 @@ links:
     rel: depends-on
   - id: WO-130
     rel: consistent-with
+  - id: SRC-063
+    rel: delivers
 # binds:         # code this work order claims (optional)
 #   paths: []    # repo-root-relative globs
 #   tests: []    # test files proving it (path or path::name)
