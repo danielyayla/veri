@@ -65,14 +65,19 @@ canon lives and how it propagates. Its residue — how far a method document may
 restate [[WF-001]]'s rules before the two can disagree — is smaller than the
 original question and is left for the authoring work.
 
-## The frontier — open decisions, sharp enough to work now
+**Relay approval** — closed by [[DEC-127]] (2026-08-27), which satisfies
+[[REQ-041]] item 4's requirement that this ship only behind a decision. The
+walk's finding was that the boundary had been named wrongly: "keeping the stamp
+human" reads as access control, but any agent that can write files can write an
+`approved:` stamp that `veri check` accepts. Named correctly as *deliberateness*,
+the design collapsed to something small — one gate, one document per call, the
+exact frontmatter edit visible in the call, identity collected from git rather
+than claimed by the agent, and a refusal in [[DEC-071]]'s strict team tier. Two
+limits are recorded rather than papered over: auto-approve hosts bypass the
+ceremony, and presentation before a verdict is skill discipline the decision
+cannot enforce.
 
-**Relay approval — what constitutes a per-document user verdict over MCP.**
-[[REQ-041]] flags this itself as the one item carrying a real design question.
-It touches the promotion boundary directly, so it must not ship without a
-decision recording how the user's act stays the user's. Now unblocked:
-[[DEC-125]] settled where the rules live, so where a verdict is checked no
-longer waits on anything. This is the frontier item to take next.
+## The frontier — open decisions, sharp enough to work now
 
 **The v1 proving ground.** [[REQ-040]]'s fourth acceptance criterion demands one
 real project operated end-to-end through the skills. Veri itself is available
