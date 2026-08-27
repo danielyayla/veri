@@ -2,7 +2,7 @@
 id: WO-131
 type: work-order
 title: "The method type in core — MET- documents, format 4, and the assembly menu"
-status: in-progress
+status: done
 claimed_by: opus-wo131
 claimed_at: 2026-08-27
 approved: 2026-08-27
@@ -60,16 +60,16 @@ Two departures from the product precedent are deliberate and must not be copied 
 
 ## Acceptance tests
 
-- [ ] A `veri/methods/*.md` fixture with `type: method`, `MET-001`, a `description`, and a `requires` list parses, checks clean, and round-trips byte-identically
-- [ ] A method missing `description`, or with an empty one, is an invalid-frontmatter issue — not a silently absent field, since the emitter would otherwise write a shell that triggers on nothing
-- [ ] `MET-001` with `type: workflow` (or any mismatch) fails the id-prefix superRefine like every other type
-- [ ] `veri approve MET-001` flips `draft` → `accepted` and stamps `approved:`; a `retired` method refuses with "nothing to approve"
-- [ ] An accepted method appears in an assembled context package as a name-only menu row; a `draft` and a `retired` method do not
-- [ ] The menu adds no more than a bounded number of tokens for fourteen methods — asserted numerically, since [[DEC-130]] chose name-only precisely to hold this cost
-- [ ] A method file outside `veri/methods/`, and a non-method file inside it, each raise the `method-file` violation
-- [ ] A format-3 project migrates to 4 with no content change; a format-4 project read by a format-3 reader reports the format, not invalid frontmatter
-- [ ] `veri check` on this repo: 0 issues
+- [x] A `veri/methods/*.md` fixture with `type: method`, `MET-001`, a `description`, and a `requires` list parses, checks clean, and round-trips byte-identically
+- [x] A method missing `description`, or with an empty one, is an invalid-frontmatter issue — not a silently absent field, since the emitter would otherwise write a shell that triggers on nothing
+- [x] `MET-001` with `type: workflow` (or any mismatch) fails the id-prefix superRefine like every other type
+- [x] `veri approve MET-001` flips `draft` → `accepted` and stamps `approved:`; a `retired` method refuses with "nothing to approve"
+- [x] An accepted method appears in an assembled context package as a name-only menu row; a `draft` and a `retired` method do not
+- [x] The menu adds no more than a bounded number of tokens for fourteen methods — asserted numerically, since [[DEC-130]] chose name-only precisely to hold this cost
+- [x] A method file outside `veri/methods/`, and a non-method file inside it, each raise the `method-file` violation
+- [x] A format-3 project migrates to 4 with no content change; a format-4 project read by a format-3 reader reports the format, not invalid frontmatter
+- [x] `veri check` on this repo: 0 issues
 
 ## Receipts
 
-(none yet)
+- 2026-08-27 — 5fb8119 — packages/core/src/ids.ts, packages/core/src/idstore.ts, packages/core/src/schema.ts, packages/core/src/parse.ts, packages/core/src/types.ts, packages/core/src/pending.ts, packages/core/src/check.ts, packages/core/src/context.ts, packages/core/src/approve.ts, packages/core/src/create.ts, packages/core/src/templates.ts, packages/core/src/scaffold.ts, packages/core/src/format.ts, packages/core/src/search.ts, packages/core/src/method.test.ts, packages/core/src/approve.test.ts, packages/core/src/format.test.ts, packages/core/src/scaffold.test.ts, packages/mcp/src/init.test.ts, packages/ui/src/renderer/sidebar.ts, packages/ui/src/renderer/theme.ts, packages/ui/src/renderer/views/templates.ts, action/dist/index.js, veri/format, veri/ids, veri/methods/.gitkeep, veri/decisions/DEC-135-generic-method-creation-writes-a-placeholder-description-rat.md — the seventh type: MET- ids, the method schema with required description/requires and optional upstream, the always/name-only gate menu in assembly, the draft→accepted promotion, the method-file placement rule, the methods collection in the scaffold, and CURRENT_FORMAT 4 with its marker-only migration; DEC-135 filed proposed for the placeholder description generic creation writes; 857 tests green across the five suites, check 0 issues
