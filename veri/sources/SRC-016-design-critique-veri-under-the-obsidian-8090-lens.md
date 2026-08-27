@@ -3,6 +3,7 @@ id: SRC-016
 type: source
 title: "Design critique — Veri under the Obsidian × 8090 lens"
 status: imported
+kind: investigation
 created: 2026-08-18
 updated: 2026-08-18
 ---

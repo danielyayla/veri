@@ -3,6 +3,7 @@ id: SRC-046
 type: source
 title: "Software-factory evaluation of Veri — findings F1–F8"
 status: imported
+kind: external-eval
 created: 2026-08-25
 updated: 2026-08-25
 links:

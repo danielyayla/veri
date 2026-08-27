@@ -3,6 +3,7 @@ id: SRC-044
 type: source
 title: "Software Factory video transcript — artifacts and codebase indexing as agent context"
 status: imported
+kind: external-eval
 created: 2026-08-25
 updated: 2026-08-25
 links:

@@ -3,6 +3,7 @@ id: SRC-040
 type: source
 title: "Open-source readiness audit of the repository (2026-08-24)"
 status: imported
+kind: investigation
 created: 2026-08-24
 updated: 2026-08-24
 ---

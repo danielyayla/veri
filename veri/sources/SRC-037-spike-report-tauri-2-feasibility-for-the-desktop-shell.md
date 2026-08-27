@@ -3,6 +3,7 @@ id: SRC-037
 type: source
 title: "Spike report — Tauri 2 feasibility for the desktop shell"
 status: imported
+kind: investigation
 created: 2026-08-21
 updated: 2026-08-21
 links:

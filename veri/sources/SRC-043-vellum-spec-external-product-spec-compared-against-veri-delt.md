@@ -3,6 +3,7 @@ id: SRC-043
 type: source
 title: "Vellum spec — external product spec compared against Veri, delta analysis"
 status: imported
+kind: external-eval
 created: 2026-08-24
 updated: 2026-08-24
 ---
