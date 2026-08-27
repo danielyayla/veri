@@ -2,7 +2,7 @@
 id: WO-135
 type: work-order
 title: "The shell emitter — veri skills install and upgrade, generating thin pointers from accepted methods"
-status: in-progress
+status: done
 claimed_by: opus-wo135
 claimed_at: 2026-08-27
 approved: 2026-08-27
@@ -25,9 +25,14 @@ links:
     rel: depends-on
   - id: WO-129
     rel: consistent-with
-# binds:         # code this work order claims (optional)
-#   paths: []    # repo-root-relative globs
-#   tests: []    # test files proving it (path or path::name)
+binds:
+  paths:
+    - packages/core/src/skills.ts
+    - packages/cli/src/skills.ts
+    - packages/cli/methods
+  tests:
+    - packages/core/src/skills.test.ts
+    - packages/cli/src/skills.test.ts
 ---
 
 ## Summary
@@ -70,15 +75,15 @@ Nothing is written at install time and nothing is written without asking: [[DEC-
 
 ## Acceptance tests
 
-- [ ] `veri skills install` on a project with three accepted and two draft methods writes exactly three shells
-- [ ] Each shell contains the method's `description:` byte-identically and a resolvable pointer to its `MET-` id, and contains no section of the method body — the thin-pointer property [[DEC-018]] requires, asserted, not assumed
-- [ ] A second `install` over an unchanged project writes no file and reports no-op
-- [ ] `upgrade` on a project whose method was locally edited produces a reviewable amendment and does **not** modify the accepted file in place
-- [ ] `upgrade` leaves a method with no `upstream:` completely untouched, including one whose title matches a shipped method exactly
-- [ ] Retiring a method and re-running `install` removes or reports its shell; the method document itself survives, with inbound `[[MET-nnn]]` links intact
-- [ ] Neither command writes anything before the user is asked, verified on a repo with no `veri/` directory
-- [ ] `veri check` reports 0 issues after each command
+- [x] `veri skills install` on a project with three accepted and two draft methods writes exactly three shells
+- [x] Each shell contains the method's `description:` byte-identically and a resolvable pointer to its `MET-` id, and contains no section of the method body — the thin-pointer property [[DEC-018]] requires, asserted, not assumed
+- [x] A second `install` over an unchanged project writes no file and reports no-op
+- [x] `upgrade` on a project whose method was locally edited produces a reviewable amendment and does **not** modify the accepted file in place
+- [x] `upgrade` leaves a method with no `upstream:` completely untouched, including one whose title matches a shipped method exactly
+- [x] Retiring a method and re-running `install` removes or reports its shell; the method document itself survives, with inbound `[[MET-nnn]]` links intact
+- [x] Neither command writes anything before the user is asked, verified on a repo with no `veri/` directory
+- [x] `veri check` reports 0 issues after each command
 
 ## Receipts
 
-(none yet)
+- 2026-08-27 — 2a35943 — packages/core/src/skills.ts, packages/core/src/skills.test.ts, packages/core/src/load.ts, packages/core/src/pending.ts, packages/core/src/index.ts, packages/cli/src/skills.ts, packages/cli/src/skills.test.ts, packages/cli/src/cli.ts, packages/cli/package.json, packages/cli/methods, veri/decisions/DEC-136-upgrade-proposals-land-in-veri-amendments-and-the-shipped-me.md, veri/decisions/DEC-137-a-shell-s-identity-is-its-upstream-slug-and-only-a-marked-sh.md — the pure emitter and both plans in core, `veri skills install`/`upgrade` in the CLI, the shipped method library beside the demo; 35 new tests, full suite 892 green, check 0 issues and no new advisories
