@@ -2,7 +2,7 @@
 id: WO-119
 type: work-order
 title: "Layer headers in the sidebar and the Outcomes view"
-status: in-progress
+status: done
 claimed_by: claude-wo119
 claimed_at: 2026-08-27
 approved: 2026-08-27
@@ -56,12 +56,12 @@ Implements REQ-036 per SRC-054's design (Daniel's chosen full variant). The side
 
 ## Acceptance tests
 
-- [ ] Sidebar renders the four headers with Sources; Requirements + Decisions; Work Orders + Architecture; Outcomes grouped beneath them; all panel toggles, counts, subgroups, and the Board row behave exactly as before
-- [ ] The Outcomes row opens a one-instance tab; a second activation focuses the existing tab
-- [ ] Outcome evidence rows show the verdict (tests/supports/refutes) and open source and hypothesis; untested bets derive from the snapshot's advisories; recent receipts show commit pointers with DONE-style windowing
-- [ ] Empty state renders the teaching card when no outcome links exist
-- [ ] The view holds no authoritative state; ui suite + typecheck pass; shot-harness screenshots verify populated and empty states in both themes; terminal veri check zero issues
+- [x] Sidebar renders the four headers with Sources; Requirements + Decisions; Work Orders + Architecture; Outcomes grouped beneath them; all panel toggles, counts, subgroups, and the Board row behave exactly as before
+- [x] The Outcomes row opens a one-instance tab; a second activation focuses the existing tab
+- [x] Outcome evidence rows show the verdict (tests/supports/refutes) and open source and hypothesis; untested bets derive from the snapshot's advisories; recent receipts show commit pointers with DONE-style windowing
+- [x] Empty state renders the teaching card when no outcome links exist
+- [x] The view holds no authoritative state; ui suite + typecheck pass; shot-harness screenshots verify populated and empty states in both themes; terminal veri check zero issues
 
 ## Receipts
 
-(none yet)
+- 2026-08-27 — 7ef783e — packages/ui/src/renderer/app.ts, packages/ui/src/renderer/tabs.ts, packages/ui/src/renderer/palette.ts, packages/ui/src/renderer/derive.ts, packages/ui/src/renderer/derive.test.ts, packages/ui/src/renderer/views/outcomes.ts, packages/ui/src/renderer/views/outcomes.test.ts, packages/ui/renderer/styles.css — Claude session: sidebar layer headers (WHY/WHAT/HOW/DID IT WORK?) + the one-instance Outcomes view (evidence, untested bets, windowed receipts, teaching empty); DEC-120 proposed; REQ-004 amended and re-stamped (61b676f); ui suite 365 pass + typecheck clean; shot harness verified light/dark populated and empty; veri check 0 issues
