@@ -5,7 +5,10 @@ title: "Design critique — Veri under the Obsidian × 8090 lens"
 status: imported
 kind: investigation
 created: 2026-08-18
-updated: 2026-08-18
+updated: 2026-08-27
+links:
+  - id: REQ-009
+    rel: supports
 ---
 
 Full-surface design critique of Veri 0.1.3, conducted 2026-08-18 by an agent

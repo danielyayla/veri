@@ -3,12 +3,12 @@ id: REQ-015
 type: requirement
 title: "Knowledge-base format versioning"
 status: accepted
-approved: 2026-08-17
+approved: 2026-08-27
 created: 2026-08-17
-updated: 2026-08-17
+updated: 2026-08-27
 links:
   - id: SRC-012
-    rel: informed-by
+    rel: derived-from
   - id: DEC-002
     rel: constrained-by
   - id: REQ-001

@@ -3,12 +3,12 @@ id: REQ-023
 type: requirement
 title: First-run download under 50 MB
 status: accepted
-approved: 2026-08-20
+approved: 2026-08-27
 created: 2026-08-21
-updated: 2026-08-20
+updated: 2026-08-27
 links:
   - id: SRC-037
-    rel: informed-by
+    rel: derived-from
   - id: DEC-008
     rel: constrains
 ---

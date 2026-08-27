@@ -3,12 +3,12 @@ id: REQ-019
 type: requirement
 title: Promises match the product; self-hosting never leaks
 status: accepted
-approved: 2026-08-18
+approved: 2026-08-27
 created: 2026-08-18
-updated: 2026-08-18
+updated: 2026-08-27
 links:
   - id: SRC-016
-    rel: informed-by
+    rel: derived-from
   - id: DEC-018
     rel: follows-from
 ---

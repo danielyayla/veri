@@ -3,12 +3,12 @@ id: REQ-020
 type: requirement
 title: Accessibility floor for the desktop UI
 status: accepted
-approved: 2026-08-18
+approved: 2026-08-27
 created: 2026-08-18
-updated: 2026-08-18
+updated: 2026-08-27
 links:
   - id: SRC-016
-    rel: informed-by
+    rel: derived-from
   - id: REQ-004
     rel: extends
   - id: REQ-009

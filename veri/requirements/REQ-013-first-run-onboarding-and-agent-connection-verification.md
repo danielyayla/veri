@@ -3,12 +3,12 @@ id: REQ-013
 type: requirement
 title: "First-run onboarding and agent connection verification"
 status: accepted
-approved: 2026-08-17
+approved: 2026-08-27
 created: 2026-08-17
-updated: 2026-08-17
+updated: 2026-08-27
 links:
   - id: SRC-012
-    rel: informed-by
+    rel: derived-from
   - id: REQ-004
     rel: depends-on
   - id: REQ-005

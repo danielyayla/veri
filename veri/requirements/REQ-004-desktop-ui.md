@@ -12,7 +12,7 @@ links:
   - id: REQ-003
     rel: depends-on
   - id: SRC-001
-    rel: informed-by
+    rel: derived-from
   - id: DEC-002
     rel: constrained-by
 ---

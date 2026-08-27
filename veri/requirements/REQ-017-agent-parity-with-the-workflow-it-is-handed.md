@@ -3,12 +3,12 @@ id: REQ-017
 type: requirement
 title: Agent parity with the workflow it is handed
 status: accepted
-approved: 2026-08-18
+approved: 2026-08-27
 created: 2026-08-18
-updated: 2026-08-18
+updated: 2026-08-27
 links:
   - id: SRC-016
-    rel: informed-by
+    rel: derived-from
   - id: REQ-003
     rel: extends
   - id: REQ-008

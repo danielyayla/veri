@@ -3,12 +3,12 @@ id: REQ-012
 type: requirement
 title: "Website and user documentation"
 status: accepted
-approved: 2026-08-20
+approved: 2026-08-27
 created: 2026-08-17
-updated: 2026-08-20
+updated: 2026-08-27
 links:
   - id: SRC-012
-    rel: informed-by
+    rel: derived-from
   - id: REQ-011
     rel: depends-on
 ---
