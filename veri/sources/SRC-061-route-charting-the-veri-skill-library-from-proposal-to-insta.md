@@ -77,12 +77,20 @@ limits are recorded rather than papered over: auto-approve hosts bypass the
 ceremony, and presentation before a verdict is skill discipline the decision
 cannot enforce.
 
-## The frontier — open decisions, sharp enough to work now
+**The v1 proving ground** — closed by [[DEC-128]] (2026-08-27): a small external
+greenfield proves the front half, Veri-on-Veri is continuous dogfood for the back
+half, and [[REQ-040]]'s criterion is amended to say which proves which. Veri
+cannot satisfy that criterion alone — with the problem defined and the thesis
+fixed by [[DEC-111]], the discovery skills have nothing to operate on.
 
-**The v1 proving ground.** [[REQ-040]]'s fourth acceptance criterion demands one
-real project operated end-to-end through the skills. Veri itself is available
-and self-hosted but circular as evidence; an external greenfield project is
-honest but slower. This decides what would actually count as confirming the bet.
+The walk's prerequisite mattered more than its choice: closing one learning loop
+by hand first produced [[SRC-062]], which found [[REQ-035]]'s metric already
+eighty times past target *before* the intervention shipped. The corpus had 123
+completed work orders and zero outcome sources — the loop Veri exists to enforce
+had never once run here. A trial run before that check would have inherited the
+same metric-design failure.
+
+## The frontier — open decisions, sharp enough to work now
 
 **The quality bar before shipping.** Whether the skills ship behind an eval
 suite, and what triggering-accuracy floor they must clear. Mis-triggering skill
