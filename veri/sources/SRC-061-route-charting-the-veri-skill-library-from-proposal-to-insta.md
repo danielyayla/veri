@@ -90,13 +90,31 @@ completed work orders and zero outcome sources — the loop Veri exists to enfor
 had never once run here. A trial run before that check would have inherited the
 same metric-design failure.
 
-## The frontier — open decisions, sharp enough to work now
+**The pre-ship quality bar** — closed by [[DEC-129]] (2026-08-27). The item was
+three questions wearing one name: shell triggering (an eval corpus), method–canon
+consistency (`veri check`, a dividend of [[DEC-125]] that was invisible when this
+route was charted), and coaching efficacy (unmeasurable pre-ship, and [[DEC-128]]'s
+proving ground). Only the first two are gated. Naming efficacy as explicitly *out*
+of the gate is the load-bearing clause — [[SRC-062]] had just shown what happens
+when the cheap-to-measure proxy stands in for the thing that matters.
 
-**The quality bar before shipping.** Whether the skills ship behind an eval
-suite, and what triggering-accuracy floor they must clear. Mis-triggering skill
-descriptions is the known failure mode for skill libraries, and [[REQ-040]]'s
-refuting outcome — skills invoked once and abandoned — is partly a triggering
-problem.
+## The frontier is empty
+
+Every decision this route opened has been made: [[DEC-125]] (distribution, host
+portability, where the method lives), [[DEC-127]] (relay approval), [[DEC-128]]
+(the proving ground), [[DEC-129]] (the quality bar). Nothing below them is still
+waiting on something unsettled.
+
+The destination is *nearly* reached rather than reached. It was stated as "every
+open decision made **and** the library's build is a queue of ready work orders."
+The decisions are done; the queue is partial. [[WO-127]], [[WO-128]] and
+[[WO-129]] cover [[REQ-041]]'s enumeration, receipts and init gaps, all still in
+`backlog`. The largest body of work — authoring the fourteen method documents,
+plus the shell emitter, the trigger corpus, and the canon-consistency check rule
+[[DEC-129]] requires — has no work orders yet and wants its own planning pass.
+
+Wayfinding ends here. What remains is execution, and it is planned rather than
+decided.
 
 ## Specifiable work
 
