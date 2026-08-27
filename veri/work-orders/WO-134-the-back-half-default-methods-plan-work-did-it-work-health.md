@@ -2,7 +2,9 @@
 id: WO-134
 type: work-order
 title: "The back-half default methods — plan-work, did-it-work, health"
-status: ready
+status: in-progress
+claimed_by: opus-wo134
+claimed_at: 2026-08-27
 approved: 2026-08-27
 created: 2026-08-27
 updated: 2026-08-27
