@@ -2,7 +2,8 @@
 id: MET-005
 type: method
 title: "veri:define — interviewing intent into a requirement worth approving"
-status: draft
+status: accepted
+approved: 2026-08-28
 description: >-
   Interrogates a want until the requirement writes itself — the gate
   between a rough want and a requirement worth approving, correctly typed
@@ -28,7 +29,7 @@ requires:
   - get_intent
 upstream: veri/define
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-08-28
 links:
   - id: WF-001
     rel: derived-from

@@ -2,9 +2,10 @@
 id: DEC-138
 type: decision
 title: "Shell facts are an optional host input, and an orphan is anchored to the shell when its method is gone"
-status: proposed
+status: active
+approved: 2026-08-28
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-08-28
 links:
   - id: DEC-130
     rel: follows-from

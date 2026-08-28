@@ -2,9 +2,10 @@
 id: DEC-131
 type: decision
 title: "The enumeration surface answers as ranked-free text lines, with closed filter vocabularies and a queue whose head comes from nextDispatchable"
-status: proposed
+status: active
+approved: 2026-08-28
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-08-28
 links:
   - id: WO-127
     rel: decided-during

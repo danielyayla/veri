@@ -2,7 +2,8 @@
 id: MET-003
 type: method
 title: "veri:product-discovery — idea to problem, direction and first bets"
-status: draft
+status: accepted
+approved: 2026-08-28
 description: >-
   Turns a vague idea into a defined problem, a direction, non-goals and
   the first named bets — the gate an empty or reopened record passes
@@ -26,7 +27,7 @@ requires:
   - get_intent
 upstream: veri/product-discovery
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-08-28
 links:
   - id: WF-001
     rel: derived-from

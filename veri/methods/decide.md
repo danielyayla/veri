@@ -2,7 +2,8 @@
 id: MET-006
 type: method
 title: "veri:decide — the fork made on purpose and on record"
-status: draft
+status: accepted
+approved: 2026-08-28
 description: >-
   The gate where two or more real ways forward with different sacrifices
   become one proposed decision carrying the paths that lost. Use it when
@@ -27,7 +28,7 @@ requires:
   - get_document
 upstream: veri/decide
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-08-28
 links:
   - id: WF-001
     rel: derived-from

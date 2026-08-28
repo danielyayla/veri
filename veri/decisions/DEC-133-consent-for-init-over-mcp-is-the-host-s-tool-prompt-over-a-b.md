@@ -2,9 +2,10 @@
 id: DEC-133
 type: decision
 title: "Consent for init over MCP is the host's tool prompt over a bounded, reversible write — no confirmation parameter"
-status: proposed
+status: active
+approved: 2026-08-28
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-08-28
 links:
   - id: WO-129
     rel: decided-during

@@ -2,7 +2,8 @@
 id: MET-001
 type: method
 title: "veri:implement — execution within intent, from claim to receipt"
-status: draft
+status: accepted
+approved: 2026-08-28
 description: >-
   Steers implementation of a work order that already exists — the gate
   between a ready work order and a receipt. Use it when a work order is
@@ -26,7 +27,7 @@ requires:
   - run_check
 upstream: veri/implement
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-08-28
 links:
   - id: WF-001
     rel: derived-from

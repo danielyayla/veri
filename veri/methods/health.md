@@ -2,7 +2,8 @@
 id: MET-009
 type: method
 title: "veri:health — the periodic sweep for decay the check cannot see"
-status: draft
+status: accepted
+approved: 2026-08-28
 description: >-
   The periodic inspection: the decay `veri check`'s hard rules cannot
   catch, swept and filed so two sweeps months apart compare. Use it when
@@ -28,7 +29,7 @@ requires:
   - file_source
 upstream: veri/health
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-08-28
 links:
   - id: WF-001
     rel: derived-from
