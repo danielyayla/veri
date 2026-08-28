@@ -2,7 +2,9 @@
 id: WO-138
 type: work-order
 title: "Supersession becomes a verb: the superseded_by flip over CLI and MCP"
-status: ready
+status: in-progress
+claimed_by: opus-wo138
+claimed_at: 2026-08-28
 approved: 2026-08-28
 created: 2026-08-28
 updated: 2026-08-28
