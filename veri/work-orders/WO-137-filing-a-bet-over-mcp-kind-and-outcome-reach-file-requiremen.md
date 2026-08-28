@@ -2,7 +2,9 @@
 id: WO-137
 type: work-order
 title: "Filing a bet over MCP: kind and outcome reach file_requirement"
-status: ready
+status: in-progress
+claimed_by: opus-wo137
+claimed_at: 2026-08-28
 approved: 2026-08-28
 created: 2026-08-28
 updated: 2026-08-28
