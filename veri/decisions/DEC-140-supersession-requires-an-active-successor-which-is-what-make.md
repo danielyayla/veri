@@ -2,7 +2,8 @@
 id: DEC-140
 type: decision
 title: "Supersession requires an active successor, which is what makes it an agent-runnable act"
-status: proposed
+status: active
+approved: 2026-08-28
 created: 2026-08-28
 updated: 2026-08-28
 links:

@@ -2,7 +2,8 @@
 id: DEC-139
 type: decision
 title: "Creation validates a requirement's vocabulary; check keeps the epistemic judgment"
-status: proposed
+status: active
+approved: 2026-08-28
 created: 2026-08-28
 updated: 2026-08-28
 links:
