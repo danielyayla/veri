@@ -2,7 +2,7 @@
 id: WO-137
 type: work-order
 title: "Filing a bet over MCP: kind and outcome reach file_requirement"
-status: in-progress
+status: done
 claimed_by: opus-wo137
 claimed_at: 2026-08-28
 approved: 2026-08-28
@@ -78,16 +78,16 @@ This work order does not depend on that amendment; it links [[REQ-041]] as `rela
 
 ## Acceptance tests
 
-- [ ] `file_requirement` over MCP with `kind: hypothesis` and `outcome: {metric, target}` writes both to frontmatter, and the document reloads with `requirementKind` reporting `hypothesis`
-- [ ] The same filing with `kind: hypothesis` and no outcome succeeds and is reported by `veri check` as `hypothesis-without-outcome` — the rule still fires
-- [ ] `kind: constraint`, and an omitted `kind`, produce the file the tool writes today, byte for byte
-- [ ] An unknown kind is refused with a message naming the accepted values, and no REQ id is consumed
-- [ ] `createDocument` still refuses `kind` on a work order and on a decision, and still validates a source's kind against `SOURCE_KINDS`
-- [ ] The tool schema stays `.strict()` — an unknown key is still refused
-- [ ] The filed document is `status: draft` with no `approved:` stamp, whatever its kind
-- [ ] `veri check` reports zero issues across the repo after the change
-- [ ] The workaround passages in `veri/methods/product-discovery.md` and `veri/methods/define.md` are replaced by the ordinary filing instruction, with no capability claimed that the tool does not have
+- [x] `file_requirement` over MCP with `kind: hypothesis` and `outcome: {metric, target}` writes both to frontmatter, and the document reloads with `requirementKind` reporting `hypothesis`
+- [x] The same filing with `kind: hypothesis` and no outcome succeeds and is reported by `veri check` as `hypothesis-without-outcome` — the rule still fires
+- [x] `kind: constraint`, and an omitted `kind`, produce the file the tool writes today, byte for byte
+- [x] An unknown kind is refused with a message naming the accepted values, and no REQ id is consumed
+- [x] `createDocument` still refuses `kind` on a work order and on a decision, and still validates a source's kind against `SOURCE_KINDS`
+- [x] The tool schema stays `.strict()` — an unknown key is still refused
+- [x] The filed document is `status: draft` with no `approved:` stamp, whatever its kind
+- [x] `veri check` reports zero issues across the repo after the change
+- [x] The workaround passages in `veri/methods/product-discovery.md` and `veri/methods/define.md` are replaced by the ordinary filing instruction, with no capability claimed that the tool does not have
 
 ## Receipts
 
-(none yet)
+- 2026-08-28 — 4c37a1f — packages/core/src/pending.ts, packages/core/src/schema.ts, packages/core/src/types.ts, packages/core/src/create.ts, packages/core/src/create.test.ts, packages/mcp/src/writeback.ts, packages/mcp/src/writeback.test.ts, packages/mcp/src/server.ts, packages/mcp/src/server.e2e.test.ts, veri/methods/product-discovery.md, veri/methods/define.md, packages/cli/methods/product-discovery.md, packages/cli/methods/define.md, action/dist/index.js, veri/decisions/DEC-139-creation-validates-a-requirement-s-vocabulary-check-keeps-th.md — kind and outcome through createDocument and file_requirement, REQUIREMENT_KINDS single-homed on the pending subpath, the two method workarounds collapsed; 8 new tests, full suite 919 green, check 0 issues and no new advisories
