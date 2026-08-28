@@ -7414,6 +7414,7 @@ function isPending(doc) {
 function isWithdrawn(doc) {
   return doc.status === "withdrawn";
 }
+var REQUIREMENT_KINDS = ["constraint", "hypothesis"];
 function requirementKind(doc) {
   return doc.kind === "hypothesis" ? "hypothesis" : "constraint";
 }
@@ -11489,7 +11490,7 @@ var baseFields = {
 };
 var approvedByField = external_exports.string().min(1).optional();
 var WITHDRAWN = "withdrawn";
-var requirementKindField = external_exports.enum(["constraint", "hypothesis"]).optional();
+var requirementKindField = external_exports.enum(REQUIREMENT_KINDS).optional();
 var outcomeSchema = external_exports.object({
   metric: external_exports.string().min(1),
   target: external_exports.union([external_exports.string().min(1), external_exports.number()])

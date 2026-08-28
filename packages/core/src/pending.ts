@@ -31,13 +31,22 @@ export function isWithdrawn(doc: VeriDocument): boolean {
 }
 
 /**
+ * The requirement kind vocabulary (REQ-032, WO-114). Lives here beside
+ * SOURCE_KINDS so the schema, creation, and the MCP filing tool validate
+ * against one list rather than three copies of the same two words (WO-137).
+ */
+export const REQUIREMENT_KINDS = ['constraint', 'hypothesis'] as const;
+
+export type RequirementKind = (typeof REQUIREMENT_KINDS)[number];
+
+/**
  * A requirement's effective epistemic kind (REQ-032, WO-114): absent means
  * constraint, so every reader — CLI, context assembly, the renderer — agrees
  * on the default through this one function instead of each re-deciding it.
  * Lives here so the browser-bundled renderer reaches the one real
  * implementation through the same dependency-free subpath (DEC-046).
  */
-export function requirementKind(doc: Pick<VeriDocument, 'kind'>): 'constraint' | 'hypothesis' {
+export function requirementKind(doc: Pick<VeriDocument, 'kind'>): RequirementKind {
   // The shared `kind` field also carries source kinds (REQ-038); only the
   // requirement vocabulary is meaningful here — anything else defaults.
   return doc.kind === 'hypothesis' ? 'hypothesis' : 'constraint';

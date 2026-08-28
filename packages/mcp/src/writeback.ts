@@ -26,6 +26,12 @@ export interface FileRequirementInput {
   body: string;
   acceptance_criteria?: string;
   links?: Array<{ id: string; rel: string }>;
+  /** The requirement's epistemic kind (REQ-032); absent means constraint. */
+  kind?: string;
+  /** What would confirm or refute a hypothesis (REQ-032): a metric and a
+      target. Filing one is what makes a bet a bet rather than a constraint
+      in disguise (WO-137). */
+  outcome?: { metric: string; target: string | number };
 }
 
 export interface FileSourceInput {
@@ -66,13 +72,14 @@ async function fileDocument(
   title: string,
   sections: string[],
   links: Link[] | undefined,
-  kind?: string,
+  frontmatter: { kind?: string; outcome?: { metric: string; target: string | number } } = {},
 ): Promise<{ id: string; file: string }> {
   const veriDir = requireVeriDir(projectRoot);
   const { id, file } = await createDocument(veriDir, type, title, {
     body: `\n${sections.join('\n\n')}\n`,
     links,
-    ...(kind !== undefined ? { kind } : {}),
+    ...(frontmatter.kind !== undefined ? { kind: frontmatter.kind } : {}),
+    ...(frontmatter.outcome !== undefined ? { outcome: frontmatter.outcome } : {}),
   });
   return { id, file: `veri/${file}` };
 }
@@ -123,6 +130,10 @@ export async function fileWorkOrder(
  * File a requirement as a draft with the next free REQ id. Born `draft`
  * (REQ-008: agent writes are never binding), used by the brownfield import
  * filing surface (DEC-068) and any session proposing a requirement.
+ *
+ * `kind` and `outcome` ride the same call (WO-137): a bet filed without them
+ * lands as a constraint, and a constraint never raises the untested-bet
+ * advisory that would later ask whether it paid off (REQ-032, REQ-033).
  */
 export async function fileRequirement(
   projectRoot: string,
@@ -132,7 +143,10 @@ export async function fileRequirement(
   if (input.acceptance_criteria !== undefined && input.acceptance_criteria.trim() !== '') {
     sections.push(`## Acceptance criteria\n\n${input.acceptance_criteria.trim()}`);
   }
-  return fileDocument(projectRoot, 'requirement', input.title, sections, input.links);
+  return fileDocument(projectRoot, 'requirement', input.title, sections, input.links, {
+    ...(input.kind !== undefined ? { kind: input.kind } : {}),
+    ...(input.outcome !== undefined ? { outcome: input.outcome } : {}),
+  });
 }
 
 /**
@@ -144,7 +158,9 @@ export async function fileSource(
   projectRoot: string,
   input: FileSourceInput,
 ): Promise<{ id: string; file: string }> {
-  return fileDocument(projectRoot, 'source', input.title, [input.body.trim()], input.links, input.kind);
+  return fileDocument(projectRoot, 'source', input.title, [input.body.trim()], input.links, {
+    ...(input.kind !== undefined ? { kind: input.kind } : {}),
+  });
 }
 
 /**

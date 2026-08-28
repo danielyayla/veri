@@ -1,5 +1,5 @@
 import type { DocType } from './ids.ts';
-import type { SourceKind } from './pending.ts';
+import type { RequirementKind, SourceKind } from './pending.ts';
 
 export interface Link {
   id: string;
@@ -29,7 +29,7 @@ export interface VeriDocument {
       Absent means constraint — use `requirementKind` for the effective value.
       On sources (REQ-038, WO-122) the same field carries the evidence class;
       absent means reference — use `sourceKind` for the effective value. */
-  kind?: 'constraint' | 'hypothesis' | SourceKind;
+  kind?: RequirementKind | SourceKind;
   /** What would confirm or refute a hypothesis (REQ-032): a metric and its
       target, normalized to strings. Only on requirements that declare one. */
   outcome?: { metric: string; target: string };

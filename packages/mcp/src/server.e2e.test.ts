@@ -561,3 +561,59 @@ test('init_project opens on a bare repo, refuses a second time, and refuses unkn
   assert.equal(usable.get(2)?.result?.isError, undefined);
   assert.match(usable.get(2)?.result?.content?.[0]?.text ?? '', /^no receipts —/);
 });
+
+test('file_requirement files a hypothesis over the wire and still refuses unknown keys (REQ-032, WO-137)', { skip: !existsSync(SERVER) }, async (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'veri-mcp-hypothesis-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, 'veri', 'requirements'), { recursive: true });
+
+  const call = (id: number, args: object): object => ({
+    jsonrpc: '2.0',
+    id,
+    method: 'tools/call',
+    params: { name: 'file_requirement', arguments: args },
+  });
+  const init = {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'initialize',
+    params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test', version: '0.0.0' } },
+  };
+  const responses = await rpcSession(
+    [
+      init,
+      { jsonrpc: '2.0', method: 'notifications/initialized' },
+      call(2, {
+        title: 'The project map speeds activation',
+        body: 'Showing the map during onboarding gets people to their first success sooner.',
+        kind: 'hypothesis',
+        outcome: { metric: 'time-to-first-success', target: '< 5 minutes' },
+      }),
+      call(3, { title: 'A bet with no terms', body: 'We think this helps.', kind: 'hypothesis' }),
+      call(4, { title: 'Smuggled', body: 'x', status: 'accepted' }),
+    ],
+    [1, 2, 3, 4],
+    root,
+  );
+
+  const filed = responses.get(2)?.result;
+  assert.ok(filed?.isError !== true, filed?.content?.[0]?.text);
+  const written = readdirSync(join(root, 'veri', 'requirements')).map((name) =>
+    readFileSync(join(root, 'veri', 'requirements', name), 'utf8'),
+  );
+  const bet = written.find((text) => /^title: "The project map speeds activation"$/m.test(text));
+  assert.ok(bet, 'the hypothesis should have been written');
+  assert.match(bet, /^kind: hypothesis$/m);
+  assert.match(bet, /^outcome:\n {2}metric: "time-to-first-success"\n {2}target: "< 5 minutes"$/m);
+  assert.match(bet, /^status: draft$/m);
+
+  // A bet with no terms files — and is told, in the same breath, that it is
+  // a check violation. Visible, never silently a constraint (REQ-032).
+  const bare = responses.get(3)?.result;
+  assert.ok(bare?.isError !== true, bare?.content?.[0]?.text);
+  assert.match(bare?.content?.[0]?.text ?? '', /hypothesis with no declared outcome/);
+
+  // The schema is still strict: status is not a field an agent may send.
+  const smuggled = responses.get(4)?.result;
+  assert.equal(smuggled?.isError, true);
+});

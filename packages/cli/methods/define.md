@@ -170,7 +170,8 @@ verifies nothing.
 ## What it files
 
 - **Draft requirements, via `file_requirement`** — the statement, the
-  acceptance criteria as a checklist, and the links the interview
+  acceptance criteria as a checklist, beat 3's answer as `kind` (with the
+  `outcome` block when it is a bet), and the links the interview
   established: `refines` to the requirement it narrows, `constrained-by`
   to the decisions that bound it, `derived-from` to the evidence behind
   it. Status `draft`, always.
@@ -181,38 +182,31 @@ verifies nothing.
   make choices by writing them down. No work orders — nothing is approved
   yet.
 
-**Two mechanical facts about the surface, verified against
-`packages/mcp/src/server.ts` and `packages/core/src/create.ts` on
-2026-08-27:**
+**Two mechanical facts about the surface:**
 
 - **`amend_document` is pending-only.** It replaces the title, whole body
   and links of a *draft* requirement, *proposed* decision or *backlog*
   work order, and refuses approved, ready or started documents outright.
   There is no status field and no approval field to send. This is not an
   obstacle to route around: it is the mechanical form of beat 7.
-- **`file_requirement` carries no `kind` and no `outcome`.** It takes
-  title, body, acceptance criteria and links; `create.ts` refuses `kind`
-  on any type but a source. So the field that makes beat 3's answer real
-  has no MCP path, and a hypothesis filed here lands as a constraint by
-  default — the exact laundering beat 3 refuses in conversation.
+- **`file_requirement` carries `kind` and `outcome`.** Beat 3's answer is
+  sent with the filing, not edited in afterwards:
 
-The rule, following [[MET-001]]'s handling of the closing flip: never
-invent the capability, never let the omission pass silently. File the
-draft with the metric and target in its body under a named heading, show
-the exact frontmatter edit —
+  > ```
+  > kind: hypothesis
+  > outcome:
+  >   metric: <what is measured>
+  >   target: <the number that would settle it>
+  > ```
 
-> ```
-> kind: hypothesis
-> outcome:
->   metric: <what is measured>
->   target: <the number that would settle it>
-> ```
-
-— and either apply it as the ordinary file edit it is, in the same commit
-as the filing, or hand it to the user when the session cannot write to
-the repository. Say which happened. A bet left as `kind: constraint` will
-never raise [[REQ-033]]'s untested-bet advisory, so nothing will ever ask
-whether it paid off.
+  The tool refuses a kind outside `constraint | hypothesis` and an
+  outcome missing either half. It does *not* refuse a hypothesis with no
+  outcome — it files it and reports that `veri check` calls it a
+  violation. That report is the signal to go back for the metric and the
+  target, never a reason to file the bet as a constraint: a constraint
+  raises no untested-bet advisory ([[REQ-033]]), so nothing would ever
+  ask whether it paid off — the exact laundering beat 3 refuses in
+  conversation.
 
 ## Guardrails
 

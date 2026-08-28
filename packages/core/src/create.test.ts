@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { createDocument, slugifyTitle } from './create.ts';
 import { loadProject } from './load.ts';
 import { checkProject } from './check.ts';
+import { requirementKind } from './pending.ts';
 
 function sandbox(t: { after(fn: () => void): void }): string {
   const dir = mkdtempSync(join(tmpdir(), 'veri-create-test-'));
@@ -116,4 +117,98 @@ test('createDocument refuses the product type — singletons are authored at fix
     createDocument(dir, 'product', 'A fifth singleton'),
     /product documents are fixed singletons — author one of product\/vision\.md/,
   );
+});
+
+test('a requirement is filed as a hypothesis with its outcome, and reloads as one (REQ-032, WO-137)', async (t) => {
+  const dir = sandbox(t);
+  const result = await createDocument(dir, 'requirement', 'Showing the map speeds activation', {
+    date: '2026-08-28',
+    kind: 'hypothesis',
+    outcome: { metric: 'time-to-first-success', target: '< 5 minutes' },
+  });
+  const raw = readFileSync(join(dir, result.file), 'utf8');
+  assert.match(raw, /^kind: hypothesis$/m);
+  // Quoted, so a target opening with `<` or `>` is a string and not YAML noise.
+  assert.match(raw, /^outcome:\n {2}metric: "time-to-first-success"\n {2}target: "< 5 minutes"$/m);
+  assert.match(raw, /^status: draft$/m); // a bet is still born unapproved (REQ-008)
+  assert.doesNotMatch(raw, /^approved:/m);
+
+  const load = await loadProject(dir);
+  const doc = load.documents.find((entry) => entry.id === result.id);
+  assert.equal(requirementKind(doc!), 'hypothesis');
+  assert.deepEqual(doc?.outcome, { metric: 'time-to-first-success', target: '< 5 minutes' });
+  // A declared bet is complete: no hypothesis-without-outcome, and a draft is
+  // not yet an intuition-only bet (REQ-038 flags acceptance, never drafting).
+  assert.deepEqual(checkProject(load), { issues: [], advisories: [] });
+});
+
+test('a numeric outcome target stays bare in YAML and normalizes to a string (WO-137)', async (t) => {
+  const dir = sandbox(t);
+  const result = await createDocument(dir, 'requirement', 'Support tickets fall', {
+    date: '2026-08-28',
+    kind: 'hypothesis',
+    outcome: { metric: 'weekly-tickets', target: 5 },
+  });
+  assert.match(readFileSync(join(dir, result.file), 'utf8'), /^ {2}target: 5$/m);
+  const load = await loadProject(dir);
+  assert.equal(load.documents.find((entry) => entry.id === result.id)?.outcome?.target, '5');
+});
+
+test('a hypothesis filed with no outcome lands and check still reports it (REQ-032, WO-137)', async (t) => {
+  const dir = sandbox(t);
+  // Creation validates the vocabulary, not the epistemics: an undeclared bet
+  // is a file check calls a violation, never a silent constraint.
+  const result = await createDocument(dir, 'requirement', 'A bet with no terms', {
+    date: '2026-08-28',
+    kind: 'hypothesis',
+  });
+  const { issues } = checkProject(await loadProject(dir));
+  assert.equal(issues.length, 1);
+  assert.equal(issues[0]?.kind, 'hypothesis-without-outcome');
+  assert.equal((issues[0] as { id: string }).id, result.id);
+});
+
+test('an absent kind writes neither field — the constraint default stays a no-op (WO-137)', async (t) => {
+  const dir = sandbox(t);
+  const plain = await createDocument(dir, 'requirement', 'Invoices are immutable', { date: '2026-08-28' });
+  const raw = readFileSync(join(dir, plain.file), 'utf8');
+  assert.doesNotMatch(raw, /^kind:/m);
+  assert.doesNotMatch(raw, /^outcome:/m);
+  // An explicit constraint says so; both are constraints to every reader.
+  const declared = await createDocument(dir, 'requirement', 'Invoices stay immutable', {
+    date: '2026-08-28',
+    kind: 'constraint',
+  });
+  assert.match(readFileSync(join(dir, declared.file), 'utf8'), /^kind: constraint$/m);
+  const load = await loadProject(dir);
+  for (const id of [plain.id, declared.id]) {
+    assert.equal(requirementKind(load.documents.find((entry) => entry.id === id)!), 'constraint');
+  }
+});
+
+test('kind and outcome are refused where they mean nothing, before any id is consumed (WO-137)', async (t) => {
+  const dir = sandbox(t);
+  await assert.rejects(
+    createDocument(dir, 'requirement', 'Vibes', { kind: 'vibes' }),
+    /unknown requirement kind "vibes" — one of: constraint, hypothesis/,
+  );
+  await assert.rejects(createDocument(dir, 'source', 'Bad evidence', { kind: 'hypothesis' }), /unknown source kind/);
+  await assert.rejects(
+    createDocument(dir, 'work-order', 'Bet work', { kind: 'hypothesis' }),
+    /kind is a requirement and source field/,
+  );
+  await assert.rejects(
+    createDocument(dir, 'decision', 'Bet fork', { outcome: { metric: 'm', target: 't' } }),
+    /outcome is a requirement field/,
+  );
+  await assert.rejects(
+    createDocument(dir, 'requirement', 'Half a bet', { kind: 'hypothesis', outcome: { metric: '  ', target: 't' } }),
+    /an outcome needs a metric/,
+  );
+  await assert.rejects(
+    createDocument(dir, 'requirement', 'Half a bet', { kind: 'hypothesis', outcome: { metric: 'm', target: '' } }),
+    /an outcome needs a target/,
+  );
+  // Nothing was written and no id was spent by any of the six refusals.
+  assert.equal((await loadProject(dir)).documents.length, 0);
 });

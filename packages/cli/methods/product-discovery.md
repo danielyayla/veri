@@ -177,25 +177,18 @@ answer to the easiest of them.
   questions the user declined to bet on. Filed as evidence rather than as
   intent: it records what was said here, and interpretation belongs to
   the documents that cite it.
-- **One draft requirement per foundational bet**, via `file_requirement`,
-  each carrying in its body the metric and the target that would confirm
-  or refute it, plus a `derived-from` link to the brief. Status `draft`,
-  always.
+- **One draft requirement per foundational bet**, via `file_requirement`
+  with `kind: hypothesis` and the `outcome` block naming the metric and
+  the target that would confirm or refute it, plus a `derived-from` link
+  to the brief. Status `draft`, always.
 - **Nothing else.** No decisions — nothing has forked yet; no work orders
   — nothing is approved yet. A discovery session that produced a work
   order skipped two gates.
 
-**A gap on the surface, stated rather than routed around.**
-`file_requirement` takes title, body, acceptance criteria and links; it
-takes no `kind` and no `outcome`, and `create.ts` refuses `kind` on any
-type but a source. So the one field that makes a bet a bet — [[REQ-032]]'s
-`kind: hypothesis` with its declared metric and target — has no MCP path,
-and a requirement filed here lands as a constraint by default. Verified
-against `packages/mcp/src/server.ts` and `packages/core/src/create.ts` on
-2026-08-27. The rule follows [[MET-001]]'s handling of the closing flip:
-never invent the capability, never let the omission pass silently. File
-the draft with the metric and target in its body under a named heading,
-then show the exact frontmatter edit —
+**A bet is filed as a bet, in one call.** `file_requirement` carries
+`kind` and `outcome` alongside title, body, acceptance criteria and
+links, so [[REQ-032]]'s distinction reaches the record through the tool
+rather than through a follow-up edit:
 
 > ```
 > kind: hypothesis
@@ -204,11 +197,14 @@ then show the exact frontmatter edit —
 >   target: <the number that would settle it>
 > ```
 
-— and either apply it as the ordinary file edit it is, in the same commit
-as the filing, or hand it to the user when the session cannot write to
-the repository. Say which happened. An unstamped bet filed as a silent
-constraint is the laundering beat 7 exists to prevent, arriving through
-the tool surface instead of the conversation.
+The tool refuses a kind outside `constraint | hypothesis` and an outcome
+missing either half. It does *not* refuse a hypothesis with no outcome —
+it files it and says that `veri check` calls it a violation, which is the
+signal to go back and get the terms, never a reason to downgrade the bet
+to a constraint. A bet filed as a constraint raises no untested-bet
+advisory ([[REQ-033]]), so nothing would ever ask whether it paid off:
+that is the laundering beat 7 exists to prevent, arriving through the
+tool surface instead of the conversation.
 
 ## Guardrails
 

@@ -185,6 +185,41 @@ test('file_requirement is born draft with the next free REQ id', async (t) => {
   assert.match(readFileSync(join(root, 'veri', 'ids'), 'utf8'), /^REQ 2$/m); // id consumed — DEC-037
 });
 
+test('file_requirement files a hypothesis with its outcome, and a plain one writes neither field (REQ-032, WO-137)', async (t) => {
+  const root = sandbox(t);
+  const bet = await fileRequirement(root, {
+    title: 'The project map speeds activation',
+    body: 'Showing the map during onboarding gets people to their first success sooner.',
+    kind: 'hypothesis',
+    outcome: { metric: 'time-to-first-success', target: '< 5 minutes' },
+  });
+  await assertClean(root);
+  const content = readFileSync(join(root, bet.file), 'utf8');
+  assert.match(content, /^kind: hypothesis$/m);
+  assert.match(content, /^outcome:\n {2}metric: "time-to-first-success"\n {2}target: "< 5 minutes"$/m);
+  assert.match(content, /^status: draft$/m); // a bet is filed unapproved like anything else
+  assert.doesNotMatch(content, /^approved:/m);
+
+  // The default is unchanged: an ordinary filing carries neither field, and
+  // reads as a constraint (REQ-032) exactly as it did before this landed.
+  const plain = await fileRequirement(root, { title: 'Invoices are immutable', body: 'Once issued, never changed.' });
+  const plainContent = readFileSync(join(root, plain.file), 'utf8');
+  assert.doesNotMatch(plainContent, /^kind:/m);
+  assert.doesNotMatch(plainContent, /^outcome:/m);
+});
+
+test('file_requirement refuses an unknown kind and an outcome missing half its terms (WO-137)', async (t) => {
+  const root = sandbox(t);
+  await assert.rejects(
+    () => fileRequirement(root, { title: 'Vibes', body: 'x', kind: 'vibes' }),
+    /unknown requirement kind "vibes"/,
+  );
+  await assert.rejects(
+    () => fileRequirement(root, { title: 'Half a bet', body: 'x', kind: 'hypothesis', outcome: { metric: '', target: 't' } }),
+    /an outcome needs a metric/,
+  );
+});
+
 test('file_source is born imported and rejects unknown link targets', async (t) => {
   const root = sandbox(t);
   const result = await fileSource(root, {

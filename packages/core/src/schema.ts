@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ID_RE, typeOfId } from './ids.ts';
 import type { DocType } from './ids.ts';
-import { SOURCE_KINDS } from './pending.ts';
+import { REQUIREMENT_KINDS, SOURCE_KINDS } from './pending.ts';
 
 const idField = z.string().regex(ID_RE, 'must be REQ-, DEC-, WO-, SRC-, WF-, PRD- or MET- plus a number of three or more digits (e.g. REQ-001)');
 const dateField = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a YYYY-MM-DD date');
@@ -37,7 +37,7 @@ const WITHDRAWN = 'withdrawn' as const;
 // by implementation. Absent means constraint — the field is additive, never
 // a migration. A malformed value is an invalid-frontmatter issue like any
 // other field, never a silently ignored no-op (the DEC-058 posture).
-const requirementKindField = z.enum(['constraint', 'hypothesis']).optional();
+const requirementKindField = z.enum(REQUIREMENT_KINDS).optional();
 
 // The outcome that would confirm or refute a hypothesis: a metric name and a
 // target. `target` accepts a string or a bare YAML number ("< 5 minutes" or

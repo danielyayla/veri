@@ -6,7 +6,7 @@ import { nextIdNumber, recordIssuedId, type IdPrefix } from './idstore.ts';
 import { loadProject } from './load.ts';
 import { getTemplate } from './templates.ts';
 import { localToday } from './dates.ts';
-import { METHODS_DIR, PRODUCT_FILES, SOURCE_KINDS } from './pending.ts';
+import { METHODS_DIR, PRODUCT_FILES, REQUIREMENT_KINDS, SOURCE_KINDS } from './pending.ts';
 import type { Link } from './types.ts';
 
 /**
@@ -85,9 +85,16 @@ export interface CreateOptions {
   /** Outbound frontmatter links. Every target must exist in the project —
       an unknown id throws before anything is written or any id consumed. */
   links?: Link[];
-  /** A source's epistemic kind (REQ-038, WO-122). Sources only — validated
-      against SOURCE_KINDS so a bad value throws before an id is consumed. */
+  /** The document's epistemic kind: a source's evidence class (REQ-038,
+      WO-122) or a requirement's constraint/hypothesis (REQ-032, WO-137).
+      Validated against that type's vocabulary, so a bad value throws before
+      an id is consumed; no other type takes one. */
   kind?: string;
+  /** What would confirm or refute a hypothesis (REQ-032, WO-137):
+      requirements only. Creation validates the shape — both halves present
+      and non-empty — and leaves the judgment of whether a given requirement
+      needs one to `check`, which owns the hypothesis-without-outcome rule. */
+  outcome?: { metric: string; target: string | number };
 }
 
 /**
@@ -117,9 +124,28 @@ export async function createDocument(
   const date = options.date ?? localToday();
   const links = options.links ?? [];
   if (options.kind !== undefined) {
-    if (type !== 'source') throw new Error(`kind is a source field (REQ-038) — a ${type} does not take one here`);
-    if (!(SOURCE_KINDS as readonly string[]).includes(options.kind)) {
-      throw new Error(`unknown source kind "${options.kind}" — one of: ${SOURCE_KINDS.join(', ')}`);
+    // Two vocabularies share one field name (REQ-032 for requirements,
+    // REQ-038 for sources); each type is held to its own, and every other
+    // type is refused rather than carrying a word the schema would reject.
+    const vocabulary: readonly string[] | undefined =
+      type === 'source' ? SOURCE_KINDS : type === 'requirement' ? REQUIREMENT_KINDS : undefined;
+    if (vocabulary === undefined) {
+      throw new Error(`kind is a requirement and source field (REQ-032, REQ-038) — a ${type} does not take one here`);
+    }
+    if (!vocabulary.includes(options.kind)) {
+      throw new Error(`unknown ${type} kind "${options.kind}" — one of: ${vocabulary.join(', ')}`);
+    }
+  }
+  if (options.outcome !== undefined) {
+    if (type !== 'requirement') {
+      throw new Error(`outcome is a requirement field (REQ-032) — a ${type} does not take one`);
+    }
+    const { metric, target } = options.outcome;
+    if (typeof metric !== 'string' || metric.trim() === '') {
+      throw new Error('an outcome needs a metric — what is measured');
+    }
+    if (typeof target === 'string' ? target.trim() === '' : typeof target !== 'number') {
+      throw new Error('an outcome needs a target — the value that would settle the bet');
     }
   }
 
@@ -145,6 +171,17 @@ export async function createDocument(
     `title: ${JSON.stringify(trimmed)}`,
     `status: ${INITIAL_STATUS[type]}`,
     ...(options.kind !== undefined ? [`kind: ${options.kind}`] : []),
+    // The bet's terms ride directly under its kind, the order the corpus
+    // already reads in. Strings are quoted (the `title` treatment) so a
+    // target like "< 5 minutes" or "> 40%" survives YAML; a numeric target
+    // stays bare and parses back as a number, which parse normalizes.
+    ...(options.outcome !== undefined
+      ? [
+          'outcome:',
+          `  metric: ${JSON.stringify(options.outcome.metric.trim())}`,
+          `  target: ${typeof options.outcome.target === 'number' ? options.outcome.target : JSON.stringify(options.outcome.target.trim())}`,
+        ]
+      : []),
     // DEC-130 (WO-131): `description` and `requires` are required on a
     // method, so generic creation has to write them or hand back a file that
     // fails its own schema. It writes a visible placeholder rather than

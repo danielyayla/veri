@@ -2,7 +2,7 @@
 import { join, resolve } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { DOC_TYPES, SOURCE_KINDS, assembleImportInstructions, classifyFormat, formatStatement, isOperableFormat, loadProject, startWorkOrder } from '@verikb/core';
+import { DOC_TYPES, REQUIREMENT_KINDS, SOURCE_KINDS, assembleImportInstructions, classifyFormat, formatStatement, isOperableFormat, loadProject, startWorkOrder } from '@verikb/core';
 import { z } from 'zod';
 import { runCheck } from './check.ts';
 import { assembleContext } from './context.ts';
@@ -338,7 +338,9 @@ server.registerTool(
     description:
       'File a requirement as a draft — a new document with the next free REQ id and status: draft, ' +
       'pending the user\'s review; it is not binding until they accept it. ' +
-      'Used by brownfield import sessions and any session proposing a requirement.',
+      'Used by brownfield import sessions and any session proposing a requirement. ' +
+      'A requirement that is a bet rather than a rule must say so: pass kind: hypothesis with the ' +
+      'outcome that would settle it, or it lands as a constraint and nothing will ever ask whether it paid off.',
     inputSchema: z
       .object({
         title: z.string(),
@@ -348,6 +350,22 @@ server.registerTool(
           .array(z.object({ id: z.string(), rel: z.string() }))
           .optional()
           .describe('Evidence and related documents, e.g. [{id: "SRC-002", rel: "derived-from"}]'),
+        // REQ-032's epistemic kind, reachable from the tool surface (WO-137).
+        kind: z
+          .enum(REQUIREMENT_KINDS)
+          .optional()
+          .describe(
+            'constraint (default) — must be satisfied and stay satisfied, verified by acceptance criteria; ' +
+              'hypothesis — a bet only tested by shipping, which stays open until outcome evidence lands',
+          ),
+        outcome: z
+          .object({
+            metric: z.string().min(1).describe('What is measured, e.g. "time-to-first-success"'),
+            target: z.union([z.string().min(1), z.number()]).describe('The value that settles it, e.g. "< 5 minutes"'),
+          })
+          .strict()
+          .optional()
+          .describe('What would confirm or refute a hypothesis. A hypothesis filed without one is a check violation'),
       })
       .strict(),
   },
@@ -355,9 +373,16 @@ server.registerTool(
     try {
       guardFormat();
       const { id, file } = await fileRequirement(projectRoot, input);
+      // A bet with no terms is reported, never quietly accepted: check calls
+      // it a violation, and the filer hears it here rather than at the gate.
+      const bare =
+        input.kind === 'hypothesis' && input.outcome === undefined
+          ? ` It is a hypothesis with no declared outcome, which veri check reports as a violation — ` +
+            `add outcome: {metric, target} naming what would confirm or refute it.`
+          : '';
       return ok(
         `Filed ${id} at ${file} as a draft pending the user's review — not binding yet. ` +
-          `They promote it with veri approve ${id} (or in the app).`,
+          `They promote it with veri approve ${id} (or in the app).${bare}`,
       );
     } catch (err) {
       return fail(err);
