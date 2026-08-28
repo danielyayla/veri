@@ -31,6 +31,7 @@ export * from './intake.ts';
 export * from './next.ts';
 export * from './start.ts';
 export * from './discard.ts';
+export * from './supersede.ts';
 export * from './intent.ts';
 export * from './skill-corpus.ts';
 export * from './skills.ts';

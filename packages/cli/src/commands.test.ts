@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CURRENT_FORMAT, assembleContext } from '@verikb/core';
-import { approve, architecture, check, checkReport, context, del, importFile, importPrompt, init, list, listStarters, migrate, newDoc, next, open, renumber, start, withdraw } from './commands.ts';
+import { approve, architecture, check, checkReport, context, del, importFile, importPrompt, init, list, listStarters, migrate, newDoc, next, open, renumber, start, supersede, withdraw } from './commands.ts';
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const FIVE_ISSUES = fileURLToPath(new URL('../fixtures/five-issues', import.meta.url));
@@ -846,6 +846,49 @@ test('veri withdraw without an id prints usage and exits 1', async (t) => {
   const result = await withdraw(cwd, undefined);
   assert.equal(result.code, 1);
   assert.match(result.lines[0] ?? '', /^usage: veri withdraw <id>/);
+});
+
+test('veri supersede retires an active decision once its successor is approved (WO-138)', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+
+  init(cwd, { demo: false });
+  await newDoc(cwd, 'decision', 'The old road');
+  await newDoc(cwd, 'decision', 'The new road');
+  const old = join(cwd, 'veri/decisions/DEC-001-the-old-road.md');
+
+  // Both still proposed: nothing may be retired on an unapproved successor.
+  const early = await supersede(cwd, 'DEC-001', 'DEC-002');
+  assert.equal(early.code, 1);
+  assert.match(early.lines[0] ?? '', /DEC-001 is not active/);
+
+  await approve(cwd, 'DEC-001', 'Tester');
+  const unapprovedSuccessor = await supersede(cwd, 'DEC-001', 'DEC-002');
+  assert.equal(unapprovedSuccessor.code, 1);
+  assert.match(unapprovedSuccessor.lines[0] ?? '', /DEC-002 is proposed, not active — approve it first/);
+  assert.match(readFileSync(old, 'utf8'), /^status: active$/m);
+
+  await approve(cwd, 'DEC-002', 'Tester');
+  const result = await supersede(cwd, 'dec-001', 'dec-002');
+  assert.equal(result.code, 0, result.lines.join('\n'));
+  assert.match(result.lines[0] ?? '', /^DEC-001 active → superseded by DEC-002/);
+  const content = readFileSync(old, 'utf8');
+  assert.match(content, /^status: superseded$/m);
+  assert.match(content, /^superseded_by: DEC-002$/m);
+
+  const checked = await check(cwd);
+  assert.equal(checked.code, 0, checked.lines.join('\n'));
+});
+
+test('veri supersede without both ids prints usage and exits 1 (WO-138)', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  init(cwd, { demo: false });
+  for (const args of [[undefined, undefined], ['DEC-001', undefined], [undefined, 'DEC-002']] as const) {
+    const result = await supersede(cwd, args[0], args[1]);
+    assert.equal(result.code, 1);
+    assert.match(result.lines[0] ?? '', /^usage: veri supersede <DEC-id> --by <DEC-id>/);
+  }
 });
 
 test('veri delete removes an unapproved, unreferenced document and keeps its id spent', async (t) => {

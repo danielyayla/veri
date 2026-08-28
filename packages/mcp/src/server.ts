@@ -2,7 +2,7 @@
 import { join, resolve } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { DOC_TYPES, REQUIREMENT_KINDS, SOURCE_KINDS, assembleImportInstructions, classifyFormat, formatStatement, isOperableFormat, loadProject, startWorkOrder } from '@verikb/core';
+import { DOC_TYPES, REQUIREMENT_KINDS, SOURCE_KINDS, assembleImportInstructions, classifyFormat, formatStatement, isOperableFormat, loadProject, startWorkOrder, supersedeDecision } from '@verikb/core';
 import { z } from 'zod';
 import { runCheck } from './check.ts';
 import { assembleContext } from './context.ts';
@@ -509,6 +509,38 @@ server.registerTool(
         `${result.id} ready → in-progress — claimed by ${result.claimedBy} (${result.claimedAt}) at veri/${result.file}. ` +
           `Commit the flip with a start subject (e.g. "${result.id}: started — claimed by ${result.claimedBy}") so ` +
           `provenance anchors the work's era.`,
+      );
+    } catch (err) {
+      return fail(err);
+    }
+  },
+);
+
+server.registerTool(
+  'supersede_decision',
+  {
+    description:
+      'Retire an active decision, naming the active decision that now governs: writes status: superseded and ' +
+      'superseded_by together, the pair the schema requires. This is the backward half of a reversal — file the ' +
+      'replacement forward first (file_decision, with a supersedes link), have the user approve it, and only then ' +
+      'call this. A successor that is still proposed is refused: an unapproved decision has no downstream power ' +
+      '(REQ-008), and retiring the old one on its word would leave the fork governed by nothing. Superseding is ' +
+      'not itself a promotion — the human act it records is the successor\'s approval stamp.',
+    inputSchema: z
+      .object({
+        id: z.string().describe('The active decision being retired, e.g. DEC-063'),
+        superseded_by: z.string().describe('The active decision that replaces it, e.g. DEC-074'),
+      })
+      .strict(),
+  },
+  async ({ id, superseded_by }) => {
+    try {
+      guardFormat();
+      const result = await supersedeDecision(join(projectRoot, 'veri'), id, superseded_by);
+      return ok(
+        `${result.id} ${result.from} → superseded by ${result.successor} at veri/${result.file}. ` +
+          `Its body stays: a reversed decision is history the record keeps, and in-progress work orders still ` +
+          `standing on ${result.id} now report as drift.`,
       );
     } catch (err) {
       return fail(err);

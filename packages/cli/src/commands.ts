@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFi
 import { createRequire } from 'node:module';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createDocument, deleteDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, lookupIntent, maintainerRegistry, migrateProject, moduleRegistry, nextDispatchable, nextIdNumber, originalStoragePath, outcomeLabel, recordIssuedId, renderArchitecture, renderIntent, renumberDocument, requirementKind, scaffoldProject, slugifyTitle, startWorkOrder, withdrawDocument, workOrdersTouching } from '@verikb/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createDocument, deleteDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, lookupIntent, maintainerRegistry, migrateProject, moduleRegistry, nextDispatchable, nextIdNumber, originalStoragePath, outcomeLabel, recordIssuedId, renderArchitecture, renderIntent, renumberDocument, requirementKind, scaffoldProject, slugifyTitle, startWorkOrder, supersedeDecision, withdrawDocument, workOrdersTouching } from '@verikb/core';
 import type { CheckReport, DocType } from '@verikb/core';
 import { collectGitFacts, gitUserName } from './git.ts';
 import { collectShellFacts } from './skills.ts';
@@ -458,6 +458,33 @@ export async function del(cwd: string, idArg: string | undefined): Promise<CmdRe
       lines: [
         `deleted ${result.id} (veri/${result.file})`,
         `the id stays spent — the next veri new skips ${result.id}. Recover the file with git if this was a mistake.`,
+      ],
+    };
+  } catch (err) {
+    return { code: 1, lines: (err as Error).message.split('\n') };
+  }
+}
+
+/** Supersession (WO-138): the backward half of a reversal, once the
+    successor is approved. Writes `status: superseded` and `superseded_by:`
+    together, so the pair the schema requires can never be half applied. */
+export async function supersede(
+  cwd: string,
+  idArg: string | undefined,
+  byArg: string | undefined,
+): Promise<CmdResult> {
+  if (idArg === undefined || idArg.trim() === '' || byArg === undefined || byArg.trim() === '') {
+    return { code: 1, lines: ['usage: veri supersede <DEC-id> --by <DEC-id> (the active decision that now governs)'] };
+  }
+  const dir = requireVeriDir(cwd);
+  if (dir === null) return NO_VERI_DIR;
+  try {
+    const result = await supersedeDecision(dir, idArg.trim(), byArg.trim());
+    return {
+      code: 0,
+      lines: [
+        `${result.id} ${result.from} → superseded by ${result.successor} (veri/${result.file})`,
+        `the file and its id stay — ${result.id} is now history the record keeps, and work orders standing on it are flagged as drift.`,
       ],
     };
   } catch (err) {

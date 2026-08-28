@@ -172,15 +172,17 @@ whether the choice between ways of doing it was genuinely made.
   proposal to the *work order's* links makes a claimed work order depend
   on an unapproved document, which fails the gate check the moment it is
   written ([[REQ-008]]).
-- **Supersession is filed forward and stamped backward.** File the new
-  decision with a `supersedes` link to the old one. Flipping the old
-  decision to `status: superseded` with `superseded_by:` set has no MCP
-  path — `amend_document` refuses an active decision, and there is no
-  status field on any write tool. The schema then requires the pair: a
-  superseded decision without `superseded_by` is invalid frontmatter. So
-  show the exact two-line edit and hand it over, or apply it as the
-  ordinary file edit it is; say which happened, and never leave a
-  reversal half-recorded.
+- **Supersession is filed forward and closed backward, after the stamp.**
+  File the new decision with a `supersedes` link to the old one. The
+  backward half — `status: superseded` with `superseded_by:` set — is
+  `supersede_decision`, which writes both lines together so the pair the
+  schema requires is never half applied. It refuses a successor that is
+  still `proposed` ([[DEC-140]]): until the user approves the
+  replacement, retiring the old decision would leave the fork governed by
+  nothing. So the closing order is fixed — file forward, hand the
+  proposal to the user, and call `supersede_decision` once they have
+  stamped it. A session that files the replacement and stops has not left
+  a reversal half-recorded; it has left it correctly open at the gate.
 - **A proposal does not un-authorise the code already written under it.**
   A decision filed mid-implementation records what was chosen; it does
   not gate the work order that was already cleared for dispatch.

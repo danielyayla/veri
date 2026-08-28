@@ -69,9 +69,11 @@ test('the built server answers tools/list and get_context over stdio', { skip: !
 
   const toolNames = (responses.get(2)?.result?.tools ?? []).map((tool) => tool.name).sort();
   // The complete write surface: file_* only creates unapproved documents or
-  // appends receipts, amend_document revises still-pending ones (DEC-103), and
+  // appends receipts, amend_document revises still-pending ones (DEC-103),
   // init_project brings an absent knowledge base into being without touching an
-  // existing one (WO-129) — no tool approves or promotes (REQ-017).
+  // existing one (WO-129), and supersede_decision retires a decision only once
+  // the user has stamped its successor (WO-138) — no tool approves or promotes
+  // (REQ-017).
   assert.deepEqual(toolNames, [
     'amend_document',
     'file_decision',
@@ -91,6 +93,7 @@ test('the built server answers tools/list and get_context over stdio', { skip: !
     'run_check',
     'search',
     'start_work_order',
+    'supersede_decision',
   ]);
 
   const context = responses.get(3)?.result;
@@ -306,7 +309,7 @@ test('write tools refuse unknown argument keys instead of silently dropping cont
 
   // Every write tool advertises the strictness, so compliant hosts refuse
   // near-miss keys client-side too.
-  const writeTools = ['file_decision', 'file_work_order', 'file_requirement', 'file_source', 'file_receipt', 'amend_document', 'start_work_order'];
+  const writeTools = ['file_decision', 'file_work_order', 'file_requirement', 'file_source', 'file_receipt', 'amend_document', 'start_work_order', 'supersede_decision'];
   const tools = responses.get(3)?.result?.tools ?? [];
   for (const name of writeTools) {
     const tool = tools.find((entry) => entry.name === name);
@@ -616,4 +619,54 @@ test('file_requirement files a hypothesis over the wire and still refuses unknow
   // The schema is still strict: status is not a field an agent may send.
   const smuggled = responses.get(4)?.result;
   assert.equal(smuggled?.isError, true);
+});
+
+test('supersede_decision retires an active decision and refuses an unapproved successor (WO-138)', { skip: !existsSync(SERVER) }, async (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'veri-mcp-supersede-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, 'veri', 'decisions'), { recursive: true });
+  const decision = (id: string, status: string): string =>
+    `---\nid: ${id}\ntype: decision\ntitle: ${id}\nstatus: ${status}\n${status === 'proposed' ? '' : 'approved: 2026-08-02\n'}created: 2026-08-01\nupdated: 2026-08-02\n---\n\n## Choice\n\nThe choice, kept verbatim.\n`;
+  writeFileSync(join(root, 'veri', 'decisions', 'DEC-001-old.md'), decision('DEC-001', 'active'));
+  writeFileSync(join(root, 'veri', 'decisions', 'DEC-002-new.md'), decision('DEC-002', 'active'));
+  writeFileSync(join(root, 'veri', 'decisions', 'DEC-003-pending.md'), decision('DEC-003', 'proposed'));
+
+  const call = (id: number, args: object): object => ({
+    jsonrpc: '2.0',
+    id,
+    method: 'tools/call',
+    params: { name: 'supersede_decision', arguments: args },
+  });
+  const responses = await rpcSession(
+    [
+      {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test', version: '0.0.0' } },
+      },
+      { jsonrpc: '2.0', method: 'notifications/initialized' },
+      call(2, { id: 'DEC-001', superseded_by: 'DEC-003' }),
+      call(3, { id: 'DEC-001', superseded_by: 'DEC-002' }),
+      call(4, { id: 'DEC-002', superseded_by: 'DEC-001', status: 'superseded' }),
+    ],
+    [1, 2, 3, 4],
+    root,
+  );
+
+  // An unapproved successor has no downstream power (REQ-008), so the flip is
+  // refused. (That it leaves the file untouched is asserted in the core suite,
+  // where the calls are not batched into one session.)
+  const refused = responses.get(2)?.result;
+  assert.equal(refused?.isError, true);
+  assert.match(refused?.content?.[0]?.text ?? '', /DEC-003 is proposed, not active — approve it first/);
+
+  const done = responses.get(3)?.result;
+  assert.ok(done?.isError !== true, done?.content?.[0]?.text);
+  const flipped = readFileSync(join(root, 'veri', 'decisions', 'DEC-001-old.md'), 'utf8');
+  assert.match(flipped, /^status: superseded\nsuperseded_by: DEC-002$/m);
+  assert.match(flipped, /## Choice\n\nThe choice, kept verbatim\./); // the body is history, kept
+
+  // The schema is strict: no status field rides in on this tool either.
+  assert.equal(responses.get(4)?.result?.isError, true);
 });
