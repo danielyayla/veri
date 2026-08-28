@@ -2,7 +2,7 @@
 id: WO-138
 type: work-order
 title: "Supersession becomes a verb: the superseded_by flip over CLI and MCP"
-status: in-progress
+status: done
 claimed_by: opus-wo138
 claimed_at: 2026-08-28
 approved: 2026-08-28
@@ -78,16 +78,16 @@ The second, smaller fork rides along: whether an agent may run this at all, or w
 
 ## Acceptance tests
 
-- [ ] `veri supersede DEC-A --by DEC-B` writes `status: superseded` and `superseded_by: DEC-B` in one edit, and `veri check` reports zero issues on the result
-- [ ] The same call over MCP produces the byte-identical file (or, if the fork above rules the act user-only, no MCP tool exists and the decision records why)
-- [ ] Superseding a `proposed`, `superseded`, or `withdrawn` decision is refused with a message naming the state it is in
-- [ ] Superseding a requirement, work order, or source is refused, naming the type
-- [ ] A successor id that does not exist, is not a decision, or is the document itself is refused, and nothing is written
-- [ ] A partially-applied flip is impossible: no path writes `status: superseded` without `superseded_by`, and the pair round-trips through `parseDocument` with `supersededBy` set
-- [ ] An in-progress work order linking the freshly superseded decision raises `drift-superseded-link`, unchanged
-- [ ] The fork above is filed as a `proposed` decision naming both alternatives, and nothing promotes it
-- [ ] `veri/methods/decide.md` describes the verb instead of the manual two-line edit, claiming no capability the surfaces do not have
+- [x] `veri supersede DEC-A --by DEC-B` writes `status: superseded` and `superseded_by: DEC-B` in one edit, and `veri check` reports zero issues on the result
+- [x] The same call over MCP produces the byte-identical file (or, if the fork above rules the act user-only, no MCP tool exists and the decision records why)
+- [x] Superseding a `proposed`, `superseded`, or `withdrawn` decision is refused with a message naming the state it is in
+- [x] Superseding a requirement, work order, or source is refused, naming the type
+- [x] A successor id that does not exist, is not a decision, or is the document itself is refused, and nothing is written
+- [x] A partially-applied flip is impossible: no path writes `status: superseded` without `superseded_by`, and the pair round-trips through `parseDocument` with `supersededBy` set
+- [x] An in-progress work order linking the freshly superseded decision raises `drift-superseded-link`, unchanged
+- [x] The fork above is filed as a `proposed` decision naming both alternatives, and nothing promotes it
+- [x] `veri/methods/decide.md` describes the verb instead of the manual two-line edit, claiming no capability the surfaces do not have
 
 ## Receipts
 
-(none yet)
+- 2026-08-28 — 361b9af — packages/core/src/supersede.ts, packages/core/src/supersede.test.ts, packages/core/src/index.ts, packages/cli/src/commands.ts, packages/cli/src/cli.ts, packages/cli/src/commands.test.ts, packages/mcp/src/server.ts, packages/mcp/src/server.e2e.test.ts, veri/methods/decide.md, packages/cli/methods/decide.md, veri/decisions/DEC-140-supersession-requires-an-active-successor-which-is-what-make.md — supersedeDecision plus the pure supersedeRefusal in core, veri supersede --by, the supersede_decision MCP tool, and DEC-140 (proposed) settling the active-successor fork; 10 new tests, full suite 929 green, check 0 issues. One new advisory, and the right one: closing this work order makes REQ-040's work orders all done, so the untested-bet advisory now asks what reality said about the skill-library hypothesis — evidence for the user to judge, not a defect
