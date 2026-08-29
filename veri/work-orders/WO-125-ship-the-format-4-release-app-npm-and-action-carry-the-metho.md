@@ -46,9 +46,9 @@ because its identity is unchanged.
   `kind`/`outcome` on `file_requirement`), and DEC-139's restart
   obligation
 - Bump the app version to 0.5.0 in its single source manifest
-  (`packages/ui/package.json`, per RELEASING.md; a format bump is not
-  a patch) and follow the RELEASING.md app checklist. No UI code
-  changes: version bumps ship under the `vX.Y.Z` commit convention
+  (per RELEASING.md; a format bump is not a patch) and follow the
+  RELEASING.md app checklist. No UI code changes: version bumps ship
+  under the `vX.Y.Z` commit convention
 - Lockstep `@verikb/*` publish at 0.1.2 — the version the manifests
   already carry and npm has never seen (2FA blocks CI token publish;
   either the OIDC trusted-publishing conversion lands first or the
@@ -80,8 +80,8 @@ Derived from [[REQ-040]]'s format bump, and constrained by
 - [ ] `CHANGELOG.md` has a `0.5.0` section covering the method type,
       format 4, the skill library, and the widened MCP surface, and
       `## [Unreleased]` is empty above it
-- [ ] `packages/ui/package.json` reads 0.5.0 and no other manifest
-      claims the app version
+- [ ] The app version reads 0.5.0 in its single source manifest, and
+      no other manifest claims it
 - [ ] The action's committed `dist` is rebuilt from a core that
       reports `CURRENT_FORMAT` 4
 - [ ] `veri check` reports zero issues and the repo builds clean
@@ -94,7 +94,7 @@ Derived from [[REQ-040]]'s format bump, and constrained by
 ### 2026-08-27 — the format-3 release (v0.4.0)
 
 - commit: `7d09987`
-- files: `CHANGELOG.md`, `packages/ui/package.json`
+- files: `CHANGELOG.md`, the app version manifest
 - The app release shipped: `v0.4.0` tagged and pushed, GitHub release
   published 2026-08-27, updater feed serving 0.4.0, bridge assets
   copied forward, and the Veri Check action green on main with the

@@ -48,6 +48,18 @@ test('a newer marker is inoperable and its statement says to update Veri', (t) =
   assert.match(formatStatement(c) ?? '', /update Veri/);
 });
 
+// DEC-139: the refusal is the only thing a stale *running* reader shows, so it
+// names the restart alongside the update — neither repair on its own covers
+// both the installed-and-behind and the running-and-behind cases.
+test('the newer statement names restarting the reader, not only updating Veri', (t) => {
+  const dir = tmpVeriDir(t);
+  writeFormatMarker(dir, CURRENT_FORMAT + 1);
+  const statement = formatStatement(classifyFormat(dir)) ?? '';
+  assert.match(statement, /update Veri/);
+  assert.match(statement, /restart/);
+  assert.match(statement, /reconnect/);
+});
+
 test('an unreadable marker is inoperable and names the raw content', (t) => {
   const dir = tmpVeriDir(t);
   writeFileSync(join(dir, 'format'), 'two\n');

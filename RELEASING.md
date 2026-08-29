@@ -7,22 +7,39 @@ to `v<packages/ui version>` is an app release; any other `v*` tag (the
 action's `v1`, `v1.0.0`, …) passes through green with a notice and
 builds nothing.
 
-## Before any release: the format-bump check
+## Before any format bump
 
-- [ ] A document-schema addition an older reader would misparse — a
-  new status value, a new member of a validated enum, or a new
-  required field — ships with a `CURRENT_FORMAT` bump
+A `CURRENT_FORMAT` bump is a breaking change for every reader already
+*running*, not only every reader already installed (DEC-139). It
+carries two obligations, and a work order that bumps the marker carries
+both as acceptance criteria.
+
+- [ ] **It ships with the schema change and its migration.** A
+  document-schema addition an older reader would misparse — a new
+  status value, a new member of a validated enum, or a new required
+  field — ships with a `CURRENT_FORMAT` bump
   (`packages/core/src/format.ts`) and its migration step in the same
-  change. New *optional* keys are exempt: schemas are passthrough, so
-  an old reader preserves unknown frontmatter untouched (REQ-001).
-  The failure mode the bump prevents: an old reader does not error on
-  frontmatter it can't validate — it silently drops the document from
-  its set, then misreports every `[[reference]]` to it as a broken
-  link (this is how the installed 0.2.1 app reported "no document has
-  that id" for work orders WO-098 had marked `ready`). The bump turns
-  that silent corruption into a clear refusal: the plain-text
-  `veri/format` marker (DEC-030) makes any newer-format project state
-  "update Veri to open it" instead of half-loading (REQ-015).
+  change, and the readers that understand the new format are released
+  (the checklists below). New *optional* keys are exempt: schemas are
+  passthrough, so an old reader preserves unknown frontmatter
+  untouched (REQ-001). The failure mode the bump prevents: an old
+  reader does not error on frontmatter it can't validate — it silently
+  drops the document from its set, then misreports every
+  `[[reference]]` to it as a broken link (this is how the installed
+  0.2.1 app reported "no document has that id" for work orders WO-098
+  had marked `ready`). The bump turns that silent corruption into a
+  clear refusal: the plain-text `veri/format` marker (DEC-030) makes
+  any newer-format project state "update Veri to open it" instead of
+  half-loading (REQ-015).
+
+- [ ] **Every running reader is restarted.** The bump takes effect the
+  instant the marker file changes — a process that was mid-session
+  against the project keeps the format it started with and begins
+  refusing every call, including the agent that is doing the bumping
+  (SRC-064 records this happening to a live MCP session). So: every
+  live MCP session against the project must reconnect, and every
+  long-running host process must restart. Say so in the release notes;
+  operators cannot infer it from the refusal alone.
 
 ## App release
 
