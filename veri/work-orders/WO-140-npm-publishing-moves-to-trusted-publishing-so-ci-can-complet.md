@@ -16,6 +16,8 @@ links:
     rel: follows-from
   - id: WO-081
     rel: follows-from
+  - id: SRC-065
+    rel: derived-from
 binds:
   paths:
     - .github/workflows/npm-publish.yml
@@ -81,7 +83,8 @@ and the runbook currently documents a step that fails every time.
 Extends [[REQ-012]] — the site tells a stranger to install from npm,
 so a stale registry is a broken install path. Constrained by
 [[DEC-077]], whose lockstep and scope decisions are untouched.
-Follows from [[WO-125]] and [[WO-081]].
+Follows from [[WO-125]] and [[WO-081]], and derived from
+[[SRC-065]], which records both failures and the expired objection.
 
 ## Acceptance tests
 
