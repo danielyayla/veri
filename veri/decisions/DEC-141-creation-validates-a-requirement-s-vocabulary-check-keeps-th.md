@@ -1,5 +1,5 @@
 ---
-id: DEC-139
+id: DEC-141
 type: decision
 title: "Creation validates a requirement's vocabulary; check keeps the epistemic judgment"
 status: active
