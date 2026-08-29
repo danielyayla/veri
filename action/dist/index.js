@@ -11735,8 +11735,13 @@ function formatStatement(c) {
       return `format 0 (pre-marker, the oldest format) \u2014 "veri migrate" brings it to format ${CURRENT_FORMAT}`;
     case "older":
       return `format ${c.version} \u2014 "veri migrate" brings it to format ${CURRENT_FORMAT}`;
+    // DEC-139: a bump breaks readers already *running*, not only already
+    // installed, and this sentence is the only thing such a reader shows. It
+    // names both repairs unconditionally rather than trying to work out which
+    // party is stale — a running process cannot reliably locate the source it
+    // was built from, and guessing wrong is worse than saying both.
     case "newer":
-      return `this project uses veri format ${c.version}, but this Veri understands only up to format ${CURRENT_FORMAT} \u2014 update Veri to open it`;
+      return `this project uses veri format ${c.version}, but this Veri understands only up to format ${CURRENT_FORMAT} \u2014 update Veri to open it, and restart this reader (a running process keeps the format it started with, so a live MCP session must reconnect)`;
     case "invalid":
       return `veri/format is unreadable ("${c.raw}") \u2014 expected a single integer; restore it, or remove the file to treat the project as pre-marker`;
   }

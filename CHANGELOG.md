@@ -9,6 +9,52 @@ git and the `veri/` knowledge base rather than backfilled here.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-29
+
+### Added
+
+- The Veri Skill Library: nine installable skills that coach the
+  lifecycle loop rather than the commands — wayfinder,
+  product-discovery, evidence-intake, define, decide, plan-work,
+  implement, did-it-work, and health. Each stands at one semantic gate,
+  interviews toward it, and hands off to the gate that comes next.
+- Method documents (`MET-`), Veri's seventh document type: an open
+  collection under `veri/methods/` whose frontmatter drives the
+  emitter. The coaching lives in the knowledge base, so a project can
+  edit, extend, or replace what its skills do.
+- `veri skills install` and `veri skills upgrade` emit thin harness
+  skill files that point at their method document. A shell's identity
+  is its `upstream` slug, and only a shell the emitter marked is ever
+  removed — hand-written skills beside them are left alone.
+- Shell drift advisories: an emitted shell whose method has moved on,
+  or whose method is gone, is surfaced against the shell.
+- `list_documents` and `get_queue` over MCP: the enumeration surface,
+  answering as ranked text lines with closed filter vocabularies, and a
+  queue whose head is the dispatchable work order.
+- `get_receipts` over MCP: receipts as structured data with their
+  commit SHAs, parsed by one parser in core.
+- `init_project` over MCP: the front door opens on a bare repo, so a
+  skill can scaffold a project without shelling out to the CLI.
+- `supersede_decision` over CLI and MCP: superseding is a verb rather
+  than a manual two-line edit. It requires an `active` successor, which
+  is what makes it safe for an agent to run.
+- `file_requirement` over MCP accepts `kind` and `outcome`, so a skill
+  can file a bet — a hypothesis with the metric and target that would
+  confirm or refute it — and not only a constraint.
+- A trigger corpus (`skills/trigger-corpus.yaml`) mapping utterances to
+  the gate that should answer them, with its schema in core.
+
+### Changed
+
+- The on-disk format is now 4 (the `veri/format` marker). Older
+  readers — apps, CLIs, MCP servers, the action — refuse a format-4
+  project rather than half-loading it.
+- **A format bump now breaks readers already running, not only readers
+  already installed.** After updating, restart every long-running Veri
+  process and reconnect every live MCP session against the project: a
+  running reader keeps the format it started with and will refuse every
+  call until it restarts. The refusal message names both repairs.
+
 ## [0.4.0] - 2026-08-27
 
 ### Added
