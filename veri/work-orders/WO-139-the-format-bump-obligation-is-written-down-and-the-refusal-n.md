@@ -2,7 +2,10 @@
 id: WO-139
 type: work-order
 title: "The format-bump obligation is written down, and the refusal names restart"
-status: backlog
+status: in-progress
+claimed_by: opus-wo139
+claimed_at: 2026-08-29
+approved: 2026-08-29
 created: 2026-08-29
 updated: 2026-08-29
 links:
