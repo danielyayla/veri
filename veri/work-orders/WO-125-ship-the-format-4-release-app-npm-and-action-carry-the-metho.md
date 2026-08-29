@@ -77,18 +77,23 @@ Derived from [[REQ-040]]'s format bump, and constrained by
 
 ## Acceptance tests
 
-- [ ] `CHANGELOG.md` has a `0.5.0` section covering the method type,
+- [x] `CHANGELOG.md` has a `0.5.0` section covering the method type,
       format 4, the skill library, and the widened MCP surface, and
       `## [Unreleased]` is empty above it
-- [ ] The app version reads 0.5.0 in its single source manifest, and
+- [x] The app version reads 0.5.0 in its single source manifest, and
       no other manifest claims it
-- [ ] The action's committed `dist` is rebuilt from a core that
+- [x] The action's committed `dist` is rebuilt from a core that
       reports `CURRENT_FORMAT` 4
-- [ ] `veri check` reports zero issues and the repo builds clean
+- [x] `veri check` reports zero issues and the repo builds clean
       (`npm run build`, `npm test`)
-- [ ] Handoff is complete: the maintainer has the exact tag, release,
+- [x] Handoff is complete: the maintainer has the exact tag, release,
       and npm publish commands, with the 2FA constraint named
+- [ ] **Maintainer's act:** `v0.5.0` is tagged, pushed, and released,
+      and `@verikb/{core,cli,mcp}@0.1.2` are live on npm. This work
+      order stays open until then — the prep is not the ship, and
+      v0.4.0's npm half is exactly what went missing last time
 
 ## Receipts
 
 - 2026-08-27 — 4eaaf2e — CHANGELOG.md, package-lock.json, packages/core/package.json, packages/cli/package.json, packages/mcp/package.json — the format-3 half shipped: the 0.4.0 changelog section, the app version bump, and the @verikb/* 0.1.2 lockstep. v0.4.0 was tagged and pushed, the GitHub release published, the updater feed served 0.4.0, bridge assets copied forward, and Veri Check went green on main with the rebuilt bundle. The npm half did not ship — 2FA blocked the token publish and the OTP publish was never run, leaving @verikb/* at 0.1.0 with 0.1.2 sitting in the manifests. Overtaken the same day when WO-131 bumped the marker to 4, so the standing obligation moved to this work order's re-scoped criteria rather than closing here. (The commit carries the vX.Y.Z release convention rather than a WO-125: prefix, per RELEASING.md; the prefix advisory that earns is the known WO-034 class)
+- 2026-08-29 — 14f3069 — CHANGELOG.md, packages/ui/package.json, action/dist/index.js — the format-4 release prepared: the 0.5.0 changelog section (skill library, method type, the widened MCP surface, format 4, and DEC-139's restart obligation), the app version bump, and the action bundle rebuilt from a core reporting CURRENT_FORMAT 4. The @verikb/* manifests already carried 0.1.2 from the v0.4.0 prep whose publish never ran, so the lockstep stands unchanged. Full suite green (930 tests across five workspaces), check 0 issues. Everything outward-facing — the tag push, the GitHub release, the OTP npm publish — is the maintainer's, and the final criterion above stays open until it happens
