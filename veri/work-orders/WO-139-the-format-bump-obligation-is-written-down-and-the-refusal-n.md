@@ -73,16 +73,4 @@ reader is a restart. Derived from [[SRC-064]].
 
 ## Receipts
 
-### 2026-08-29 — DEC-139's two consequences
-
-- commit: `e4913a7`
-- files: `RELEASING.md`, `packages/core/src/format.ts`,
-  `packages/core/src/format.test.ts`
-- RELEASING.md's `## Before any format bump` heading now carries two
-  checklist items: the schema-and-migration obligation it always had,
-  and the restart obligation — every live MCP session reconnects, every
-  long-running host restarts, and the release notes say so.
-  `formatStatement`'s `newer` case names both repairs unconditionally,
-  covered by a new test asserting update, restart, and reconnect all
-  appear. `guardFormat` and `classifyFormat` untouched, as DEC-139
-  sanctioned. 365 core tests pass; `veri check` reports zero issues.
+- 2026-08-29 — e4913a7 — RELEASING.md, packages/core/src/format.ts, packages/core/src/format.test.ts — RELEASING.md's format-bump checklist stops being release-scoped: `## Before any format bump` now carries the schema-and-migration obligation it always had plus the restart obligation, so a bumping work order takes on both. formatStatement's `newer` case names both repairs unconditionally — update Veri, and restart this reader, because a running process keeps the format it started with — rather than guessing which party is stale. guardFormat and classifyFormat untouched, as DEC-139 sanctioned. One new test asserting update, restart and reconnect all appear; 365 core tests green, check 0 issues

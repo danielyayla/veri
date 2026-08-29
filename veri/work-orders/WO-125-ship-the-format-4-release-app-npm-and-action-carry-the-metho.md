@@ -91,15 +91,4 @@ Derived from [[REQ-040]]'s format bump, and constrained by
 
 ## Receipts
 
-### 2026-08-27 — the format-3 release (v0.4.0)
-
-- commit: `7d09987`
-- files: `CHANGELOG.md`, the app version manifest
-- The app release shipped: `v0.4.0` tagged and pushed, GitHub release
-  published 2026-08-27, updater feed serving 0.4.0, bridge assets
-  copied forward, and the Veri Check action green on main with the
-  rebuilt bundle. The npm half did not ship — 2FA blocked the token
-  publish and the OTP publish was never run, leaving `@verikb/*` at
-  0.1.0. Superseded within the day by the format-4 bump; the release
-  work is recorded here, the standing obligation moved to the criteria
-  above.
+- 2026-08-27 — 7d09987 — CHANGELOG.md, the app version manifest — the format-3 half shipped: v0.4.0 tagged and pushed, GitHub release published, updater feed serving 0.4.0, bridge assets copied forward, Veri Check action green on main with the rebuilt bundle. The npm half did not — 2FA blocked the token publish and the OTP publish was never run, leaving @verikb/* at 0.1.0. Overtaken within the day when WO-131 bumped the marker to 4, so the standing obligation moved to this work order's re-scoped criteria rather than closing here
