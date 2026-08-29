@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { scaffoldProject } from '@verikb/core';
 import { runCheck } from './check.ts';
 import { initProject, renderInit } from './init.ts';
@@ -165,7 +166,9 @@ test('project creation exists only as a call into core’s scaffoldProject', asy
   assert.ok(!/child_process|execFile|\bspawn\(/.test(source), 'the agent door spawns no subprocess (DEC-081)');
 
   // …and nowhere else in the package either: one call path to creation.
-  const dir = new URL('./', import.meta.url).pathname;
+  // fileURLToPath, not .pathname: on Windows the latter yields "/D:/a/...",
+  // which readdirSync then resolves against the drive as "D:\\D:\\a\\...".
+  const dir = fileURLToPath(new URL('./', import.meta.url));
   const callers = readdirSync(dir)
     .filter((file) => file.endsWith('.ts') && !file.endsWith('.test.ts'))
     .filter((file) => /scaffoldProject/.test(readFileSync(join(dir, file), 'utf8')));
