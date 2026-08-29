@@ -2,9 +2,10 @@
 id: DEC-135
 type: decision
 title: "Generic method creation writes a placeholder description rather than refusing"
-status: proposed
+status: active
+approved: 2026-08-28
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-08-28
 links:
   - id: DEC-130
     rel: follows-from

@@ -2,9 +2,10 @@
 id: DEC-134
 type: decision
 title: "The trigger corpus is a repo-level YAML data file with its schema in core"
-status: proposed
+status: active
+approved: 2026-08-28
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-08-28
 links:
   - id: DEC-129
     rel: implements

@@ -2,9 +2,10 @@
 id: DEC-136
 type: decision
 title: "Upgrade proposals land in veri/amendments/, and the shipped method library is committed beside the demo"
-status: proposed
+status: active
+approved: 2026-08-28
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-08-28
 links:
   - id: DEC-125
     rel: follows-from

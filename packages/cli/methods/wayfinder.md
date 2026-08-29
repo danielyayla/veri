@@ -2,7 +2,8 @@
 id: MET-002
 type: method
 title: "veri:wayfinder — the front door that routes into a gate"
-status: draft
+status: accepted
+approved: 2026-08-28
 description: >-
   Routes an utterance to the gate it belongs to — the front door, standing
   before every gate rather than at one. Use it when a session opens with a
@@ -28,7 +29,7 @@ requires:
   - run_check
 upstream: veri/wayfinder
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-08-28
 links:
   - id: WF-001
     rel: derived-from

@@ -2,9 +2,10 @@
 id: DEC-132
 type: decision
 title: "One receipt parser: core's parseReceipts gains the date and summary the convention already writes"
-status: proposed
+status: active
+approved: 2026-08-28
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-08-28
 links:
   - id: WO-128
     rel: decided-during

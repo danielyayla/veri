@@ -2,7 +2,8 @@
 id: MET-007
 type: method
 title: "veri:plan-work — approved intent cut into work somebody can verify alone"
-status: draft
+status: accepted
+approved: 2026-08-28
 description: >-
   The gate between approved intent and work orders somebody could verify
   one at a time. Use it when intent is settled and nothing is queued
@@ -27,7 +28,7 @@ requires:
   - run_check
 upstream: veri/plan-work
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-08-28
 links:
   - id: WF-001
     rel: derived-from

@@ -2,7 +2,8 @@
 id: MET-008
 type: method
 title: "veri:did-it-work — three questions the receipt did not answer"
-status: draft
+status: accepted
+approved: 2026-08-28
 description: >-
   The learning gate: after the work orders ship, the questions a receipt
   cannot answer. Use it when the shipping is finished and the verdict is
@@ -28,7 +29,7 @@ requires:
   - run_check
 upstream: veri/did-it-work
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-08-28
 links:
   - id: WF-001
     rel: derived-from

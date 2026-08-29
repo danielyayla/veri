@@ -2,9 +2,10 @@
 id: DEC-137
 type: decision
 title: "A shell's identity is its upstream slug, and only a marked shell is ever removed"
-status: proposed
+status: active
+approved: 2026-08-28
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-08-28
 links:
   - id: DEC-125
     rel: follows-from

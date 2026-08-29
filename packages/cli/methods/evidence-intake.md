@@ -2,7 +2,8 @@
 id: MET-004
 type: method
 title: "veri:evidence-intake — the evidence door, staffed"
-status: draft
+status: accepted
+approved: 2026-08-28
 description: >-
   Staffs the evidence door: takes material arriving from outside — user
   feedback, metrics, a support ticket, a competitor move, an incident,
@@ -29,7 +30,7 @@ requires:
   - run_check
 upstream: veri/evidence-intake
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-08-28
 links:
   - id: WF-001
     rel: derived-from
