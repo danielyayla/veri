@@ -2,7 +2,8 @@
 id: WO-140
 type: work-order
 title: "npm publishing moves to trusted publishing, so CI can complete a release"
-status: backlog
+status: ready
+approved: 2026-08-29
 created: 2026-08-29
 updated: 2026-08-29
 links:
