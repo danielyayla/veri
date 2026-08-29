@@ -2,9 +2,10 @@
 id: DEC-139
 type: decision
 title: "A format bump is breaking for running readers, not just installed ones — the bumping change restarts them and the refusal names restart"
-status: proposed
+status: active
+approved: 2026-08-29
 created: 2026-08-28
-updated: 2026-08-28
+updated: 2026-08-29
 links:
   - id: SRC-064
     rel: derived-from
