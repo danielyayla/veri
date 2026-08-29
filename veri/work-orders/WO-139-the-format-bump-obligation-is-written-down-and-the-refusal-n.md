@@ -2,7 +2,7 @@
 id: WO-139
 type: work-order
 title: "The format-bump obligation is written down, and the refusal names restart"
-status: in-progress
+status: done
 claimed_by: opus-wo139
 claimed_at: 2026-08-29
 approved: 2026-08-29
@@ -63,14 +63,26 @@ reader is a restart. Derived from [[SRC-064]].
 
 ## Acceptance tests
 
-- [ ] `RELEASING.md` has a `## Before any format bump` heading whose
+- [x] `RELEASING.md` has a `## Before any format bump` heading whose
       items cover both the release obligation and the restart
       obligation
-- [ ] `formatStatement` on a `newer` classification returns a sentence
+- [x] `formatStatement` on a `newer` classification returns a sentence
       naming both updating Veri and restarting the reader
-- [ ] A test asserts that sentence; `npm test -w @verikb/core` passes
-- [ ] `veri check` reports zero issues
+- [x] A test asserts that sentence; `npm test -w @verikb/core` passes
+- [x] `veri check` reports zero issues
 
 ## Receipts
 
-(none yet)
+### 2026-08-29 — DEC-139's two consequences
+
+- commit: `e4913a7`
+- files: `RELEASING.md`, `packages/core/src/format.ts`,
+  `packages/core/src/format.test.ts`
+- RELEASING.md's `## Before any format bump` heading now carries two
+  checklist items: the schema-and-migration obligation it always had,
+  and the restart obligation — every live MCP session reconnects, every
+  long-running host restarts, and the release notes say so.
+  `formatStatement`'s `newer` case names both repairs unconditionally,
+  covered by a new test asserting update, restart, and reconnect all
+  appear. `guardFormat` and `classifyFormat` untouched, as DEC-139
+  sanctioned. 365 core tests pass; `veri check` reports zero issues.
