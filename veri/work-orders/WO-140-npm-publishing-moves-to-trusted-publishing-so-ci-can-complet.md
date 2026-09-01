@@ -2,10 +2,12 @@
 id: WO-140
 type: work-order
 title: "npm publishing moves to trusted publishing, so CI can complete a release"
-status: ready
+status: in-progress
+claimed_by: opus-wo140
+claimed_at: 2026-09-01
 approved: 2026-08-29
 created: 2026-08-29
-updated: 2026-08-29
+updated: 2026-09-01
 links:
   - id: REQ-028
     rel: extends
