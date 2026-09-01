@@ -2,7 +2,8 @@
 id: DEC-145
 type: decision
 title: "Board and Outcomes fold into Home — one lifecycle surface, one learning surface"
-status: proposed
+status: active
+approved: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
 links:
