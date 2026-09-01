@@ -2,7 +2,7 @@
 id: WO-147
 type: work-order
 title: "The trigger corpus gets its runner — DEC-129's floor becomes mechanical"
-status: in-progress
+status: done
 approved: 2026-09-01
 claimed_by: fable-wo147
 claimed_at: 2026-09-01
@@ -45,12 +45,12 @@ The corpus (587 lines, near-miss pairs, a declared no-regression floor per DEC-1
 
 ## Acceptance tests
 
-- [ ] A corpus case naming a skill with no MET document fails validation loudly
-- [ ] The runner executes the full coverage and negative sets against a stub judge in tests and reports per-case results
-- [ ] CI runs the integrity check on push and the judged run on method/corpus changes
-- [ ] The shipped corpus validates clean end to end
-- [ ] Full suite green
+- [x] A corpus case naming a skill with no MET document fails validation loudly
+- [x] The runner executes the full coverage and negative sets against a stub judge in tests and reports per-case results
+- [x] CI runs the integrity check on push and the judged run on method/corpus changes
+- [x] The shipped corpus validates clean end to end
+- [x] Full suite green
 
 ## Receipts
 
-(none yet)
+- 2026-09-01 — 85d219d — checkCorpusIntegrity plus `veri skills eval` (shell-command judge, per-case report, DEC-129 floor as exit code) land with the phantom-skill corpus entries retired and CI wired (integrity every push, judged run on method/corpus changes via VERI_TRIGGER_JUDGE, loud skip until set); no verify: declared — full suite 952 tests green across five workspaces and `veri check` 0 issues; DEC-150 filed proposed.
