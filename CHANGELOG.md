@@ -9,6 +9,23 @@ git and the `veri/` knowledge base rather than backfilled here.
 
 ## [Unreleased]
 
+### Changed
+
+- Approval and dispatch are one gesture (DEC-143): the `ready` work-order
+  status retires, and `veri dispatch <WO-id> --as <session>` flips a
+  backlog work order to in-progress writing the approval stamp and the
+  claim together. `veri start` and the MCP `start_work_order` tool are
+  gone — dispatch is human-only, over the CLI or the app. `veri next` and
+  `get_queue` now show the backlog awaiting dispatch judgment, and
+  `veri approve` answers work orders by naming the gesture.
+- Knowledge-base format 5: removing the `ready` status is a format change,
+  and `veri migrate` performs the first real content migration — on-disk
+  `ready` work orders return to `backlog` with their stamps preserved.
+  A running MCP server must be restarted after migrating (DEC-139).
+- The `stamped-backlog` check retires: a backlog work order carrying an
+  `approved:` stamp is now the legal "cleared, awaiting dispatch" state,
+  which dispatch spends without re-dating and agent amendment refuses.
+
 ## [0.5.0] - 2026-08-29
 
 ### Added

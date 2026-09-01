@@ -36,12 +36,12 @@ links:
 Statuses:
 - requirement: draft → accepted → retired
 - decision: proposed → active → superseded (add `superseded_by: DEC-XXX`)
-- work-order: backlog → ready → in-progress → done (`ready` — cleared for
-  dispatch — is entered only via the user's `veri approve` stamp; `veri next`
-  prints the queue's head; `veri start <WO-id> --as <session>` — or the
-  `start_work_order` MCP tool — flips ready → in-progress and records the
-  claim, `claimed_by`/`claimed_at`, which an in-progress work order must
-  carry)
+- work-order: backlog → in-progress → done (the user's `veri dispatch
+  <WO-id> --as <session>` is one gesture, DEC-143: it writes the approval
+  stamp and the claim — `claimed_by`/`claimed_at`, which an in-progress
+  work order must carry — together; no MCP tool can dispatch, so an
+  agent's move is to ask; `veri next` prints the backlog work order next
+  awaiting the user's dispatch judgment)
 - source: imported
 
 Every one of those four types also has `withdrawn` — the terminal state for

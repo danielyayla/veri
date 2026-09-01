@@ -5,7 +5,7 @@ title: Veri project workflow
 status: accepted
 approved: 2026-08-27
 created: 2026-08-12
-updated: 2026-08-27
+updated: 2026-09-01
 design_gate_paths:
   - packages/ui
 modules:
@@ -87,16 +87,21 @@ work.
    never declared are flagged as an advisory, and prose that names a
    gated path with no declaration earns an advisory nudge to declare
    or design.
-8. One session, one work order, one worktree. Begin implementation with
-   `veri start <WO-id> --as <session>` (or the `start_work_order` MCP
-   tool): it flips the ready work order to in-progress and records the
-   claim — `claimed_by`/`claimed_at` — so concurrent sessions see who
-   holds what instead of colliding. Commit the flip with a subject like
+8. One session, one work order, one worktree. Work begins when the user
+   dispatches it: `veri dispatch <WO-id> --as <session>` is one gesture
+   ([[DEC-143]]) that flips the backlog work order to in-progress,
+   writing the approval stamp (`approved:`/`approved_by:`) and the
+   claim (`claimed_by`/`claimed_at`) together — the stamp and the claim
+   are the same act, and it is the user's: no MCP tool can dispatch, so
+   an agent's move is to ask. A work order that already carries a stamp
+   is dispatched without re-dating it — the clearance on record is
+   spent, not re-made. Commit the flip with a subject like
    `WO-042: started`. Sessions running in parallel each work in their
    own git worktree, one per claimed work order; an in-progress work
    order without a claim fails `veri check`, and a claim another
    session holds is refused — pick different work orders, never share
-   one.
+   one. `veri next` names the backlog work order next awaiting the
+   user's dispatch judgment.
 9. Requirements carry an epistemic kind ([[REQ-032]]). A
    `kind: constraint` (the default when the field is absent) must be
    satisfied and stay satisfied — acceptance criteria verify it. A
