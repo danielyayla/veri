@@ -263,7 +263,7 @@ test('inFlight lists backlog/ready/in-progress work orders with REQ counts and a
       body: '## Receipts\n\n- 2026-08-09 — abc1234 — a.ts — claude session receipt\n',
     }),
     doc({ id: 'WO-012', type: 'work-order', title: 'Done', status: 'done' }),
-    doc({ id: 'WO-013', type: 'work-order', title: 'Pickable', status: 'ready' }),
+    doc({ id: 'WO-013', type: 'work-order', title: 'Pickable', status: 'backlog' }),
   ]);
   const rows = inFlight(s);
   assert.deepEqual(rows.map((r) => r.id), ['WO-010', 'WO-011', 'WO-013']);
@@ -271,7 +271,7 @@ test('inFlight lists backlog/ready/in-progress work orders with REQ counts and a
   assert.equal(rows[0].agent, false);
   assert.equal(rows[1].reqCount, 1);
   assert.equal(rows[1].agent, true);
-  assert.equal(rows[2].status, 'ready');
+  assert.equal(rows[2].status, 'backlog');
 });
 
 test('projectActivity interleaves receipts and filed decisions newest-first, capped', () => {

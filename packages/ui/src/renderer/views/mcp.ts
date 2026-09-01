@@ -7,11 +7,35 @@ import type { VerifyResult } from '../../lib/verify.ts';
 import type { Ctx } from '../app.ts';
 import { h } from '../dom.ts';
 
-const TOOLS: Array<[string, string]> = [
-  ['get_context', 'Pulls the assembled context package for a work order'],
-  ['search', 'Finds requirements, decisions, and sources by id or text'],
-  ['file_decision', 'Lets the agent file a decision doc mid-session'],
-  ['file_receipt', 'Records commit, files, and summary when work completes'],
+/** The complete registered tool surface, grouped for reading (SRC-074) —
+    editorial one-liners, not the server's agent-facing descriptions. The
+    live cross-check is the status line's toolCount, derived from the
+    server's own tools/list by the verification ping. */
+const TOOL_GROUPS: Array<[string, Array<[string, string]>]> = [
+  ['READ', [
+    ['get_context', 'The assembled context package for a work order, intent first'],
+    ['get_intent', 'What governs a code path — bindings and the module registry'],
+    ['get_document', 'One document, exactly as on disk'],
+    ['get_neighbors', 'The linked neighborhood around a document'],
+    ['list_documents', 'Every document, by type and status'],
+    ['search', 'Requirements, decisions, and sources by id or text'],
+    ['get_queue', 'The backlog awaiting dispatch, and who holds what'],
+    ['get_receipts', 'Receipts per work order, with outcome evidence'],
+  ]],
+  ['FILE — PENDING ONLY', [
+    ['file_source', 'Evidence in, as an imported source'],
+    ['file_requirement', 'A draft requirement awaiting your stamp'],
+    ['file_decision', 'A proposed decision, rejected alternatives included'],
+    ['file_work_order', 'A backlog work order — not startable until you dispatch it'],
+    ['file_receipt', 'The closing pointer: date, commit, one sentence'],
+    ['amend_document', 'Revise a pending draft after review'],
+    ['supersede_decision', 'Propose a replacement for an active decision'],
+  ]],
+  ['PROJECT', [
+    ['run_check', 'Issues and advisories over the graph — no subprocesses'],
+    ['init_project', 'Scaffold a knowledge base where none exists'],
+    ['get_import_instructions', 'The brownfield mining brief'],
+  ]],
 ];
 
 export function tildify(path: string, home: string): string {
@@ -489,9 +513,12 @@ function toolsSection(): HTMLElement {
     h(
       'div',
       { class: 'mcp-tools' },
-      ...TOOLS.map(([name, desc]) =>
-        h('div', { class: 'mcp-tool' }, h('div', { class: 'mcp-tool-name' }, name), h('div', { class: 'mcp-tool-desc' }, desc)),
-      ),
+      ...TOOL_GROUPS.flatMap(([group, tools]) => [
+        h('div', { class: 'mcp-tool-group' }, group),
+        ...tools.map(([name, desc]) =>
+          h('div', { class: 'mcp-tool' }, h('div', { class: 'mcp-tool-name' }, name), h('div', { class: 'mcp-tool-desc' }, desc)),
+        ),
+      ]),
     ),
   );
 }

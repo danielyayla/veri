@@ -146,19 +146,18 @@ test('pushRecent fronts, dedupes, and caps at 10', () => {
   assert.ok(!next.includes('D9'));
 });
 
-test('ready is living (WO-098 via WO-103): counts, panel, and the READY subgroup', () => {
+test('work-order lanes are Backlog and In progress — the READY lane retired with the status (DEC-143, SRC-074)', () => {
   const docs = [
     doc('WO-001', 'work-order', 'backlog'),
-    doc('WO-002', 'work-order', 'ready'),
     doc('WO-003', 'work-order', 'in-progress'),
     doc('WO-004', 'work-order', 'done'),
   ];
-  assert.equal(livingCount(docs, 'work-order'), 3);
+  assert.equal(livingCount(docs, 'work-order'), 2);
   const list = panelList(docs, 'work-order', '', []);
-  assert.deepEqual(list.living.map((d) => d.id), ['WO-003', 'WO-002', 'WO-001']);
+  assert.deepEqual(list.living.map((d) => d.id), ['WO-003', 'WO-001']);
   const groups = livingGroups(list.living, 'work-order')!;
-  assert.deepEqual(groups.map((g) => g.label), ['Backlog', 'Ready', 'In progress']);
-  assert.deepEqual(groups[1].docs.map((d) => d.id), ['WO-002']);
+  assert.deepEqual(groups.map((g) => g.label), ['Backlog', 'In progress']);
+  assert.deepEqual(groups[1].docs.map((d) => d.id), ['WO-003']);
 });
 
 // ---- withdrawn is terminal for every type (WO-110, DEC-110, SRC-052) ----

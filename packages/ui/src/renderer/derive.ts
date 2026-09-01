@@ -361,7 +361,7 @@ export interface HomeFlightRow {
 export function inFlight(snap: Snapshot): HomeFlightRow[] {
   const byId = docsById(snap);
   return snap.documents
-    .filter((d) => d.type === 'work-order' && (d.status === 'backlog' || d.status === 'ready' || d.status === 'in-progress'))
+    .filter((d) => d.type === 'work-order' && (d.status === 'backlog' || d.status === 'in-progress'))
     .sort((a, b) => compareIds(a.id, b.id))
     .map((wo) => ({
       id: wo.id,

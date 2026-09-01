@@ -55,15 +55,15 @@ test('writeStatus: a refusal surfaces its reason instead of vanishing (WO-111)',
   // outside the lifecycle vocabulary (write.ts).
   let surfaced: string | null = null;
   await writeStatus(
-    () => Promise.reject(new Error('"ready" is not a valid work-order status (expected backlog | in-progress | done)')),
+    () => Promise.reject(new Error('"shipped" is not a valid work-order status (expected backlog | in-progress | done)')),
     'WO-001',
-    'ready',
+    'shipped',
     () => assert.fail('done must not run on refusal'),
     (message) => {
       surfaced = message;
     },
   );
-  assert.match(surfaced!, /"ready" is not a valid work-order status/);
+  assert.match(surfaced!, /"shipped" is not a valid work-order status/);
 });
 
 test('writeStatus: IPC framing is stripped from the surfaced reason', async () => {

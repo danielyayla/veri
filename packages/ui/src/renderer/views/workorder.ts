@@ -118,7 +118,6 @@ function receiptCards(ctx: Ctx, doc: VeriDocument): HTMLElement[] {
           r.agent ? h('span', { class: 'receipt-key' }, 'session') : null,
           r.agent ? h('span', { class: 'receipt-session' }, 'agent session') : null,
         ),
-        h('div', { class: 'receipt-files' }, ...r.files.map((f) => h('div', {}, f))),
         h('div', { class: 'receipt-summary' }, r.summary),
       ),
     );
