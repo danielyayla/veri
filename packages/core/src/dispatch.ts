@@ -99,7 +99,7 @@ export async function dispatchWorkOrder(
   const flipped = load.documents.map((candidate) =>
     candidate === doc ? { ...doc, status: 'in-progress' } : candidate,
   );
-  const gate = checkDesignGate(flipped).find((issue) => issue.file === doc.file);
+  const gate = checkDesignGate(flipped).find((issue) => 'file' in issue && issue.file === doc.file);
   if (gate !== undefined) {
     throw new Error(`refusing to dispatch ${wanted} — ${gate.message}`);
   }
