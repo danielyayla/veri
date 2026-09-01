@@ -11,6 +11,7 @@ import {
   checkDesignGateMentions,
   checkIntuitionOnly,
   checkOrphanWorkOrders,
+  checkOutcomeSourceKinds,
   checkProductFiles,
   checkProject,
   checkSharedClaims,
@@ -948,6 +949,48 @@ test('intuition-only: an accepted requirement with no evidence advises; derived-
   assert.deepEqual(checkIntuitionOnly([reqDoc('REQ-002', 'draft')]), []);
   assert.deepEqual(checkIntuitionOnly([reqDoc('REQ-003', 'retired')]), []);
   assert.deepEqual(checkIntuitionOnly([reqDoc('REQ-004', 'withdrawn')]), []);
+});
+
+// --- The unkinded outcome source (REQ-038, WO-154) ---
+
+test('outcome-unkinded: outcome-shaped links without kind: outcome advise; the kind, or no such links, stays silent', () => {
+  const withKind = (doc: VeriDocument, kind: string | undefined): VeriDocument => ({ ...doc, kind: kind as VeriDocument['kind'] });
+
+  // A source reporting on a requirement with no kind at all — the nudge fires
+  // and names the fix.
+  const bare = srcDoc('SRC-001', [{ id: 'REQ-001', rel: 'supports' }]);
+  const flagged = checkOutcomeSourceKinds([bare]);
+  assert.equal(flagged.length, 1);
+  assert.partialDeepStrictEqual(flagged[0], { kind: 'outcome-unkinded', id: 'SRC-001', file: 'sources/SRC-001-s.md', rels: ['supports'] });
+  assert.match(flagged[0]!.message, /kind: outcome/);
+  assert.match(flagged[0]!.message, /no kind/);
+
+  // outcome-of alone is outcome-shaped too, and a declared non-outcome kind
+  // is named in the message. Rels are deduplicated in link order.
+  const investigation = withKind(
+    srcDoc('SRC-002', [
+      { id: 'WO-001', rel: 'outcome-of' },
+      { id: 'REQ-001', rel: 'tests' },
+      { id: 'REQ-002', rel: 'tests' },
+    ]),
+    'investigation',
+  );
+  const [advisory] = checkOutcomeSourceKinds([investigation]);
+  assert.partialDeepStrictEqual(advisory, { kind: 'outcome-unkinded', id: 'SRC-002', rels: ['outcome-of', 'tests'] });
+  assert.match(advisory!.message, /kind: investigation/);
+
+  // kind: outcome is exactly what the links say — silent.
+  assert.deepEqual(checkOutcomeSourceKinds([withKind(bare, 'outcome')]), []);
+
+  // No outcome-shaped links — silent, whatever the kind; free-text rels like
+  // derived-from or mentions never count.
+  assert.deepEqual(checkOutcomeSourceKinds([srcDoc('SRC-003', [{ id: 'REQ-001', rel: 'derived-from' }])]), []);
+  assert.deepEqual(checkOutcomeSourceKinds([withKind(srcDoc('SRC-004'), 'metric')]), []);
+
+  // Withdrawn sources are out of play (DEC-110), and requirements never
+  // earn a source's advisory whatever their links.
+  assert.deepEqual(checkOutcomeSourceKinds([{ ...bare, status: 'withdrawn' }]), []);
+  assert.deepEqual(checkOutcomeSourceKinds([reqDoc('REQ-001', 'accepted', [{ id: 'WO-001', rel: 'outcome-of' }])]), []);
 });
 
 // --- The worth-making trace (REQ-039, WO-123) ---

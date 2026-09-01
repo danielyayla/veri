@@ -1,6 +1,6 @@
 import type { Advisory, Issue, VeriDocument } from './types.ts';
 import type { LoadResult } from './load.ts';
-import { CURRENT_FOCUS_FILE, METHODS_DIR, OUTCOME_OF_REL, OUTCOME_RELS, PRODUCT_FILES, isOutcomeRel, isPending, isWithdrawn, requirementKind } from './pending.ts';
+import { CURRENT_FOCUS_FILE, METHODS_DIR, OUTCOME_OF_REL, OUTCOME_RELS, PRODUCT_FILES, isOutcomeRel, isPending, isWithdrawn, requirementKind, sourceKind } from './pending.ts';
 import { compareIds } from './ids.ts';
 import type { DocType } from './ids.ts';
 import { daysBetween, pathMatchesBinds } from './binds.ts';
@@ -491,6 +491,39 @@ export function checkIntuitionOnly(documents: VeriDocument[]): Advisory[] {
   return advisories;
 }
 
+/**
+ * The unkinded outcome source (REQ-038, WO-154): a source whose links are
+ * outcome-shaped — tests/supports/refutes toward a requirement, or
+ * outcome-of toward a work order — but whose kind does not say `outcome`.
+ * The link shape claims "reality reported back" while the declared evidence
+ * class says otherwise, so the evidence ratio the kinds exist to make
+ * honest (REQ-038) undercounts. Advisory, never an issue: the nudge names
+ * the fix — declare `kind: outcome`, or reword the rels — and never
+ * rewrites the file, because kinding a source is the user's act (PRD-003
+ * principle 5). Withdrawn sources are out of play (DEC-110), and a source
+ * already kinded `outcome` is exactly what the links say it is.
+ */
+export function checkOutcomeSourceKinds(documents: VeriDocument[]): Advisory[] {
+  const advisories: Advisory[] = [];
+  for (const doc of documents) {
+    if (doc.type !== 'source' || isWithdrawn(doc) || sourceKind(doc) === 'outcome') continue;
+    const rels: string[] = [];
+    for (const link of doc.links) {
+      if (!isOutcomeRel(link.rel) && link.rel !== OUTCOME_OF_REL) continue;
+      if (!rels.includes(link.rel)) rels.push(link.rel);
+    }
+    if (rels.length === 0) continue;
+    advisories.push({
+      kind: 'outcome-unkinded',
+      file: doc.file,
+      id: doc.id,
+      rels,
+      message: `${doc.id} carries outcome-shaped links (${rels.join(', ')}) but declares ${doc.kind === undefined ? 'no kind' : `kind: ${doc.kind}`} — links like these say reality reported back; declare kind: outcome on ${doc.file} if that is what this source is, or reword the rels if it is not (REQ-038)`,
+    });
+  }
+  return advisories;
+}
+
 /** Days of silence before an accepted current-focus counts as stale
     (REQ-037). Project-tunable as `focus_stale_after_days` on the workflow
     document; a deliberately separate knob from the binding detectors'
@@ -956,6 +989,7 @@ export function checkProject(load: LoadResult): CheckResult {
       ...checkUntestedBets(load.documents),
       ...checkVerifyEvidence(load.documents),
       ...checkIntuitionOnly(load.documents),
+      ...checkOutcomeSourceKinds(load.documents),
       ...checkDesignGateMentions(load.documents),
       // Stale claims need a clock (host territory, DEC-076) — deriveFindings
       // adds checkStaleClaims with the host's today.

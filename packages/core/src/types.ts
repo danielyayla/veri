@@ -147,6 +147,14 @@ export type Advisory =
   // they bracket a requirement's life: where did this come from, and did
   // it work. Advisory by design — evidence never gates, it informs.
   | { kind: 'intuition-only'; file: string; id: string; message: string }
+  // The unkinded outcome source (REQ-038, WO-154): a source whose links are
+  // outcome-shaped (tests/supports/refutes toward a requirement, outcome-of
+  // toward a work order) but whose kind does not say `outcome` — the link
+  // shape and the declared evidence class disagree. Advisory by design: the
+  // nudge names the fix and never rewrites the file — kinding a source is
+  // the user's act (PRD-003 principle 5). `rels` lists the outcome-shaped
+  // rels found, deduplicated, in link order.
+  | { kind: 'outcome-unkinded'; file: string; id: string; rels: string[]; message: string }
   | { kind: 'design-mention'; file: string; id: string; path: string; message: string }
   | { kind: 'design-undeclared-touch'; file: string; id: string; sha: string; path: string; message: string };
 
