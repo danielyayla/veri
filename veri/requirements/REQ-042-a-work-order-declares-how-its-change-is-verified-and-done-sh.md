@@ -2,7 +2,8 @@
 id: REQ-042
 type: requirement
 title: "A work order declares how its change is verified, and done shows the run"
-status: draft
+status: accepted
+approved: 2026-09-01
 kind: constraint
 created: 2026-09-01
 updated: 2026-09-01
