@@ -2,10 +2,11 @@
 id: DEC-097
 type: decision
 title: "veri next output and ordering — lowest ready id, one tab-separated line, exit 1 on an empty queue"
-status: active
+status: superseded
+superseded_by: DEC-143
 approved: 2026-08-25
 created: 2026-08-25
-updated: 2026-08-25
+updated: 2026-09-01
 links:
   - id: WO-098
     rel: constrains

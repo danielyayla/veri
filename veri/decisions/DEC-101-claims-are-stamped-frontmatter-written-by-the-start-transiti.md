@@ -2,10 +2,11 @@
 id: DEC-101
 type: decision
 title: "Claims are stamped frontmatter written by the start transition — ready is the only door into in-progress"
-status: active
+status: superseded
+superseded_by: DEC-143
 approved: 2026-08-25
 created: 2026-08-25
-updated: 2026-08-25
+updated: 2026-09-01
 links:
   - id: WO-099
     rel: constrains

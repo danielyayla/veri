@@ -2,10 +2,11 @@
 id: DEC-003
 type: decision
 title: Receipts are per execution session, 0..n per work order
-status: active
+status: superseded
+superseded_by: DEC-142
 approved: 2026-08-10
 created: 2026-08-06
-updated: 2026-08-06
+updated: 2026-09-01
 links:
   - id: REQ-003
     rel: constrains

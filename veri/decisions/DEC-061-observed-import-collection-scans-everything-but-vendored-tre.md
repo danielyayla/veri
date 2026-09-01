@@ -2,10 +2,11 @@
 id: DEC-061
 type: decision
 title: "Observed-import collection scans everything but vendored trees; conflicted edges never fire as violations"
-status: active
+status: superseded
+superseded_by: DEC-144
 approved: 2026-08-20
 created: 2026-08-20
-updated: 2026-08-20
+updated: 2026-09-01
 links:
   - id: WO-067
     rel: constrains

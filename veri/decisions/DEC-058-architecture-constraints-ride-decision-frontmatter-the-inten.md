@@ -2,10 +2,11 @@
 id: DEC-058
 type: decision
 title: "Architecture constraints ride decision frontmatter; the intended architecture is a compiled projection"
-status: active
+status: superseded
+superseded_by: DEC-144
 approved: 2026-08-20
 created: 2026-08-20
-updated: 2026-08-20
+updated: 2026-09-01
 links:
   - id: REQ-001
     rel: informed-by
