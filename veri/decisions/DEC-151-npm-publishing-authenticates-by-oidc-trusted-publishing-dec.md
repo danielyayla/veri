@@ -2,7 +2,8 @@
 id: DEC-151
 type: decision
 title: "npm publishing authenticates by OIDC trusted publishing; DEC-077's token clause is amended"
-status: proposed
+status: active
+approved: 2026-09-02
 created: 2026-09-02
 updated: 2026-09-02
 links:
