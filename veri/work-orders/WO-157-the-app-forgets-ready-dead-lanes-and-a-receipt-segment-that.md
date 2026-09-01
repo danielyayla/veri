@@ -2,7 +2,7 @@
 id: WO-157
 type: work-order
 title: "The app forgets ready — dead lanes and a receipt segment that no longer exists"
-status: in-progress
+status: done
 approved: 2026-09-02
 claimed_by: fable-wo157
 claimed_at: 2026-09-02
@@ -47,12 +47,12 @@ Format 5 removed `ready` and DEC-142 removed the receipt files segment, but the 
 
 ## Acceptance tests
 
-- [ ] No `'ready'` status literal remains in packages/ui renderer source or tests
-- [ ] The work-order detail renders each receipt as date — ref — sentence only, and the `.receipt-files` style is gone
-- [ ] The connection panel's tool list matches the server's actual registered tools, by derivation or by a design-argued complete list
-- [ ] The packages/ui suite passes — the declared verify command proves it
-- [ ] The design gate is honored: a `designed-by` link is present before the work starts (named blocker: the design note)
+- [x] No `'ready'` status literal remains in packages/ui renderer source or tests
+- [x] The work-order detail renders each receipt as date — ref — sentence only, and the `.receipt-files` style is gone
+- [x] The connection panel's tool list matches the server's actual registered tools, by derivation or by a design-argued complete list
+- [x] The packages/ui suite passes — the declared verify command proves it
+- [x] The design gate is honored: a `designed-by` link is present before the work starts (named blocker: the design note)
 
 ## Receipts
 
-(none yet)
+- 2026-09-02 — 632feb0 — ["packages/ui/src/renderer/sidebar.ts", "packages/ui/src/renderer/derive.ts", "packages/ui/src/renderer/views/workorder.ts", "packages/ui/src/renderer/views/mcp.ts", "packages/ui/renderer/styles.css"] — verify ran clean (npm test -w @verikb/ui — 340/340 pass, exit 0; build exit 0) — READY lane out of sidebar/livingGroups/inFlight, receipt files block and .receipt-files rule gone, connection panel lists all eighteen tools grouped per SRC-074, tests moved to live statuses (statuswrite's refusal guard keeps coverage with a non-retired input), zero quoted 'ready' literals remain in renderer source or tests, veri check 439 docs 0 issues.
