@@ -2,7 +2,9 @@
 id: WO-143
 type: work-order
 title: "Dispatch replaces ready — approve-and-start becomes one gesture"
-status: ready
+status: in-progress
+claimed_by: fable-wo143
+claimed_at: 2026-09-01
 approved: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
