@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildGraph } from './graph.ts';
 import { checkStructure } from './check.ts';
-import { PRODUCT_FILES, isOutcomeRel, isPending, isWithdrawn, outcomeLabel, requirementKind, sourceKind } from './pending.ts';
+import { OUTCOME_OF_REL, PRODUCT_FILES, isOutcomeRel, isPending, isWithdrawn, outcomeLabel, requirementKind, sourceKind } from './pending.ts';
 import { checkSupersededLinks } from './drift.ts';
 import { DOC_TYPES, compareIds } from './ids.ts';
 import { loadProject } from './load.ts';
@@ -196,6 +196,25 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
     return `Outcome evidence: ${rows.map((edge) => `${edge.from} (${edge.rel})`).join(', ')}\n\n`;
   };
 
+  // WO-154 (REQ-033): the sources that report on a work order's shipped
+  // change — inbound outcome-of edges — named on the work order itself, so
+  // an agent briefed on it reads what reality already said about what
+  // shipped here before adding to it. Withdrawn sources are out of play
+  // (DEC-110). Deterministic: id order.
+  const reportedBackLine = (doc: VeriDocument): string => {
+    if (doc.type !== 'work-order') return '';
+    const rows = graph
+      .backlinks(doc.id)
+      .filter((edge) => edge.via === 'frontmatter' && edge.rel === OUTCOME_OF_REL)
+      .filter((edge) => {
+        const from = graph.byId.get(edge.from);
+        return from !== undefined && from.type === 'source' && !isWithdrawn(from);
+      })
+      .sort((a, b) => compareIds(a.from, b.from));
+    if (rows.length === 0) return '';
+    return `What shipped here reported back: ${rows.map((edge) => `${edge.from} (${edge.rel})`).join(', ')}\n\n`;
+  };
+
   /** How a hop-2 document connects to the core: its first edge to a hop-1
       document in id order (then rel order), either direction. Deterministic. */
   const connection = (doc: VeriDocument): string => {
@@ -226,7 +245,7 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
       text: string;
     }
     const renderFull = (doc: VeriDocument, level: string): Rendered => {
-      const text = `${linksLine(doc)}${verifyLine(doc)}${outcomeLine(doc)}${evidenceLine(doc)}${doc.body.trim()}\n`;
+      const text = `${linksLine(doc)}${verifyLine(doc)}${outcomeLine(doc)}${evidenceLine(doc)}${reportedBackLine(doc)}${doc.body.trim()}\n`;
       return {
         heading: `${level} ${doc.id} — ${doc.title} · ${doc.status}${kindTag(doc)} · ~${estimateTokens(text)} tokens`,
         text,

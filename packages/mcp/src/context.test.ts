@@ -111,6 +111,32 @@ test("a requirement's package carries its outcome sources and names them as evid
   assert.match(text, /Outcome evidence: SRC-001 \(supports\)/);
 });
 
+test("a work order with an inbound outcome-of source names it in the work-order section (WO-154)", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-outcome-wo-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeOutcomeProject(dir);
+  const { text } = await assembleContext(dir, 'WO-001');
+  const woAt = text.indexOf('## Work order WO-001');
+  const reportedAt = text.indexOf('What shipped here reported back: SRC-001 (outcome-of)');
+  assert.ok(woAt >= 0, 'the work-order section must render');
+  assert.ok(reportedAt > woAt, 'the reported-back line must render inside the work-order section');
+  const nextSection = text.indexOf('\n## ', woAt + 1);
+  assert.ok(reportedAt < nextSection, 'the reported-back line belongs to the work-order section, not a later one');
+});
+
+test('a work order with no inbound outcome-of source renders no reported-back line', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-outcome-none-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  // The source reports on the requirement only — nothing links the work
+  // order with outcome-of, so the work-order section stays as it was.
+  writeOutcomeProject(dir, {
+    'sources/SRC-001-outcome.md':
+      '---\nid: SRC-001\ntype: source\ntitle: What reality said\nstatus: imported\ncreated: 2026-08-02\nupdated: 2026-08-02\nlinks:\n  - id: REQ-001\n    rel: supports\n---\nOUTCOME-EVIDENCE-BODY activation moved.\n',
+  });
+  const { text } = await assembleContext(dir, 'WO-001');
+  assert.ok(!text.includes('What shipped here reported back:'), 'no reported-back line without an outcome-of edge');
+});
+
 test('outcome sources stay inlined in layered mode instead of falling to the context map', async (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'veri-outcome-layered-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
