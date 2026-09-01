@@ -2,7 +2,7 @@
 id: WO-144
 type: work-order
 title: "The work-order template sheds its Requirements section"
-status: in-progress
+status: done
 approved: 2026-09-01
 claimed_by: fable-wo144
 claimed_at: 2026-09-01
@@ -45,12 +45,12 @@ SRC-066 measured the ## Requirements section across all 138 work orders: median 
 
 ## Acceptance tests
 
-- [ ] A newly filed work order has five sections and no Requirements heading
-- [ ] checkStructure derives expectations from the updated template and flags nothing on old documents that still carry the section
-- [ ] file_work_order output contains no Requirements section (wire test updated)
-- [ ] Site reference shows the five-section skeleton
-- [ ] Full suite green
+- [x] A newly filed work order has five sections and no Requirements heading (WORK_ORDER_BODY in packages/core/src/templates.ts; verified live — `veri new work-order` in a fresh scaffold renders Summary, In scope, Out of scope, Acceptance tests, Receipts; commands.test.ts asserts the five and the absence)
+- [x] checkStructure derives expectations from the updated template and flags nothing on old documents that still carry the section (repo check stays at 0 issues · 14 advisories with all 138 old work orders untouched; the five-issues fixture's advisory count dropped 14 → 12 exactly by the two missing-Requirements advisories)
+- [x] file_work_order output contains no Requirements section (writeback.ts composes without it; writeback.test.ts wire test asserts no `## Requirements` and the binding riding frontmatter links)
+- [x] Site reference shows the five-section skeleton (site/docs/reference.html Templates list; the how-veri-builds-veri walkthrough never rendered the skeleton, so nothing fired there)
+- [x] Full suite green (930 tests across action, cli, core, mcp, ui — 0 failures)
 
 ## Receipts
 
-(none yet)
+- 2026-09-01 — 440993f — Dropped the Requirements section from the built-in and project work-order templates, file_work_order's composition, and the site reference, and the zero-issues bar restatement from the entry-file guidance; suite green, check at baseline.
