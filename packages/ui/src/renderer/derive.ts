@@ -23,14 +23,6 @@ export function issueFiles(issue: Issue): string[] {
   return issue.kind === 'duplicate-id' ? issue.files : [issue.file];
 }
 
-/** An issue reported on a source file rather than a document — the
-    arch-violation issue (DEC-062) — anchors to its governing decision by
-    id, so the reader banner lands on the ruling that was violated. */
-function issueAnchorId(snap: Snapshot, issue: Issue): string | null {
-  if (issue.kind !== 'arch-violation') return null;
-  return snap.documents.some((d) => d.id === issue.id) ? issue.id : null;
-}
-
 /** Issues keyed by document id (via the file they were reported on). */
 export function issuesByDoc(snap: Snapshot): Map<string, Issue[]> {
   const byFile = new Map<string, VeriDocument>(snap.documents.map((d) => [d.file, d]));
@@ -41,11 +33,6 @@ export function issuesByDoc(snap: Snapshot): Map<string, Issue[]> {
     out.set(id, list);
   };
   for (const issue of snap.issues) {
-    const anchor = issueAnchorId(snap, issue);
-    if (anchor !== null) {
-      add(anchor, issue);
-      continue;
-    }
     for (const file of issueFiles(issue)) {
       const doc = byFile.get(file);
       if (doc !== undefined) add(doc.id, issue);
@@ -68,11 +55,8 @@ export function advisoriesByDoc(snap: Snapshot): Map<string, Advisory[]> {
   return out;
 }
 
-/** The doc an issue row should navigate to (first affected file's doc; an
-    arch-violation issue navigates to its governing decision). */
+/** The doc an issue row should navigate to (the first affected file's doc). */
 export function issueDocId(snap: Snapshot, issue: Issue): string | null {
-  const anchor = issueAnchorId(snap, issue);
-  if (anchor !== null) return anchor;
   const byFile = new Map<string, VeriDocument>(snap.documents.map((d) => [d.file, d]));
   for (const file of issueFiles(issue)) {
     const doc = byFile.get(file);

@@ -425,9 +425,9 @@ test('countProjectDocs is the readdir truth: .md under veri/, templates excluded
   assert.equal(await countProjectDocs(join(dir, 'nowhere')), 0);
 });
 
-// ---- Observed architecture on the snapshot (WO-068) -----------------------
+// ---- The retired architecture layer stays inert (DEC-144) -----------------
 
-const ARCH_WORKFLOW = `---
+const REGISTRY_WORKFLOW = `---
 id: WF-001
 type: workflow
 title: Veri project workflow
@@ -439,14 +439,11 @@ modules:
   - name: alpha
     path: packages/alpha
     purpose: The domain
-  - name: beta
-    path: packages/beta
-    purpose: A surface
 ---
 Rules.
 `;
 
-const forbid = (severity: string) => `---
+const CONSTRAINT_DECISION = `---
 id: DEC-001
 type: decision
 title: Alpha stays pure
@@ -458,70 +455,24 @@ architecture:
   constraints:
     - from: alpha
       to: beta
-      allowed: false${severity === '' ? '' : `\n      severity: ${severity}`}
+      allowed: false
 ---
 ## Choice
 
-Alpha imports no surface.
+Alpha imports no surface — the boundary lives in this prose, enforced by lint.
 `;
 
-function archSandbox(t: { after(fn: () => void): void }, severity: string): string {
+test('a module registry and an architecture: block are inert on the snapshot — parsed, checked clean, scanned by nothing (DEC-144)', async (t) => {
   const dir = sandbox(t);
-  writeFileSync(join(dir, 'veri/workflow.md'), ARCH_WORKFLOW);
-  writeFileSync(join(dir, 'veri/decisions/DEC-001-alpha-pure.md'), forbid(severity));
-  mkdirSync(join(dir, 'packages/alpha/src'), { recursive: true });
-  mkdirSync(join(dir, 'packages/beta'), { recursive: true });
-  writeFileSync(join(dir, 'packages/alpha/package.json'), JSON.stringify({ name: '@t/alpha' }));
-  writeFileSync(join(dir, 'packages/beta/package.json'), JSON.stringify({ name: '@t/beta' }));
-  writeFileSync(join(dir, 'packages/alpha/src/index.ts'), "export const pure = 1;\nimport '@t/beta';\n");
-  writeFileSync(join(dir, 'packages/beta/index.ts'), 'export const surface = 1;\n');
-  return dir;
-}
-
-test('the snapshot carries the projection and per-file observed facts; an advisory violation stays grey (WO-068)', async (t) => {
-  const dir = archSandbox(t, '');
+  writeFileSync(join(dir, 'veri/workflow.md'), REGISTRY_WORKFLOW);
+  writeFileSync(join(dir, 'veri/decisions/DEC-001-alpha-pure.md'), CONSTRAINT_DECISION);
   const snap = await buildSnapshot(dir);
   assert.deepEqual(snap.issues, []);
-  const arch = snap.advisories.filter((a) => a.kind === 'arch-violation');
-  assert.equal(arch.length, 1);
-  assert.equal(arch[0].id, 'DEC-001');
-  assert.deepEqual(snap.architecture.modules.map((m) => m.name), ['alpha', 'beta']);
-  assert.equal(snap.architecture.rules.length, 1);
-  assert.deepEqual(snap.archObserved.edges, [
-    { from: 'alpha', to: 'beta', file: 'packages/alpha/src/index.ts', specifier: '@t/beta' },
-  ]);
-  // Per-file detail and entry-point exports feed the drill-down and the panel.
-  const alphaFiles = snap.archObserved.files.filter((f) => f.module === 'alpha');
-  assert.deepEqual(alphaFiles, [{ module: 'alpha', file: 'packages/alpha/src/index.ts', imports: ['@t/beta'] }]);
-  assert.deepEqual(snap.archObserved.exports['alpha'], ['pure']);
-  assert.deepEqual(snap.archObserved.exports['beta'], ['surface']);
-  assert.deepEqual(snap.archObserved.skipped, []);
-});
-
-test('an error-severity violation is a snapshot issue — counted, amber, the HEALTH pipeline (DEC-062)', async (t) => {
-  const dir = archSandbox(t, 'error');
-  const builder = new SnapshotBuilder();
-  const snap = await builder.build(dir);
-  const issues = snap.issues.filter((i) => i.kind === 'arch-violation');
-  assert.equal(issues.length, 1);
-  assert.match(issues[0].message, /severity: error/);
-  assert.deepEqual(snap.advisories.filter((a) => a.kind === 'arch-violation'), []);
-  // The incremental builder carries the same shapes as buildSnapshot.
-  assert.deepEqual(snap.architecture, (await buildSnapshot(dir)).architecture);
-});
-
-test('no registry → no scan: empty observed shapes and an empty projection, never an error', async (t) => {
-  const dir = sandbox(t);
-  const snap = await buildSnapshot(dir);
-  assert.deepEqual(snap.architecture, { modules: [], rules: [], conflicts: [] });
-  assert.deepEqual(snap.archObserved, { edges: [], skipped: [], files: [], exports: {} });
-});
-
-test('a registry module missing from disk lands in skipped — the ghosted card, never a failure', async (t) => {
-  const dir = archSandbox(t, '');
-  rmSync(join(dir, 'packages/beta'), { recursive: true });
-  const snap = await buildSnapshot(dir);
-  assert.deepEqual(snap.archObserved.skipped.map((m) => m.name), ['beta']);
+  assert.ok(!snap.advisories.some((a) => a.kind.startsWith('arch')));
+  // The block survives parsing untouched — passthrough frontmatter, not schema.
+  const dec = snap.documents.find((d) => d.id === 'DEC-001');
+  assert.ok(dec !== undefined);
+  assert.ok('architecture' in dec.frontmatter);
 });
 
 test('originals/ never surfaces as documents or issues in a snapshot (WO-096, DEC-094)', async (t) => {

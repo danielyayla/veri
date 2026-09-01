@@ -5,7 +5,6 @@ import { TYPE_META } from '../theme.ts';
 import { parseBlocks } from '../markdown.ts';
 import { outcomeLabel, requirementKind } from '@verikb/core/pending';
 import { DEFAULT_REL, autocomplete, connections, fileActivity, insertAutocomplete, localGraph, relsInUse } from '../derive.ts';
-import { decisionRules } from '../archderive.ts';
 import { deleteCaption, discardOffered, withdrawCaption } from '../discardlogic.ts';
 import type { ConnectionGroups } from '../derive.ts';
 import { ipcErrorMessage } from '../editlogic.ts';
@@ -504,74 +503,21 @@ export function readerView(ctx: Ctx): HTMLElement {
               { class: 'adv-line' },
               h('span', { class: 'adv-ring' }),
               h('span', { class: 'adv-line-msg' }, a.message),
-              // The affordance names the fix's surface: an observed
-              // architecture violation opens the Architecture view (WO-068,
-              // SRC-036); everything else keeps the template jump (SRC-010).
-              a.kind === 'arch-violation'
-                ? h(
-                    'button',
-                    {
-                      class: 'btn-reset adv-tpl',
-                      label: 'Open the Architecture view',
-                      fkey: `adv-arch:${i}`,
-                      onClick: () => ctx.openArchitecture('map'),
-                    },
-                    'architecture ↗',
-                  )
-                : h(
-                    'button',
-                    {
-                      class: 'btn-reset adv-tpl',
-                      label: `Open the ${doc.type} template`,
-                      fkey: `adv-tpl:${i}`,
-                      onClick: () => {
-                        ctx.update({ tplType: doc.type, tplResetConfirm: false });
-                        ctx.openSettings('templates');
-                      },
-                    },
-                    'template ↗',
-                  ),
-            ),
-          ),
-        );
-
-  // ARCHITECTURE CONSTRAINTS (WO-068, SRC-036): a decision carrying an
-  // `architecture:` block shows each rule's edge, verdict, severity badge,
-  // and observed status — frontmatter → card → body, provenance declared.
-  const archRules = decisionRules(ctx.snap, doc);
-  const archCard =
-    archRules.length === 0
-      ? null
-      : h(
-          'div',
-          { class: 'cs-card' },
-          h(
-            'div',
-            { class: 'cs-head' },
-            'Architecture constraints',
-            h(
-              'button',
-              { class: 'btn-reset cs-go', fkey: 'cs-arch', onClick: () => ctx.openArchitecture('map') },
-              'architecture ↗',
-            ),
-          ),
-          ...archRules.map((rule) =>
-            h(
-              'div',
-              { class: 'cn-row' },
-              h('span', { class: 'cn-edge' }, `${rule.from} → ${rule.to}`),
-              h('span', { class: rule.allowed ? 'cn-verdict cn-verdict-ok' : 'cn-verdict' }, rule.allowed ? 'allowed' : 'forbidden'),
-              h('span', { class: rule.severity === 'error' ? 'cn-sev cn-sev-error' : 'cn-sev' }, rule.severity),
-              rule.conflicted
-                ? h('span', { class: 'cn-obs', style: 'color:var(--amber);' }, '⚠ in conflict')
-                : rule.observed > 0
-                  ? h(
-                      'span',
-                      { class: 'cn-obs' },
-                      rule.tier === 'error' ? h('span', { class: 'arch-errdot' }) : h('span', { class: 'adv-ring' }),
-                      `${rule.observed} observed`,
-                    )
-                  : h('span', { class: 'cn-obs', style: 'color:var(--green);' }, '✓'),
+              // The affordance names the fix's surface: the template jump
+              // (SRC-010), since the fix is the section or the template.
+              h(
+                'button',
+                {
+                  class: 'btn-reset adv-tpl',
+                  label: `Open the ${doc.type} template`,
+                  fkey: `adv-tpl:${i}`,
+                  onClick: () => {
+                    ctx.update({ tplType: doc.type, tplResetConfirm: false });
+                    ctx.openSettings('templates');
+                  },
+                },
+                'template ↗',
+              ),
             ),
           ),
         );
@@ -615,7 +561,6 @@ export function readerView(ctx: Ctx): HTMLElement {
         banner,
         reviewBanner(ctx, doc),
         frontmatterCard(ctx),
-        archCard,
         advisoryStrip,
         h('div', { class: 'doc-body' }, ...renderBlocks(parseBlocks(doc.body), ctx.byId, ctx, { imgDir: imgDirFor(ctx.snap.root, doc.file) })),
         activityFeed([...ctx.sessionRows(doc.id), ...fileActivity(doc, ctx.rel)]),

@@ -19,7 +19,6 @@ import type { VerifyResult } from '../lib/verify.ts';
 import type { AgentInfo } from '../lib/agents.ts';
 import { importKickoffPrompt, kickoffPrompt } from './derive.ts';
 import { readerView } from './views/reader.ts';
-import { architectureView } from './views/architecture.ts';
 import { homeView } from './views/home.ts';
 import { importView } from './views/import.ts';
 import { welcomeView } from './views/welcome.ts';
@@ -72,7 +71,7 @@ import { boardView } from './views/board.ts';
 import { outcomesView } from './views/outcomes.ts';
 import { DEAD_LABEL, livingCount, livingGroups, panelList, pushRecent } from './sidebar.ts';
 
-export type View = 'home' | 'workorder' | 'homeview' | 'search' | 'settings' | 'import' | 'architecture' | 'board' | 'outcomes';
+export type View = 'home' | 'workorder' | 'homeview' | 'search' | 'settings' | 'import' | 'board' | 'outcomes';
 
 /** Sections of the Settings view (WO-036, SRC-014). */
 export type SettingsSection = 'templates' | 'agent' | 'project' | 'updates' | 'appearance';
@@ -200,12 +199,6 @@ export interface State {
       user's expand choice in a narrow pane — session state, never persisted.
       Meaningless while the pane is wide (the rail is inline there). */
   connOpen: boolean[];
-  /** Architecture view (WO-068, SRC-036): the internal Map|Rules tab, the
-      selected module, and the contents drill-down path — session state,
-      never persisted, like the Search view's query. */
-  archTab: 'map' | 'rules';
-  archSel: string | null;
-  archDrill: string[];
   /** Board view (WO-103, SRC-047): the DONE column's expander — session
       state, never persisted, like the Search view's query. */
   boardDone: boolean;
@@ -278,10 +271,6 @@ export interface Ctx {
   copyKickoff(): void;
   /** Import view (WO-075): open it, and copy the import kickoff (DEC-067). */
   openImport(): void;
-  /** Architecture view (WO-068): the Home card, ⌘K, and every
-      `architecture ↗` affordance land here — provisional entry points per
-      SRC-036; nothing else may depend on how the view was reached. */
-  openArchitecture(tab?: 'map' | 'rules'): void;
   copyImportKickoff(): void;
   flashCopied(): void;
   /** Show a transient bottom-center toast (auto-dismissed). */
@@ -457,9 +446,6 @@ class App implements Ctx {
     importOfferDismissed: false,
     find: null,
     connOpen: [false, false],
-    archTab: 'map',
-    archSel: null,
-    archDrill: [],
     boardDone: false,
     outcomesDone: false,
   };
@@ -1337,15 +1323,6 @@ class App implements Ctx {
       panel: null,
       settingsPop: false,
     });
-  }
-
-  /** Architecture (WO-068): one tab, preview semantics like Settings; the
-      caller may pick the internal tab (the Home card opens the Map). */
-  openArchitecture(tab: 'map' | 'rules' = 'map'): void {
-    this.applyPanes(
-      navigateFocused(this.paneState(), 'architecture', { surface: 'preview', previewTabs: this.state.previewTabs }),
-      { archTab: tab, projectSwitcherOpen: false, panel: null, settingsPop: false },
-    );
   }
 
   private importKickoffTimer: ReturnType<typeof setTimeout> | undefined;
@@ -2804,12 +2781,6 @@ class App implements Ctx {
       collItem('decision'),
       layer('HOW'),
       collItem('work-order'),
-      // Architecture's promotion (WO-107, SRC-049, DEC-108): a persistent
-      // view row where Board and Graph once sat — always rendered; with no
-      // module registry the view's own empty-state card is the teaching
-      // surface. The Home card, ⌘K entry, and `architecture ↗` affordances
-      // all remain. It sits in HOW: structure serves execution (SRC-054).
-      viewItem('architecture', 'Architecture', '⌗'),
       // DID IT WORK? has no collection — its first-class surface is the
       // Outcomes view row, always rendered so the empty state can teach
       // the learning loop (the DEC-108 posture).
@@ -3233,7 +3204,7 @@ class App implements Ctx {
 
   /** The active view's scrollable regions, in document order — queried per
       pane container (WO-055), never per root. */
-  private static readonly SCROLL_SEL = '.reader, .panel-right, .screen-homeview, .screen-search, .screen-arch, .screen-board, .mcp-view, .set-scroll';
+  private static readonly SCROLL_SEL = '.reader, .panel-right, .screen-homeview, .screen-search, .screen-board, .mcp-view, .set-scroll';
 
   /** A mousedown anywhere in an unfocused pane focuses it (WO-055): the
       state flips silently — no render, no preventDefault, so the click it
@@ -3281,7 +3252,6 @@ class App implements Ctx {
       else if (view === 'search') screen = searchView(this);
       else if (view === 'settings') screen = settingsView(this);
       else if (view === 'import') screen = importView(this);
-      else if (view === 'architecture') screen = architectureView(this);
       else if (view === 'board') screen = boardView(this);
       else if (view === 'outcomes') screen = outcomesView(this);
       else screen = readerView(this);

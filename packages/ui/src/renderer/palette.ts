@@ -34,7 +34,6 @@ const COMMAND_META: Record<CommandKey, { label: string; glyph: string; terms: st
 const VIEW_ALIASES: Partial<Record<ViewKey, string[]>> = {
   settings: ['templates', 'agent', 'connection', 'updates'],
   import: ['import', 'brownfield', 'mine', 'knowledge'],
-  architecture: ['map', 'rules', 'modules', 'lattice', 'dependencies', 'violations'],
   outcomes: ['evidence', 'bets', 'receipts', 'learned', 'did it work'],
 };
 

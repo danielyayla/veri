@@ -5,7 +5,6 @@ import { basename, join, relative, sep } from 'node:path';
 import { promisify } from 'node:util';
 import {
   GIT_LOG_FORMAT,
-  assembleArchitecture,
   boundTests,
   buildGraph,
   classifyFormat,
@@ -18,18 +17,14 @@ import {
 } from '@verikb/core';
 import type {
   Advisory,
-  ArchProjection,
   Edge,
   GitFactsInput,
   HostFacts,
-  ImportEdge,
   Issue,
   LoadResult,
-  ModuleEntry,
   VeriDocument,
 } from '@verikb/core';
-import { collectExportFacts, collectImportFacts, collectTestFacts } from '@verikb/cli';
-import type { ModuleFileFact } from '@verikb/cli';
+import { collectTestFacts } from '@verikb/cli';
 
 const run = promisify(execFile);
 
@@ -37,21 +32,6 @@ export interface GitInfo {
   branch: string;
   dirty: boolean;
   sha: string;
-}
-
-/** The observed side of the architecture (WO-068): what this host collected
-    from the codebase with the CLI's collectors (the allowed ui → cli edge,
-    DEC-060/DEC-016). Everything the Map, the detail panel, and the contents
-    drill-down render — the renderer never touches the filesystem. */
-export interface ArchObserved {
-  /** Cross-module import edges, per file and specifier (WO-067 shape). */
-  edges: ImportEdge[];
-  /** Registry modules whose path is not on disk — ghosted cards, never errors. */
-  skipped: ModuleEntry[];
-  /** Every scanned source file with its import specifiers (the drill-down). */
-  files: ModuleFileFact[];
-  /** Entry-point exports per module (discovered · exports, DEC-087). */
-  exports: Record<string, string[]>;
 }
 
 /** Everything the renderer needs, as plain JSON. All derivation happens in @verikb/core. */
@@ -66,40 +46,9 @@ export interface Snapshot {
   /** The root holds files beyond what veri init writes (REQ-024): the
       brownfield import offer's predicate, re-derived every build. */
   brownfield: boolean;
-  /** The compiled intended architecture (DEC-058) — deterministic over documents. */
-  architecture: ArchProjection;
-  /** Host-collected observed structure; empty shapes when no registry exists. */
-  archObserved: ArchObserved;
   /** Checks this host could not run, worded by core (WO-093, REQ-021).
       Carried for parity with buildCheckReport; no view renders it yet. */
   skips: string[];
-}
-
-/**
- * Architecture on the snapshot pipeline (WO-068): compile the projection and
- * scan the registry's module paths with the CLI collectors. Severity routing
- * of observed violations (DEC-061/DEC-062) happens in core's deriveFindings,
- * which takes `edges`/`skipped` as this host's importFacts (WO-093); the
- * extra `files`/`exports` feed the Map's drill-down only. No registry → no
- * scan, empty observed shapes, and the projection still compiles (its
- * emptiness is the view's declare-modules hint). Collection re-runs on every
- * (debounced, SRC-031) rebuild — the scan is the CLI's own per-check cost,
- * uncached like every other fact.
- */
-function collectArchitecture(
-  projectRoot: string,
-  documents: VeriDocument[],
-): { architecture: ArchProjection; archObserved: ArchObserved; importFacts?: { edges: ImportEdge[]; skipped: ModuleEntry[] } } {
-  const architecture = assembleArchitecture(documents);
-  if (architecture.modules.length === 0) {
-    return { architecture, archObserved: { edges: [], skipped: [], files: [], exports: {} } };
-  }
-  const { edges, skipped, files } = collectImportFacts(projectRoot, architecture.modules);
-  return {
-    architecture,
-    archObserved: { edges, skipped, files, exports: collectExportFacts(projectRoot, architecture.modules) },
-    importFacts: { edges, skipped },
-  };
 }
 
 async function gitInfo(root: string): Promise<GitInfo | null> {
@@ -162,12 +111,11 @@ async function gitFactsFor(projectRoot: string, veriDir: string): Promise<GitCol
 
 /** This host's facts, assembled for core's deriveFindings (WO-093) — the
     same fields the CLI and MCP hosts hand it, from this host's collectors. */
-function hostFacts(git: GitCollected, load: LoadResult, importFacts?: { edges: ImportEdge[]; skipped: ModuleEntry[] }): HostFacts {
+function hostFacts(git: GitCollected, load: LoadResult): HostFacts {
   return {
     git: git.input,
     today: localToday(),
     testFacts: collectTestFacts(git.root, boundTests(load.documents)),
-    importFacts,
   };
 }
 
@@ -177,13 +125,11 @@ export async function buildSnapshot(projectRoot: string): Promise<Snapshot> {
   const load = await loadProject(veriDir);
   const graph = buildGraph(load.documents);
   const git = await gitFactsFor(projectRoot, veriDir);
-  const arch = collectArchitecture(projectRoot, load.documents);
   // The shared derivation (WO-093, DEC-091): pure tier, git-backed tier,
-  // bound tests, and observed-architecture severity routing all happen in
-  // core — this host only collected the facts. Both tiers ship (WO-026,
-  // SRC-010), but every health count and color in the renderer stays driven
-  // by `issues` alone (DEC-025).
-  const findings = deriveFindings(load, hostFacts(git, load, arch.importFacts));
+  // and bound tests all happen in core — this host only collected the
+  // facts. Both tiers ship (WO-026, SRC-010), but every health count and
+  // color in the renderer stays driven by `issues` alone (DEC-025).
+  const findings = deriveFindings(load, hostFacts(git, load));
   return {
     projectName: basename(projectRoot),
     root: projectRoot,
@@ -193,8 +139,6 @@ export async function buildSnapshot(projectRoot: string): Promise<Snapshot> {
     edges: graph.edges,
     git: await gitInfo(projectRoot),
     brownfield: isBrownfieldRoot(projectRoot),
-    architecture: arch.architecture,
-    archObserved: arch.archObserved,
     skips: findings.skips,
   };
 }
@@ -286,12 +230,7 @@ export class SnapshotBuilder {
     const graph = buildGraph(load.documents);
     const info = await gitInfo(projectRoot);
     const git = await this.#gitFactsCached(projectRoot, veriDir, info);
-    // Same collection as buildSnapshot (WO-068): the scan re-runs per
-    // debounced rebuild — module source trees are outside the doc cache's
-    // mtime horizon, and guessing staleness would trade correctness for
-    // milliseconds the debounce already absorbs.
-    const arch = collectArchitecture(projectRoot, load.documents);
-    const findings = deriveFindings(load, hostFacts(git, load, arch.importFacts));
+    const findings = deriveFindings(load, hostFacts(git, load));
     const snap: Snapshot = {
       projectName: basename(projectRoot),
       root: projectRoot,
@@ -301,8 +240,6 @@ export class SnapshotBuilder {
       edges: graph.edges,
       git: info,
       brownfield: isBrownfieldRoot(projectRoot),
-      architecture: arch.architecture,
-      archObserved: arch.archObserved,
       skips: findings.skips,
     };
     this.#current = snap;

@@ -12,9 +12,10 @@
     'graph' is retired (WO-052, SRC-024): the graph lives on the document
     surface now. 'board' was retired (WO-053, SRC-025) and returns with
     WO-103 (SRC-047) as the Work Orders board tab — a four-status kanban
-    over the WO-098 lifecycle. Persisted graph tabs restore away via
-    retainTabs. */
-export type ViewKey = 'homeview' | 'search' | 'settings' | 'import' | 'architecture' | 'board' | 'outcomes';
+    over the WO-098 lifecycle. 'architecture' retired with the layer
+    (DEC-144, SRC-067). Persisted retired-view tabs restore away via
+    restoreTabs — a stale session lands on Home, silently. */
+export type ViewKey = 'homeview' | 'search' | 'settings' | 'import' | 'board' | 'outcomes';
 
 export const VIEW_META: Record<ViewKey, { label: string; glyph: string }> = {
   homeview: { label: 'Home', glyph: '⌂' },
@@ -27,13 +28,9 @@ export const VIEW_META: Record<ViewKey, { label: string; glyph: string }> = {
   settings: { label: 'Settings', glyph: '⚙' },
   // Brownfield import (WO-075, SRC-039): kickoff, live filing, done.
   import: { label: 'Import', glyph: '⇲' },
-  // Architecture (WO-068, SRC-036): the map and the rules lattice. Reached
-  // via the Home card, ⌘K, and `architecture ↗` — the provisional placement;
-  // promoting it to primary navigation later costs only a sidebar item.
-  architecture: { label: 'Architecture', glyph: '⌗' },
   // Outcomes (WO-119, SRC-054): DID IT WORK?'s first-class view — outcome
   // evidence, untested bets, recent receipts. Opened from the sidebar's
-  // always-rendered ◎ row (the DEC-108 Architecture-row pattern).
+  // always-rendered ◎ row (the DEC-108 posture).
   outcomes: { label: 'Outcomes', glyph: '◎' },
 };
 
@@ -241,7 +238,7 @@ export function persistTabs(state: TabState): { tabs: PersistedTab[]; active: nu
 /**
  * The load-time twin of retainTabs (SRC-026): rebuild a TabState from
  * persisted targets. Unresolvable targets are dropped — byId misses and
- * retired ViewKeys ('graph', 'decisions' fail isViewKey now);
+ * retired ViewKeys ('graph', 'decisions', 'architecture' fail isViewKey now);
  * duplicate views collapse to their first tab (views are singletons); at
  * most one tab keeps the preview flag; every survivor starts with a
  * single-entry history; the active index moves to the nearest earlier

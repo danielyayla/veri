@@ -258,14 +258,13 @@ describe('retainTabs', () => {
     strictEqual(lone.activeKey, 't1');
   });
 
-  // WO-107 (SRC-049, DEC-108): Architecture is promoted to a sidebar view
-  // row. The row routes through the same 'architecture' ViewKey the Home
-  // card and ⌘K already use, so its tab must survive retention like any view.
-  it("the 'architecture' view tab behind the sidebar row survives retention", () => {
-    ok(isViewKey('architecture'));
-    const lone = retainTabs(s([{ t: ['architecture'] }, { t: ['search'] }], 0), () => false);
-    deepStrictEqual(lone.tabs.map((t) => targets(t)), [['architecture'], ['search']]);
-    strictEqual(lone.activeKey, 't1');
+  // DEC-144 (SRC-067): the Architecture view retired with the layer —
+  // 'architecture' is no ViewKey, so a stale session naming it restores
+  // away silently; with nothing else saved the caller falls back to Home.
+  it("a persisted 'architecture' tab restores away — the view retired with the layer", () => {
+    ok(!isViewKey('architecture'));
+    const restored = restoreTabs([{ target: 'architecture', preview: false }], 0, () => false);
+    deepStrictEqual(restored, EMPTY_TABS);
   });
 });
 
@@ -302,6 +301,7 @@ describe('persistTabs / restoreTabs', () => {
       { target: 'REQ-001', preview: false },
       { target: 'board', preview: false }, // retired WO-053, back with WO-103
       { target: 'decisions', preview: false }, // retired WO-049
+      { target: 'architecture', preview: false }, // retired WO-150 (DEC-144)
       { target: 'GONE-001', preview: false }, // byId miss
       { target: 'search', preview: false },
     ];
