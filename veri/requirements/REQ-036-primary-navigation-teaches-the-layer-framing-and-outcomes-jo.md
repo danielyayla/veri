@@ -3,7 +3,7 @@ id: REQ-036
 type: requirement
 title: "Primary navigation teaches the layer framing"
 status: accepted
-approved: 2026-08-27
+approved: 2026-09-01
 created: 2026-08-27
 updated: 2026-09-01
 links:
