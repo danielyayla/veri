@@ -46,11 +46,11 @@ The nine methods total 2,373 lines, authored to SRC-066's most striking find: SR
 ## Acceptance tests
 
 - [ ] Total lines across veri/methods/*.md at or under the target, with every method keeping its six sections and its promotion guardrail verbatim
-- [ ] The corpus floor holds: no regression on coverage cases, zero false triggers on the negative set
-- [ ] packages/cli/methods matches veri/methods byte-for-byte after the upgrade pass
-- [ ] The successor form note is filed and SRC-063's budgets no longer govern
-- [ ] Full suite green
+- [x] The corpus floor holds: no regression on coverage cases, zero false triggers on the negative set
+- [x] packages/cli/methods matches veri/methods byte-for-byte after the upgrade pass
+- [x] The successor form note is filed and SRC-063's budgets no longer govern
+- [x] Full suite green
 
 ## Receipts
 
-(none yet)
+- 2026-09-01 — dd46cf1 — Nine gate methods rewritten 2,389 → 1,068 lines (sections, beats, guardrail substance and verbatim REQ-008 bullets preserved; descriptions byte-identical; CLI mirror byte-for-byte; shells current; corpus integrity and full 953-test suite green, no `verify:` declared; SRC-069 filed superseding SRC-063's budgets in 3d70fb2) — the "roughly 700" line criterion stays unticked: cutting past 1,068 changed rule meanings, a beat-6 stop, so the work order is held in-progress for your judgment.
