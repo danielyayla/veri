@@ -23,7 +23,7 @@ links:
     rel: revisits
 ---
 
-> Drafted 2026-09-01 by an agent session (Claude Code) at Daniel's direction, as the design-gate artifact for [[WO-152]] ([[DEC-012]]). No mockup bundle: the change removes two views and adjusts Home entries that already exist. Revisits [[SRC-047]] (the Board's return — the board's second folding, per [[DEC-145]]) and [[SRC-054]] (the Outcomes view row).
+> Drafted 2026-09-01 by an agent session (Claude Code) at Daniel's direction, as the design-gate artifact for [[WO-152]] ([[DEC-012]]). Approved by Daniel 2026-09-01. No mockup bundle: the change removes two views and adjusts Home entries that already exist. Revisits [[SRC-047]] (the Board's return — the board's second folding, per [[DEC-145]]) and [[SRC-054]] (the Outcomes view row).
 
 ## What leaves, by surface
 

@@ -21,7 +21,7 @@ links:
     rel: revisits
 ---
 
-> Drafted 2026-09-01 by an agent session (Claude Code) at Daniel's direction, as the design-gate artifact for [[WO-150]] ([[DEC-012]]). No mockup bundle: the change is subtractive, and every surviving surface renders exactly as it does today. Revisits [[SRC-036]] (Architecture in the app: the map, the rules view, observed violations) and [[SRC-049]] (the sidebar view row) — both reversed by [[DEC-144]].
+> Drafted 2026-09-01 by an agent session (Claude Code) at Daniel's direction, as the design-gate artifact for [[WO-150]] ([[DEC-012]]). Approved by Daniel 2026-09-01. No mockup bundle: the change is subtractive, and every surviving surface renders exactly as it does today. Revisits [[SRC-036]] (Architecture in the app: the map, the rules view, observed violations) and [[SRC-049]] (the sidebar view row) — both reversed by [[DEC-144]].
 
 ## What leaves, by surface
 
