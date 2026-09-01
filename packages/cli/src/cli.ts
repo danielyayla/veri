@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { approve, architecture, check, context, del, implemented, importFile, importPrompt, init, intent, list, migrate, newDoc, next, open, renumber, start, supersede, withdraw } from './commands.ts';
+import { approve, architecture, check, context, del, dispatch, implemented, importFile, importPrompt, init, intent, list, migrate, newDoc, next, open, renumber, supersede, withdraw } from './commands.ts';
 import type { CmdResult } from './commands.ts';
 import { askTerminal, skillsInstall, skillsUpgrade } from './skills.ts';
 
@@ -22,13 +22,16 @@ const USAGE = `usage: veri <command>
   veri check                 report knowledge-base issues (exit 1 if any)
   veri approve <id> [--as <maintainer>]
                              approve a pending document (stamps approved: today);
-                             a backlog work order promotes to ready — cleared
-                             for dispatch
-  veri next                  print the next ready work order (id, title, path,
-                             tab-separated); exit 1 when nothing is ready
-  veri start <WO-id> [--as <session>]
-                             flip a ready work order to in-progress, recording
-                             the claim (--as defaults from git user.name)
+                             work orders are dispatched instead — veri dispatch
+  veri dispatch <WO-id> [--as <session>] [--by <maintainer>]
+                             approve-and-start in one gesture (DEC-143): flip a
+                             backlog work order to in-progress, writing the
+                             stamp and the claim together (--as defaults from
+                             git user.name; an existing stamp is spent, not
+                             re-dated)
+  veri next                  print the backlog work order next awaiting your
+                             dispatch judgment (id, title, path, tab-separated);
+                             exit 1 when the backlog is empty
   veri withdraw <id>         take a document out of play — the terminal
                              withdrawn status; the file, its id, and inbound
                              [[links]] all stay
@@ -93,8 +96,8 @@ switch (command) {
   case 'next':
     result = await next(cwd);
     break;
-  case 'start':
-    result = await start(cwd, rest[0], flagValue(rest, '--as'));
+  case 'dispatch':
+    result = await dispatch(cwd, rest[0], flagValue(rest, '--as'), flagValue(rest, '--by'));
     break;
   case 'withdraw':
     result = await withdraw(cwd, rest[0]);

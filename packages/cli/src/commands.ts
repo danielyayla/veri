@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFi
 import { createRequire } from 'node:module';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createApprovedDocument, createDocument, deleteDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, lookupIntent, maintainerRegistry, migrateProject, moduleRegistry, nextDispatchable, nextIdNumber, originalStoragePath, outcomeLabel, recordIssuedId, renderArchitecture, renderIntent, renumberDocument, requirementKind, scaffoldProject, slugifyTitle, startWorkOrder, supersedeDecision, withdrawDocument, workOrdersTouching } from '@verikb/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createApprovedDocument, createDocument, deleteDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, lookupIntent, maintainerRegistry, migrateProject, moduleRegistry, nextDispatchable, nextIdNumber, originalStoragePath, outcomeLabel, recordIssuedId, renderArchitecture, renderIntent, renumberDocument, requirementKind, scaffoldProject, slugifyTitle, dispatchWorkOrder, supersedeDecision, withdrawDocument, workOrdersTouching } from '@verikb/core';
 import type { CheckReport, DocType } from '@verikb/core';
 import { collectGitFacts, gitUserName } from './git.ts';
 import { collectShellFacts } from './skills.ts';
@@ -405,8 +405,8 @@ export function migrate(cwd: string): CmdResult {
   };
 }
 
-/** The user's approval act (REQ-008): draft → accepted / proposed → active /
-    backlog → ready (WO-098), stamped with today.
+/** The user's approval act (REQ-008): draft → accepted / proposed → active,
+    stamped with today. Work orders are dispatched instead (DEC-143).
     In a maintainers project (DEC-071) the stamp names its maintainer: --as
     explicitly, or defaulted from git user.name when that exactly matches a
     listed maintainer — the host collects the identity, core validates it. */
@@ -414,7 +414,7 @@ export async function approve(cwd: string, idArg: string | undefined, asName?: s
   if (idArg === undefined || idArg.trim() === '') {
     return {
       code: 1,
-      lines: ['usage: veri approve <id> [--as <maintainer>] (a draft requirement, proposed decision, or backlog work order)'],
+      lines: ['usage: veri approve <id> [--as <maintainer>] (a draft requirement or proposed decision; work orders are dispatched — veri dispatch)'],
     };
   }
   const dir = requireVeriDir(cwd);
@@ -432,14 +432,16 @@ export async function approve(cwd: string, idArg: string | undefined, asName?: s
   }
 }
 
-/** The start transition (WO-099): ready → in-progress with the claim
-    recorded. The claimant is --as, defaulted from git user.name the same
-    way approve defaults its maintainer — the host collects the identity,
-    core writes it. The printed hint names the start-commit convention the
-    binding-drift era anchor recognizes (DEC-041). */
-export async function start(cwd: string, idArg: string | undefined, asName?: string): Promise<CmdResult> {
+/** The dispatch gesture (DEC-143, WO-143): backlog → in-progress with the
+    stamp and the claim written together — approval and dispatch are one
+    act, performed by the user. The claimant is --as, defaulted from git
+    user.name; in a maintainers project the stamp's approver is --by,
+    defaulted the same way approve defaults its maintainer — the host
+    collects both identities, core validates and writes them. The printed
+    hint names the start-commit convention (DEC-041). */
+export async function dispatch(cwd: string, idArg: string | undefined, asName?: string, byName?: string): Promise<CmdResult> {
   if (idArg === undefined || idArg.trim() === '') {
-    return { code: 1, lines: ['usage: veri start <WO-id> --as <session> (a ready work order; --as may default from git user.name)'] };
+    return { code: 1, lines: ['usage: veri dispatch <WO-id> --as <session> [--by <maintainer>] (a backlog work order; --as may default from git user.name)'] };
   }
   const dir = requireVeriDir(cwd);
   if (dir === null) return NO_VERI_DIR;
@@ -449,14 +451,21 @@ export async function start(cwd: string, idArg: string | undefined, asName?: str
     return gitUserName(cwd) ?? undefined;
   })();
   if (claimant === undefined) {
-    return { code: 1, lines: ['a claim names its holder — pass one: veri start <WO-id> --as <session>'] };
+    return { code: 1, lines: ['a claim names its holder — pass one: veri dispatch <WO-id> --as <session>'] };
   }
   try {
-    const result = await startWorkOrder(dir, idArg.trim(), claimant);
+    const approver = await resolveApprover(dir, cwd, byName);
+    const result = await dispatchWorkOrder(dir, idArg.trim(), claimant, {
+      ...(approver !== undefined ? { approvedBy: approver } : {}),
+    });
+    const by = result.approvedBy === undefined ? '' : ` by ${result.approvedBy}`;
+    const stamp = result.stamped
+      ? `approved: ${result.approved}${by}`
+      : `spending the approved: ${result.approved} stamp already carried`;
     return {
       code: 0,
       lines: [
-        `${result.id} ready → in-progress — claimed by ${result.claimedBy} (${result.claimedAt}) (veri/${result.file})`,
+        `${result.id} backlog → in-progress — ${stamp}, claimed by ${result.claimedBy} (${result.claimedAt}) (veri/${result.file})`,
         `commit the flip with a start subject, e.g. git commit -m "${result.id}: started — claimed by ${result.claimedBy}"`,
       ],
     };
@@ -539,17 +548,18 @@ export async function supersede(
   }
 }
 
-/** The dispatch queue's head (WO-098): one tab-separated line — id, title,
-    repo-relative path — for the lowest-id ready work order, so a script can
-    `read -r id title path`. Exit 1 with a human hint when nothing is ready:
-    pollers branch on the code, not the text. */
+/** The judgment queue's head (WO-098, re-scoped by DEC-143): one
+    tab-separated line — id, title, repo-relative path — for the lowest-id
+    backlog work order awaiting the user's dispatch judgment, so a script
+    can `read -r id title path`. Exit 1 with a human hint when the backlog
+    is empty: callers branch on the code, not the text. */
 export async function next(cwd: string): Promise<CmdResult> {
   const dir = requireVeriDir(cwd);
   if (dir === null) return NO_VERI_DIR;
   const load = await loadProject(dir);
   const head = nextDispatchable(load.documents);
   if (head === undefined) {
-    return { code: 1, lines: ['nothing is ready — stamp a backlog work order with veri approve <WO-id>'] };
+    return { code: 1, lines: ['the backlog is empty — nothing awaits your dispatch judgment (veri new work-order to plan more)'] };
   }
   return { code: 0, lines: [`${head.id}\t${head.title}\tveri/${head.file}`] };
 }

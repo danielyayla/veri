@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CURRENT_FORMAT, assembleContext } from '@verikb/core';
-import { approve, architecture, check, checkReport, context, del, importFile, importPrompt, init, list, listStarters, migrate, newDoc, next, open, renumber, start, supersede, withdraw } from './commands.ts';
+import { approve, architecture, check, checkReport, context, del, dispatch, importFile, importPrompt, init, list, listStarters, migrate, newDoc, next, open, renumber, supersede, withdraw } from './commands.ts';
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const FIVE_ISSUES = fileURLToPath(new URL('../fixtures/five-issues', import.meta.url));
@@ -61,11 +61,14 @@ test('new documents are born unapproved and veri approve promotes them with a st
   assert.equal((await approve(cwd, undefined)).code, 1);
 });
 
-test('a work order promotes to ready and veri next serves the queue head (WO-098)', async (t) => {
+test('veri next serves the backlog awaiting judgment, and approve refuses work orders (DEC-143)', async (t) => {
   const cwd = tempProject();
   t.after(() => rmSync(cwd, { recursive: true, force: true }));
 
   init(cwd, { demo: false });
+  // Empty backlog: exit 1, a hint, nothing awaiting judgment.
+  assert.equal((await next(cwd)).code, 1);
+
   await newDoc(cwd, 'requirement', 'User authentication');
   await newDoc(cwd, 'work-order', 'Build the login flow');
   const woFile = join(cwd, 'veri/work-orders/WO-001-build-the-login-flow.md');
@@ -74,32 +77,24 @@ test('a work order promotes to ready and veri next serves the queue head (WO-098
     readFileSync(woFile, 'utf8').replace(/^updated: (.*)$/m, 'updated: $1\nlinks:\n  - id: REQ-001\n    rel: implements'),
   );
 
-  // Empty queue: exit 1, a hint, nothing dispatchable.
-  assert.equal((await next(cwd)).code, 1);
-
-  // The stamp path is gated: the linked requirement is still draft.
-  const refused = await approve(cwd, 'WO-001');
-  assert.equal(refused.code, 1);
-  assert.match(refused.lines.join('\n'), /depends on REQ-001, which is still draft/);
-
-  await approve(cwd, 'REQ-001');
-  const readied = await approve(cwd, 'WO-001');
-  assert.equal(readied.code, 0, readied.lines.join('\n'));
-  assert.match(readied.lines[0] ?? '', /^WO-001 backlog → ready — approved: \d{4}-\d{2}-\d{2}/);
-  assert.match(readFileSync(woFile, 'utf8'), /^status: ready$/m);
-  assert.equal((await check(cwd)).code, 0);
-
-  // The queue head is one tab-separated machine-readable line.
+  // The queue head is one tab-separated machine-readable line — a backlog
+  // work order, since the backlog IS the judgment queue now.
   const head = await next(cwd);
   assert.equal(head.code, 0);
   assert.equal(head.lines[0], `WO-001\tBuild the login flow\tveri/work-orders/WO-001-build-the-login-flow.md`);
 
-  // Execution spends the clearance: in-progress leaves the queue.
-  writeFileSync(woFile, readFileSync(woFile, 'utf8').replace('status: ready', 'status: in-progress\nclaimed_by: session-a\nclaimed_at: 2026-08-01'));
+  // The approve path no longer exists for work orders: dispatch owns it.
+  const refused = await approve(cwd, 'WO-001');
+  assert.equal(refused.code, 1);
+  assert.match(refused.lines.join('\n'), /work orders are dispatched, not approved.*veri dispatch WO-001/);
+
+  // Dispatch spends the judgment: in-progress leaves the queue.
+  await approve(cwd, 'REQ-001');
+  await dispatch(cwd, 'WO-001', 'session-a');
   assert.equal((await next(cwd)).code, 1);
 });
 
-test('veri start claims the queue head and refuses uncleared or already-claimed work (WO-099)', async (t) => {
+test('veri dispatch stamps and claims in one gesture, refusing gated or already-claimed work (DEC-143)', async (t) => {
   const cwd = tempProject();
   t.after(() => rmSync(cwd, { recursive: true, force: true }));
 
@@ -112,28 +107,26 @@ test('veri start claims the queue head and refuses uncleared or already-claimed 
     readFileSync(woFile, 'utf8').replace(/^updated: (.*)$/m, 'updated: $1\nlinks:\n  - id: REQ-001\n    rel: implements'),
   );
 
-  // Backlog is not dispatchable: only cleared work starts.
-  const early = await start(cwd, 'WO-001', 'agent-a');
+  // The gesture is gated prospectively: the linked requirement is still draft.
+  const early = await dispatch(cwd, 'WO-001', 'agent-a');
   assert.equal(early.code, 1);
-  assert.match(early.lines.join('\n'), /only cleared work starts.*veri approve WO-001/s);
+  assert.match(early.lines.join('\n'), /depends on REQ-001, which is still draft/);
 
   await approve(cwd, 'REQ-001');
-  await approve(cwd, 'WO-001');
-  const started = await start(cwd, 'WO-001', 'agent-a');
-  assert.equal(started.code, 0, started.lines.join('\n'));
-  assert.match(started.lines[0] ?? '', /^WO-001 ready → in-progress — claimed by agent-a \(\d{4}-\d{2}-\d{2}\)/);
+  const dispatched = await dispatch(cwd, 'WO-001', 'agent-a');
+  assert.equal(dispatched.code, 0, dispatched.lines.join('\n'));
+  assert.match(dispatched.lines[0] ?? '', /^WO-001 backlog → in-progress — approved: \d{4}-\d{2}-\d{2}, claimed by agent-a \(\d{4}-\d{2}-\d{2}\)/);
   // The hint names the start-commit convention the era anchor recognizes.
-  assert.match(started.lines[1] ?? '', /WO-001: started/);
+  assert.match(dispatched.lines[1] ?? '', /WO-001: started/);
   const content = readFileSync(woFile, 'utf8');
-  assert.match(content, /^status: in-progress\nclaimed_by: agent-a\nclaimed_at: \d{4}-\d{2}-\d{2}$/m);
+  // Stamp and claim land together, in one frontmatter run.
+  assert.match(content, /^status: in-progress\napproved: \d{4}-\d{2}-\d{2}\nclaimed_by: agent-a\nclaimed_at: \d{4}-\d{2}-\d{2}$/m);
 
   // The claim holds against a second session, and the corpus stays check-clean.
-  const contested = await start(cwd, 'WO-001', 'agent-b');
+  const contested = await dispatch(cwd, 'WO-001', 'agent-b');
   assert.equal(contested.code, 1);
   assert.match(contested.lines.join('\n'), /already in-progress, claimed by "agent-a"/);
   assert.equal((await check(cwd)).code, 0);
-  // Started work leaves the queue.
-  assert.equal((await next(cwd)).code, 1);
 });
 
 test('ids allocate sequentially per type', async (t) => {
@@ -987,10 +980,10 @@ test('the combined path refuses what veri approve refuses, filing nothing (WO-14
   t.after(() => rmSync(cwd, { recursive: true, force: true }));
   assert.equal(init(cwd, { demo: false }).code, 0);
 
-  // A work order with no requirement trace: approve's dispatch gate, verbatim.
+  // A work order under --approve: dispatch owns its stamp now (DEC-143).
   const noTrace = await newDoc(cwd, 'work-order', 'Ship the thing', { approve: true });
   assert.equal(noTrace.code, 1);
-  assert.match(noTrace.lines.join('\n'), /refusing to ready WO-001 — it links no requirement/);
+  assert.match(noTrace.lines.join('\n'), /a work order is dispatched, not approved — file it without --approve, then veri dispatch/);
   assert.ok(!existsSync(join(cwd, 'veri/work-orders/WO-001-ship-the-thing.md')), 'refusal files nothing');
 
   // An unlisted approver in a maintainers project: approve's DEC-071 gate.
