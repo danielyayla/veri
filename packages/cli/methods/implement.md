@@ -27,7 +27,7 @@ requires:
   - run_check
 upstream: veri/implement
 created: 2026-08-27
-updated: 2026-08-28
+updated: 2026-09-01
 links:
   - id: WF-001
     rel: derived-from
@@ -144,12 +144,19 @@ skill actually says, and what a different answer would change.
    Discovering that the scope is wrong is a good outcome of implementation
    and a terrible thing to discover silently.
 
-7. **Close.** `run_check`, then the receipt, then the ticks, then the
-   status. Report it as four facts, including the uncomfortable ones:
+7. **Close.** The work order's `verify:` command first, when it declares
+   one ([[REQ-042]]): run it through the session's own harness — Veri
+   never executes it ([[DEC-037]]) — and it must exit 0 before the
+   receipt is written. Its outcome goes into the receipt's one sentence,
+   never a pasted log ([[DEC-142]]); a done work order whose receipts
+   nowhere evidence the run is the gap the verify-unevidenced advisory
+   surfaces. Then `run_check`, the receipt, the ticks, the status.
+   Report it as facts, including the uncomfortable ones:
 
-   > "Check: 0 violations, 3 advisories, skipped: <the names run_check
-   > returned>. Receipt appended to WO-131. Criteria ticked: 1, 2, 4.
-   > Criterion 3 is not ticked because <reason>."
+   > "Verify: `npm test` — exit 0. Check: 0 violations, 3 advisories,
+   > skipped: <the names run_check returned>. Receipt appended to
+   > WO-131. Criteria ticked: 1, 2, 4. Criterion 3 is not ticked because
+   > <reason>."
 
 ## What it files
 
@@ -168,6 +175,9 @@ skill actually says, and what a different answer would change.
 - **Receipts**, via `file_receipt`: date, commit SHA, files touched,
   one-line summary. Append-only; existing receipts are never rewritten.
   One per work session, so a work order that took three sessions says so.
+  When the work order declares `verify:`, the receipt's sentence states
+  the run's outcome ([[REQ-042]]) — the run happens before the receipt,
+  and the evidence stays inside the one line.
 - **Code, tests, and commits** — the actual deliverable. Commit with
   explicit paths, and lead the subject with the work order id, which is
   the convention the provenance checks read to attribute a commit to the

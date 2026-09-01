@@ -142,6 +142,7 @@ jobs:
           Implement $ID — $TITLE.
           Before writing any code, fetch the full context package: run \`veri context $ID\`. Follow the workflow rules it opens with, respect the linked decisions, and stay inside the work order's scope.
           File non-trivial choices as proposed decisions — never promote a document yourself. Append a receipt under ## Receipts (date, commit SHA, files touched, one-line summary) and check only the acceptance boxes you have verified.
+          If the work order declares a verify: command, run it before writing the receipt — it must exit 0 — and state its outcome in the receipt's sentence. Veri never runs it; you do.
           Commit your work to the current branch with subjects prefixed "$ID:". Do not push, do not merge, and do not approve or promote any document.
           Finish by running \`veri check\` — zero violations is the bar.
           EOF
