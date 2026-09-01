@@ -2,8 +2,10 @@
 id: WO-145
 type: work-order
 title: "Work orders carry a verify command, and receipts quote its run"
-status: backlog
+status: in-progress
 approved: 2026-09-01
+claimed_by: fable-wo145
+claimed_at: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
 links:
