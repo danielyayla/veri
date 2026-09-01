@@ -2,12 +2,12 @@
 id: WO-125
 type: work-order
 title: "Ship the format-4 release: app, npm, and action carry the method type"
-status: in-progress
+status: done
 claimed_by: opus-wo125
 claimed_at: 2026-08-29
 approved: 2026-08-27
 created: 2026-08-27
-updated: 2026-08-29
+updated: 2026-09-02
 links:
   - id: REQ-015
     rel: implements
@@ -88,7 +88,7 @@ Derived from [[REQ-040]]'s format bump, and constrained by
       (`npm run build`, `npm test`)
 - [x] Handoff is complete: the maintainer has the exact tag, release,
       and npm publish commands, with the 2FA constraint named
-- [ ] **Maintainer's act:** `v0.5.0` is tagged, pushed, and released,
+- [x] **Maintainer's act:** `v0.5.0` is tagged, pushed, and released,
       and `@verikb/{core,cli,mcp}@0.1.2` are live on npm. This work
       order stays open until then — the prep is not the ship, and
       v0.4.0's npm half is exactly what went missing last time
@@ -97,3 +97,4 @@ Derived from [[REQ-040]]'s format bump, and constrained by
 
 - 2026-08-27 — 4eaaf2e — CHANGELOG.md, package-lock.json, packages/core/package.json, packages/cli/package.json, packages/mcp/package.json — the format-3 half shipped: the 0.4.0 changelog section, the app version bump, and the @verikb/* 0.1.2 lockstep. v0.4.0 was tagged and pushed, the GitHub release published, the updater feed served 0.4.0, bridge assets copied forward, and Veri Check went green on main with the rebuilt bundle. The npm half did not ship — 2FA blocked the token publish and the OTP publish was never run, leaving @verikb/* at 0.1.0 with 0.1.2 sitting in the manifests. Overtaken the same day when WO-131 bumped the marker to 4, so the standing obligation moved to this work order's re-scoped criteria rather than closing here. (The commit carries the vX.Y.Z release convention rather than a WO-125: prefix, per RELEASING.md; the prefix advisory that earns is the known WO-034 class)
 - 2026-08-29 — 14f3069 — CHANGELOG.md, packages/ui/package.json, action/dist/index.js — the format-4 release prepared: the 0.5.0 changelog section (skill library, method type, the widened MCP surface, format 4, and DEC-139's restart obligation), the app version bump, and the action bundle rebuilt from a core reporting CURRENT_FORMAT 4. The @verikb/* manifests already carried 0.1.2 from the v0.4.0 prep whose publish never ran, so the lockstep stands unchanged. Full suite green (930 tests across five workspaces), check 0 issues. Everything outward-facing — the tag push, the GitHub release, the OTP npm publish — is the maintainer's, and the final criterion above stays open until it happens
+- 2026-09-02 — 9c8edaf — .github/workflows/npm-publish.yml, RELEASING.md — the maintainer's act completed and the last criterion closed: v0.5.0 was tagged, pushed, and its GitHub release published 2026-08-29; @verikb/{core,cli,mcp}@0.1.2 went live on npm 2026-09-01 through the npm-publish workflow once WO-140 converted it to OIDC trusted publishing (run 33558059693 — the 2FA blocker this work order named is retired, not worked around). The stale-claim caveat from the re-scope resolved itself: only the maintainer's own act remained when the opus-wo125 session handed off, and Daniel performed it. Terminal `veri check`: 0 issues
