@@ -72,7 +72,10 @@ work.
 5. When you finish a work session on a work order, append a receipt to
    the work order file under `## Receipts`: date, commit SHA, files
    touched, one-line summary. A work order is `done` only when all
-   acceptance criteria are checked AND at least one receipt exists.
+   acceptance criteria are checked AND at least one receipt exists. A
+   repair committed under another work order's subject gets a receipt
+   on that work order too, appended in the same session that made the
+   commit.
 6. Run `veri check` before declaring any work complete. Zero issues is
    the bar.
 7. Any work order touching `packages/ui` must link a design document
