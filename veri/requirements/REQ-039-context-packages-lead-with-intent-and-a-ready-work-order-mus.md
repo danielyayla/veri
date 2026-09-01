@@ -3,7 +3,7 @@ id: REQ-039
 type: requirement
 title: "Context packages lead with intent, and dispatched work must trace to a live requirement"
 status: accepted
-approved: 2026-08-27
+approved: 2026-09-01
 created: 2026-08-27
 updated: 2026-09-01
 links:
