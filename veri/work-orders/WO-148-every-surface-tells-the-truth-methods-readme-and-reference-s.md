@@ -2,7 +2,7 @@
 id: WO-148
 type: work-order
 title: "Every surface tells the truth — methods, README, and reference stop disagreeing with the code"
-status: in-progress
+status: done
 approved: 2026-09-01
 claimed_by: fable-wo148
 claimed_at: 2026-09-01
@@ -49,12 +49,12 @@ SRC-066 catalogued the drift: MET-008 states file_requirement carries no kind an
 
 ## Acceptance tests
 
-- [ ] No method document names a skill that lacks a MET document, and no method states a tool constraint the server contradicts
-- [ ] decide.md and did-it-work.md carry no present-tense corpus counts
-- [ ] README's tool count, images, and platform paragraph are verifiably true; the reference page lists every registered tool and a test enforces it
-- [ ] workflow.md rule 8 matches the practiced commit-subject form
-- [ ] Full suite green, veri check zero issues
+- [x] No method document names a skill that lacks a MET document, and no method states a tool constraint the server contradicts
+- [x] decide.md and did-it-work.md carry no present-tense corpus counts
+- [x] README's tool count, images, and platform paragraph are verifiably true; the reference page lists every registered tool and a test enforces it
+- [x] workflow.md rule 8 matches the practiced commit-subject form
+- [x] Full suite green, veri check zero issues
 
 ## Receipts
 
-(none yet)
+- 2026-09-01 — fbcb41c, eb77d9f — README (eighteen registered tools, not the summary's stale nineteen; the real loop-demo hero; platforms per release.yml), site reference (all eighteen tools, pinned to tools/list by a new e2e drift test), the nine methods and WF-001 stop contradicting the shipped surface (start_work_order gone, file_requirement carries kind/outcome, unwritten-skill handoffs cut, review handoffs cite MET-010, practiced commit-subject form), CLI mirrors and four shells re-emitted; no verify: declared — full suite 953 tests green across five workspaces and veri check 0 issues.
