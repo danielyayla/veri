@@ -45,12 +45,12 @@ The audit's basket of built-but-broken and built-but-unused, each independently 
 
 ## Acceptance tests
 
-- [ ] veri new workflow either creates a well-formed veri/WF-nnn-*.md path (covered by a new test) or refuses when a workflow exists, and never prints a veri// path
-- [ ] veri new product refuses with an error naming the four singleton paths
-- [ ] --harness and searchDocs are gone; no reference survives
+- [x] veri new workflow either creates a well-formed veri/WF-nnn-*.md path (covered by a new test) or refuses when a workflow exists, and never prints a veri// path
+- [x] veri new product refuses with an error naming the four singleton paths
+- [x] --harness and searchDocs are gone; no reference survives
 - [ ] The four orphaned assets are deleted and no site page breaks
-- [ ] recordSeededIds records PRD/MET ids from a fixture starter; full suite green
+- [x] recordSeededIds records PRD/MET ids from a fixture starter; full suite green
 
 ## Receipts
 
-(none yet)
+- 2026-09-01 — 1599f35 — Shipped the scope's repairs and deletions (workflow path + singleton refusal, product refusal naming the singletons, harness selector and legacy substring search removed end to end, PRD/MET seed the id floor, seven-type comment, review-dark/review-light deleted), but only two of the four named assets were orphaned — WO-148 (fbcb41c) made loop-demo.gif/loop-demo-still.png the README hero after the audit, so the asset criterion as written is unsatisfiable and the done flip awaits your judgment; no verify: declared — full suites green (core 349, cli 86, mcp 104, action 10, ui 340) and veri check 0 issues.
