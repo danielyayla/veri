@@ -2,7 +2,7 @@
 id: WO-158
 type: work-order
 title: "plan-work asks for the verify command; implement quotes the run"
-status: in-progress
+status: done
 approved: 2026-09-02
 claimed_by: fable-wo158
 claimed_at: 2026-09-02
@@ -46,12 +46,12 @@ REQ-042 shipped the verify contract and the record shows zero adopters — inclu
 
 ## Acceptance tests
 
-- [ ] MET-007's interview carries the verify beat, tied to REQ-042's first clause
-- [ ] MET-001 instructs quoting the declared command's run and never declaring its absence
-- [ ] Shells regenerated and matching their methods; trigger-description bytes untouched
-- [ ] Corpus integrity floor clean — the declared verify command proves it
-- [ ] Both methods at or under SRC-069's two-screen ceiling
+- [x] MET-007's interview carries the verify beat, tied to REQ-042's first clause
+- [x] MET-001 instructs quoting the declared command's run and never declaring its absence
+- [x] Shells regenerated and matching their methods; trigger-description bytes untouched
+- [x] Corpus integrity floor clean — the declared verify command proves it
+- [x] Both methods at or under SRC-069's two-screen ceiling
 
 ## Receipts
 
-(none yet)
+- 2026-09-02 — b4ee546 — ["veri/methods/plan-work.md", "veri/methods/implement.md"] — verify ran clean (node packages/cli/dist/cli.js skills eval — 49 cases over 10 skills validate, exit 0) — MET-007 beat 2 asks each slice for its machine-runnable command as verify: (REQ-042 first clause) with the no-parameter mechanical note, MET-001 quotes a declared run and never declares absence, both hold SRC-069's ceiling at 130/114 lines, all 10 shells match with description bytes untouched, veri check 439 docs 0 issues with the two expected stamp-drift advisories awaiting Daniel's re-stamp.
