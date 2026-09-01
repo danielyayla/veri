@@ -9,7 +9,7 @@ outcome:
   metric: skill-operated project graph health — share of requirements with evidence links, decisions with recorded alternatives, and hypotheses with outcome sources, plus continued skill use after first invocation
   target: one real project operated end-to-end through the skills produces a zero-violation graph with every shipped hypothesis carrying an outcome source, and the user keeps the skills installed
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-09-02
 links:
   - id: SRC-060
     rel: derived-from
@@ -27,7 +27,7 @@ Skill-library skills obey the promotion boundary absolutely: everything they fil
 
 ## Acceptance criteria
 
-- [ ] A default set of skills covering the minimal loop (wayfinder, product-discovery, evidence-intake, define, decide, plan-work, implement, did-it-work, health) is installable as a package
-- [ ] Each skill's output lands as draft/proposed documents only; no skill can promote a document of its own accord
-- [ ] Each skill ends by naming the next gate: which documents await which act, and which skill picks them up
-- [ ] At least one real project has been operated end-to-end (idea → shipped WO → outcome source) using only the skills, and the resulting graph passes `veri check` with zero violations
+- [x] A default set of skills covering the minimal loop (wayfinder, product-discovery, evidence-intake, define, decide, plan-work, implement, did-it-work, health) is installable as a package
+- [x] Each skill's output lands as draft/proposed documents only; no skill can promote a document of its own accord
+- [x] Each skill ends by naming the next gate: which documents await which act, and which skill picks them up
+- [x] At least one real project has been operated end-to-end (idea → shipped WO → outcome source) using only the skills, and the resulting graph passes `veri check` with zero violations
