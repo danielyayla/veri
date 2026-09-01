@@ -2,12 +2,12 @@
 id: WO-140
 type: work-order
 title: "npm publishing moves to trusted publishing, so CI can complete a release"
-status: in-progress
+status: done
 claimed_by: opus-wo140
 claimed_at: 2026-09-01
 approved: 2026-08-29
 created: 2026-08-29
-updated: 2026-09-01
+updated: 2026-09-02
 links:
   - id: REQ-028
     rel: extends
@@ -91,22 +91,27 @@ Follows from [[WO-125]] and [[WO-081]], and derived from
 
 ## Acceptance tests
 
-- [ ] Trusted publishing is configured on the registry for all three
+- [x] Trusted publishing is configured on the registry for all three
       packages, naming this repo and `npm-publish.yml`
-- [ ] `npm-publish.yml` declares `id-token: write` and references no
+- [x] `npm-publish.yml` declares `id-token: write` and references no
       npm write token
-- [ ] A dry run passes and prints the same three-package file lists it
+- [x] A dry run passes and prints the same three-package file lists it
       does today, with the lockstep guard still green
-- [ ] A real run publishes `@verikb/{core,cli,mcp}@0.1.2` with no OTP
+- [x] A real run publishes `@verikb/{core,cli,mcp}@0.1.2` with no OTP
       and no `NPM_TOKEN`
-- [ ] `npx -y @verikb/cli@0.1.2 check` run in a clean directory against
-      this repository reports zero issues — proving the published
-      reader understands format 4
-- [ ] The `NPM_TOKEN` repository secret is deleted
-- [ ] RELEASING.md's npm section describes the OIDC flow and names the
+- [x] The published 0.1.2 reader understands format 4, proven from a
+      clean install of the registry tarball: `veri init` + `veri check`
+      on a fresh project reads format 4 clean (0 issues), and against
+      this repository — which moved to format 5 after this work order
+      was filed — it refuses with the correct update-and-restart
+      message (amended from "checks this repository clean" at Daniel's
+      direction, 2026-09-02: the repo outran the release again, and
+      the criterion's substance is the reader's format-4 competence)
+- [x] The `NPM_TOKEN` repository secret is deleted
+- [x] RELEASING.md's npm section describes the OIDC flow and names the
       first-publish OTP exception
-- [ ] `veri check` reports zero issues
+- [x] `veri check` reports zero issues
 
 ## Receipts
 
-(none yet)
+- 2026-09-02 — 9c8edaf — .github/workflows/npm-publish.yml, RELEASING.md — the npm publish path converted to OIDC trusted publishing: the workflow gained `id-token: write`, dropped `NODE_AUTH_TOKEN`/`NPM_TOKEN` and setup-node's registry-url, and upgrades the runner's npm (12.0.2 observed) to exchange the OIDC token; dry-run default and the DEC-077 lockstep guard untouched. Daniel configured the trusted publisher on npmjs.com for all three packages. Dry run 33509909186 green with the same three tarball file lists; real run 33558059693 published @verikb/{core,cli,mcp}@0.1.2 with no OTP and no token — the first CI publish ever to complete. The NPM_TOKEN secret is deleted. Published-reader proof ran against a clean-install of the registry tarball (fresh format-4 project: 0 issues; this format-5 repo: the correct refusal), since the repo outran the release between filing and closing — criterion 5 amended accordingly at Daniel's direction. Terminal `veri check`: format 5, 0 issues, 18 advisories; MCP run_check did not run this session (permission classifier), and the git-backed tiers ran via the terminal check
