@@ -9,7 +9,7 @@ outcome:
   target: "< 48 hours"
 approved: 2026-08-27
 created: 2026-08-26
-updated: 2026-08-27
+updated: 2026-09-01
 links:
   - id: DEC-111
     rel: derived-from
@@ -29,7 +29,7 @@ The app presents a home view that aggregates, from existing documents and the ex
 - **Awaiting human judgment** — proposed decisions and draft requirements pending promotion, surfaced as the queue of gate crossings only a human can perform.
 - **Recently learned** — the newest sources, with outcome sources (tests/supports/refutes links) called out and linked to the hypothesis they answer.
 
-The view is derived and read-only in the sense that judgment actions link into the existing surfaces (approval queue, document reader); it introduces no authoritative state of its own. The execution board remains available; it is no longer the conceptual center.
+The view is derived and read-only in the sense that judgment actions link into the existing surfaces (approval queue, document reader); it introduces no authoritative state of its own. The execution board has since folded away entirely ([[DEC-145]]): Home is the conceptual center, and the Work Orders panel and detail carry the lifecycle.
 
 ## The bet
 
