@@ -135,3 +135,21 @@ test('a malformed verify: is an invalid-frontmatter issue, never a silent no-op'
   assert.equal(mapping.document, undefined);
   assert.ok(mapping.issues.some((i) => i.kind === 'invalid-frontmatter' && i.field === 'verify'));
 });
+
+// --- Pre-migration `ready` names its repair (REQ-015, WO-143) ---
+
+test('a format-4 `ready` work order fails with the migration named, never a bare enum mismatch', () => {
+  const outcome = parseDocument('x.md', doc(WO_FM.replace('status: backlog', 'status: ready')));
+  assert.equal(outcome.document, undefined);
+  const issue = outcome.issues.find((i) => i.kind === 'invalid-frontmatter' && i.field === 'status');
+  assert.ok(issue);
+  assert.match(issue.message, /veri migrate/);
+  assert.match(issue.message, /retired/);
+
+  // Any other bad value keeps the ordinary enum error — the special
+  // statement is for the retired state alone.
+  const junk = parseDocument('x.md', doc(WO_FM.replace('status: backlog', 'status: bogus')));
+  const junkIssue = junk.issues.find((i) => i.kind === 'invalid-frontmatter' && i.field === 'status');
+  assert.ok(junkIssue);
+  assert.doesNotMatch(junkIssue.message, /veri migrate/);
+});
