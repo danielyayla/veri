@@ -2,7 +2,7 @@
 id: WO-154
 type: work-order
 title: "The learning loop's plumbing completes — outcome-of consumed, source kinds meaningful, discovery files bets"
-status: in-progress
+status: done
 approved: 2026-09-01
 claimed_by: fable-wo154
 claimed_at: 2026-09-01
@@ -51,12 +51,12 @@ SRC-066 found the loop's machinery half-wired: outcome-of is validated for direc
 
 ## Acceptance tests
 
-- [ ] A context package for a work order with an inbound outcome-of source shows it in the work-order section (fixture)
-- [ ] The kind advisory fires on an outcome-linked source without kind: outcome and stays silent with it
-- [ ] MET-003 and MET-005 state the bet-first default and the corpus floor holds
-- [ ] get_receipts output names outcome evidence where it exists
-- [ ] Full suite green, veri check zero issues
+- [x] A context package for a work order with an inbound outcome-of source shows it in the work-order section (fixture)
+- [x] The kind advisory fires on an outcome-linked source without kind: outcome and stays silent with it
+- [x] MET-003 and MET-005 state the bet-first default and the corpus floor holds
+- [x] get_receipts output names outcome evidence where it exists
+- [x] Full suite green, veri check zero issues
 
 ## Receipts
 
-(none yet)
+- 2026-09-01 — 8f7fcf1 — outcome-of consumed (the work-order section's reported-back line and get_receipts' outcome-evidence lines), the outcome-unkinded advisory landed, and MET-003/MET-005 state bet-first (commits 1bfa41f, 5e1ce97, 254ee95, 0c39882, 8f7fcf1); no verify: declared — full suite 893 tests green across five workspaces, corpus integrity floor clean (49 cases over 10 skills, descriptions untouched), veri check 0 issues.
