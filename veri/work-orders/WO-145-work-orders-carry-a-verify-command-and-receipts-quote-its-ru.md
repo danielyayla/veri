@@ -2,7 +2,7 @@
 id: WO-145
 type: work-order
 title: "Work orders carry a verify command, and receipts quote its run"
-status: in-progress
+status: done
 approved: 2026-09-01
 claimed_by: fable-wo145
 claimed_at: 2026-09-01
@@ -48,12 +48,12 @@ The largest playbook gap SRC-066 found: nothing in Veri verifies the software �
 
 ## Acceptance tests
 
-- [ ] The work-order schema accepts verify: and round-trips it; invalid shapes are invalid-frontmatter
-- [ ] A context package for a work order with verify: shows the command in the work-order section
-- [ ] The advisory fires on a done fixture with verify: and no verify-mentioning receipt, and stays silent when a receipt quotes the run
-- [ ] MET-001 and the dispatch kickoff prompt instruct running verify: before the receipt
-- [ ] Full suite green
+- [x] The work-order schema accepts verify: and round-trips it; invalid shapes are invalid-frontmatter
+- [x] A context package for a work order with verify: shows the command in the work-order section
+- [x] The advisory fires on a done fixture with verify: and no verify-mentioning receipt, and stays silent when a receipt quotes the run
+- [x] MET-001 and the dispatch kickoff prompt instruct running verify: before the receipt
+- [x] Full suite green
 
 ## Receipts
 
-(none yet)
+- 2026-09-01 — 2f94bd6, 38c570b, 71f7b0b — verify: lands as an optional work-order command (schema round-trip, context-package line, verify-unevidenced advisory per DEC-149 proposed), MET-001 and the dispatch kickoff prompt require the run before the receipt; full suite green (938 tests, exit 0) and veri check 0 issues.
