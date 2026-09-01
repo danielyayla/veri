@@ -2,8 +2,10 @@
 id: WO-152
 type: work-order
 title: "Board and Outcomes fold into Home — the app narrows to the judgment surface"
-status: backlog
+status: in-progress
 approved: 2026-09-01
+claimed_by: fable-wo152
+claimed_at: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
 links:
