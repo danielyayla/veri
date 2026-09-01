@@ -2,7 +2,7 @@
 id: WO-146
 type: work-order
 title: "veri:review exists — the diff is read against the work order before done"
-status: in-progress
+status: done
 approved: 2026-09-01
 claimed_by: fable-wo146
 claimed_at: 2026-09-01
@@ -51,12 +51,12 @@ SRC-066's sharpest single finding: veri:review is declared in the trigger corpus
 
 ## Acceptance tests
 
-- [ ] MET-010 exists in veri/methods/, status draft, with description, requires, and the six mandatory sections
-- [ ] The trigger corpus's review cases and the did-it-work-vs-review pair reference MET-010's skill id and validate
-- [ ] veri skills install emits no shell while MET-010 is draft, and emits one on an accepted fixture
-- [ ] veri check zero issues with the method filed
-- [ ] Full suite green
+- [x] MET-010 exists in veri/methods/, status draft, with description, requires, and the six mandatory sections
+- [x] The trigger corpus's review cases and the did-it-work-vs-review pair reference MET-010's skill id and validate
+- [x] veri skills install emits no shell while MET-010 is draft, and emits one on an accepted fixture
+- [x] veri check zero issues with the method filed
+- [x] Full suite green
 
 ## Receipts
 
-(none yet)
+- 2026-09-01 — 5d8b2d5, ef7540d — MET-010 (veri:review, upstream veri/review) filed draft with its byte-identical shipped copy and tests tying the corpus's veri:review cases and the did-it-work-vs-review pair to the real method; no verify: declared — veri check 0 issues (424 documents) and the full suite green (938 tests, 0 fail); live `veri skills install` skips MET-010 as draft, the accepted fixture emits one shell.
