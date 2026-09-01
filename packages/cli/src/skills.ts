@@ -6,7 +6,6 @@ import { fileURLToPath } from 'node:url';
 import {
   AMENDMENTS_DIR,
   METHODS_DIR,
-  SKILL_EMITTERS,
   checkCorpusIntegrity,
   checkTriggerCorpus,
   claudeCodeEmitter,
@@ -93,25 +92,17 @@ export function collectShells(root: string, emitter: SkillEmitter): CollectedShe
 /**
  * The shell-facts collector `veri check` feeds core's drift comparator
  * (WO-136), on the `collectGitFacts` pattern (DEC-040): the host reads, core
- * judges. Unavailability is a state, never an error — an unknown harness
- * name is reported so the tier degrades loudly (REQ-021).
+ * judges. This build ships exactly one emitter (Claude Code, DEC-125), so
+ * the collector names it directly — a second harness earns back a selector
+ * flag when it exists (WO-153 dropped the dead one).
  *
  * A missing harness directory is not unavailability: it is the fact that no
  * shell was ever installed, which `collectShells` returns as an empty list
  * and which both rules answer with silence. A project that never ran
  * `veri skills install` has no drift and is never nagged about it.
  */
-export function collectShellFacts(cwd: string, harness?: string): ShellFactsInput {
-  const emitter = resolveEmitter(harness);
-  if (typeof emitter === 'string') return { kind: 'unavailable', reason: emitter };
-  return { kind: 'ok', harness: emitter.harness, shells: collectShells(cwd, emitter) };
-}
-
-function resolveEmitter(harness: string | undefined): SkillEmitter | string {
-  if (harness === undefined) return claudeCodeEmitter;
-  const emitter = SKILL_EMITTERS[harness];
-  if (emitter !== undefined) return emitter;
-  return `unknown harness "${harness}" — this build emits for: ${Object.keys(SKILL_EMITTERS).sort().join(', ')}`;
+export function collectShellFacts(cwd: string): ShellFactsInput {
+  return { kind: 'ok', harness: claudeCodeEmitter.harness, shells: collectShells(cwd, claudeCodeEmitter) };
 }
 
 /** The refusal a bare repository gets. Scaffolding is `veri init`'s job (and
@@ -139,7 +130,6 @@ async function decide(opts: { yes?: boolean }, confirm: Confirm | undefined, que
 export interface SkillsInstallOptions {
   yes?: boolean;
   all?: boolean;
-  harness?: string;
 }
 
 /**
@@ -153,9 +143,7 @@ export async function skillsInstall(cwd: string, opts: SkillsInstallOptions = {}
   const veriDir = join(cwd, 'veri');
   if (!existsSync(veriDir)) return NO_VERI_DIR;
 
-  const emitter = resolveEmitter(opts.harness);
-  if (typeof emitter === 'string') return { code: 1, lines: [emitter] };
-
+  const emitter = claudeCodeEmitter;
   const load = await loadProject(veriDir);
   const plan = planSkillInstall(load.documents, collectShells(cwd, emitter), { emitter, all: opts.all });
 

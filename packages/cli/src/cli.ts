@@ -57,7 +57,7 @@ const USAGE = `usage: veri <command>
                              and the module registry, never an index
   veri list [type]           list documents: id, status, title
   veri open [dir]            open the project in the Veri desktop app
-  veri skills install [--all] [--yes] [--harness <name>]
+  veri skills install [--all] [--yes]
                              write a skill shell per accepted method — a
                              trigger description and a pointer, never the
                              coaching (--all: the advanced tier too)
@@ -153,13 +153,13 @@ switch (command) {
     const confirm = interactive ? askTerminal : undefined;
     const yes = rest.includes('--yes');
     if (rest[0] === 'install') {
-      result = await skillsInstall(cwd, { yes, all: rest.includes('--all'), harness: flagValue(rest, '--harness') }, confirm);
+      result = await skillsInstall(cwd, { yes, all: rest.includes('--all') }, confirm);
     } else if (rest[0] === 'upgrade') {
       result = await skillsUpgrade(cwd, { yes }, confirm);
     } else if (rest[0] === 'eval') {
       result = await skillsEval(cwd, { judge: flagValue(rest, '--judge') });
     } else {
-      result = { code: 1, lines: ['usage: veri skills install [--all] [--yes] [--harness <name>] | veri skills upgrade [--yes] | veri skills eval [--judge <command>]'] };
+      result = { code: 1, lines: ['usage: veri skills install [--all] [--yes] | veri skills upgrade [--yes] | veri skills eval [--judge <command>]'] };
     }
     break;
   }

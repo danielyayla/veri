@@ -247,13 +247,6 @@ test('a draft review method emits no shell; an accepted one emits exactly one (W
   assert.match(shell, /MET-001/);
 });
 
-test('an unknown harness is refused before anything is read', async (t) => {
-  const cwd = project(t);
-  const result = await skillsInstall(cwd, { yes: true, harness: 'emacs' });
-  assert.equal(result.code, 1);
-  assert.match(result.lines.join('\n'), /unknown harness "emacs"/);
-});
-
 // --- upgrade ------------------------------------------------------------------
 
 function shippedFixture(t: { after: (fn: () => void) => void }): string {
@@ -504,13 +497,8 @@ test('a hand-authored skill beside the generated ones is never reported', async 
   assert.deepEqual(advisoriesIn(checked.lines).filter((line) => line.includes('SKILL.md')), []);
 });
 
-test('the collector reports an unknown harness rather than guessing at one', async (t) => {
+test('the collector reports the one harness this build emits for (WO-153: no selector flag)', async (t) => {
   const cwd = project(t);
-  const facts = collectShellFacts(cwd, 'no-such-harness');
-  assert.equal(facts.kind, 'unavailable');
-  assert.match(facts.kind === 'unavailable' ? facts.reason : '', /unknown harness/);
-
-  // And the default harness collects what install wrote.
   writeMethod(cwd, 'define', methodText('MET-001', 'define'));
   await skillsInstall(cwd, { yes: true });
   const collected = collectShellFacts(cwd);

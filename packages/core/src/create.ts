@@ -6,7 +6,7 @@ import { nextIdNumber, recordIssuedId, type IdPrefix } from './idstore.ts';
 import { loadProject } from './load.ts';
 import { getTemplate } from './templates.ts';
 import { localToday } from './dates.ts';
-import { METHODS_DIR, PRODUCT_FILES, REQUIREMENT_KINDS, SOURCE_KINDS } from './pending.ts';
+import { METHODS_DIR, PRODUCT_FILES, REQUIREMENT_KINDS, SOURCE_KINDS, isWithdrawn } from './pending.ts';
 import type { Link, VeriDocument } from './types.ts';
 
 /**
@@ -171,6 +171,17 @@ export async function composeNewDocument(
       `product documents are fixed singletons — author one of ${PRODUCT_FILES.join(', ')} directly (REQ-037)`,
     );
   }
+  // DEC-018: one workflow per project. Creation refuses while a workflow is
+  // still in play — amend the standing one instead; only a retired (or
+  // withdrawn, DEC-110: out of play) workflow leaves room for a successor.
+  if (type === 'workflow') {
+    const standing = documents.find((doc) => doc.type === 'workflow' && doc.status !== 'retired' && !isWithdrawn(doc));
+    if (standing !== undefined) {
+      throw new Error(
+        `this project already has a workflow — ${standing.id} (${standing.status}) at ${standing.file}; one workflow per project (DEC-018): amend it, or retire it before filing a successor`,
+      );
+    }
+  }
   const root = typeof veriDir === 'string' ? veriDir : fileURLToPath(veriDir);
   const date = options.date ?? localToday();
   const links = options.links ?? [];
@@ -261,8 +272,11 @@ export async function composeNewDocument(
     '---',
   ].join('\n');
   // Forward slashes always: `file` is the veri/-relative contract path
-  // (loadProject, receipts, links all speak this form), not an OS path.
-  const file = `${TYPE_SUBDIR[type]}/${id}-${slugifyTitle(trimmed)}.md`;
+  // (loadProject, receipts, links all speak this form), not an OS path. A
+  // root-dwelling type (workflow) has no subdirectory — and no leading
+  // slash: `veri//WF-…` is a path nothing else in the product speaks.
+  const name = `${id}-${slugifyTitle(trimmed)}.md`;
+  const file = TYPE_SUBDIR[type] === '' ? name : `${TYPE_SUBDIR[type]}/${name}`;
   const body = options.body ?? getTemplate(root, type).body;
   const text = `${frontmatter}\n${body}`;
   return { id, file, text, prefix, number: next };

@@ -11,7 +11,10 @@ import { join } from 'node:path';
  * the next successful create repairs the record.
  */
 
-const PREFIX_ORDER = ['REQ', 'DEC', 'WO', 'SRC', 'WF', 'PRD', 'MET'] as const;
+/** Every id prefix the record tracks, in the order `veri/ids` lists them.
+    The one authoritative list (WO-153): anything matching ids elsewhere
+    derives from it instead of restating it and falling behind. */
+export const PREFIX_ORDER = ['REQ', 'DEC', 'WO', 'SRC', 'WF', 'PRD', 'MET'] as const;
 export type IdPrefix = (typeof PREFIX_ORDER)[number];
 
 const ID_LINE_RE = /^(REQ|DEC|WO|SRC|WF|PRD|MET)[ \t]+(\d+)$/;

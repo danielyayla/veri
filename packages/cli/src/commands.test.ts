@@ -37,6 +37,43 @@ test('init && new requirement && check succeeds end-to-end in a temp directory',
   assert.match(checked.lines.at(-1) ?? '', /ok — 2 documents, 0 issues/); // WF-001 + REQ-001
 });
 
+test('veri new product refuses, naming the four singleton paths (WO-153, REQ-037)', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  init(cwd, { demo: false });
+
+  const result = await newDoc(cwd, 'product', 'A fifth singleton');
+  assert.equal(result.code, 1);
+  const message = result.lines.join('\n');
+  for (const file of ['product/vision.md', 'product/users.md', 'product/principles.md', 'product/current-focus.md']) {
+    assert.ok(message.includes(`veri/${file}`), `the refusal should name veri/${file}`);
+  }
+  assert.ok(!existsSync(join(cwd, 'veri', 'product')), 'the refusal must create nothing');
+  // And the type is gone from the offered list.
+  const usage = await newDoc(cwd, 'nonsense', 'Whatever');
+  assert.equal(usage.code, 1);
+  assert.doesNotMatch(usage.lines[0] ?? '', /product/);
+});
+
+test('veri new workflow refuses while one stands, and a successor path is well-formed — never veri// (WO-153)', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  init(cwd, { demo: false });
+
+  // The scaffolded workflow (WF-001, accepted) is in play, so a second is refused.
+  const refused = await newDoc(cwd, 'workflow', 'A second workflow');
+  assert.equal(refused.code, 1);
+  assert.match(refused.lines[0] ?? '', /already has a workflow — WF-001/);
+
+  // Once it retires, the successor lands at the veri/ root with a clean path.
+  const wf = join(cwd, 'veri', 'workflow.md');
+  writeFileSync(wf, readFileSync(wf, 'utf8').replace(/^status: accepted$/m, 'status: retired'));
+  const created = await newDoc(cwd, 'workflow', 'The successor');
+  assert.equal(created.code, 0, created.lines.join('\n'));
+  assert.equal(created.lines[0], 'Created veri/WF-002-the-successor.md (WF-002)');
+  assert.ok(existsSync(join(cwd, 'veri', 'WF-002-the-successor.md')));
+});
+
 test('new documents are born unapproved and veri approve promotes them with a stamp', async (t) => {
   const cwd = tempProject();
   t.after(() => rmSync(cwd, { recursive: true, force: true }));

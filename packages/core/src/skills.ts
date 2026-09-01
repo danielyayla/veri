@@ -527,11 +527,11 @@ export interface ShellFacts {
  * The repair for both rules, named in every advisory the way the existing
  * advisories name theirs. `install` is the whole repair: it refreshes a
  * shell whose method moved, and removes a marked shell whose method left
- * play (DEC-137). Detection reports; the command fixes.
+ * play (DEC-137). Detection reports; the command fixes. One emitter, one
+ * spelling (WO-153 dropped the harness selector): a second harness would
+ * need to name itself in the repair again.
  */
-function repairCommand(harness: string): string {
-  return harness === claudeCodeEmitter.harness ? 'veri skills install' : `veri skills install --harness ${harness}`;
-}
+const REPAIR_COMMAND = 'veri skills install';
 
 /**
  * The drift comparator (WO-136): emitted shells against the methods they
@@ -568,7 +568,7 @@ export function checkShellDrift(documents: VeriDocument[], facts: ShellFacts): A
   // written these files with, so it has no rendering to compare against.
   if (emitter === undefined) return [];
 
-  const repair = repairCommand(facts.harness);
+  const repair = REPAIR_COMMAND;
   const byPath = new Map<string, VeriDocument>();
   for (const doc of documents) {
     if (doc.type !== 'method') continue;

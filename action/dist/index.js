@@ -12941,11 +12941,17 @@ function checkProject(load) {
   };
 }
 
+// ../core/dist/idstore.js
+var PREFIX_ORDER = ["REQ", "DEC", "WO", "SRC", "WF", "PRD", "MET"];
+
 // ../core/dist/create.js
 function slugifyTitle(title) {
   const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60).replace(/-+$/, "");
   return slug === "" ? "untitled" : slug;
 }
+
+// ../core/dist/scaffold.js
+var SEEDED_ID_RE = new RegExp(`^id:\\s*(${PREFIX_ORDER.join("|")})-0*(\\d+)\\s*$`, "m");
 
 // ../core/dist/skills.js
 var SKILL_PREFIX = "veri";
@@ -13009,14 +13015,12 @@ var claudeCodeEmitter = {
 var SKILL_EMITTERS = {
   [claudeCodeEmitter.harness]: claudeCodeEmitter
 };
-function repairCommand(harness) {
-  return harness === claudeCodeEmitter.harness ? "veri skills install" : `veri skills install --harness ${harness}`;
-}
+var REPAIR_COMMAND = "veri skills install";
 function checkShellDrift(documents, facts) {
   const emitter = SKILL_EMITTERS[facts.harness];
   if (emitter === void 0)
     return [];
-  const repair = repairCommand(facts.harness);
+  const repair = REPAIR_COMMAND;
   const byPath = /* @__PURE__ */ new Map();
   for (const doc of documents) {
     if (doc.type !== "method")
@@ -13217,19 +13221,8 @@ function collectShells(root2, emitter) {
   walk(base, 0);
   return found.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
 }
-function collectShellFacts(cwd, harness) {
-  const emitter = resolveEmitter(harness);
-  if (typeof emitter === "string")
-    return { kind: "unavailable", reason: emitter };
-  return { kind: "ok", harness: emitter.harness, shells: collectShells(cwd, emitter) };
-}
-function resolveEmitter(harness) {
-  if (harness === void 0)
-    return claudeCodeEmitter;
-  const emitter = SKILL_EMITTERS[harness];
-  if (emitter !== void 0)
-    return emitter;
-  return `unknown harness "${harness}" \u2014 this build emits for: ${Object.keys(SKILL_EMITTERS).sort().join(", ")}`;
+function collectShellFacts(cwd) {
+  return { kind: "ok", harness: claudeCodeEmitter.harness, shells: collectShells(cwd, claudeCodeEmitter) };
 }
 
 // ../cli/dist/testfacts.js
@@ -13255,6 +13248,7 @@ function resolves(root2, id) {
 
 // ../cli/dist/commands.js
 var TYPE_LIST = DOC_TYPES.join(" | ");
+var NEW_TYPE_LIST = DOC_TYPES.filter((type) => type !== "product").join(" | ");
 var DEMO_ROOT = fileURLToPath5(new URL("../demo/", import.meta.url));
 var STARTERS_ROOT = fileURLToPath5(new URL("../starters/", import.meta.url));
 function requireVeriDir(cwd) {

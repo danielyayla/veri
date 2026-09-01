@@ -1,7 +1,7 @@
 import { constants, copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { recordIssuedId } from './idstore.ts';
+import { PREFIX_ORDER, recordIssuedId } from './idstore.ts';
 import type { IdPrefix } from './idstore.ts';
 import { writeDefaultTemplates } from './templates.ts';
 import { FORMAT_FILE, writeFormatMarker } from './format.ts';
@@ -171,7 +171,10 @@ function stampSeededDates(veriDir: string, date: string): void {
   }
 }
 
-const SEEDED_ID_RE = /^id:\s*(REQ|DEC|WO|SRC|WF)-0*(\d+)\s*$/m;
+// Derived from the idstore's own prefix list (WO-153): a starter seeding any
+// document type — PRD and MET included — feeds the floor, so a new prefix
+// can never silently corrupt id allocation by being missing here.
+const SEEDED_ID_RE = new RegExp(`^id:\\s*(${PREFIX_ORDER.join('|')})-0*(\\d+)\\s*$`, 'm');
 
 /** Record every seeded id's high-water mark in veri/ids (DEC-037). */
 function recordSeededIds(veriDir: string): void {

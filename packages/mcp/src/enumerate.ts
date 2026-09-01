@@ -13,7 +13,7 @@ import type { DocType, VeriDocument } from '@verikb/core';
  */
 
 /**
- * Every status the frontmatter schema accepts, across all six document types
+ * Every status the frontmatter schema accepts, across all seven document types
  * (see packages/core/src/schema.ts). Held here so the tool advertises a
  * closed vocabulary and refuses a typo loudly instead of answering it with an
  * empty list — a filter that silently matches nothing is the no-op check

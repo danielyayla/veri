@@ -161,6 +161,27 @@ test('starter scaffold copies the seed docs, completes the layout, and stamps fo
   assert.equal(readFileSync(join(result.veriDir, 'ids'), 'utf8'), 'REQ 1\nDEC 2\nWF 1\n');
 });
 
+test('starter scaffold records PRD and MET ids in the floor (WO-153)', () => {
+  const starterRoot = fakeStarter();
+  mkdirSync(join(starterRoot, 'veri', 'product'), { recursive: true });
+  mkdirSync(join(starterRoot, 'veri', 'methods'), { recursive: true });
+  writeFileSync(
+    join(starterRoot, 'veri', 'product', 'vision.md'),
+    '---\nid: PRD-001\ncreated: 0001-01-01\nupdated: 0001-01-01\n---\n',
+  );
+  writeFileSync(
+    join(starterRoot, 'veri', 'methods', 'MET-003-z.md'),
+    '---\nid: MET-003\ncreated: 0001-01-01\nupdated: 0001-01-01\n---\n',
+  );
+  const root = tmp();
+
+  scaffoldProject(root, { starterRoot });
+
+  // The floor covers every seeded prefix — a document filed after init can
+  // never collide with a seeded PRD or MET id (DEC-037).
+  assert.equal(readFileSync(join(root, 'veri', 'ids'), 'utf8'), 'REQ 1\nDEC 2\nWF 1\nPRD 1\nMET 3\n');
+});
+
 test('starter scaffold restamps seeded frontmatter dates to today, body text untouched (DEC-076)', () => {
   const starterRoot = fakeStarter();
   const root = tmp();

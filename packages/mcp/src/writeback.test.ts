@@ -6,7 +6,6 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkProject, createDocument, loadProject } from '@verikb/core';
 import { fileDecision, fileReceipt, fileRequirement, fileSource, fileWorkOrder } from './writeback.ts';
-import { searchDocs } from './search.ts';
 
 const FIXTURE = fileURLToPath(new URL('../fixtures/writeback', import.meta.url));
 
@@ -44,8 +43,9 @@ test('file_decision creates a valid decision with the next free DEC id', async (
   assert.equal(second.id, 'DEC-002');
   await assertClean(root);
 
-  const hits = await searchDocs(root, 'widgets');
-  assert.ok(hits.some((hit) => hit.id === 'DEC-001' && hit.status === 'proposed'));
+  const reloaded = await loadProject(join(root, 'veri'));
+  const filed = reloaded.documents.find((doc) => doc.id === 'DEC-001');
+  assert.equal(filed?.status, 'proposed'); // discoverable through the shared load path
 });
 
 test('file_decision consumes ids permanently via the shared record', async (t) => {

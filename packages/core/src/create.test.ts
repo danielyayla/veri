@@ -111,6 +111,30 @@ test('slugifyTitle handles hostile input', () => {
   assert.equal(slugifyTitle('x'.repeat(100)).length <= 60, true);
 });
 
+test('a workflow is created at the veri/ root with a well-formed path — never veri// (WO-153)', async (t) => {
+  const dir = sandbox(t);
+  const result = await createDocument(dir, 'workflow', 'How work moves', { date: '2026-09-01' });
+  assert.equal(result.id, 'WF-001');
+  assert.equal(result.file, 'WF-001-how-work-moves.md'); // no subdirectory, no leading slash
+  const raw = readFileSync(join(dir, result.file), 'utf8');
+  assert.match(raw, /^type: workflow$/m);
+  assert.match(raw, /^status: draft$/m);
+});
+
+test('a second workflow is refused while one is in play, and allowed once it retires (WO-153, DEC-018)', async (t) => {
+  const dir = sandbox(t);
+  await createDocument(dir, 'workflow', 'The standing workflow', { date: '2026-09-01' });
+  await assert.rejects(createDocument(dir, 'workflow', 'A rival workflow'), /already has a workflow — WF-001/);
+  // The refusal wrote nothing and spent no id.
+  assert.equal((await loadProject(dir)).documents.length, 1);
+
+  const standing = join(dir, 'WF-001-the-standing-workflow.md');
+  writeFileSync(standing, readFileSync(standing, 'utf8').replace(/^status: draft$/m, 'status: retired'));
+  const successor = await createDocument(dir, 'workflow', 'The successor', { date: '2026-09-01' });
+  assert.equal(successor.id, 'WF-002');
+  assert.equal(successor.file, 'WF-002-the-successor.md');
+});
+
 test('createDocument refuses the product type — singletons are authored at fixed paths (REQ-037, WO-121)', async (t) => {
   const dir = sandbox(t);
   await assert.rejects(

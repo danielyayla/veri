@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFi
 import { createRequire } from 'node:module';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createApprovedDocument, createDocument, deleteDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, isBrownfieldRoot, isOperableFormat, loadProject, localToday, lookupIntent, maintainerRegistry, migrateProject, nextDispatchable, nextIdNumber, originalStoragePath, outcomeLabel, recordIssuedId, renderIntent, renumberDocument, requirementKind, scaffoldProject, slugifyTitle, dispatchWorkOrder, supersedeDecision, withdrawDocument, workOrdersTouching } from '@verikb/core';
+import { CURRENT_FORMAT, DOC_TYPES, PRODUCT_FILES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createApprovedDocument, createDocument, deleteDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, isBrownfieldRoot, isOperableFormat, loadProject, localToday, lookupIntent, maintainerRegistry, migrateProject, nextDispatchable, nextIdNumber, originalStoragePath, outcomeLabel, recordIssuedId, renderIntent, renumberDocument, requirementKind, scaffoldProject, slugifyTitle, dispatchWorkOrder, supersedeDecision, withdrawDocument, workOrdersTouching } from '@verikb/core';
 import type { CheckReport, DocType } from '@verikb/core';
 import { collectGitFacts, gitUserName } from './git.ts';
 import { collectShellFacts } from './skills.ts';
@@ -15,6 +15,10 @@ export interface CmdResult {
 }
 
 const TYPE_LIST = DOC_TYPES.join(' | ');
+// `veri new` grows collections; product singletons are authored at fixed
+// paths (REQ-037), so the type is not offered there (WO-153). `veri list`
+// keeps the full vocabulary — product documents list fine.
+const NEW_TYPE_LIST = DOC_TYPES.filter((type) => type !== 'product').join(' | ');
 
 // The skiff demo ships as real markdown files next to dist/ — see DEC-007.
 // Exported so the desktop app's New-project flow seeds from the same files
@@ -174,8 +178,19 @@ export async function newDoc(
   title: string | undefined,
   opts: { approve?: boolean; as?: string } = {},
 ): Promise<CmdResult> {
+  // A purposeful refusal, not a type-list gap: `veri new product` was the
+  // one accepted spelling guaranteed to throw (WO-153), so the answer names
+  // where product documents actually live.
+  if (typeArg === 'product') {
+    return {
+      code: 1,
+      lines: [
+        `product documents are fixed singletons, not a collection veri new grows — author one of ${PRODUCT_FILES.map((file) => `veri/${file}`).join(', ')} directly (REQ-037).`,
+      ],
+    };
+  }
   if (typeArg === undefined || !isDocType(typeArg)) {
-    return { code: 1, lines: [`usage: veri new <type> "<title>" where <type> is ${TYPE_LIST}`] };
+    return { code: 1, lines: [`usage: veri new <type> "<title>" where <type> is ${NEW_TYPE_LIST}`] };
   }
   if (title === undefined || title.trim() === '' || title.startsWith('--')) {
     return { code: 1, lines: ['a title is required: veri new ' + typeArg + ' "<title>"'] };
