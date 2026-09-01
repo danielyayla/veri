@@ -73,13 +73,11 @@ export type Advisory =
       section: string;
       message: string;
     }
-  // Receipt verification (WO-044, REQ-021): a receipt's git claims did not
-  // check out against collected history. Advisory by design — provenance
-  // informs, never blocks (DEC-025).
+  // Receipt verification (WO-044, REQ-021; narrowed by DEC-142/WO-141): a
+  // receipt is a one-line pointer into git, and its one claim — the cited
+  // commit exists in history — is the one thing checked. Advisory by
+  // design — provenance informs, never blocks (DEC-025).
   | { kind: 'receipt-commit-missing'; file: string; id: string; sha: string; message: string }
-  | { kind: 'receipt-prefix'; file: string; id: string; sha: string; subject: string; message: string }
-  | { kind: 'receipt-files'; file: string; id: string; sha: string; message: string }
-  | { kind: 'receipt-unverified'; file: string; id: string; message: string }
   // Drift (WO-045, REQ-021): the knowledge base moved out from under its
   // own stamps. Advisories whisper — they inform and never block (DEC-025).
   | { kind: 'drift-superseded-link'; file: string; id: string; targetId: string; message: string }

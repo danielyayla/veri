@@ -59,6 +59,8 @@ const WORK_ORDER_BODY = `
 
 ## Receipts
 
+(one line per work session: date — commit or PR ref — one sentence)
+
 (none yet)
 `;
 

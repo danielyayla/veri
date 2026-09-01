@@ -30,6 +30,8 @@ const WORKFLOW = doc({
   },
 });
 
+// A done work order whose receipt names the path — receipts are pointers
+// into git (DEC-142) and no longer evidence for this lookup (WO-141).
 const RECEIPT_WO = doc({
   id: 'WO-010',
   type: 'work-order',
@@ -55,40 +57,36 @@ const DEC = doc({ id: 'DEC-005', type: 'decision', title: 'The decision', status
 
 const CORPUS = [WORKFLOW, RECEIPT_WO, BINDING_WO, REQ, DEC];
 
-test('a path touched by receipts and bindings returns both, bindings ranked first', () => {
+test('a bound path matches via its binding; a receipt naming the path no longer matches (WO-141)', () => {
   const lookup = lookupIntent(CORPUS, 'packages/core/src/intake.ts');
   assert.deepEqual(
     lookup.matches.map((m) => [m.id, m.via]),
-    [
-      ['WO-004', 'binding'],
-      ['WO-010', 'receipt'],
-    ],
+    [['WO-004', 'binding']],
   );
   assert.equal(lookup.matches[0].evidence, 'packages/core/src/**');
-  assert.equal(lookup.matches[1].evidence, 'packages/core/src/intake.ts');
 });
 
 test('governing documents are the matched work orders frontmatter links, requirements before decisions', () => {
   const lookup = lookupIntent(CORPUS, 'packages/core/src/intake.ts');
   assert.deepEqual(
     lookup.governing.map((g) => g.id),
-    ['REQ-002', 'DEC-005'],
+    ['REQ-002'],
   );
   const req = lookup.governing[0];
   assert.equal(req.title, 'The requirement');
   assert.deepEqual(
-    req.citedBy.map((c) => c.workOrder).sort(),
-    ['WO-004', 'WO-010'],
+    req.citedBy.map((c) => c.workOrder),
+    ['WO-004'],
   );
 });
 
-test('a directory query surfaces work orders bound to or receipted inside it', () => {
-  const lookup = lookupIntent(CORPUS, 'packages/cli');
+test('a directory query surfaces work orders bound to globs inside it', () => {
+  const lookup = lookupIntent(CORPUS, 'packages/core');
   assert.deepEqual(
     lookup.matches.map((m) => m.id),
-    ['WO-010'],
+    ['WO-004'],
   );
-  assert.equal(lookup.module?.name, 'cli');
+  assert.equal(lookup.module?.name, 'core');
 });
 
 test('a path covered only by the module registry says so and names the module', () => {
@@ -106,16 +104,17 @@ test('a path nothing records renders the nothing-recorded statement', () => {
   assert.match(renderIntent(lookup), /nothing recorded touches docs\/README\.md/);
 });
 
-test('within a tier, newer work orders come first', () => {
+test('newer work orders come first', () => {
   const older = doc({
     id: 'WO-002',
     type: 'work-order',
-    body: '## Receipts\n\n- 2026-08-01 — abc1234 — packages/core/src/intake.ts — early\n',
+    status: 'ready',
+    binds: { paths: ['packages/core/src/intake.ts'], tests: [] },
   });
-  const lookup = lookupIntent([older, RECEIPT_WO], 'packages/core/src/intake.ts');
+  const lookup = lookupIntent([older, BINDING_WO], 'packages/core/src/intake.ts');
   assert.deepEqual(
     lookup.matches.map((m) => m.id),
-    ['WO-010', 'WO-002'],
+    ['WO-004', 'WO-002'],
   );
 });
 
@@ -126,19 +125,16 @@ test('the render is grounded-facts labeled and lists matches with evidence', () 
   assert.match(text, /REQ-002\s+accepted\s+The requirement — via/);
 });
 
-test('a done work order matches via its receipts, never a lingering binding', () => {
+test('a done work order matches nothing — its binding no longer counts, and git holds its record', () => {
   const finished = doc({
     id: 'WO-020',
     type: 'work-order',
     status: 'done',
     binds: { paths: ['packages/core/src/**'], tests: [] },
-    body: '## Receipts\n\n(none yet)\n',
+    body: '## Receipts\n\n- 2026-08-20 — abc1234 — shipped\n',
   });
-  const lookup = lookupIntent([finished, RECEIPT_WO], 'packages/core/src/intake.ts');
-  assert.deepEqual(
-    lookup.matches.map((m) => [m.id, m.via]),
-    [['WO-010', 'receipt']],
-  );
+  const lookup = lookupIntent([finished], 'packages/core/src/intake.ts');
+  assert.deepEqual(lookup.matches, []);
 });
 
 test('normalization strips ./ prefixes and trailing slashes', () => {

@@ -1,6 +1,5 @@
 import type { VeriDocument } from './types.ts';
 import type { ModuleEntry } from './schema.ts';
-import { parseReceipts } from './provenance.ts';
 import { pathMatchesBinds } from './binds.ts';
 import { moduleRegistry } from './architecture.ts';
 import { buildGraph } from './graph.ts';
@@ -8,24 +7,26 @@ import { buildGraph } from './graph.ts';
 /**
  * Code-to-intent lookup (WO-095, REQ-021): from a repo-relative path to the
  * documents that govern it, derived from what the knowledge base already
- * records — work-order code bindings (WO-088), receipt file lists (DEC-003),
- * and the module registry on the workflow document (DEC-059). No code
- * parsing, no index, no git: pure over loaded documents (DEC-040), so every
- * surface — CLI, MCP, a future app panel — serves the identical derivation
- * (DEC-038).
+ * records — work-order code bindings (WO-088) and the module registry on
+ * the workflow document (DEC-059). No code parsing, no index, no git: pure
+ * over loaded documents (DEC-040), so every surface — CLI, MCP, a future
+ * app panel — serves the identical derivation (DEC-038). Receipts left
+ * this derivation with their file lists (DEC-142, WO-141): a receipt is a
+ * pointer into git, and the shipped-work answer is git's — `veri
+ * implemented` reads it from commit subjects.
  */
 
-/** How a work order came to touch the path — the ranking axis (DEC-099):
-    a binding is a live claim, a receipt a recorded fact, so bindings
-    outrank receipts, and both outrank a module-level match. */
-export type IntentVia = 'binding' | 'receipt';
+/** How a work order came to touch the path (DEC-099, narrowed by DEC-142):
+    a binding — a live claim by in-flight work. The receipt tier retired
+    with receipt file lists. */
+export type IntentVia = 'binding';
 
 export interface IntentMatch {
   id: string;
   title: string;
   status: string;
   via: IntentVia;
-  /** The recorded token that matched: a binds pattern or a receipt path. */
+  /** The recorded token that matched: a binds pattern. */
   evidence: string;
 }
 
@@ -43,8 +44,7 @@ export interface GoverningDoc {
 export interface IntentLookup {
   /** The query path, normalized (no leading ./, no trailing /). */
   path: string;
-  /** Matched work orders, bindings before receipts, newest id first
-      within each tier. */
+  /** Matched work orders, newest id first. */
   matches: IntentMatch[];
   /** The registry module covering the path, when one does. */
   module?: ModuleEntry;
@@ -52,19 +52,6 @@ export interface IntentLookup {
 }
 
 const normalize = (path: string): string => path.replace(/^\.\//, '').replace(/\/+$/, '');
-
-/** Does a recorded path token name the query path? Same posture as receipt
-    verification's file matching: exact, as a directory either way, or as a
-    basename — receipts often name files by basename alone. */
-function overlaps(target: string, token: string): boolean {
-  const clean = normalize(token);
-  return (
-    clean === target ||
-    clean.startsWith(target + '/') ||
-    target.startsWith(clean + '/') ||
-    target.endsWith('/' + clean)
-  );
-}
 
 /** A glob pattern's leading glob-free segments — the directory it
     anchors under. */
@@ -86,15 +73,6 @@ function bindingEvidence(target: string, patterns: string[]): string | undefined
     const prefix = staticPrefix(clean);
     if (prefix !== '' && (prefix === target || prefix.startsWith(target + '/') || target.startsWith(prefix + '/'))) {
       return pattern;
-    }
-  }
-  return undefined;
-}
-
-function receiptEvidence(doc: VeriDocument, target: string): string | undefined {
-  for (const receipt of parseReceipts(doc.body)) {
-    for (const token of receipt.paths) {
-      if (overlaps(target, token)) return token;
     }
   }
   return undefined;
@@ -123,23 +101,20 @@ export function lookupIntent(documents: VeriDocument[], path: string): IntentLoo
   for (const doc of documents) {
     if (doc.type !== 'work-order') continue;
     // A binding is a live claim by in-flight work (WO-088); once the work
-    // order is done, its receipts are the record — a lingering broad glob
-    // must not outrank the receipt of the work that shipped the file.
-    const bound =
-      doc.binds === undefined || doc.status === 'done' ? undefined : bindingEvidence(target, doc.binds.paths);
-    const evidence = bound ?? receiptEvidence(doc, target);
+    // order is done, git history is the record — `veri implemented` reads
+    // it — so a lingering broad glob stops claiming the file (DEC-099).
+    if (doc.binds === undefined || doc.status === 'done') continue;
+    const evidence = bindingEvidence(target, doc.binds.paths);
     if (evidence === undefined) continue;
     matches.push({
       id: doc.id,
       title: doc.title,
       status: doc.status,
-      via: bound !== undefined ? 'binding' : 'receipt',
+      via: 'binding',
       evidence,
     });
   }
-  matches.sort((a, b) =>
-    a.via === b.via ? idNumber(b.id) - idNumber(a.id) : a.via === 'binding' ? -1 : 1,
-  );
+  matches.sort((a, b) => idNumber(b.id) - idNumber(a.id));
 
   // Governing documents: requirements and decisions the matched work orders
   // link in frontmatter — deliberate citations, not inline mentions.
@@ -177,8 +152,8 @@ export function lookupIntent(documents: VeriDocument[], path: string): IntentLoo
 export function renderIntent(lookup: IntentLookup): string {
   const lines: string[] = [`# Intent · ${lookup.path}`, ''];
   lines.push(
-    'Grounded in what this knowledge base records — work-order bindings, receipts,',
-    'and the module registry — not a code index.',
+    'Grounded in what this knowledge base records — work-order bindings and',
+    'the module registry — not a code index.',
     '',
   );
 
@@ -190,8 +165,8 @@ export function renderIntent(lookup: IntentLookup): string {
   if (lookup.matches.length === 0) {
     lines.push(
       lookup.module === undefined
-        ? `nothing recorded touches ${lookup.path} — no binding, receipt, or module covers it`
-        : `no document-level matches — no work-order binding or receipt touches ${lookup.path}; the module entry above is the only coverage`,
+        ? `nothing recorded touches ${lookup.path} — no binding or module covers it`
+        : `no document-level matches — no work-order binding touches ${lookup.path}; the module entry above is the only coverage`,
       '',
     );
   } else {

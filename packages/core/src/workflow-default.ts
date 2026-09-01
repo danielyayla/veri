@@ -61,9 +61,11 @@ work orders become implementation with receipts.
    promote a document yourself. Unapproved documents are visible in
    context packages but never binding.
 6. When you finish a work session, append a receipt to the work order
-   under \`## Receipts\`: date, commit, files touched, one-line summary.
-   A work order is done only when all acceptance criteria are checked
-   and at least one receipt exists.
+   under \`## Receipts\` — one line: date — commit or PR ref — one
+   sentence of what the session did. Git is the record of what changed;
+   the receipt is a pointer into it, never a copy of it. A work order
+   is done only when all acceptance criteria are checked and at least
+   one receipt exists.
 7. Run \`veri check\` before declaring any work complete. Zero issues is
    the bar.
 

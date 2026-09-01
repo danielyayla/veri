@@ -42,16 +42,22 @@ const FACTS: GitFacts = {
   ],
 };
 
-// --- parseReceipts: the corpus's real formats ---
+// --- parseReceipts: the pointer form, and the corpus's older shapes ---
 
-test('parseReceipts reads the canonical date — sha — files — summary shape', () => {
+test('parseReceipts reads the pointer form: date — sha — one sentence (DEC-142)', () => {
+  const [receipt] = parseReceipts('## Receipts\n\n- 2026-09-01 — aaaa111 — did the thing\n');
+  assert.deepEqual(receipt.shas, ['aaaa111']);
+  assert.equal(receipt.date, '2026-09-01');
+  assert.equal(receipt.summary, 'did the thing');
+});
+
+test('parseReceipts stays lenient about old forms: the files segment rides along as summary text', () => {
   const [receipt] = parseReceipts(
     '## Receipts\n\n- 2026-08-18 — aaaa111 — packages/core/src/thing.ts, README.md — did the thing\n',
   );
   assert.deepEqual(receipt.shas, ['aaaa111']);
-  assert.deepEqual(receipt.paths, ['packages/core/src/thing.ts', 'README.md']);
   assert.equal(receipt.date, '2026-08-18');
-  assert.equal(receipt.summary, 'did the thing');
+  assert.equal(receipt.summary, 'packages/core/src/thing.ts, README.md — did the thing');
 });
 
 test('parseReceipts reads the date and the summary from the same segmentation (WO-128)', () => {
@@ -60,11 +66,11 @@ test('parseReceipts reads the date and the summary from the same segmentation (W
       '## Receipts',
       '',
       // A summary spanning further separators keeps them, normalized.
-      '- 2026-08-10 · abc1234 · no code changes · verified live — .cursor/mcp.json written at runtime',
+      '- 2026-08-10 · abc1234 · verified live — .cursor/mcp.json written at runtime',
       // Nothing before the first separator that looks like a date.
-      '- session note — abc1234 — packages/core — tidy up',
-      // Nothing past the files segment at all.
-      '- 2026-08-11 — abc1234 — packages/core',
+      '- session note — abc1234 — tidy up',
+      // Nothing past the SHA segment at all.
+      '- 2026-08-11 — abc1234',
     ].join('\n'),
   );
   assert.equal(receipts[0].date, '2026-08-10');
@@ -79,66 +85,27 @@ test('parseReceipts handles middle dots, "commit" prefixes, and dual SHAs', () =
     [
       '## Receipts',
       '',
-      '- 2026-08-10 · abc1234 · packages/ui/src/lib/mcpconfig.ts(+test) · session',
-      '- 2026-08-13 — commit def5678 — packages/core/src/{check,types}.ts — session',
-      '- 2026-08-10 — fa0dada + 25baf52 — packages/core — gate shipped',
+      '- 2026-08-10 · abc1234 · session',
+      '- 2026-08-13 — commit def5678 — session',
+      '- 2026-08-10 — fa0dada + 25baf52 — gate shipped',
     ].join('\n'),
   );
   assert.deepEqual(receipts[0].shas, ['abc1234']);
-  assert.deepEqual(receipts[0].paths, ['packages/ui/src/lib/mcpconfig.ts']);
   assert.deepEqual(receipts[1].shas, ['def5678']);
-  assert.deepEqual(receipts[1].paths, ['packages/core/src/check.ts', 'packages/core/src/types.ts']);
   assert.deepEqual(receipts[2].shas, ['fa0dada', '25baf52']);
 });
 
-test('parseReceipts reads JSON-array file lists and joins wrapped lines', () => {
+test('parseReceipts joins wrapped lines into one item', () => {
   const [receipt] = parseReceipts(
-    [
-      '## Receipts',
-      '',
-      '- 2026-08-17 — 6f60207 — ["site/index.html",',
-      '  "veri/work-orders/WO-029.md"] — session: shipped the site.',
-    ].join('\n'),
+    ['## Receipts', '', '- 2026-08-17 — 6f60207 — session: shipped the site,', '  and wired the release.'].join('\n'),
   );
   assert.deepEqual(receipt.shas, ['6f60207']);
-  assert.deepEqual(receipt.paths, ['site/index.html', 'veri/work-orders/WO-029.md']);
-});
-
-test('parseReceipts keeps the leading dot on dotfile and dot-directory tokens', () => {
-  const [receipt] = parseReceipts(
-    '## Receipts\n\n- 2026-08-18 — aaaa111 — ".github/workflows/release.yml", .env.example, site/index.html. — wired the release workflow\n',
-  );
-  assert.deepEqual(receipt.paths, ['.github/workflows/release.yml', '.env.example', 'site/index.html']);
-});
-
-test('a receipt naming only dot-directory files verifies clean', () => {
-  const facts: GitFacts = {
-    commits: [
-      {
-        sha: 'cccc333cccc333cccc333cccc333cccc333cccc3',
-        date: '2026-08-18',
-        subject: 'WO-001: wire the release workflow',
-        files: ['.github/workflows/release.yml'],
-      },
-    ],
-  };
-  const doc = workOrder('WO-001', 'done', [
-    '2026-08-18 — cccc333 — .github/workflows/release.yml — wired the release workflow',
-  ]);
-  assert.deepEqual(checkProvenance([doc], facts), []);
-});
-
-test('parseReceipts takes paths from the files segment only, never the summary', () => {
-  const [receipt] = parseReceipts(
-    '## Receipts\n\n- 2026-08-10 · abc1234 · no code changes · verified live — .cursor/mcp.json written at runtime\n',
-  );
-  assert.deepEqual(receipt.paths, []);
+  assert.equal(receipt.summary, 'session: shipped the site, and wired the release.');
 });
 
 test('parseReceipts yields nothing verifiable from a pre-convention receipt', () => {
   const [receipt] = parseReceipts('## Receipts\n\n- an early receipt with no sha at all\n');
   assert.deepEqual(receipt.shas, []);
-  assert.deepEqual(receipt.paths, []);
   // It claims no date and no summary either; `raw` still holds the text.
   assert.equal(receipt.date, null);
   assert.equal(receipt.summary, '');
@@ -156,62 +123,43 @@ test('subjectWorkOrders honors the convention and its multi-id and variant forms
   assert.deepEqual(subjectWorkOrders('fix: build before typecheck'), []);
 });
 
-// --- checkProvenance: each advisory, and the clean path ---
+// --- checkProvenance: the pointer's one claim (DEC-142) ---
 
 test('a receipt citing a commit absent from history yields receipt-commit-missing', () => {
-  const doc = workOrder('WO-001', 'done', ['2026-08-18 — 9999fff — packages/core — session']);
+  const doc = workOrder('WO-001', 'done', ['2026-08-18 — 9999fff — session']);
   const advisories = checkProvenance([doc], FACTS);
   assert.deepEqual(
     advisories.map((a) => a.kind),
-    ['receipt-commit-missing', 'receipt-unverified'],
+    ['receipt-commit-missing'],
   );
   assert.match(advisories[0].message, /9999fff/);
 });
 
-test('a resolved commit without the WO prefix yields receipt-prefix', () => {
-  const doc = workOrder('WO-002', 'done', ['2026-08-18 — bbbb222 — README.md — session']);
-  const advisories = checkProvenance([doc], FACTS);
-  assert.deepEqual(
-    advisories.map((a) => a.kind),
-    ['receipt-prefix'],
-  );
-  assert.match(advisories[0].message, /lacks the WO-002: prefix/);
-});
-
-test('a receipt whose files the commit never touched yields receipt-files', () => {
-  const doc = workOrder('WO-001', 'done', [
+test('the reconciliation tier is retired: its old fixtures no longer produce advisories (WO-141)', () => {
+  // Each of these previously fired one of the three retired rules.
+  const prefixed = workOrder('WO-002', 'done', [
+    // receipt-prefix: bbbb222's subject lacks the WO-002: prefix.
+    '2026-08-18 — bbbb222 — README.md — session',
+  ]);
+  const files = workOrder('WO-001', 'done', [
+    // receipt-files: aaaa111 never touched packages/mcp/src/server.ts.
     '2026-08-18 — aaaa111 — packages/mcp/src/server.ts — session',
   ]);
-  const advisories = checkProvenance([doc], FACTS);
-  assert.deepEqual(
-    advisories.map((a) => a.kind),
-    ['receipt-files'],
-  );
-});
-
-test('a done work order with no verifiable receipt yields receipt-unverified', () => {
-  const doc = workOrder('WO-003', 'done', ['an early receipt with no sha']);
-  const advisories = checkProvenance([doc], FACTS);
-  assert.deepEqual(
-    advisories.map((a) => a.kind),
-    ['receipt-unverified'],
-  );
-});
-
-test('an in-progress work order with unverifiable receipts stays quiet', () => {
-  const doc = workOrder('WO-003', 'in-progress', ['an early receipt with no sha']);
-  assert.deepEqual(checkProvenance([doc], FACTS), []);
-});
-
-test('a receipt matching its commit — prefix, files, directory tokens — verifies clean', () => {
-  const doc = workOrder('WO-001', 'done', [
-    '2026-08-18 — aaaa111 — packages/core (thing.ts, +tests) — built the thing',
+  const unverified = workOrder('WO-003', 'done', [
+    // receipt-unverified: done with nothing resolvable in any receipt.
+    'an early receipt with no sha',
   ]);
-  assert.deepEqual(checkProvenance([doc], FACTS), []);
+  assert.deepEqual(checkProvenance([prefixed, files, unverified], FACTS), []);
+});
+
+test('a pointer resolving to a real commit verifies clean, whatever the subject says', () => {
+  const doc = workOrder('WO-001', 'done', ['2026-08-18 — aaaa111 — built the thing']);
+  const other = workOrder('WO-002', 'done', ['2026-08-17 — bbbb222 — housekeeping ratified']);
+  assert.deepEqual(checkProvenance([doc, other], FACTS), []);
 });
 
 test('non-work-orders are never checked', () => {
-  const doc = { ...workOrder('REQ-001', 'accepted', ['2026-08-18 — 9999fff — x — y']), type: 'requirement' as const };
+  const doc = { ...workOrder('REQ-001', 'accepted', ['2026-08-18 — 9999fff — y']), type: 'requirement' as const };
   assert.deepEqual(checkProvenance([doc], FACTS), []);
 });
 

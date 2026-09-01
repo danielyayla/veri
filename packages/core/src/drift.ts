@@ -109,7 +109,7 @@ export function checkDrift(documents: VeriDocument[], facts: GitFacts, veriPath:
         if (index >= 0) ownIndices.push(index);
       }
     }
-    if (ownIndices.length === 0) continue; // nothing anchors the close — receipt-unverified's territory
+    if (ownIndices.length === 0) continue; // nothing anchors the close — no commit to order the edit against
     const closeIndex = Math.min(...ownIndices);
     for (const link of doc.links) {
       if (link.rel !== 'implements') continue;

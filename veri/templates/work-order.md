@@ -21,4 +21,6 @@
 
 ## Receipts
 
+(one line per work session: date — commit or PR ref — one sentence)
+
 (none yet)
