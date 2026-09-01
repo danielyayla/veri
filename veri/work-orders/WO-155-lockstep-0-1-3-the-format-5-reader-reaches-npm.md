@@ -2,7 +2,10 @@
 id: WO-155
 type: work-order
 title: "Lockstep 0.1.3: the format-5 reader reaches npm"
-status: backlog
+status: in-progress
+approved: 2026-09-02
+claimed_by: fable-wo155
+claimed_at: 2026-09-02
 created: 2026-09-02
 updated: 2026-09-02
 links:
