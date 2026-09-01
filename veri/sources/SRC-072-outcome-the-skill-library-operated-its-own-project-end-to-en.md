@@ -9,6 +9,8 @@ updated: 2026-09-02
 links:
   - id: REQ-040
     rel: supports
+  - id: REQ-008
+    rel: supports
   - id: WO-133
     rel: outcome-of
   - id: WO-134
