@@ -2,7 +2,10 @@
 id: WO-157
 type: work-order
 title: "The app forgets ready — dead lanes and a receipt segment that no longer exists"
-status: backlog
+status: in-progress
+approved: 2026-09-02
+claimed_by: fable-wo157
+claimed_at: 2026-09-02
 created: 2026-09-02
 updated: 2026-09-02
 links:
