@@ -29,7 +29,7 @@ requires:
   - get_intent
 upstream: veri/define
 created: 2026-08-27
-updated: 2026-08-28
+updated: 2026-09-01
 links:
   - id: WF-001
     rel: derived-from
@@ -187,7 +187,7 @@ verifies nothing.
 
 - **`amend_document` is pending-only.** It replaces the title, whole body
   and links of a *draft* requirement, *proposed* decision or *backlog*
-  work order, and refuses approved, ready or started documents outright.
+  work order, and refuses approved, stamped or started documents outright.
   There is no status field and no approval field to send. This is not an
   obstacle to route around: it is the mechanical form of beat 7.
 - **`file_requirement` carries `kind` and `outcome`.** Beat 3's answer is
@@ -246,8 +246,9 @@ this gate always leaves behind:
 
 - **The user's approval pass comes first, unconditionally.** A draft
   requirement is visible and non-binding; nothing downstream may treat it
-  as intent, and `veri:approval-session` runs that queue. This is the one
-  step of the sequence no skill can perform.
+  as intent until the user stamps it — `veri approve`, or the app's
+  review queue. This is the one step of the sequence no skill can
+  perform.
 - **`veri:decide`** — when the requirement, once stated, forces a choice
   between real alternatives, including anything beat 6 set aside. What
   waits there is a proposed decision, and it waits for the same stamp.

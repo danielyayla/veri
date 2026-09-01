@@ -17,8 +17,9 @@ description: >-
   requirement per foundational bet. Not for a record whose problem is
   settled and whose user is the thing in doubt: "we keep writing 'small
   teams' into every requirement and I could not tell you who that actually
-  is" is veri:user-discovery's, because what is undefined is who rather
-  than what. Not for a bare "I have an idea" carrying nothing — that is
+  is" wants a user-research pass, not this interview, because what is
+  undefined is who rather than what. Not for a bare "I have an idea"
+  carrying nothing — that is
   veri:wayfinder's triage — nor for chores like "bump zod to the latest
   3.x".
 requires:
@@ -27,7 +28,7 @@ requires:
   - get_intent
 upstream: veri/product-discovery
 created: 2026-08-27
-updated: 2026-08-28
+updated: 2026-09-01
 links:
   - id: WF-001
     rel: derived-from
@@ -244,15 +245,16 @@ to put the result ([[DEC-125]]).
 Two successors, both conditional on what the interview actually reached,
 plus what the session leaves waiting:
 
-- **`veri:user-discovery`** — when the interview could not name a user
-  concretely: beat 2 answered in the abstract after two pushes. It
-  carries the brief and the open questions, and rebuilds the user model
-  with each claim tagged observed or assumed. Advanced tier.
+- **When the interview could not name a user concretely** — beat 2
+  answered in the abstract after two pushes — say so in the brief rather
+  than papering over it: the user model is the weakest claim on record,
+  and the open questions ride along, tagged as assumptions until real
+  user research answers them.
 - **`veri:define`** — once the brief is approved, for each bet that must
   become a requirement with observable criteria. The ordinary exit, and
   the one that turns a direction into something plannable.
-- **The brief and the draft bets await the user's stamp**, and
-  `veri:approval-session` runs that queue. Until then they are visible
+- **The brief and the draft bets await the user's stamp** —
+  `veri approve`, or the app's review queue. Until then they are visible
   and non-binding: they record what was said, they do not authorise work.
 - **The frontmatter edit for every hypothesis** is either in the same
   commit or in the user's hands, and the closing report says which. A bet

@@ -96,7 +96,8 @@ work.
    an agent's move is to ask. A work order that already carries a stamp
    is dispatched without re-dating it — the clearance on record is
    spent, not re-made. Commit the flip with a subject like
-   `WO-042: started`. Sessions running in parallel each work in their
+   `WO-042: started — claimed by <session>`, the form the repo's own
+   history uses. Sessions running in parallel each work in their
    own git worktree, one per claimed work order; an in-progress work
    order without a claim fails `veri check`, and a claim another
    session holds is refused — pick different work orders, never share

@@ -30,7 +30,7 @@ requires:
   - run_check
 upstream: veri/evidence-intake
 created: 2026-08-27
-updated: 2026-08-28
+updated: 2026-09-01
 links:
   - id: WF-001
     rel: derived-from
@@ -247,8 +247,6 @@ mis-stated what this gate is.
   requirement: an active decision whose revisit condition has arrived,
   including the competitor move that changes what a tradeoff costs.
   Supersession, never a silent edit.
-- **`veri:user-discovery`** — when what the evidence contradicts is the
-  user model rather than a requirement. Advanced tier.
 - **`veri:health`** — when the material is one instance of a pattern of
   decay rather than a finding of its own.
 - **Nowhere at all** is a legitimate exit, and the most common one.

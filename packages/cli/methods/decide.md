@@ -28,7 +28,7 @@ requires:
   - get_document
 upstream: veri/decide
 created: 2026-08-27
-updated: 2026-08-28
+updated: 2026-09-01
 links:
   - id: WF-001
     rel: derived-from
@@ -56,9 +56,9 @@ here by another skill that noticed one and was not licensed to pick it.
 What the user gets from it: the losing options preserved. A decision
 recorded without its alternatives is a note; it says what was done and
 nothing about why the other thing was not, which is precisely what the
-next person needs when they arrive wanting to do the other thing. This
-project holds 127 decisions with recorded alternatives, and that is a
-floor to defend rather than a score to improve ([[DEC-128]]).
+next person needs when they arrive wanting to do the other thing. Every
+decision this project holds carries its recorded alternatives, and that
+is a floor to defend rather than a score to improve ([[DEC-128]]).
 
 Its characteristic failure is agreeable: producing a decision whose
 second option was never real. A recommendation with a strawman beside it
@@ -223,9 +223,10 @@ cannot file what it collected refuses rather than degrading ([[DEC-125]]).
 One unconditional exit, then back to wherever the fork came from:
 
 - **The user's approval pass comes first, always.** The decision is
-  `proposed` and binds nothing until stamped; `veri:approval-session`
-  runs that queue. A proposal is visible and non-binding meanwhile — it
-  records what was chosen, it does not authorise anything ([[REQ-008]]).
+  `proposed` and binds nothing until stamped — `veri approve`, or the
+  app's review queue. A proposal is visible and non-binding meanwhile —
+  it records what was chosen, it does not authorise anything
+  ([[REQ-008]]).
 - **Back to the skill that surfaced the fork**, with the decision id in
   hand: `veri:plan-work` resumes cutting, `veri:implement` un-pauses on
   the work order it paused, `veri:define` resumes the requirement whose

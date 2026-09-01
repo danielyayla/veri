@@ -240,8 +240,8 @@ the user.
   product tradeoff rather than a technical one, and for a linked
   decision the diff contradicts on purpose: supersession, never a
   silent deviation.
-- **The proposed decisions filed en route** await the user's stamp, and
-  `veri:approval-session` runs that queue.
+- **The proposed decisions filed en route** await the user's stamp —
+  `veri approve`, or the app's review queue.
 - **The user's own flip** — a clean report, or one whose findings they
   accept, is followed by the implementer's close ([[MET-001]]): the
   receipt, the ticks, the status. Nothing here performs any of it.

@@ -29,7 +29,7 @@ requires:
   - run_check
 upstream: veri/did-it-work
 created: 2026-08-27
-updated: 2026-08-28
+updated: 2026-09-01
 links:
   - id: WF-001
     rel: derived-from
@@ -59,9 +59,10 @@ This gate is the stretch between a receipt and a judgment. A receipt says
 the code exists; it says nothing about whether the thing the code was for
 happened, and [[WF-001]]'s loop does not close until somebody asks.
 
-**It is also the gate this project never once staffed.** [[SRC-062]]
-measured it: 123 work orders completed, 59 sources filed, not one of them
-carrying an `outcome-of` link. This method therefore cannot be written
+**It is also the gate this project left unstaffed the longest.**
+[[SRC-062]] measured it as of 2026-08-27: every work order then completed
+and every source then filed, and not one of them carrying an `outcome-of`
+link. This method therefore cannot be written
 out of what a well-run project already does here — the absence is what it
 exists to fix, and the coaching has to survive the pull that produced it.
 What the user gets is an honest answer, including the one nobody wants,
@@ -187,7 +188,7 @@ This gate mostly computes and presents; its single hard question is beat
   not its status, not its kind, not its declared outcome.
 
 **Three mechanical facts, verified against `packages/core/src/check.ts`
-and `packages/mcp/src/server.ts` on 2026-08-27:**
+and `packages/mcp/src/server.ts` on 2026-09-01:**
 
 - **Direction is enforced at issue tier.** From a source,
   `tests`/`supports`/`refutes` must target a *requirement* and
@@ -200,20 +201,12 @@ and `packages/mcp/src/server.ts` on 2026-08-27:**
   clears it exactly as `supports` does. Filing "we measured and cannot
   tell" closes the loop as completely as a confident verdict would, so a
   skill that overclaims is doing it for free.
-- **`file_requirement` carries no `kind` and no `outcome`**, so a re-bet
-  drafted here lands as `kind: constraint` — the gap [[MET-003]] and
-  [[MET-005]] name, at the far end of the loop. File it with the metric
-  and target in its body, show the exact frontmatter edit —
-
-  > ```
-  > kind: hypothesis
-  > outcome:
-  >   metric: <what is measured>
-  >   target: <the number that would settle it>
-  > ```
-
-  — and either apply it as the ordinary file edit it is or hand it over,
-  saying which happened. A re-bet left as a constraint never raises the
+- **`file_requirement` carries `kind` and `outcome`** (WO-137), so a
+  re-bet drafted here is filed as a bet in the same call — `kind:
+  hypothesis`, with the metric and the target that would settle it —
+  exactly as [[MET-003]] and [[MET-005]] file theirs. The tool accepts a
+  hypothesis with no outcome, but files it and reports that `veri check`
+  calls it a violation. A re-bet left as a constraint never raises the
   untested-bet advisory, so nothing will ask whether *it* paid off.
 
 ## Guardrails
@@ -271,7 +264,7 @@ reachable without it ([[WF-001]] rule 9). After it:
   the shape of a number. Supersession, never a silent edit.
   **`veri:plan-work`** takes the other branch, when the bet was supported
   and the follow-on work is now worth cutting.
-- **`veri:review`** — when question one could not be answered from the
+- **`veri:review`** ([[MET-010]]) — when question one could not be answered from the
   record: criteria ticked with no receipt, or a receipt whose files do
   not match the commit. Advanced tier; it reads the diff this gate does
   not.

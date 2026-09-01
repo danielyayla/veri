@@ -9,6 +9,6 @@ This file is a pointer, not the method. The method is the Veri document **MET-00
 
 Before doing anything else, read it: fetch `MET-001` with the `get_document` MCP tool, or open the file. Follow what it says; nothing in this file substitutes for it.
 
-This gate cannot run without these MCP tools: `get_context`, `start_work_order`, `file_decision`, `file_receipt`, `run_check`. If any is missing from the connected Veri server, stop and say which one — never interview a user and then have nowhere to file the result.
+This gate cannot run without these MCP tools: `get_context`, `get_queue`, `file_decision`, `file_receipt`, `run_check`. If any is missing from the connected Veri server, stop and say which one — never interview a user and then have nowhere to file the result.
 
 Everything filed here is `draft`/`proposed`. Promotion is the user's act (REQ-008).

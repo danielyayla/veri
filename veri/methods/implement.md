@@ -21,7 +21,7 @@ description: >-
   you just changed" — no gate is being crossed.
 requires:
   - get_context
-  - start_work_order
+  - get_queue
   - file_decision
   - file_receipt
   - run_check
@@ -98,11 +98,16 @@ skill actually says, and what a different answer would change.
    that none exists, this is not the gate: say so and route to
    `veri:plan-work`. Nothing below is reachable without a work order.
 
-2. **Claim it.** `start_work_order(id, claimed_by)`, then commit the flip
-   with a `WO-nnn: started — claimed by <session>` subject. Say what
-   happened in one line: "Claimed WO-131 as <session>." A refusal here is
-   informative, not an obstacle — it names the session that already holds
-   the work.
+2. **Confirm the dispatch.** Work begins when the user runs
+   `veri dispatch <WO-id> --as <session>` — one gesture ([[DEC-143]])
+   that writes the approval stamp and the claim together. No MCP tool can
+   dispatch, so a work order still sitting in backlog is a request to the
+   user, never a flip the skill performs: ask, wait, and read the claim
+   back from `get_queue`. Once the flip lands, commit it with a
+   `WO-nnn: started — claimed by <session>` subject and say what happened
+   in one line: "WO-131 dispatched to <session>." A claim another session
+   already holds is informative, not an obstacle — it names who has the
+   work.
 
 3. **Read the scope back, before any code.** One paragraph, in the skill's
    own words, not a quotation of the work order:
@@ -160,10 +165,12 @@ skill actually says, and what a different answer would change.
 
 ## What it files
 
-- **The claim.** `start_work_order` flips ready → in-progress and records
-  who holds it. This is the only status change the skill makes on its own
-  initiative, and it is not a promotion: the dispatch clearance was the
-  user's `approve` stamp, already spent before the skill arrived.
+- **The claim commit.** The status flip itself is the user's:
+  `veri dispatch` moves backlog → in-progress, writing the stamp and the
+  claim in one gesture ([[DEC-143]]) — a stamp already carried is spent,
+  never re-dated. The skill files no status change of its own; what it
+  writes is the commit that records the flip, subject
+  `WO-nnn: started — claimed by <session>`.
 - **Proposed decisions**, via `file_decision`, with the rejected
   alternatives actually populated — a decision with no alternatives
   recorded is a note, not a decision. Status `proposed`, always.
@@ -228,7 +235,7 @@ coaching with nowhere to put the result ([[DEC-125]]).
   verbatim, because "the check passed" and "the checks that could run
   passed" are different claims and only one of them is true here.
 - **A missing required tool is a refusal with a named repair.** If any of
-  `get_context`, `start_work_order`, `file_decision`, `file_receipt`, or
+  `get_context`, `get_queue`, `file_decision`, `file_receipt`, or
   `run_check` is absent from the connected tool list, name the missing one
   and stop. Proceeding without the package is [[WF-001]] rule 1 with extra
   steps; proceeding without `file_decision` or `file_receipt` produces the
@@ -249,13 +256,13 @@ are conditional and one is not:
   the bet paid off, and `run_check`'s untested-bet advisory will keep
   saying so until reality's answer is filed. This is where the loop closes
   ([[WF-001]] rule 9).
-- **`veri:review`** — when spec fidelity is worth checking by someone who
+- **`veri:review`** ([[MET-010]]) — when spec fidelity is worth checking by someone who
   did not write the code: scope respected, criteria genuinely met rather
   than merely ticked, linked decisions honoured, no decision smuggled into
   the diff. Advanced tier, and the natural stop before marking `done` on
   work that matters.
-- **The proposed decisions filed en route** await the user's stamp, and
-  `veri:approval-session` runs that queue. They are visible and
+- **The proposed decisions filed en route** await the user's stamp —
+  `veri approve`, or the app's review queue. They are visible and
   non-binding meanwhile — they record what was chosen, they do not gate
   the code that was already written under them.
 

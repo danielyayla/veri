@@ -10,14 +10,14 @@ description: >-
   want and no document: "I have an idea for a product", "what should I work
   on next?", "I need to change something in this codebase", "why is search
   built this way?". It asks one triage question, then stops asking and
-  shows — the current intent, the ready queue and who holds what, the
-  subgraph around whatever was named, what is approved versus still
-  pending — and hands over to the gate that owns it with the ids already
-  gathered. Not for a question that already names its target and asks for
-  the record: "why does the importer normalise dates in two places, and who
-  decided that?", "what alternatives did we reject when we picked the
-  file-based store?" are veri:archaeology's, because there is a named
-  artifact to walk backwards from. Not for ordinary work — "where is the
+  shows — the current intent, the queue awaiting dispatch and who holds
+  what, the subgraph around whatever was named, what is approved versus
+  still pending — and hands over to the gate that owns it with the ids
+  already gathered. Not for a question that already names its target and
+  asks for the record: "why does the importer normalise dates in two
+  places, and who decided that?", "what alternatives did we reject when we
+  picked the file-based store?" — those walk the record backwards from a
+  named artifact, no triage needed. Not for ordinary work — "where is the
   retry logic for the upload queue?", "run the test suite", "good morning" —
   where no gate is in question at all.
 requires:
@@ -29,7 +29,7 @@ requires:
   - run_check
 upstream: veri/wayfinder
 created: 2026-08-27
-updated: 2026-08-28
+updated: 2026-09-01
 links:
   - id: WF-001
     rel: derived-from
@@ -70,10 +70,10 @@ else it hands on.
   requirements and decisions those cite. It is grounded in what the
   knowledge base records, so unrecorded work does not appear, and saying
   "nothing governs this path" is itself an orientation finding.
-- **`get_queue()`.** Ready work orders in dispatch order, plus the
-  in-progress claims. This is the whole answer to "what should I work on
-  next?" and the reason a held claim is visible before anyone collides
-  with it ([[WF-001]] rule 8).
+- **`get_queue()`.** Backlog work orders awaiting the user's dispatch,
+  in order, plus the in-progress claims. This is the whole answer to
+  "what should I work on next?" and the reason a held claim is visible
+  before anyone collides with it ([[WF-001]] rule 8).
 - **`list_documents({type?, status?})`.** What is approved versus what is
   still awaiting the user's stamp. Pending hits arrive marked, and that
   mark is the difference between showing the project's canon and showing
@@ -111,12 +111,12 @@ routing is to reach a gate whose own interview can then open properly.
    was already given and the skill was not listening.
 
 2. **Say where the project stands, before saying anything about the
-   utterance.** Intent, the ready head, the claims held, the count
+   utterance.** Intent, the queue head, the claims held, the count
    awaiting a stamp:
 
-   > "Current focus: <the intent's focus line>. Ready queue: <n> work
-   > orders, head is <WO-131>. In progress: <WO-118>, held by <session>.
-   > Awaiting your stamp: <n> documents. Advisories: <n>."
+   > "Current focus: <the intent's focus line>. Awaiting dispatch: <n>
+   > work orders, head is <WO-131>. In progress: <WO-118>, held by
+   > <session>. Awaiting your stamp: <n> documents. Advisories: <n>."
 
    A user who came in for one thing routinely changes their mind here,
    which is the entire value of showing before routing.
@@ -238,15 +238,17 @@ leaves nothing waiting.
 - **Material arriving from outside** → `veri:evidence-intake`, carrying
   the requirements the search says it plausibly bears on.
 - **Accepted intent with nothing queued against it** → `veri:plan-work`;
-  **a ready or claimed work order** → `veri:implement`, with the id and
-  the claim state already read.
-- **A named artifact whose rationale is being asked for** →
-  `veri:archaeology`, which walks the record backwards. The line this
-  method holds is that a why-question with no target is an entry point,
-  not a request for history.
+  **a dispatched or claimed work order** → `veri:implement`, with the id
+  and the claim state already read.
+- **A named artifact whose rationale is being asked for** → not a gate
+  but a walk: `get_neighbors` and `get_document` backwards from the named
+  id, answered in place. The line this method holds is that a
+  why-question with no target is an entry point, not a request for
+  history.
 - **A question about the project's condition rather than its content** →
-  `veri:health` for decay, `veri:approval-session` for the stamp queue,
-  `veri:did-it-work` for a bet whose work has shipped.
+  `veri:health` for decay, `veri:did-it-work` for a bet whose work has
+  shipped; the stamp queue itself is the user's own approval pass
+  (`veri approve`, or the app's review queue).
 
 And when routing fails: say so plainly, name the two gates it sits
 between, and let the user pick. A wrong route costs the next skill's

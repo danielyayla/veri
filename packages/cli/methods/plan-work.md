@@ -28,7 +28,7 @@ requires:
   - run_check
 upstream: veri/plan-work
 created: 2026-08-27
-updated: 2026-08-28
+updated: 2026-09-01
 links:
   - id: WF-001
     rel: derived-from
@@ -168,8 +168,8 @@ only whether each piece of it can be proven on its own.
 - **Backlog work orders, via `file_work_order`** — title, summary,
   `in_scope`, `out_of_scope`, `acceptance_tests`, and links to every
   document that binds the work. Status `backlog`, and the tool hardcodes
-  it: there is no status parameter to send and no way to file a ready
-  work order.
+  it: there is no status parameter to send — every filing starts in
+  backlog, awaiting the user's dispatch.
 - **Amendments to backlog work orders, via `amend_document`**, when beat
   1 found the slice already cut. Better one work order revised twice than
   two nobody reconciles.
@@ -212,7 +212,8 @@ only whether each piece of it can be proven on its own.
   already landed on it ([[DEC-114]]) — which is after the work was done
   without the design.
 - **`amend_document` is pending-only** — for work orders that means
-  `backlog`, and it refuses ready, in-progress and done ones outright. So
+  unstamped `backlog`, and it refuses stamped, in-progress and done ones
+  outright. So
   splitting a work order the user already approved is not this gate's
   edit: file the new slices as fresh backlog work orders and hand the
   narrowing edit over, as [[MET-001]] does with a claimed work order.
@@ -257,12 +258,13 @@ cannot file what it collected refuses rather than degrading
 
 One unconditional exit, then the successors the cut's own shape selects:
 
-- **The user's approval pass comes first, always.** Backlog → ready is
-  the stamp, and `veri:approval-session` runs that queue. This is the one
-  step of the sequence no skill performs ([[REQ-008]]).
-- **`veri:implement`** — once the work orders are ready, one session per
-  work order, taken in the order the queue dispatches them. The condition
-  is simply that nothing else is outstanding against them.
+- **The user's dispatch comes first, always.** A backlog work order is
+  cleared and started by `veri dispatch <WO-id> --as <session>` — the
+  approval stamp and the claim in one gesture ([[DEC-143]]). This is the
+  one step of the sequence no skill performs ([[REQ-008]]).
+- **`veri:implement`** — once the user dispatches, one session per work
+  order, taken in the order the queue is dispatched. The condition is
+  simply that nothing else is outstanding against them.
 - **The design first, when beat 4 fired.** The design is produced,
   committed as a source, approved, and linked `designed-by` before the
   work order is started ([[DEC-012]]). Until that lands the slice stays

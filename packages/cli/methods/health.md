@@ -18,9 +18,10 @@ description: >-
   is a comparison, not a fresh impression. It proposes; it repairs
   nothing. Not for running the stamp queue itself: "what is waiting on
   me?", "walk me through everything that needs my stamp before we plan
-  the next batch" are veri:approval-session's, which needs you present
-  document by document. Not for "run the test suite", "why is this test
-  flaky?", "the CI matrix is failing on Node 18 — fix it".
+  the next batch" — that is an approval pass you run yourself, `veri
+  approve` or the app's review queue, document by document. Not for "run
+  the test suite", "why is this test flaky?", "the CI matrix is failing
+  on Node 18 — fix it".
 requires:
   - run_check
   - list_documents
@@ -29,7 +30,7 @@ requires:
   - file_source
 upstream: veri/health
 created: 2026-08-27
-updated: 2026-08-28
+updated: 2026-09-01
 links:
   - id: WF-001
     rel: derived-from
@@ -85,7 +86,7 @@ maintained by an agent nobody watched is a record nobody can cite.
   tail, the cutoff chosen out loud and written into the report rather
   than assumed, and once by `status` for the queue awaiting the user's
   stamp and how long its oldest member has waited ([[REQ-008]]).
-- **`get_queue()`** for ready depth and every in-progress claim with its
+- **`get_queue()`** for dispatch-queue depth and every in-progress claim with its
   holder and date ([[WF-001]] rule 8), and **`get_receipts()`** to
   correlate what the record says shipped with what it says it touched.
 - **The active decisions' revisit conditions, read out of the documents
@@ -268,11 +269,10 @@ this gate leaves nothing else pending.
 - **`veri:decide`** — for an active decision whose revisit condition has
   arrived, and for a recurring finding that wants to become a check rule.
   Supersession, never a silent edit.
-- **`veri:approval-session`** — when the pending queue *is* the finding.
-  Documents waiting weeks for a stamp are not a records problem; they are
-  a gate nobody is standing at. Advanced tier.
-- **`veri:archaeology`** — for an area whose documents are old, whose
-  code has moved, and where nobody remembers why. Advanced tier.
+- **The user's own approval pass** — when the pending queue *is* the
+  finding. Documents waiting weeks for a stamp are not a records problem;
+  they are a gate nobody is standing at, and no skill can stand at it:
+  `veri approve` (or the app's review queue), document by document.
 - **Nowhere at all**, and it is a real outcome. A sweep finding nothing
   worth acting on still files its report: the baseline is the artifact,
   and every future sweep depends on this one existing.
