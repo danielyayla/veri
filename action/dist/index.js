@@ -7424,6 +7424,9 @@ function isOutcomeRel(rel) {
 }
 var OUTCOME_OF_REL = "outcome-of";
 var SOURCE_KINDS = ["design", "user-feedback", "metric", "external-eval", "investigation", "outcome", "reference"];
+function sourceKind(doc) {
+  return SOURCE_KINDS.includes(doc.kind ?? "") ? doc.kind : "reference";
+}
 var PRODUCT_FILES = [
   "product/vision.md",
   "product/users.md",
@@ -12617,6 +12620,30 @@ function checkIntuitionOnly(documents) {
   }
   return advisories;
 }
+function checkOutcomeSourceKinds(documents) {
+  const advisories = [];
+  for (const doc of documents) {
+    if (doc.type !== "source" || isWithdrawn(doc) || sourceKind(doc) === "outcome")
+      continue;
+    const rels = [];
+    for (const link of doc.links) {
+      if (!isOutcomeRel(link.rel) && link.rel !== OUTCOME_OF_REL)
+        continue;
+      if (!rels.includes(link.rel))
+        rels.push(link.rel);
+    }
+    if (rels.length === 0)
+      continue;
+    advisories.push({
+      kind: "outcome-unkinded",
+      file: doc.file,
+      id: doc.id,
+      rels,
+      message: `${doc.id} carries outcome-shaped links (${rels.join(", ")}) but declares ${doc.kind === void 0 ? "no kind" : `kind: ${doc.kind}`} \u2014 links like these say reality reported back; declare kind: outcome on ${doc.file} if that is what this source is, or reword the rels if it is not (REQ-038)`
+    });
+  }
+  return advisories;
+}
 var DEFAULT_FOCUS_STALE_AFTER_DAYS = 14;
 function focusStaleAfterDays(documents) {
   for (const doc of documents) {
@@ -12934,6 +12961,7 @@ function checkProject(load) {
       ...checkUntestedBets(load.documents),
       ...checkVerifyEvidence(load.documents),
       ...checkIntuitionOnly(load.documents),
+      ...checkOutcomeSourceKinds(load.documents),
       ...checkDesignGateMentions(load.documents)
       // Stale claims need a clock (host territory, DEC-076) — deriveFindings
       // adds checkStaleClaims with the host's today.
