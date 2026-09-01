@@ -15,6 +15,13 @@ every linked document, stay in scope, file choices as proposed
 decisions, append receipts, and verify before done — `veri check` in
 a terminal, or `run_check` over MCP (WF-001 rule 6 states the bar).
 
+One gate is easy to miss at filing time: a work order whose diff will
+touch a `design_gate_paths` path even trivially (deletions and
+mechanical fallout included) must declare it in `binds: paths:` and
+carry a `designed-by` link before implementation (WF-001 rule 7). The
+undeclared-touch advisory retires when the work order reaches done and
+leaves no trace, so the gate only works if it is honored at filing.
+
 ## Document format
 
 Every document in `veri/` is markdown with YAML frontmatter:

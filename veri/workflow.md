@@ -5,7 +5,7 @@ title: Veri project workflow
 status: accepted
 approved: 2026-09-01
 created: 2026-08-12
-updated: 2026-09-01
+updated: 2026-09-02
 design_gate_paths:
   - packages/ui
 modules:
@@ -91,11 +91,13 @@ work.
    dispatches it: `veri dispatch <WO-id> --as <session>` is one gesture
    ([[DEC-143]]) that flips the backlog work order to in-progress,
    writing the approval stamp (`approved:`/`approved_by:`) and the
-   claim (`claimed_by`/`claimed_at`) together — the stamp and the claim
-   are the same act, and it is the user's: no MCP tool can dispatch, so
-   an agent's move is to ask. A work order that already carries a stamp
-   is dispatched without re-dating it — the clearance on record is
-   spent, not re-made. Commit the flip with a subject like
+   claim (`claimed_by`/`claimed_at`) together — the stamp and the
+   claim are the same act. Writing a *fresh* stamp is the user's
+   judgment and only theirs: no MCP tool can dispatch, so an agent
+   facing an unstamped work order asks. A work order that already
+   carries a stamp is dispatched without re-dating it — the clearance
+   on record is spent, not re-made, a pure claim act the user can
+   direct a session to perform ([[DEC-148]]). Commit the flip with a subject like
    `WO-042: started — claimed by <session>`, the form the repo's own
    history uses. Sessions running in parallel each work in their
    own git worktree, one per claimed work order; an in-progress work
