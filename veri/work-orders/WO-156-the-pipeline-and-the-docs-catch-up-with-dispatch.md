@@ -2,7 +2,10 @@
 id: WO-156
 type: work-order
 title: "The pipeline and the docs catch up with dispatch"
-status: backlog
+status: in-progress
+approved: 2026-09-02
+claimed_by: fable-wo156
+claimed_at: 2026-09-02
 created: 2026-09-02
 updated: 2026-09-02
 links:
