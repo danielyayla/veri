@@ -17,8 +17,10 @@ export interface AmendDocumentInput {
 /**
  * The statuses amendment may touch — each type's born-pending status, before
  * the user's stamp (REQ-008). Everything past these is binding (or, for
- * sources, preserved evidence) and stays a deliberate human/git act; ready
- * work orders carry the approval stamp, so they are already across the line.
+ * sources, preserved evidence) and stays a deliberate human/git act. A
+ * backlog work order that already carries `approved:` (DEC-143's
+ * transitional state — clearance granted, dispatch pending) is across the
+ * line too: the stamp covers its text, so it is refused below.
  */
 const AMENDABLE: Record<string, string> = {
   requirement: 'draft',
@@ -94,6 +96,15 @@ export async function amendDocument(projectRoot: string, input: AmendDocumentInp
     throw new Error(
       `refusing to amend ${wanted} — it is ${doc.status}, past the approval boundary (REQ-008). ` +
         `Amendment is for ${pending} documents only; changes to reviewed documents are deliberate human/git acts.`,
+    );
+  }
+  // DEC-143's transitional state: backlog with a stamp is clearance already
+  // granted — rewriting the text under it would spend a judgment the user
+  // never re-made.
+  if (doc.approved !== undefined) {
+    throw new Error(
+      `refusing to amend ${wanted} — it is ${doc.status} but carries an approved: ${doc.approved} stamp, so the user's ` +
+        `judgment already covers its text (REQ-008); changes to it are deliberate human/git acts.`,
     );
   }
 

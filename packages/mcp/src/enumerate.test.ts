@@ -17,8 +17,8 @@ const IMPLEMENTS = ['links:', '  - id: REQ-001', '    rel: implements'];
 /**
  * A corpus spanning the lifecycle: two requirements (one accepted, one still
  * draft), a proposed decision, a withdrawn source, and five work orders —
- * backlog, two ready (filed out of order), one in-progress with a claim, one
- * done.
+ * three backlog (two of them stamped, DEC-143's transitional state, filed
+ * out of order), one in-progress with a claim, one done.
  */
 function sandbox(t: { after(fn: () => void): void }): string {
   const root = mkdtempSync(join(tmpdir(), 'veri-mcp-enumerate-'));
@@ -33,8 +33,8 @@ function sandbox(t: { after(fn: () => void): void }): string {
   write('decisions', 'DEC-001-proposed.md', doc('DEC-001', 'decision', 'Proposed choice', 'proposed', '2026-08-20'));
   write('sources', 'SRC-001-gone.md', doc('SRC-001', 'source', 'Retracted evidence', 'withdrawn', '2026-01-05'));
   write('work-orders', 'WO-001-sketch.md', doc('WO-001', 'work-order', 'Sketch', 'backlog', '2026-01-05', IMPLEMENTS));
-  write('work-orders', 'WO-010-second.md', doc('WO-010', 'work-order', 'Second ready', 'ready', '2026-08-20', [...APPROVED, ...IMPLEMENTS]));
-  write('work-orders', 'WO-002-head.md', doc('WO-002', 'work-order', 'First ready', 'ready', '2026-08-20', [...APPROVED, ...IMPLEMENTS]));
+  write('work-orders', 'WO-010-second.md', doc('WO-010', 'work-order', 'Second queued', 'backlog', '2026-08-20', [...APPROVED, ...IMPLEMENTS]));
+  write('work-orders', 'WO-002-head.md', doc('WO-002', 'work-order', 'Second in queue', 'backlog', '2026-08-20', [...APPROVED, ...IMPLEMENTS]));
   write(
     'work-orders',
     'WO-003-held.md',
@@ -73,11 +73,11 @@ test('list_documents orders ids numerically, not lexically', async (t) => {
 test('each list_documents filter narrows, and the filters combine', async (t) => {
   const root = sandbox(t);
   assert.deepEqual(ids(await listDocuments(root, { type: 'requirement' })), ['REQ-001', 'REQ-002']);
-  assert.deepEqual(ids(await listDocuments(root, { status: 'ready' })), ['WO-002', 'WO-010']);
+  assert.deepEqual(ids(await listDocuments(root, { status: 'backlog' })), ['WO-001', 'WO-002', 'WO-010']);
   // Strictly before the cutoff: 2026-08-20 excludes documents updated that day.
   assert.deepEqual(ids(await listDocuments(root, { updatedBefore: '2026-08-20' })), ['REQ-001', 'WO-001', 'WO-004']);
   assert.deepEqual(ids(await listDocuments(root, { type: 'work-order', updatedBefore: '2026-08-20' })), ['WO-001', 'WO-004']);
-  assert.deepEqual(ids(await listDocuments(root, { type: 'work-order', status: 'ready', updatedBefore: '2026-08-21' })), ['WO-002', 'WO-010']);
+  assert.deepEqual(ids(await listDocuments(root, { type: 'work-order', status: 'backlog', updatedBefore: '2026-08-20' })), ['WO-001']);
 });
 
 test('list_documents surfaces withdrawn documents only when asked for by status', async (t) => {
@@ -89,7 +89,7 @@ test('list_documents surfaces withdrawn documents only when asked for by status'
 test('list_documents returns the empty set rather than everything when nothing matches', async (t) => {
   const root = sandbox(t);
   assert.deepEqual(await listDocuments(root, { status: 'retired' }), []);
-  assert.deepEqual(await listDocuments(root, { type: 'requirement', status: 'ready' }), []);
+  assert.deepEqual(await listDocuments(root, { type: 'requirement', status: 'backlog' }), []);
   assert.deepEqual(await listDocuments(root, { updatedBefore: '2020-01-01' }), []);
   assert.equal(renderDocuments([]), 'no documents match');
 });
@@ -115,17 +115,17 @@ test('list_documents refuses a project with no veri/ directory', async (t) => {
   await assert.rejects(getQueue(root), /no veri\/ directory/);
 });
 
-test('get_queue lists ready work orders in dispatch order, head first', async (t) => {
+test('get_queue lists the backlog awaiting judgment in queue order, head first (DEC-143)', async (t) => {
   const root = sandbox(t);
   const queue = await getQueue(root);
-  assert.deepEqual(ids(queue.ready), ['WO-002', 'WO-010']);
+  assert.deepEqual(ids(queue.backlog), ['WO-001', 'WO-002', 'WO-010']);
   // The head is the id `veri next` prints — one evaluation site (WO-098).
   const { documents } = await loadProject(join(root, 'veri'));
-  assert.equal(queue.ready[0]?.id, nextDispatchable(documents)?.id);
-  assert.equal(queue.ready[0]?.title, 'First ready');
-  assert.equal(queue.ready[0]?.file, 'veri/work-orders/WO-002-head.md');
-  // Backlog and done are not dispatchable and never appear.
-  assert.ok(!ids(queue.ready).some((id) => ['WO-001', 'WO-004'].includes(id)));
+  assert.equal(queue.backlog[0]?.id, nextDispatchable(documents)?.id);
+  assert.equal(queue.backlog[0]?.title, 'Sketch');
+  assert.equal(queue.backlog[0]?.file, 'veri/work-orders/WO-001-sketch.md');
+  // Started and finished work has left the judgment queue.
+  assert.ok(!ids(queue.backlog).some((id) => ['WO-003', 'WO-004'].includes(id)));
 });
 
 test('get_queue reports in-progress work orders with their claim holder and date', async (t) => {
@@ -134,24 +134,25 @@ test('get_queue reports in-progress work orders with their claim holder and date
   assert.equal(queue.inProgress[0]?.title, 'Held');
 });
 
-test('get_queue on a corpus with nothing ready and nothing claimed says so', async (t) => {
+test('get_queue on a corpus with an empty backlog and nothing claimed says so', async (t) => {
   const root = mkdtempSync(join(tmpdir(), 'veri-mcp-queue-empty-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   mkdirSync(join(root, 'veri', 'work-orders'), { recursive: true });
-  writeFileSync(join(root, 'veri', 'work-orders', 'WO-001-sketch.md'), doc('WO-001', 'work-order', 'Sketch', 'backlog', '2026-01-05'));
+  writeFileSync(join(root, 'veri', 'work-orders', 'WO-001-shipped.md'), doc('WO-001', 'work-order', 'Shipped', 'done', '2026-01-05'));
   const queue = await getQueue(root);
-  assert.deepEqual(queue, { ready: [], inProgress: [] });
+  assert.deepEqual(queue, { backlog: [], inProgress: [] });
   const text = renderQueue(queue);
-  assert.match(text, /Ready \(0\) — nothing is ready to start/);
+  assert.match(text, /Backlog \(0\) — nothing awaits dispatch judgment/);
   assert.match(text, /In progress \(0\)/);
 });
 
 test('the rendered queue puts the head first and names each claim', async (t) => {
   const text = renderQueue(await getQueue(sandbox(t)));
   const lines = text.split('\n');
-  assert.equal(lines[0], 'Ready (2) — dispatch order, head first:');
-  assert.equal(lines[1], 'WO-002  veri/work-orders/WO-002-head.md  First ready');
-  assert.equal(lines[2], 'WO-010  veri/work-orders/WO-010-second.md  Second ready');
+  assert.equal(lines[0], "Backlog (3) — awaiting the user's dispatch (veri dispatch <WO-id> --as <session>), head first:");
+  assert.equal(lines[1], 'WO-001  veri/work-orders/WO-001-sketch.md  Sketch');
+  assert.equal(lines[2], 'WO-002  veri/work-orders/WO-002-head.md  Second in queue');
+  assert.equal(lines[3], 'WO-010  veri/work-orders/WO-010-second.md  Second queued');
   assert.match(text, /^WO-003 {2}claimed by session-alpha since 2026-08-25 {2}veri\/work-orders\/WO-003-held\.md {2}Held$/m);
 });
 

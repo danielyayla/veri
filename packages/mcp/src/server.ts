@@ -2,7 +2,7 @@
 import { join, resolve } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { DOC_TYPES, REQUIREMENT_KINDS, SOURCE_KINDS, assembleImportInstructions, classifyFormat, formatStatement, isOperableFormat, loadProject, startWorkOrder, supersedeDecision } from '@verikb/core';
+import { DOC_TYPES, REQUIREMENT_KINDS, SOURCE_KINDS, assembleImportInstructions, classifyFormat, formatStatement, isOperableFormat, loadProject, supersedeDecision } from '@verikb/core';
 import { z } from 'zod';
 import { runCheck } from './check.ts';
 import { assembleContext } from './context.ts';
@@ -159,7 +159,7 @@ server.registerTool(
     inputSchema: z
       .object({
         type: z.enum(DOC_TYPES).optional().describe('Document type, e.g. requirement, decision, work-order, source'),
-        status: z.enum(DOCUMENT_STATUSES).optional().describe('Lifecycle status, e.g. draft, proposed, ready, in-progress'),
+        status: z.enum(DOCUMENT_STATUSES).optional().describe('Lifecycle status, e.g. draft, proposed, backlog, in-progress'),
         updated_before: z
           .string()
           .regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a YYYY-MM-DD date')
@@ -182,10 +182,12 @@ server.registerTool(
   'get_queue',
   {
     description:
-      'The dispatch queue: ready work orders in the order `veri next` dispatches them — lowest id first, the ' +
-      'head being the one to start — followed by the in-progress work orders and the claim held on each ' +
-      '(claimed_by, claimed_at). Call this to orient before starting work: take the ready head, then ' +
-      'start_work_order to claim it. A work order another session holds is never yours to pick up.',
+      'The judgment queue (DEC-143): backlog work orders awaiting the user\'s dispatch — lowest id first, the ' +
+      'head being the one `veri next` names — followed by the in-progress work orders and the claim held on ' +
+      'each (claimed_by, claimed_at). Dispatch is human-only: the user runs `veri dispatch <WO-id> --as ' +
+      '<session>`, which writes the approval stamp and the claim in one gesture; no tool on this server can ' +
+      'do it. Call this to orient, then ask the user to dispatch. A work order another session holds is never ' +
+      'yours to pick up.',
     inputSchema: z.object({}).strict(),
   },
   async () => {
@@ -485,36 +487,12 @@ server.registerTool(
   },
 );
 
-server.registerTool(
-  'start_work_order',
-  {
-    description:
-      'Begin implementation: flip a ready work order to in-progress, recording the claim — which session ' +
-      'holds it (claimed_by) and since when (claimed_at). Only ready work orders start: the user\'s ' +
-      'approve stamp is the dispatch clearance, and an already-claimed work order is refused, naming its ' +
-      'holder. Call this before writing code for a work order, with a claimed_by that identifies this ' +
-      'session; then commit the flip with a subject like "WO-042: started".',
-    inputSchema: z
-      .object({
-        id: z.string().describe('Work order id, e.g. WO-042'),
-        claimed_by: z.string().describe('This session\'s identity — free text, unique per session'),
-      })
-      .strict(),
-  },
-  async ({ id, claimed_by }) => {
-    try {
-      guardFormat();
-      const result = await startWorkOrder(join(projectRoot, 'veri'), id, claimed_by);
-      return ok(
-        `${result.id} ready → in-progress — claimed by ${result.claimedBy} (${result.claimedAt}) at veri/${result.file}. ` +
-          `Commit the flip with a start subject (e.g. "${result.id}: started — claimed by ${result.claimedBy}") so ` +
-          `provenance anchors the work's era.`,
-      );
-    } catch (err) {
-      return fail(err);
-    }
-  },
-);
+// `start_work_order` retired with the ready state (DEC-143, WO-143): with
+// no pre-approved-unclaimed state there is nothing left for an agent to
+// start. Dispatch — the one door into in-progress — writes the approval
+// stamp and the claim in a single human gesture (`veri dispatch <WO-id>
+// --as <session>`), and this server deliberately keeps no path into it: an
+// agent's move remains asking the user.
 
 server.registerTool(
   'supersede_decision',
@@ -582,7 +560,7 @@ server.registerTool(
     description:
       'Revise a pending document after review feedback — the iterate half of propose → review → revise (DEC-103). ' +
       'Replaces the title, the whole body, and/or the links list of a draft requirement, proposed decision, or ' +
-      'backlog work order. Never a promotion: approved, ready, or started documents are refused, no status or ' +
+      'backlog work order. Never a promotion: approved, stamped, or started documents are refused, no status or ' +
       'approval field exists to send, and receipts stay append-only via file_receipt (the body may not carry a ' +
       'Receipts section — the existing one is preserved). Create with the file_* tools; amend while unbinding; ' +
       'promotion stays the user’s act.',

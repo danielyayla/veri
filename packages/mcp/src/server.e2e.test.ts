@@ -72,8 +72,10 @@ test('the built server answers tools/list and get_context over stdio', { skip: !
   // appends receipts, amend_document revises still-pending ones (DEC-103),
   // init_project brings an absent knowledge base into being without touching an
   // existing one (WO-129), and supersede_decision retires a decision only once
-  // the user has stamped its successor (WO-138) — no tool approves or promotes
-  // (REQ-017).
+  // the user has stamped its successor (WO-138) — no tool approves, promotes,
+  // or dispatches (REQ-017, DEC-143): this exact list is the proof that no
+  // agent path into in-progress exists, start_work_order having retired with
+  // the ready state.
   assert.deepEqual(toolNames, [
     'amend_document',
     'file_decision',
@@ -92,7 +94,6 @@ test('the built server answers tools/list and get_context over stdio', { skip: !
     'list_documents',
     'run_check',
     'search',
-    'start_work_order',
     'supersede_decision',
   ]);
 
@@ -188,8 +189,8 @@ test('every tool states a newer format instead of operating (REQ-015)', { skip: 
   }
 });
 
-test('start_work_order flips a ready work order and records the claim (WO-099)', { skip: !existsSync(SERVER) }, async (t) => {
-  const root = mkdtempSync(join(tmpdir(), 'veri-mcp-start-'));
+test('no agent path can dispatch: start_work_order is gone, and a stamped backlog work order is untouchable (DEC-143)', { skip: !existsSync(SERVER) }, async (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'veri-mcp-no-dispatch-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   mkdirSync(join(root, 'veri', 'requirements'), { recursive: true });
   mkdirSync(join(root, 'veri', 'work-orders'), { recursive: true });
@@ -197,16 +198,17 @@ test('start_work_order flips a ready work order and records the claim (WO-099)',
     join(root, 'veri', 'requirements', 'REQ-001-req.md'),
     '---\nid: REQ-001\ntype: requirement\ntitle: R\nstatus: accepted\ncreated: 2026-08-01\nupdated: 2026-08-01\napproved: 2026-08-01\n---\n## Acceptance criteria\n\n- [ ] x\n',
   );
-  writeFileSync(
-    join(root, 'veri', 'work-orders', 'WO-001-work.md'),
-    '---\nid: WO-001\ntype: work-order\ntitle: W\nstatus: ready\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\nlinks:\n  - id: REQ-001\n    rel: implements\n---\n## Summary\n\nWork.\n\n## Receipts\n\n(none yet)\n',
-  );
+  // The migrated ready queue's shape: backlog carrying the user's stamp,
+  // awaiting the human dispatch gesture.
+  const stamped =
+    '---\nid: WO-001\ntype: work-order\ntitle: W\nstatus: backlog\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\nlinks:\n  - id: REQ-001\n    rel: implements\n---\n## Summary\n\nWork.\n\n## Receipts\n\n(none yet)\n';
+  writeFileSync(join(root, 'veri', 'work-orders', 'WO-001-work.md'), stamped);
 
-  const call = (id: number, args: object): object => ({
+  const call = (id: number, name: string, args: object): object => ({
     jsonrpc: '2.0',
     id,
     method: 'tools/call',
-    params: { name: 'start_work_order', arguments: args },
+    params: { name, arguments: args },
   });
   const init = {
     jsonrpc: '2.0',
@@ -215,21 +217,32 @@ test('start_work_order flips a ready work order and records the claim (WO-099)',
     params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test', version: '0.0.0' } },
   };
   const initialized = { jsonrpc: '2.0', method: 'notifications/initialized' };
-  const responses = await rpcSession([init, initialized, call(2, { id: 'WO-001', claimed_by: 'agent-session-1' })], [1, 2], root);
-  // A second session's claim on the now-held work order is refused, naming
-  // the holder — the collision guard. A fresh server, as a second concurrent
-  // agent session would be.
-  const second = await rpcSession([init, initialized, call(3, { id: 'WO-001', claimed_by: 'agent-session-2' })], [1, 3], root);
+  const responses = await rpcSession(
+    [
+      init,
+      initialized,
+      // The retired tool and any imagined successor: both unknown on the wire.
+      call(2, 'start_work_order', { id: 'WO-001', claimed_by: 'agent-session-1' }),
+      call(3, 'dispatch_work_order', { id: 'WO-001', claimed_by: 'agent-session-1' }),
+      // The one remaining work-order write path refuses a stamped document:
+      // the user's judgment already covers its text (REQ-008).
+      call(4, 'amend_document', { id: 'WO-001', title: 'Rewritten under the stamp' }),
+    ],
+    [1, 2, 3, 4],
+    root,
+  );
 
-  const started = responses.get(2)?.result;
-  assert.ok(started?.isError !== true, started?.content?.[0]?.text);
-  assert.match(started?.content?.[0]?.text ?? '', /WO-001 ready → in-progress — claimed by agent-session-1/);
-  const file = readFileSync(join(root, 'veri', 'work-orders', 'WO-001-work.md'), 'utf8');
-  assert.match(file, /^status: in-progress\nclaimed_by: agent-session-1\nclaimed_at: \d{4}-\d{2}-\d{2}$/m);
+  for (const id of [2, 3]) {
+    const answer = responses.get(id);
+    const failed = answer?.error !== undefined || answer?.result?.isError === true;
+    assert.ok(failed, `call ${id} must fail — no MCP tool may flip a work order to in-progress`);
+  }
+  const amend = responses.get(4)?.result;
+  assert.equal(amend?.isError, true);
+  assert.match(amend?.content?.[0]?.text ?? '', /carries an approved: 2026-08-01 stamp/);
 
-  const refused = second.get(3)?.result;
-  assert.equal(refused?.isError, true);
-  assert.match(refused?.content?.[0]?.text ?? '', /already in-progress, claimed by "agent-session-1"/);
+  // Nothing moved: the file is byte-identical, still backlog, still stamped.
+  assert.equal(readFileSync(join(root, 'veri', 'work-orders', 'WO-001-work.md'), 'utf8'), stamped);
 });
 
 // The DEC-112 incident (WO-118): a filing call carrying a section under a key
@@ -309,7 +322,7 @@ test('write tools refuse unknown argument keys instead of silently dropping cont
 
   // Every write tool advertises the strictness, so compliant hosts refuse
   // near-miss keys client-side too.
-  const writeTools = ['file_decision', 'file_work_order', 'file_requirement', 'file_source', 'file_receipt', 'amend_document', 'start_work_order', 'supersede_decision'];
+  const writeTools = ['file_decision', 'file_work_order', 'file_requirement', 'file_source', 'file_receipt', 'amend_document', 'supersede_decision'];
   const tools = responses.get(3)?.result?.tools ?? [];
   for (const name of writeTools) {
     const tool = tools.find((entry) => entry.name === name);
@@ -386,8 +399,8 @@ test('list_documents and get_queue enumerate over the wire and refuse unknown ke
   );
   const workOrder = (id: string, title: string, status: string, extra: string): string =>
     `---\nid: ${id}\ntype: work-order\ntitle: ${title}\nstatus: ${status}\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\n${extra}links:\n  - id: REQ-001\n    rel: implements\n---\n## Summary\n\nWork.\n`;
-  writeFileSync(join(root, 'veri', 'work-orders', 'WO-002-head.md'), workOrder('WO-002', 'Head', 'ready', ''));
-  writeFileSync(join(root, 'veri', 'work-orders', 'WO-010-next.md'), workOrder('WO-010', 'Next', 'ready', ''));
+  writeFileSync(join(root, 'veri', 'work-orders', 'WO-002-head.md'), workOrder('WO-002', 'Head', 'backlog', ''));
+  writeFileSync(join(root, 'veri', 'work-orders', 'WO-010-next.md'), workOrder('WO-010', 'Next', 'backlog', ''));
   writeFileSync(
     join(root, 'veri', 'work-orders', 'WO-003-held.md'),
     workOrder('WO-003', 'Held', 'in-progress', 'claimed_by: session-alpha\nclaimed_at: 2026-08-25\n'),
@@ -405,11 +418,11 @@ test('list_documents and get_queue enumerate over the wire and refuse unknown ke
     [
       init,
       initialized,
-      call(2, 'list_documents', { type: 'work-order', status: 'ready' }),
+      call(2, 'list_documents', { type: 'work-order', status: 'backlog' }),
       call(3, 'get_queue', {}),
       // A near-miss key must refuse, never silently widen the answer (WO-118).
       call(4, 'list_documents', { doc_type: 'work-order' }),
-      call(5, 'get_queue', { status: 'ready' }),
+      call(5, 'get_queue', { status: 'backlog' }),
       call(6, 'list_documents', { status: 'nonsense' }),
       { jsonrpc: '2.0', id: 7, method: 'tools/list' },
     ],
@@ -420,13 +433,13 @@ test('list_documents and get_queue enumerate over the wire and refuse unknown ke
   const listed = responses.get(2)?.result;
   assert.ok(listed && listed.isError !== true, JSON.stringify(listed));
   const listText = listed.content?.[0]?.text ?? '';
-  assert.match(listText, /^2 documents:\nWO-002 {2}work-order {2}ready {2}updated 2026-08-01 {2}veri\/work-orders\/WO-002-head\.md {2}Head$/m);
+  assert.match(listText, /^2 documents:\nWO-002 {2}work-order {2}backlog {2}updated 2026-08-01 {2}veri\/work-orders\/WO-002-head\.md {2}Head$/m);
   assert.ok(!listText.includes('WO-003'), 'the status filter must narrow, not annotate');
 
   const queue = responses.get(3)?.result;
   assert.ok(queue && queue.isError !== true, JSON.stringify(queue));
   const queueLines = (queue.content?.[0]?.text ?? '').split('\n');
-  assert.equal(queueLines[0], 'Ready (2) — dispatch order, head first:');
+  assert.equal(queueLines[0], "Backlog (2) — awaiting the user's dispatch (veri dispatch <WO-id> --as <session>), head first:");
   assert.match(queueLines[1] ?? '', /^WO-002 {2}veri\/work-orders\/WO-002-head\.md {2}Head$/);
   assert.match(queue.content?.[0]?.text ?? '', /WO-003 {2}claimed by session-alpha since 2026-08-25/);
 
@@ -461,7 +474,7 @@ test('get_receipts answers over the wire, by id and corpus-wide, and refuses unk
     workOrder('WO-002', 'Shipped', 'done', ['2026-08-20 — aaaa111 — packages/core/src/thing.ts — did the thing', '2026-08-21 — bbbb222 — README.md — wrote it down']),
   );
   writeFileSync(join(root, 'veri', 'work-orders', 'WO-003-also.md'), workOrder('WO-003', 'Also shipped', 'done', ['2026-08-22 — cccc333 — packages/cli/src/cli.ts — shipped the flag']));
-  writeFileSync(join(root, 'veri', 'work-orders', 'WO-010-pending.md'), workOrder('WO-010', 'Nothing yet', 'ready', ['(none yet)']).replace('- (none yet)', '(none yet)'));
+  writeFileSync(join(root, 'veri', 'work-orders', 'WO-010-pending.md'), workOrder('WO-010', 'Nothing yet', 'backlog', ['(none yet)']).replace('- (none yet)', '(none yet)'));
 
   const call = (id: number, name: string, args: object): object => ({ jsonrpc: '2.0', id, method: 'tools/call', params: { name, arguments: args } });
   const responses = await rpcSession(

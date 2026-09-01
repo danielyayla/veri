@@ -63,7 +63,7 @@ function sandbox(t: { after(fn: () => void): void }): string {
     ]),
   );
   write('work-orders', 'WO-003-single.md', workOrder('WO-003', 'One session', 'done', ['2026-08-22 — dddd444 — shipped the flag']));
-  write('work-orders', 'WO-010-pending.md', workOrder('WO-010', 'Nothing yet', 'ready', []));
+  write('work-orders', 'WO-010-pending.md', workOrder('WO-010', 'Nothing yet', 'backlog', []));
   write('work-orders', 'WO-011-gone.md', workOrder('WO-011', 'Retracted', 'withdrawn', ['2026-08-19 — eeee555 — never mind']));
   return root;
 }

@@ -396,7 +396,7 @@ function writeIntentProject(root: string, focusStatus: 'accepted' | 'draft'): vo
   );
   writeFileSync(
     join(veri, 'work-orders', 'WO-001-ship.md'),
-    '---\nid: WO-001\ntype: work-order\ntitle: Ship it\nstatus: ready\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\nlinks:\n  - id: REQ-001\n    rel: implements\n---\n## Summary\n\nWO-BODY.\n\n## Receipts\n\n(none yet)\n',
+    '---\nid: WO-001\ntype: work-order\ntitle: Ship it\nstatus: backlog\ncreated: 2026-08-01\nupdated: 2026-08-01\nlinks:\n  - id: REQ-001\n    rel: implements\n---\n## Summary\n\nWO-BODY.\n\n## Receipts\n\n(none yet)\n',
   );
 }
 

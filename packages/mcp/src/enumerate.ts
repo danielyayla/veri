@@ -28,7 +28,6 @@ export const DOCUMENT_STATUSES = [
   'active',
   'superseded',
   'backlog',
-  'ready',
   'in-progress',
   'done',
   'imported',
@@ -73,8 +72,9 @@ export interface ClaimedRow extends DocumentRow {
 }
 
 export interface Queue {
-  /** Ready work orders in dispatch order; `ready[0]` is `veri next`'s head. */
-  ready: DocumentRow[];
+  /** Backlog work orders awaiting the user's dispatch judgment (DEC-143),
+      in queue order; `backlog[0]` is `veri next`'s head. */
+  backlog: DocumentRow[];
   /** In-progress work orders with the claims held on them, in id order. */
   inProgress: ClaimedRow[];
 }
@@ -115,10 +115,10 @@ export async function listDocuments(projectRoot: string, filters: ListFilters = 
 }
 
 /**
- * The dispatch queue: what is ready to start and what is already held. The
- * head comes from `nextDispatchable` itself rather than from this module's
- * sort, so `get_queue`'s first row is by construction the id `veri next`
- * prints — one evaluation site for the queue's head.
+ * The judgment queue (DEC-143): what awaits the user's dispatch and what is
+ * already held. The head comes from `nextDispatchable` itself rather than
+ * from this module's sort, so `get_queue`'s first row is by construction
+ * the id `veri next` prints — one evaluation site for the queue's head.
  */
 export async function getQueue(projectRoot: string): Promise<Queue> {
   const { documents } = await loadProject(requireVeriDir(projectRoot));
@@ -126,10 +126,10 @@ export async function getQueue(projectRoot: string): Promise<Queue> {
   const byId = (a: VeriDocument, b: VeriDocument): number => compareIds(a.id, b.id);
 
   const head = nextDispatchable(documents);
-  const rest = workOrders.filter((doc) => doc.status === 'ready' && doc.id !== head?.id).sort(byId);
+  const rest = workOrders.filter((doc) => doc.status === 'backlog' && doc.id !== head?.id).sort(byId);
 
   return {
-    ready: (head === undefined ? rest : [head, ...rest]).map(row),
+    backlog: (head === undefined ? rest : [head, ...rest]).map(row),
     inProgress: workOrders
       .filter((doc) => doc.status === 'in-progress')
       .sort(byId)
@@ -146,13 +146,15 @@ export function renderDocuments(rows: DocumentRow[]): string {
   return [`${rows.length} document${rows.length === 1 ? '' : 's'}:`, ...lines].join('\n');
 }
 
-/** The queue as text: dispatch order first, then who holds what. */
+/** The queue as text: what awaits the user's judgment first, then who holds
+    what. Dispatch is human-only (DEC-143) — the rendering says so instead
+    of inviting an agent to start anything. */
 export function renderQueue(queue: Queue): string {
   const lines = [
-    queue.ready.length === 0
-      ? 'Ready (0) — nothing is ready to start; a backlog work order becomes ready when the user stamps it (veri approve <WO-id>).'
-      : `Ready (${queue.ready.length}) — dispatch order, head first:`,
-    ...queue.ready.map((entry) => `${entry.id}  ${entry.file}  ${entry.title}`),
+    queue.backlog.length === 0
+      ? 'Backlog (0) — nothing awaits dispatch judgment.'
+      : `Backlog (${queue.backlog.length}) — awaiting the user's dispatch (veri dispatch <WO-id> --as <session>), head first:`,
+    ...queue.backlog.map((entry) => `${entry.id}  ${entry.file}  ${entry.title}`),
     '',
     queue.inProgress.length === 0 ? 'In progress (0) — no work order is claimed.' : `In progress (${queue.inProgress.length}):`,
     ...queue.inProgress.map(
