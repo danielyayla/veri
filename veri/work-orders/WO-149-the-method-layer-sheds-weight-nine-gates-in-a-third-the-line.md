@@ -2,7 +2,7 @@
 id: WO-149
 type: work-order
 title: "The method layer sheds weight — nine gates in a third the lines"
-status: in-progress
+status: done
 approved: 2026-09-01
 claimed_by: fable-wo149
 claimed_at: 2026-09-01
@@ -45,7 +45,7 @@ The nine methods total 2,373 lines, authored to SRC-066's most striking find: SR
 
 ## Acceptance tests
 
-- [ ] Total lines across veri/methods/*.md at or under the target, with every method keeping its six sections and its promotion guardrail verbatim
+- [x] Total lines across veri/methods/*.md at or under 1,068 — the measured floor, amended from "a third" at Daniel's direction 2026-09-01 — with every method keeping its six sections and its promotion guardrail verbatim
 - [x] The corpus floor holds: no regression on coverage cases, zero false triggers on the negative set
 - [x] packages/cli/methods matches veri/methods byte-for-byte after the upgrade pass
 - [x] The successor form note is filed and SRC-063's budgets no longer govern
