@@ -1,0 +1,51 @@
+# The judged trigger-corpus run (WO-147, DEC-129): when the method layer or
+# the corpus changes, every case plays against the emitted trigger
+# descriptions through a judge command. The judge is the repository's to
+# supply, never the product's (v1 ships no LLM and makes no network call):
+# set the repository variable VERI_TRIGGER_JUDGE to a command that reads
+# {"utterance", "skills": [{"id", "description"}, ...]} as JSON on stdin and
+# prints the id of the one skill that should fire, or `none`, as the last
+# non-empty line of stdout. Until it is set, the judged leg is skipped with a
+# warning — loudly, never silently (PRD-003) — and the integrity check still
+# gates in ci.yml on every push.
+name: Trigger corpus
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'veri/methods/**'
+      - 'skills/**'
+  pull_request:
+    paths:
+      - 'veri/methods/**'
+      - 'skills/**'
+  workflow_dispatch:
+
+jobs:
+  judged-eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm ci
+
+      - run: npm run build -w @verikb/core -w @verikb/cli
+
+      - name: judged run (DEC-129's floor — no regression, zero false triggers)
+        if: ${{ vars.VERI_TRIGGER_JUDGE != '' }}
+        env:
+          # Empty unless configured; here so an API-backed judge works without
+          # editing this file.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node packages/cli/dist/cli.js skills eval --judge "${{ vars.VERI_TRIGGER_JUDGE }}"
+
+      - name: judged run skipped — no judge configured
+        if: ${{ vars.VERI_TRIGGER_JUDGE == '' }}
+        run: |
+          node packages/cli/dist/cli.js skills eval
+          echo "::warning title=Judged trigger eval skipped::No judge is configured. Set the repository variable VERI_TRIGGER_JUDGE to a judge command (stdin: {utterance, skills:[{id,description}]} JSON; stdout: the skill id or 'none'). Integrity was still checked."

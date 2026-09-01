@@ -53,6 +53,13 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: node packages/cli/dist/cli.js check
 
+      # WO-147 / DEC-129: the trigger corpus's referential integrity on every
+      # push — a corpus entry naming a skill with no method document fails.
+      # The judged run lives in skills-eval.yml, on method/corpus changes.
+      - name: trigger corpus integrity (veri skills eval)
+        if: matrix.os == 'ubuntu-latest'
+        run: node packages/cli/dist/cli.js skills eval
+
       - name: action bundle is current (npm test rebuilt it from source)
         if: matrix.os == 'ubuntu-latest'
         run: git diff --exit-code -- action/dist
