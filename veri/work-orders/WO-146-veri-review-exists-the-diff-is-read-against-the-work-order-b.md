@@ -2,8 +2,10 @@
 id: WO-146
 type: work-order
 title: "veri:review exists — the diff is read against the work order before done"
-status: backlog
+status: in-progress
 approved: 2026-09-01
+claimed_by: fable-wo146
+claimed_at: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
 links:
