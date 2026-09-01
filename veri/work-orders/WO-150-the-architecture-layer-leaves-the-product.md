@@ -2,7 +2,7 @@
 id: WO-150
 type: work-order
 title: "The architecture layer leaves the product"
-status: in-progress
+status: done
 approved: 2026-09-01
 claimed_by: fable-wo150
 claimed_at: 2026-09-01
@@ -50,12 +50,12 @@ SRC-066's verdict on the module registry, decision architecture constraints, imp
 
 ## Acceptance tests
 
-- [ ] No arch-* rule kinds exist in check or its types; fixtures removed
-- [ ] veri architecture is gone from the CLI dispatch and help
-- [ ] The app builds and runs with no Architecture view or Home card; a design source is linked designed-by
-- [ ] A decision carrying an architecture: block still parses with zero issues and the docs name the field inert
-- [ ] get_intent still resolves modules from the registry; full suite green
+- [x] No arch-* rule kinds exist in check or its types; fixtures removed
+- [x] veri architecture is gone from the CLI dispatch and help
+- [x] The app builds and runs with no Architecture view or Home card; a design source is linked designed-by
+- [x] A decision carrying an architecture: block still parses with zero issues and the docs name the field inert
+- [x] get_intent still resolves modules from the registry; full suite green
 
 ## Receipts
 
-(none yet)
+- 2026-09-01 — d3df489 (span 3f9301a, 0b929ef, d3df489) — The architecture layer retired end to end per SRC-067 (no verify: declared; full workspace suite green — 894 tests across core/cli/mcp/ui/action — and veri check reports 0 issues · 23 baseline advisories).
