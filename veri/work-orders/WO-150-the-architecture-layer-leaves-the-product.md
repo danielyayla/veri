@@ -12,6 +12,8 @@ links:
     rel: serves
   - id: SRC-066
     rel: derived-from
+  - id: SRC-067
+    rel: designed-by
 binds:
   paths:
     - packages/ui
