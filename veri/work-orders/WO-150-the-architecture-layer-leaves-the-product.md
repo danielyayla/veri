@@ -2,8 +2,10 @@
 id: WO-150
 type: work-order
 title: "The architecture layer leaves the product"
-status: backlog
+status: in-progress
 approved: 2026-09-01
+claimed_by: fable-wo150
+claimed_at: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
 links:
