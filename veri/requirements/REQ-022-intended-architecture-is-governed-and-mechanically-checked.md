@@ -2,13 +2,15 @@
 id: REQ-022
 type: requirement
 title: "Intended architecture is governed and mechanically checked"
-status: accepted
+status: retired
 approved: 2026-08-20
 created: 2026-08-20
-updated: 2026-08-20
+updated: 2026-09-01
 links:
   - id: REQ-021
     rel: extends
+  - id: DEC-144
+    rel: retired-by
 ---
 
 In an agent-heavy codebase, structure erodes through individually
@@ -57,3 +59,11 @@ module registry. This requirement is satisfiable by other mechanisms
 should that decision ever be superseded. The observed-structure
 criterion is expected to land in a later work order than the intended
 side ([[WO-066]] delivers the intended half).
+
+**Retired 2026-09-01** by [[DEC-144]]: the architecture layer leaves
+the product — enforcement belongs to act-time lint and hooks, the
+choice of a boundary to an ordinary decision's prose. In its life on
+this repository the layer caught no real erosion ([[SRC-066]]);
+[[WO-150]] carries the removal. DEC-144's revisit condition names
+what would reopen this: an erosion incident shipping through both
+review and lint that a governed rule would demonstrably have caught.
