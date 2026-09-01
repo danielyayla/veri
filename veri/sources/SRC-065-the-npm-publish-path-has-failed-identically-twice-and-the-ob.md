@@ -15,6 +15,8 @@ links:
     rel: tests
   - id: REQ-012
     rel: tests
+  - id: REQ-011
+    rel: supports
   - id: DEC-077
     rel: derived-from
 ---

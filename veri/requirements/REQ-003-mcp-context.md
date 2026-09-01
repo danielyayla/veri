@@ -5,8 +5,10 @@ title: MCP server assembles and serves context packages
 status: accepted
 approved: 2026-08-19
 created: 2026-08-06
-updated: 2026-08-19
+updated: 2026-09-02
 links:
+  - id: SRC-001
+    rel: derived-from
   - id: REQ-001
     rel: depends-on
   - id: DEC-003
