@@ -105,11 +105,15 @@ on every push, so a green main is a releasable action.
 `verikb` scope (the npm names `veri` and `@veri` belong to others;
 DEC-077 named `@verikb` as the fallback), bin name `veri`, the three
 versions moving in lockstep on their own 0.x line, independent of the
-app version. Publishing needs the `NPM_TOKEN` repository secret — a
-granular npm token with read/write on the `@verikb` scope. Note the
-token does not bypass 2FA: if the npm account requires 2FA for writes,
-CI publishes fail with `EOTP`; the fix is npm trusted publishing
-(OIDC), not a bypass token.
+app version.
+
+Authentication is **npm trusted publishing** (OIDC, WO-140): each
+package's npmjs.com settings name this repository and the
+`npm-publish.yml` workflow as its trusted publisher, and the workflow
+mints a short-lived token from its GitHub identity at publish time.
+No `NPM_TOKEN` secret exists and none is needed — the token route was
+retired after failing twice on `EOTP` (SRC-065): a granular token does
+not bypass account 2FA, and no repository secret can supply an OTP.
 
 1. Bump all three package versions together (the workflow refuses a
    mismatched set).
@@ -117,6 +121,13 @@ CI publishes fail with `EOTP`; the fix is npm trusted publishing
 3. Run the `npm-publish` workflow (Actions → npm-publish → Run
    workflow) with dry-run **on**; review the file lists it prints.
 4. Re-run with dry-run **off**.
+
+**First publish of a new package is the exception.** Trusted
+publishing can only be configured on a package that already exists on
+the registry, so a brand-new `@verikb/*` package bootstraps with one
+manual `npm publish` (with an OTP) from a maintainer's machine — then
+gets its trusted publisher configured on npmjs.com, after which CI
+handles every subsequent version.
 
 ## Rules of thumb
 

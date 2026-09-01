@@ -1,9 +1,10 @@
-# WO-081 / DEC-077 (proposed): manual npm publish for the three public
+# WO-081 / DEC-077 / WO-140: manual npm publish for the three public
 # packages — @verikb/core, @verikb/cli, @verikb/mcp. Never tag-triggered: the
 # v* namespace is shared and guarded (DEC-075), and publishing stays a
-# deliberate maintainer act. Dry-run is the default; a real publish
-# requires flipping the input AND an NPM_TOKEN repository secret, which
-# does not exist until DEC-077 is approved and the scope is claimed.
+# deliberate maintainer act. Dry-run is the default. Authentication is
+# npm trusted publishing (OIDC, WO-140): the job mints a short-lived
+# token from its GitHub identity — no NPM_TOKEN secret, and no 2FA OTP,
+# which no repository secret could ever supply (SRC-065).
 name: npm-publish
 
 on:
@@ -16,6 +17,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write # OIDC token for npm trusted publishing (WO-140)
 
 jobs:
   publish:
@@ -23,10 +25,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No registry-url: that input writes an _authToken line into
+      # .npmrc, and trusted publishing needs no token at all.
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          registry-url: "https://registry.npmjs.org"
+
+      # Trusted publishing needs npm >= 11.5.1 to exchange the OIDC
+      # token; Node 22 bundles npm 10.x.
+      - run: npm install -g npm@latest && npm --version
 
       - run: npm ci
 
@@ -46,8 +53,6 @@ jobs:
           fi
 
       - name: Publish (dry-run ${{ inputs.dry_run }})
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           flag=""
           if [ "${{ inputs.dry_run }}" = "true" ]; then flag="--dry-run"; fi
