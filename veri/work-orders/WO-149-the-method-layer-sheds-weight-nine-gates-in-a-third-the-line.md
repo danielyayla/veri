@@ -2,7 +2,8 @@
 id: WO-149
 type: work-order
 title: "The method layer sheds weight — nine gates in a third the lines"
-status: backlog
+status: ready
+approved: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
 links:

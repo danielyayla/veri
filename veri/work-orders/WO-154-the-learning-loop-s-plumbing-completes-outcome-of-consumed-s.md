@@ -2,7 +2,8 @@
 id: WO-154
 type: work-order
 title: "The learning loop's plumbing completes — outcome-of consumed, source kinds meaningful, discovery files bets"
-status: backlog
+status: ready
+approved: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
 links:

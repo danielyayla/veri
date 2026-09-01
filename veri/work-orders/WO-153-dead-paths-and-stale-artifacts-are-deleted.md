@@ -2,7 +2,8 @@
 id: WO-153
 type: work-order
 title: "Dead paths and stale artifacts are deleted"
-status: backlog
+status: ready
+approved: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
 links:
