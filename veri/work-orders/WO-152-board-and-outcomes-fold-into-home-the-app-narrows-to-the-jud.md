@@ -2,7 +2,7 @@
 id: WO-152
 type: work-order
 title: "Board and Outcomes fold into Home — the app narrows to the judgment surface"
-status: in-progress
+status: done
 approved: 2026-09-01
 claimed_by: fable-wo152
 claimed_at: 2026-09-01
@@ -53,12 +53,12 @@ PRD-002 defines what the user needs: "a judgment surface, not an execution board
 
 ## Acceptance tests
 
-- [ ] The app builds with board.ts and outcomes.ts removed and no dead sidebar, palette, or tab entries
-- [ ] Home shows untested bets and recent outcome sources (fixture-driven render test)
-- [ ] Every lifecycle action the Board surfaced is reachable through the Work Orders panel and detail
-- [ ] A design source is linked designed-by and the design gate passes
-- [ ] Full suite green
+- [x] The app builds with board.ts and outcomes.ts removed and no dead sidebar, palette, or tab entries
+- [x] Home shows untested bets and recent outcome sources (fixture-driven render test)
+- [x] Every lifecycle action the Board surfaced is reachable through the Work Orders panel and detail
+- [x] A design source is linked designed-by and the design gate passes
+- [x] Full suite green
 
 ## Receipts
 
-(none yet)
+- 2026-09-01 — 957f463 — Board and Outcomes views removed (views, View/ViewKey unions, sidebar row + DID IT WORK? header, tp-board row, palette entries, session state, view-only derive helpers), Home absorbed the verdict chips and teaching empty state with an all-three-verdicts fixture test, stale board/outcomes tabs restore to Home; no verify: declared — packages/ui suite 340/340 green, build exit 0, veri check 0 issues.
