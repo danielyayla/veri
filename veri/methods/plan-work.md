@@ -3,13 +3,13 @@ id: MET-007
 type: method
 title: "veri:plan-work — approved intent cut into work somebody can verify alone"
 status: accepted
-approved: 2026-09-01
+approved: 2026-09-02
 description: >-
   The gate between approved intent and work orders somebody could verify one at a time. Use it when intent is settled and nothing is queued against it: "REQ-014 is accepted — cut it into work orders", "the backlog is empty but REQ-039 and REQ-041 are both accepted, turn them into work", "start building the CSV export, there is no work order for it yet", "this one is too big to verify in one go, split it into slices that each ship on their own". It reads what is already accepted and already queued, pushes each slice until it can be proven alone, ties every acceptance criterion to the requirement clause it proves, and files the work orders in backlog awaiting your stamp. Not for work inside a boundary already drawn: "WO-131 is ready — start it", "pick up my in-progress claim on WO-118 and keep going where I left off" are veri:implement's, because the lines exist and what is left is execution. Not for ordinary work with no boundary in question — "run the test suite", "the CI matrix is failing on Node 18, fix it".
 requires: [file_work_order, amend_document, search, get_neighbors, run_check]
 upstream: veri/plan-work
 created: 2026-08-27
-updated: 2026-09-01
+updated: 2026-09-02
 links:
   - { id: WF-001, rel: derived-from }
   - { id: SRC-060, rel: derived-from }

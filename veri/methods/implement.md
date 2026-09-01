@@ -3,13 +3,13 @@ id: MET-001
 type: method
 title: "veri:implement — execution within intent, from claim to receipt"
 status: accepted
-approved: 2026-09-01
+approved: 2026-09-02
 description: >-
   Steers implementation of a work order that already exists — the gate between a ready work order and a receipt. Use it when a work order is named or already claimed: "WO-131 is ready — start it", "claim WO-118 and pick up where I left off", "walk the scope back to me before any code", "build it" with a work order id on the table. It claims the work order, reads its whole context package, reads the scope back before typing, guards the boundary, files decisions made en route as proposals, and appends the closing receipt. Not for cutting work up: "start building the CSV export, there is no work order for it yet", "REQ-014 is accepted — turn it into work orders", "this one is too big to verify, split it into slices" are veri:plan-work's, because an implementer may not code from a chat prompt alone. Not for ordinary work inside a boundary already drawn — a null check, a rename, a unit test, a failing CI matrix, "summarise what you just changed" — no gate is being crossed.
 requires: [get_context, get_queue, file_decision, file_receipt, run_check]
 upstream: veri/implement
 created: 2026-08-27
-updated: 2026-09-01
+updated: 2026-09-02
 links:
   - { id: WF-001, rel: derived-from }
   - { id: SRC-060, rel: derived-from }
