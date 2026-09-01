@@ -7,7 +7,6 @@ import { daysBetween, pathMatchesBinds } from './binds.ts';
 import { commitsByWorkOrder, parseReceipts } from './provenance.ts';
 import type { GitFacts } from './provenance.ts';
 import { checkSupersededLinks } from './drift.ts';
-import { checkArchitecture } from './architecture.ts';
 import { getTemplate } from './templates.ts';
 import { FORMAT_FILE, formatStatement } from './format.ts';
 import { sectionText, withoutSection } from './sections.ts';
@@ -945,7 +944,6 @@ export function checkProject(load: LoadResult): CheckResult {
       ...checkMethodFiles(load.documents),
       ...checkApprovalStamps(load.documents),
       ...checkApprovers(load.documents),
-      ...checkArchitecture(load.documents),
     ],
     // The pure advisory tier. Git-backed advisories (receipt verification,
     // WO-044; git drift, WO-045) are pushed by hosts that collect facts

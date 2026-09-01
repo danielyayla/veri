@@ -66,40 +66,19 @@ const requirementSchema = z
   })
   .passthrough();
 
-// DEC-058: a decision may carry machine-readable architecture constraints.
-// The block gets a real schema — a malformed constraint is a check failure,
-// never a silently preserved no-op — while other unknown keys stay
-// passthrough per REQ-001. `from`/`to` accept one module name or a list.
-const moduleRef = z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]);
+// DEC-144: the `architecture:` block on decisions is inert. It once carried
+// machine-checked dependency constraints (DEC-058, DEC-062, both superseded);
+// existing documents keep parsing — the field rides the decision schema's
+// passthrough like any other unknown key — but it validates nothing and
+// binds nothing. Projects wanting enforced module boundaries bring their own
+// dependency linter; the choice of a boundary lives in a decision's prose.
 
-// DEC-062: a constraint may declare its enforcement severity. `advisory`
-// (the default when absent — WO-067's shipped behavior) keeps violations in
-// the grey tier; `error` promotes a violation of this constraint to a check
-// issue. A malformed value is an invalid-frontmatter issue like any other
-// field — never a silently ignored no-op.
-const severityField = z.enum(['advisory', 'error']).optional();
-
-const architectureConstraintSchema = z
-  .object({
-    from: moduleRef,
-    to: moduleRef,
-    allowed: z.boolean(),
-    severity: severityField,
-  })
-  .passthrough();
-
-const architectureSchema = z
-  .object({ constraints: z.array(architectureConstraintSchema).default([]) })
-  .passthrough();
-
-export type ArchitectureConstraint = z.infer<typeof architectureConstraintSchema>;
-export type ArchitectureBlock = z.infer<typeof architectureSchema>;
-
-// DEC-059: one registry entry — a module name constraints may reference,
-// where it lives, and why it exists. `responsibilities` (WO-068, DEC-089,
-// proposed) is an optional declared list feeding the desktop app's module
-// detail panel; absent, surfaces fall back to `purpose`. Validated so a
-// malformed list is an invalid-frontmatter issue, never a silent no-op.
+// DEC-059 (narrowed by DEC-144): one registry entry — a module's name, where
+// it lives, and why it exists. The registry serves code-to-intent lookup
+// (`get_intent`, `veri intent`) — retrieval, not enforcement.
+// `responsibilities` is an optional declared list; absent, surfaces fall
+// back to `purpose`. Validated so a malformed list is an
+// invalid-frontmatter issue, never a silent no-op.
 const moduleEntrySchema = z
   .object({
     name: z.string().min(1),
@@ -119,7 +98,6 @@ const decisionSchema = z
     approved: dateField.optional(),
     approved_by: approvedByField,
     superseded_by: idField.optional(),
-    architecture: architectureSchema.optional(),
   })
   .passthrough();
 
@@ -207,8 +185,8 @@ const workflowSchema = z
     // hardcoded in core. A started work order whose body mentions any of
     // these must link a designed-by design document. Absent → gate inert.
     design_gate_paths: z.array(z.string().min(1)).optional(),
-    // DEC-059: the module registry architecture constraints resolve against
-    // (DEC-058). Absent → no modules defined, and any constraint fails check.
+    // DEC-059 (narrowed by DEC-144): the module registry — code-to-intent
+    // lookup reads it (`get_intent`, `veri intent`). Absent → no modules.
     modules: z.array(moduleEntrySchema).optional(),
     // WO-088: days of bound-path silence before an in-progress work order
     // counts as stale. Absent → the core default (DEFAULT_STALE_AFTER_DAYS).

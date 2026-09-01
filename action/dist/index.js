@@ -3996,10 +3996,10 @@ var require_resolve_block_map = __commonJS({
       let offset = bm.offset;
       let commentEnd = null;
       for (const collItem of bm.items) {
-        const { start, key, sep: sep3, value } = collItem;
+        const { start, key, sep: sep2, value } = collItem;
         const keyProps = resolveProps.resolveProps(start, {
           indicator: "explicit-key-ind",
-          next: key ?? sep3?.[0],
+          next: key ?? sep2?.[0],
           offset,
           onError,
           parentIndent: bm.indent,
@@ -4013,7 +4013,7 @@ var require_resolve_block_map = __commonJS({
             else if ("indent" in key && key.indent !== bm.indent)
               onError(offset, "BAD_INDENT", startColMsg);
           }
-          if (!keyProps.anchor && !keyProps.tag && !sep3) {
+          if (!keyProps.anchor && !keyProps.tag && !sep2) {
             commentEnd = keyProps.end;
             if (keyProps.comment) {
               if (map.comment)
@@ -4037,7 +4037,7 @@ var require_resolve_block_map = __commonJS({
         ctx.atKey = false;
         if (utilMapIncludes.mapIncludes(ctx, map.items, keyNode))
           onError(keyStart, "DUPLICATE_KEY", "Map keys must be unique");
-        const valueProps = resolveProps.resolveProps(sep3 ?? [], {
+        const valueProps = resolveProps.resolveProps(sep2 ?? [], {
           indicator: "map-value-ind",
           next: value,
           offset: keyNode.range[2],
@@ -4053,7 +4053,7 @@ var require_resolve_block_map = __commonJS({
             if (ctx.options.strict && keyProps.start < valueProps.found.offset - 1024)
               onError(keyNode.range, "KEY_OVER_1024_CHARS", "The : indicator must be at most 1024 chars after the start of an implicit block mapping key");
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep3, null, valueProps, onError);
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep2, null, valueProps, onError);
           if (ctx.schema.compat)
             utilFlowIndentCheck.flowIndentCheck(bm.indent, value, onError);
           offset = valueNode.range[2];
@@ -4144,7 +4144,7 @@ var require_resolve_end = __commonJS({
       let comment = "";
       if (end) {
         let hasSpace = false;
-        let sep3 = "";
+        let sep2 = "";
         for (const token of end) {
           const { source, type } = token;
           switch (type) {
@@ -4158,13 +4158,13 @@ var require_resolve_end = __commonJS({
               if (!comment)
                 comment = cb;
               else
-                comment += sep3 + cb;
-              sep3 = "";
+                comment += sep2 + cb;
+              sep2 = "";
               break;
             }
             case "newline":
               if (comment)
-                sep3 += source;
+                sep2 += source;
               hasSpace = true;
               break;
             default:
@@ -4207,18 +4207,18 @@ var require_resolve_flow_collection = __commonJS({
       let offset = fc.offset + fc.start.source.length;
       for (let i = 0; i < fc.items.length; ++i) {
         const collItem = fc.items[i];
-        const { start, key, sep: sep3, value } = collItem;
+        const { start, key, sep: sep2, value } = collItem;
         const props = resolveProps.resolveProps(start, {
           flow: fcName,
           indicator: "explicit-key-ind",
-          next: key ?? sep3?.[0],
+          next: key ?? sep2?.[0],
           offset,
           onError,
           parentIndent: fc.indent,
           startOnNewline: false
         });
         if (!props.found) {
-          if (!props.anchor && !props.tag && !sep3 && !value) {
+          if (!props.anchor && !props.tag && !sep2 && !value) {
             if (i === 0 && props.comma)
               onError(props.comma, "UNEXPECTED_TOKEN", `Unexpected , in ${fcName}`);
             else if (i < fc.items.length - 1)
@@ -4272,8 +4272,8 @@ var require_resolve_flow_collection = __commonJS({
             }
           }
         }
-        if (!isMap && !sep3 && !props.found) {
-          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep3, null, props, onError);
+        if (!isMap && !sep2 && !props.found) {
+          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep2, null, props, onError);
           coll.items.push(valueNode);
           offset = valueNode.range[2];
           if (isBlock(value))
@@ -4285,7 +4285,7 @@ var require_resolve_flow_collection = __commonJS({
           if (isBlock(key))
             onError(keyNode.range, "BLOCK_IN_FLOW", blockMsg);
           ctx.atKey = false;
-          const valueProps = resolveProps.resolveProps(sep3 ?? [], {
+          const valueProps = resolveProps.resolveProps(sep2 ?? [], {
             flow: fcName,
             indicator: "map-value-ind",
             next: value,
@@ -4296,8 +4296,8 @@ var require_resolve_flow_collection = __commonJS({
           });
           if (valueProps.found) {
             if (!isMap && !props.found && ctx.options.strict) {
-              if (sep3)
-                for (const st of sep3) {
+              if (sep2)
+                for (const st of sep2) {
                   if (st === valueProps.found)
                     break;
                   if (st.type === "newline") {
@@ -4314,7 +4314,7 @@ var require_resolve_flow_collection = __commonJS({
             else
               onError(valueProps.start, "MISSING_CHAR", `Missing , or : between ${fcName} items`);
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep3, null, valueProps, onError) : null;
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep2, null, valueProps, onError) : null;
           if (valueNode) {
             if (isBlock(value))
               onError(valueNode.range, "BLOCK_IN_FLOW", blockMsg);
@@ -4494,7 +4494,7 @@ var require_resolve_block_scalar = __commonJS({
           chompStart = i + 1;
       }
       let value = "";
-      let sep3 = "";
+      let sep2 = "";
       let prevMoreIndented = false;
       for (let i = 0; i < contentStart; ++i)
         value += lines[i][0].slice(trimIndent) + "\n";
@@ -4511,24 +4511,24 @@ var require_resolve_block_scalar = __commonJS({
           indent = "";
         }
         if (type === Scalar.Scalar.BLOCK_LITERAL) {
-          value += sep3 + indent.slice(trimIndent) + content;
-          sep3 = "\n";
+          value += sep2 + indent.slice(trimIndent) + content;
+          sep2 = "\n";
         } else if (indent.length > trimIndent || content[0] === "	") {
-          if (sep3 === " ")
-            sep3 = "\n";
-          else if (!prevMoreIndented && sep3 === "\n")
-            sep3 = "\n\n";
-          value += sep3 + indent.slice(trimIndent) + content;
-          sep3 = "\n";
+          if (sep2 === " ")
+            sep2 = "\n";
+          else if (!prevMoreIndented && sep2 === "\n")
+            sep2 = "\n\n";
+          value += sep2 + indent.slice(trimIndent) + content;
+          sep2 = "\n";
           prevMoreIndented = true;
         } else if (content === "") {
-          if (sep3 === "\n")
+          if (sep2 === "\n")
             value += "\n";
           else
-            sep3 = "\n";
+            sep2 = "\n";
         } else {
-          value += sep3 + content;
-          sep3 = " ";
+          value += sep2 + content;
+          sep2 = " ";
           prevMoreIndented = false;
         }
       }
@@ -4710,25 +4710,25 @@ var require_resolve_flow_scalar = __commonJS({
       if (!match)
         return source;
       let res = match[1];
-      let sep3 = " ";
+      let sep2 = " ";
       let pos = first.lastIndex;
       line.lastIndex = pos;
       while (match = line.exec(source)) {
         if (match[1] === "") {
-          if (sep3 === "\n")
-            res += sep3;
+          if (sep2 === "\n")
+            res += sep2;
           else
-            sep3 = "\n";
+            sep2 = "\n";
         } else {
-          res += sep3 + match[1];
-          sep3 = " ";
+          res += sep2 + match[1];
+          sep2 = " ";
         }
         pos = line.lastIndex;
       }
       const last = /[ \t]*(.*)/sy;
       last.lastIndex = pos;
       match = last.exec(source);
-      return res + sep3 + (match?.[1] ?? "");
+      return res + sep2 + (match?.[1] ?? "");
     }
     function doubleQuotedValue(source, onError) {
       let res = "";
@@ -5538,14 +5538,14 @@ var require_cst_stringify = __commonJS({
         }
       }
     }
-    function stringifyItem({ start, key, sep: sep3, value }) {
+    function stringifyItem({ start, key, sep: sep2, value }) {
       let res = "";
       for (const st of start)
         res += st.source;
       if (key)
         res += stringifyToken(key);
-      if (sep3)
-        for (const st of sep3)
+      if (sep2)
+        for (const st of sep2)
           res += st.source;
       if (value)
         res += stringifyToken(value);
@@ -6712,18 +6712,18 @@ var require_parser = __commonJS({
         if (this.type === "map-value-ind") {
           const prev = getPrevProps(this.peek(2));
           const start = getFirstKeyStartProps(prev);
-          let sep3;
+          let sep2;
           if (scalar.end) {
-            sep3 = scalar.end;
-            sep3.push(this.sourceToken);
+            sep2 = scalar.end;
+            sep2.push(this.sourceToken);
             delete scalar.end;
           } else
-            sep3 = [this.sourceToken];
+            sep2 = [this.sourceToken];
           const map = {
             type: "block-map",
             offset: scalar.offset,
             indent: scalar.indent,
-            items: [{ start, key: scalar, sep: sep3 }]
+            items: [{ start, key: scalar, sep: sep2 }]
           };
           this.onKeyLine = true;
           this.stack[this.stack.length - 1] = map;
@@ -6876,15 +6876,15 @@ var require_parser = __commonJS({
                 } else if (isFlowToken(it.key) && !includesToken(it.sep, "newline")) {
                   const start2 = getFirstKeyStartProps(it.start);
                   const key = it.key;
-                  const sep3 = it.sep;
-                  sep3.push(this.sourceToken);
+                  const sep2 = it.sep;
+                  sep2.push(this.sourceToken);
                   delete it.key;
                   delete it.sep;
                   this.stack.push({
                     type: "block-map",
                     offset: this.offset,
                     indent: this.indent,
-                    items: [{ start: start2, key, sep: sep3 }]
+                    items: [{ start: start2, key, sep: sep2 }]
                   });
                 } else if (start.length > 0) {
                   it.sep = it.sep.concat(start, this.sourceToken);
@@ -7078,13 +7078,13 @@ var require_parser = __commonJS({
             const prev = getPrevProps(parent);
             const start = getFirstKeyStartProps(prev);
             fixFlowSeqItems(fc);
-            const sep3 = fc.end.splice(1, fc.end.length);
-            sep3.push(this.sourceToken);
+            const sep2 = fc.end.splice(1, fc.end.length);
+            sep2.push(this.sourceToken);
             const map = {
               type: "block-map",
               offset: fc.offset,
               indent: fc.indent,
-              items: [{ start, key: fc, sep: sep3 }]
+              items: [{ start, key: fc, sep: sep2 }]
             };
             this.onKeyLine = true;
             this.stack[this.stack.length - 1] = map;
@@ -7364,11 +7364,11 @@ var require_dist = __commonJS({
 
 // src/main.ts
 import { appendFileSync } from "node:fs";
-import { resolve as resolve3 } from "node:path";
+import { resolve as resolve2 } from "node:path";
 
 // ../cli/dist/commands.js
-import { existsSync as existsSync4, mkdirSync as mkdirSync3, readFileSync as readFileSync6, readdirSync as readdirSync4, realpathSync, writeFileSync as writeFileSync4 } from "node:fs";
-import { basename, dirname as dirname3, join as join7, relative as relative3, resolve as resolve2, sep as sep2 } from "node:path";
+import { existsSync as existsSync3, mkdirSync as mkdirSync3, readFileSync as readFileSync5, readdirSync as readdirSync3, realpathSync, writeFileSync as writeFileSync4 } from "node:fs";
+import { basename, dirname as dirname2, join as join6, relative as relative2, resolve, sep } from "node:path";
 import { fileURLToPath as fileURLToPath5 } from "node:url";
 
 // ../core/dist/ids.js
@@ -11504,15 +11504,6 @@ var requirementSchema = external_exports.object({
   kind: requirementKindField,
   outcome: outcomeSchema.optional()
 }).passthrough();
-var moduleRef = external_exports.union([external_exports.string().min(1), external_exports.array(external_exports.string().min(1)).min(1)]);
-var severityField = external_exports.enum(["advisory", "error"]).optional();
-var architectureConstraintSchema = external_exports.object({
-  from: moduleRef,
-  to: moduleRef,
-  allowed: external_exports.boolean(),
-  severity: severityField
-}).passthrough();
-var architectureSchema = external_exports.object({ constraints: external_exports.array(architectureConstraintSchema).default([]) }).passthrough();
 var moduleEntrySchema = external_exports.object({
   name: external_exports.string().min(1),
   path: external_exports.string().min(1),
@@ -11525,8 +11516,7 @@ var decisionSchema = external_exports.object({
   status: external_exports.enum(["proposed", "active", "superseded", WITHDRAWN]),
   approved: dateField.optional(),
   approved_by: approvedByField,
-  superseded_by: idField.optional(),
-  architecture: architectureSchema.optional()
+  superseded_by: idField.optional()
 }).passthrough();
 var bindsSchema = external_exports.object({
   paths: external_exports.array(external_exports.string().min(1)).default([]),
@@ -11569,8 +11559,8 @@ var workflowSchema = external_exports.object({
   // hardcoded in core. A started work order whose body mentions any of
   // these must link a designed-by design document. Absent → gate inert.
   design_gate_paths: external_exports.array(external_exports.string().min(1)).optional(),
-  // DEC-059: the module registry architecture constraints resolve against
-  // (DEC-058). Absent → no modules defined, and any constraint fails check.
+  // DEC-059 (narrowed by DEC-144): the module registry — code-to-intent
+  // lookup reads it (`get_intent`, `veri intent`). Absent → no modules.
   modules: external_exports.array(moduleEntrySchema).optional(),
   // WO-088: days of bound-path silence before an in-progress work order
   // counts as stale. Absent → the core default (DEFAULT_STALE_AFTER_DAYS).
@@ -12128,129 +12118,6 @@ function checkDrift(documents, facts, veriPath) {
     }
   }
   return advisories;
-}
-
-// ../core/dist/architecture.js
-function moduleRegistry(documents) {
-  return documents.filter((doc) => doc.type === "workflow" && doc.status !== "retired").flatMap((doc) => doc.frontmatter["modules"] ?? []);
-}
-var asList = (ref) => typeof ref === "string" ? [ref] : ref;
-function architectureOf(doc) {
-  if (doc.type !== "decision")
-    return void 0;
-  return doc.frontmatter["architecture"];
-}
-function decisionsWithConstraints(documents) {
-  return documents.filter((doc) => architectureOf(doc) !== void 0).sort((a, b) => compareIds(a.id, b.id));
-}
-function assembleArchitecture(documents) {
-  const rules = [];
-  for (const doc of decisionsWithConstraints(documents)) {
-    if (doc.status !== "active")
-      continue;
-    for (const constraint of architectureOf(doc).constraints) {
-      for (const from of asList(constraint.from)) {
-        for (const to of asList(constraint.to)) {
-          rules.push({
-            from,
-            to,
-            allowed: constraint.allowed,
-            decisionId: doc.id,
-            // Only a declared severity rides the projection (DEC-062):
-            // rules without the field stay shaped exactly as before.
-            ...constraint.severity === void 0 ? {} : { severity: constraint.severity }
-          });
-        }
-      }
-    }
-  }
-  const conflicts = [];
-  const byEdge = /* @__PURE__ */ new Map();
-  for (const rule of rules) {
-    const key = `${rule.from}\0${rule.to}`;
-    byEdge.set(key, [...byEdge.get(key) ?? [], rule]);
-  }
-  for (const edgeRules of byEdge.values()) {
-    const allowedBy = [...new Set(edgeRules.filter((r) => r.allowed).map((r) => r.decisionId))];
-    const forbiddenBy = [...new Set(edgeRules.filter((r) => !r.allowed).map((r) => r.decisionId))];
-    if (allowedBy.length > 0 && forbiddenBy.length > 0) {
-      conflicts.push({ from: edgeRules[0].from, to: edgeRules[0].to, allowedBy, forbiddenBy });
-    }
-  }
-  return { modules: moduleRegistry(documents), rules, conflicts };
-}
-function checkArchitecture(documents) {
-  const known = new Set(moduleRegistry(documents).map((entry) => entry.name));
-  const issues = [];
-  for (const doc of decisionsWithConstraints(documents)) {
-    if (doc.status === "superseded")
-      continue;
-    const unknown = /* @__PURE__ */ new Set();
-    for (const constraint of architectureOf(doc).constraints) {
-      for (const name of [...asList(constraint.from), ...asList(constraint.to)]) {
-        if (!known.has(name))
-          unknown.add(name);
-      }
-    }
-    for (const name of unknown) {
-      const hint = known.size === 0 ? "no modules are declared \u2014 add a modules: list (name, path, purpose) to the workflow frontmatter" : `known modules: ${[...known].join(", ")}`;
-      issues.push({
-        kind: "arch-unknown-module",
-        file: doc.file,
-        id: doc.id,
-        module: name,
-        message: `${doc.id} constrains module "${name}" but the registry does not define it \u2014 the rule can never fire (${hint})`
-      });
-    }
-  }
-  const files = new Map(documents.map((doc) => [doc.id, doc.file]));
-  for (const conflict of assembleArchitecture(documents).conflicts) {
-    const newest = [...conflict.allowedBy, ...conflict.forbiddenBy].sort(compareIds).at(-1);
-    issues.push({
-      kind: "arch-conflict",
-      file: files.get(newest) ?? "",
-      from: conflict.from,
-      to: conflict.to,
-      allowedBy: conflict.allowedBy,
-      forbiddenBy: conflict.forbiddenBy,
-      message: `architecture conflict on ${conflict.from} \u2192 ${conflict.to}: allowed by ${conflict.allowedBy.join(", ")} but forbidden by ${conflict.forbiddenBy.join(", ")} \u2014 supersede one so the intended architecture speaks with one voice`
-    });
-  }
-  return issues;
-}
-function checkObservedArchitecture(documents, edges) {
-  const byEdge = /* @__PURE__ */ new Map();
-  for (const rule of assembleArchitecture(documents).rules) {
-    const key = `${rule.from} ${rule.to}`;
-    byEdge.set(key, [...byEdge.get(key) ?? [], rule]);
-  }
-  const observed = { issues: [], violations: [] };
-  for (const edge of edges) {
-    const edgeRules = byEdge.get(`${edge.from} ${edge.to}`) ?? [];
-    if (edgeRules.some((rule) => rule.allowed))
-      continue;
-    const forbidding = edgeRules.filter((rule) => !rule.allowed);
-    const forbiddenBy = [...new Set(forbidding.map((rule) => rule.decisionId))];
-    if (forbiddenBy.length === 0)
-      continue;
-    const isError = forbidding.some((rule) => rule.severity === "error");
-    const finding = {
-      kind: "arch-violation",
-      file: edge.file,
-      // Anchored on the oldest forbidding decision — the original ruling.
-      id: forbiddenBy[0],
-      from: edge.from,
-      to: edge.to,
-      specifier: edge.specifier,
-      forbiddenBy,
-      message: `imports "${edge.specifier}" \u2014 the ${edge.from} \u2192 ${edge.to} edge is forbidden by ${forbiddenBy.join(", ")}` + (isError ? " (severity: error)" : "")
-    };
-    if (isError)
-      observed.issues.push(finding);
-    else
-      observed.violations.push(finding);
-  }
-  return observed;
 }
 
 // ../core/dist/templates.js
@@ -13054,8 +12921,7 @@ function checkProject(load) {
       ...checkProductFiles(load.documents),
       ...checkMethodFiles(load.documents),
       ...checkApprovalStamps(load.documents),
-      ...checkApprovers(load.documents),
-      ...checkArchitecture(load.documents)
+      ...checkApprovers(load.documents)
     ],
     // The pure advisory tier. Git-backed advisories (receipt verification,
     // WO-044; git drift, WO-045) are pushed by hosts that collect facts
@@ -13207,9 +13073,6 @@ function idOf(value) {
   const id = value.id;
   return typeof id === "string" ? id : void 0;
 }
-function importSkipNotes(skipped) {
-  return skipped.map((entry) => `(architecture: skipped module ${entry.name} \u2014 ${entry.path} is not on disk)`);
-}
 function deriveFindings(load, host) {
   const { issues, advisories } = checkProject(load);
   if (host.git.kind === "ok") {
@@ -13228,11 +13091,6 @@ function deriveFindings(load, host) {
   if (host.shells !== void 0 && host.shells.kind === "ok") {
     advisories.push(...checkShellDrift(load.documents, host.shells));
   }
-  if (host.importFacts !== void 0) {
-    const observed = checkObservedArchitecture(load.documents, host.importFacts.edges);
-    issues.push(...observed.issues);
-    advisories.push(...observed.violations);
-  }
   return {
     issues,
     advisories,
@@ -13246,8 +13104,7 @@ function deriveFindings(load, host) {
       // A host that cannot read the harness directory says so (REQ-021): a
       // silent omission here would read as "no shells have drifted", which
       // is a false pass rather than an absence of evidence.
-      ...host.shells !== void 0 && host.shells.kind === "unavailable" ? [`(shell drift: skipped \u2014 stale shells and orphaned triggers are not compared here: ${host.shells.reason})`] : [],
-      ...importSkipNotes(host.importFacts?.skipped ?? [])
+      ...host.shells !== void 0 && host.shells.kind === "unavailable" ? [`(shell drift: skipped \u2014 stale shells and orphaned triggers are not compared here: ${host.shells.reason})`] : []
     ]
   };
 }
@@ -13342,13 +13199,13 @@ function collectShells(root2, emitter) {
   if (!existsSync2(base))
     return [];
   const found = [];
-  const walk2 = (dir, depth) => {
+  const walk = (dir, depth) => {
     if (depth > 4)
       return;
     for (const entry of readdirSync2(dir, { withFileTypes: true })) {
       const full = join4(dir, entry.name);
       if (entry.isDirectory()) {
-        walk2(full, depth + 1);
+        walk(full, depth + 1);
         continue;
       }
       const rel = relative(root2, full).replaceAll("\\", "/");
@@ -13357,7 +13214,7 @@ function collectShells(root2, emitter) {
       found.push({ path: rel, content: readFileSync3(full, "utf8") });
     }
   };
-  walk2(base, 0);
+  walk(base, 0);
   return found.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
 }
 function collectShellFacts(cwd, harness) {
@@ -13382,9 +13239,9 @@ function collectTestFacts(root2, ids) {
   return ids.map((id) => ({ id, exists: resolves(root2, id) }));
 }
 function resolves(root2, id) {
-  const sep3 = id.indexOf("::");
-  const path = sep3 === -1 ? id : id.slice(0, sep3);
-  const name = sep3 === -1 ? "" : id.slice(sep3 + 2);
+  const sep2 = id.indexOf("::");
+  const path = sep2 === -1 ? id : id.slice(0, sep2);
+  const name = sep2 === -1 ? "" : id.slice(sep2 + 2);
   try {
     if (!statSync2(join5(root2, path)).isFile())
       return false;
@@ -13396,111 +13253,13 @@ function resolves(root2, id) {
   }
 }
 
-// ../cli/dist/imports.js
-import { existsSync as existsSync3, readFileSync as readFileSync5, readdirSync as readdirSync3, statSync as statSync3 } from "node:fs";
-import { dirname as dirname2, extname, join as join6, relative as relative2, resolve, sep } from "node:path";
-var SOURCE_EXTENSIONS = /* @__PURE__ */ new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]);
-var SPECIFIER_RES = [
-  /\bimport\s*(?:[\w*\s{},$]+?from\s*)?["']([^"'\n]+)["']/g,
-  /\bexport\s+[\w*\s{},$]+?from\s*["']([^"'\n]+)["']/g,
-  /\brequire\(\s*["']([^"'\n]+)["']\s*\)/g
-];
-function walk(dir, files) {
-  const entries = readdirSync3(dir, { withFileTypes: true }).sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
-  for (const entry of entries) {
-    if (entry.name.startsWith(".") || entry.name === "node_modules")
-      continue;
-    const full = join6(dir, entry.name);
-    if (entry.isDirectory())
-      walk(full, files);
-    else if (entry.isFile() && SOURCE_EXTENSIONS.has(extname(entry.name)))
-      files.push(full);
-  }
-}
-function collectImportFacts(cwd, modules) {
-  const roots = [];
-  const skipped = [];
-  for (const entry of modules) {
-    const root2 = resolve(cwd, entry.path);
-    if (existsSync3(root2) && statSync3(root2).isDirectory())
-      roots.push({ entry, root: root2 });
-    else
-      skipped.push(entry);
-  }
-  const packageNames = [];
-  for (const { entry, root: root2 } of roots) {
-    const manifest = join6(root2, "package.json");
-    if (!existsSync3(manifest))
-      continue;
-    try {
-      const parsed = JSON.parse(readFileSync5(manifest, "utf8"));
-      if (typeof parsed.name === "string" && parsed.name !== "") {
-        packageNames.push({ name: parsed.name, module: entry.name });
-      }
-    } catch {
-    }
-  }
-  packageNames.sort((a, b) => b.name.length - a.name.length);
-  const moduleOf = (abs) => {
-    let best;
-    for (const { entry, root: root2 } of roots) {
-      if ((abs === root2 || abs.startsWith(root2 + sep)) && (best === void 0 || root2.length > best.length)) {
-        best = { module: entry.name, length: root2.length };
-      }
-    }
-    return best?.module;
-  };
-  const resolveSpecifier = (specifier, file) => {
-    if (specifier.startsWith("."))
-      return moduleOf(resolve(dirname2(file), specifier));
-    const hit = packageNames.find((pkg) => specifier === pkg.name || specifier.startsWith(pkg.name + "/"));
-    return hit?.module;
-  };
-  const edges = [];
-  const seen = /* @__PURE__ */ new Set();
-  const fileFacts = [];
-  const seenFiles = /* @__PURE__ */ new Set();
-  for (const { root: root2 } of roots) {
-    const files = [];
-    walk(root2, files);
-    for (const file of files) {
-      const from = moduleOf(file);
-      const relFile = relative2(cwd, file).split(sep).join("/");
-      const firstVisit = !seenFiles.has(relFile);
-      seenFiles.add(relFile);
-      const specifiers = [];
-      const text = readFileSync5(file, "utf8");
-      for (const line of text.split("\n")) {
-        for (const re of SPECIFIER_RES) {
-          for (const match of line.matchAll(re)) {
-            const specifier = match[1];
-            if (firstVisit && !specifiers.includes(specifier))
-              specifiers.push(specifier);
-            const to = resolveSpecifier(specifier, file);
-            if (to === void 0 || to === from)
-              continue;
-            const key = `${from}\0${to}\0${relFile}\0${specifier}`;
-            if (seen.has(key))
-              continue;
-            seen.add(key);
-            edges.push({ from, to, file: relFile, specifier });
-          }
-        }
-      }
-      if (firstVisit)
-        fileFacts.push({ module: from, file: relFile, imports: specifiers });
-    }
-  }
-  return { edges, skipped, files: fileFacts };
-}
-
 // ../cli/dist/commands.js
 var TYPE_LIST = DOC_TYPES.join(" | ");
 var DEMO_ROOT = fileURLToPath5(new URL("../demo/", import.meta.url));
 var STARTERS_ROOT = fileURLToPath5(new URL("../starters/", import.meta.url));
 function requireVeriDir(cwd) {
-  const dir = join7(cwd, "veri");
-  return existsSync4(dir) ? dir : null;
+  const dir = join6(cwd, "veri");
+  return existsSync3(dir) ? dir : null;
 }
 function veriPathInRepo(repoRoot, veriDir) {
   const real = (p) => {
@@ -13510,7 +13269,7 @@ function veriPathInRepo(repoRoot, veriDir) {
       return realpathSync(p);
     }
   };
-  return relative3(real(repoRoot), real(veriDir)).split(sep2).join("/");
+  return relative2(real(repoRoot), real(veriDir)).split(sep).join("/");
 }
 async function checkReport(cwd) {
   const dir = requireVeriDir(cwd);
@@ -13519,12 +13278,10 @@ async function checkReport(cwd) {
   const load = await loadProject(dir);
   const git2 = collectGitFacts(cwd);
   const root2 = git2.kind === "ok" ? git2.root : cwd;
-  const modules = moduleRegistry(load.documents);
   return buildCheckReport(load, {
     git: git2.kind === "ok" ? { kind: "ok", facts: git2.facts, veriPath: veriPathInRepo(git2.root, dir) } : git2,
     today: localToday(),
     testFacts: collectTestFacts(root2, boundTests(load.documents)),
-    importFacts: modules.length > 0 ? collectImportFacts(cwd, modules) : void 0,
     // Emitted shells (WO-136): this is the host that writes them, so it is
     // the host asked to look at them. No harness directory means no shells
     // collected, which both drift rules answer with silence.
@@ -13594,7 +13351,7 @@ function render(report2, inputs2) {
 
 // src/main.ts
 var inputs = readInputs(process.env);
-var root = resolve3(process.env["GITHUB_WORKSPACE"] ?? process.cwd(), inputs.path);
+var root = resolve2(process.env["GITHUB_WORKSPACE"] ?? process.cwd(), inputs.path);
 var report = await checkReport(root);
 var verdict = report === null ? noProject(inputs) : render(report, inputs);
 for (const line of verdict.lines) console.log(line);

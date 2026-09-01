@@ -3,12 +3,11 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFi
 import { createRequire } from 'node:module';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createApprovedDocument, createDocument, deleteDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, lookupIntent, maintainerRegistry, migrateProject, moduleRegistry, nextDispatchable, nextIdNumber, originalStoragePath, outcomeLabel, recordIssuedId, renderArchitecture, renderIntent, renumberDocument, requirementKind, scaffoldProject, slugifyTitle, dispatchWorkOrder, supersedeDecision, withdrawDocument, workOrdersTouching } from '@verikb/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createApprovedDocument, createDocument, deleteDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, isBrownfieldRoot, isOperableFormat, loadProject, localToday, lookupIntent, maintainerRegistry, migrateProject, nextDispatchable, nextIdNumber, originalStoragePath, outcomeLabel, recordIssuedId, renderIntent, renumberDocument, requirementKind, scaffoldProject, slugifyTitle, dispatchWorkOrder, supersedeDecision, withdrawDocument, workOrdersTouching } from '@verikb/core';
 import type { CheckReport, DocType } from '@verikb/core';
 import { collectGitFacts, gitUserName } from './git.ts';
 import { collectShellFacts } from './skills.ts';
 import { collectTestFacts } from './testfacts.ts';
-import { collectImportFacts } from './imports.ts';
 
 export interface CmdResult {
   code: number;
@@ -245,8 +244,8 @@ function veriPathInRepo(repoRoot: string, veriDir: string): string {
  * lives in core as buildCheckReport (WO-089) and is shared by the terminal
  * renderer in check(), the GitHub Action runner, and the MCP server's
  * run_check — no surface can disagree with another. This adapter only
- * collects the host facts (DEC-040): git history, bound-test existence,
- * and observed imports. Returns null when cwd has no veri/ directory.
+ * collects the host facts (DEC-040): git history and bound-test
+ * existence. Returns null when cwd has no veri/ directory.
  */
 export type { CheckReport } from '@verikb/core';
 
@@ -258,12 +257,10 @@ export async function checkReport(cwd: string): Promise<CheckReport | null> {
   // Bound-test identifiers are repo-root-relative; without a repository
   // root the working directory is the best available anchor (WO-088).
   const root = git.kind === 'ok' ? git.root : cwd;
-  const modules = moduleRegistry(load.documents);
   return buildCheckReport(load, {
     git: git.kind === 'ok' ? { kind: 'ok', facts: git.facts, veriPath: veriPathInRepo(git.root, dir) } : git,
     today: localToday(),
     testFacts: collectTestFacts(root, boundTests(load.documents)),
-    importFacts: modules.length > 0 ? collectImportFacts(cwd, modules) : undefined,
     // Emitted shells (WO-136): this is the host that writes them, so it is
     // the host asked to look at them. No harness directory means no shells
     // collected, which both drift rules answer with silence.
@@ -357,30 +354,6 @@ export async function context(cwd: string, idArg: string | undefined): Promise<C
   } catch (err) {
     return { code: 1, lines: [(err as Error).message] };
   }
-}
-
-/**
- * The compiled intended architecture (DEC-058, WO-066): modules from the
- * registry, then every constraint active decisions assert, each citing its
- * governing DEC. With a registry to scan, the observed side rides along
- * (WO-067): collected import edges give the printout its violations
- * section. Same format guard as context (REQ-015); rendering lives in core
- * so every surface prints the identical projection.
- */
-export async function architecture(cwd: string): Promise<CmdResult> {
-  const dir = requireVeriDir(cwd);
-  if (dir === null) return NO_VERI_DIR;
-  const format = classifyFormat(dir);
-  if (!isOperableFormat(format)) {
-    return { code: 1, lines: [formatStatement(format) ?? 'format mismatch'] };
-  }
-  const load = await loadProject(dir);
-  const modules = moduleRegistry(load.documents);
-  const observed = modules.length > 0 ? collectImportFacts(cwd, modules) : undefined;
-  return {
-    code: 0,
-    lines: [renderArchitecture(load.documents, observed?.edges), ...importSkipNotes(observed?.skipped ?? [])],
-  };
 }
 
 /** The user's consent act for REQ-015 migrations: invoking this command IS the consent. */

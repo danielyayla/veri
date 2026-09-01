@@ -111,11 +111,6 @@ export type Advisory =
   | { kind: 'shared-claim'; file: string; id: string; otherId: string; claimedBy: string; message: string }
   | { kind: 'stale-claim'; file: string; id: string; message: string }
   | { kind: 'drift-missing-test'; file: string; id: string; test: string; message: string }
-  // Observed architecture (WO-067, REQ-022): the code contains an edge an
-  // active decision forbids. Advisory — intended-vs-observed deviation is
-  // drift, and drift informs, never blocks (DEC-025). `file` is the
-  // importing source file, project-root-relative; `id` anchors the finding
-  // to its governing decision, the document that holds the rationale.
   // Team semantics (DEC-071): a stamp with no approver name in a project
   // that declares maintainers. Advisory — every stamp made before the team
   // formed is grandfathered as a warning, never a failure.
@@ -153,17 +148,7 @@ export type Advisory =
   // it work. Advisory by design — evidence never gates, it informs.
   | { kind: 'intuition-only'; file: string; id: string; message: string }
   | { kind: 'design-mention'; file: string; id: string; path: string; message: string }
-  | { kind: 'design-undeclared-touch'; file: string; id: string; sha: string; path: string; message: string }
-  | {
-      kind: 'arch-violation';
-      file: string;
-      id: string;
-      from: string;
-      to: string;
-      specifier: string;
-      forbiddenBy: string[];
-      message: string;
-    };
+  | { kind: 'design-undeclared-touch'; file: string; id: string; sha: string; path: string; message: string };
 
 export type Issue =
   | {
@@ -236,33 +221,5 @@ export type Issue =
       file: string;
       id: string;
       problem: 'unchecked-criteria' | 'no-receipt';
-      message: string;
-    }
-  // Architecture constraints (DEC-058, WO-066): a rule that cannot fire is
-  // an issue, never a silent no-op — and two active decisions contradicting
-  // each other about the same edge is a conflict the corpus must resolve.
-  | { kind: 'arch-unknown-module'; file: string; id: string; module: string; message: string }
-  | {
-      kind: 'arch-conflict';
-      file: string;
-      from: string;
-      to: string;
-      allowedBy: string[];
-      forbiddenBy: string[];
-      message: string;
-    }
-  // Constraint severity (DEC-062, WO-069): a violation of an error-severity
-  // constraint is a check issue — counted, exit 1 — with the same shape as
-  // the advisory-tier arch-violation. `file` is the importing source file;
-  // `id` anchors the oldest forbidding decision (DEC-061). Blocking power
-  // arrives only through the user's approval stamp on the governing decision.
-  | {
-      kind: 'arch-violation';
-      file: string;
-      id: string;
-      from: string;
-      to: string;
-      specifier: string;
-      forbiddenBy: string[];
       message: string;
     };

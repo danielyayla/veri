@@ -1,7 +1,6 @@
 import type { VeriDocument } from './types.ts';
 import type { ModuleEntry } from './schema.ts';
 import { pathMatchesBinds } from './binds.ts';
-import { moduleRegistry } from './architecture.ts';
 import { buildGraph } from './graph.ts';
 
 /**
@@ -20,6 +19,16 @@ import { buildGraph } from './graph.ts';
     a binding — a live claim by in-flight work. The receipt tier retired
     with receipt file lists. */
 export type IntentVia = 'binding';
+
+/** The module registry: `modules:` from every non-retired workflow document
+    (DEC-059, narrowed by DEC-144), in declaration order. It serves
+    code-to-intent lookup — retrieval, not enforcement: the architecture
+    constraint layer that once resolved against it retired with DEC-144. */
+export function moduleRegistry(documents: VeriDocument[]): ModuleEntry[] {
+  return documents
+    .filter((doc) => doc.type === 'workflow' && doc.status !== 'retired')
+    .flatMap((doc) => (doc.frontmatter['modules'] as ModuleEntry[] | undefined) ?? []);
+}
 
 export interface IntentMatch {
   id: string;

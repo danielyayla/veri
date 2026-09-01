@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CURRENT_FORMAT, assembleContext } from '@verikb/core';
-import { approve, architecture, check, checkReport, context, del, dispatch, importFile, importPrompt, init, list, listStarters, migrate, newDoc, next, open, renumber, supersede, withdraw } from './commands.ts';
+import { approve, check, checkReport, context, del, dispatch, importFile, importPrompt, init, list, listStarters, migrate, newDoc, next, open, renumber, supersede, withdraw } from './commands.ts';
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 const FIVE_ISSUES = fileURLToPath(new URL('../fixtures/five-issues', import.meta.url));
@@ -480,151 +480,23 @@ test('open refuses a non-project directory and reports a missing desktop app', (
   assert.match(noApp.lines[0], /cannot find the Veri desktop app/);
 });
 
-test('veri architecture prints the compiled projection, deterministically', async (t) => {
+test('a decision carrying an architecture: block is inert — it parses with zero issues (DEC-144)', async (t) => {
   const cwd = tempProject();
   t.after(() => rmSync(cwd, { recursive: true, force: true }));
   init(cwd, { demo: false });
 
-  // Declare the module registry on the workflow document (DEC-059) and an
-  // active decision carrying a constraint (DEC-058).
-  const wf = join(cwd, 'veri/workflow.md');
-  writeFileSync(
-    wf,
-    readFileSync(wf, 'utf8').replace(
-      '---\n',
-      '---\nmodules:\n  - name: core\n    path: packages/core\n    purpose: Pure domain logic\n  - name: ui\n    path: packages/ui\n    purpose: Desktop app\n',
-    ),
-  );
+  // The retired constraint layer's frontmatter (DEC-058, superseded by
+  // DEC-144): the block rides passthrough — validated by nothing, binding
+  // nothing — even naming modules no registry defines.
   writeFileSync(
     join(cwd, 'veri/decisions/DEC-001-boundary.md'),
-    '---\nid: DEC-001\ntype: decision\ntitle: Boundary\nstatus: active\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\narchitecture:\n  constraints:\n    - from: core\n      to: ui\n      allowed: false\n---\n## Choice\n\nCore stays pure.\n',
+    '---\nid: DEC-001\ntype: decision\ntitle: Boundary\nstatus: active\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\narchitecture:\n  constraints:\n    - from: core\n      to: electorn\n      allowed: false\n---\n## Choice\n\nCore stays pure — the boundary lives in this prose, enforced by lint.\n',
   );
 
-  assert.equal((await check(cwd)).code, 0);
-  const first = await architecture(cwd);
-  assert.equal(first.code, 0, first.lines.join('\n'));
-  const text = first.lines.join('\n');
-  assert.match(text, /core\s+packages\/core\s+Pure domain logic/);
-  assert.match(text, /core → ui\s+forbidden\s+\(DEC-001\)/);
-  assert.equal(text, (await architecture(cwd)).lines.join('\n'));
-
-  // The typo case: an unknown module fails check, citing the decision.
-  writeFileSync(
-    join(cwd, 'veri/decisions/DEC-002-typo.md'),
-    '---\nid: DEC-002\ntype: decision\ntitle: Typo\nstatus: proposed\ncreated: 2026-08-01\nupdated: 2026-08-01\narchitecture:\n  constraints:\n    - from: core\n      to: electorn\n      allowed: false\n---\n## Choice\n\nOops.\n',
-  );
-  const failed = await check(cwd);
-  assert.equal(failed.code, 1);
-  assert.ok(failed.lines.some((line) => line.includes('DEC-002') && line.includes('"electorn"')), failed.lines.join('\n'));
-});
-
-test('a forbidden observed import is a check advisory and an architecture violations row, never the exit code', async (t) => {
-  const cwd = tempProject();
-  t.after(() => rmSync(cwd, { recursive: true, force: true }));
-  init(cwd, { demo: false });
-
-  // Registry (DEC-059) with one module deliberately absent from disk, and an
-  // active decision forbidding alpha → beta (DEC-058).
-  const wf = join(cwd, 'veri/workflow.md');
-  writeFileSync(
-    wf,
-    readFileSync(wf, 'utf8').replace(
-      '---\n',
-      '---\nmodules:\n  - name: alpha\n    path: packages/alpha\n    purpose: Foundation\n  - name: beta\n    path: packages/beta\n    purpose: Surface\n  - name: ghost\n    path: packages/ghost\n    purpose: Not on disk\n',
-    ),
-  );
-  writeFileSync(
-    join(cwd, 'veri/decisions/DEC-001-boundary.md'),
-    '---\nid: DEC-001\ntype: decision\ntitle: Boundary\nstatus: active\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\narchitecture:\n  constraints:\n    - from: alpha\n      to: beta\n      allowed: false\n---\n## Choice\n\nAlpha stays pure.\n',
-  );
-  // The codebase violates the decision. (The specifier is harmless to this
-  // repo's own dogfood scan — @t/beta resolves to nothing here.)
-  mkdirSync(join(cwd, 'packages/alpha/src'), { recursive: true });
-  mkdirSync(join(cwd, 'packages/beta'), { recursive: true });
-  writeFileSync(join(cwd, 'packages/alpha/package.json'), JSON.stringify({ name: '@t/alpha' }));
-  writeFileSync(join(cwd, 'packages/beta/package.json'), JSON.stringify({ name: '@t/beta' }));
-  writeFileSync(join(cwd, 'packages/alpha/src/main.ts'), "import thing from '@t/beta';\n");
-
-  // The violation rides the advisory tier: exit 0, zero issues (DEC-025).
   const checked = await check(cwd);
   assert.equal(checked.code, 0, checked.lines.join('\n'));
   assert.match(checked.lines.at(-1) ?? '', /0 issues/);
-  assert.ok(
-    checked.lines.includes(
-      '(advisory) packages/alpha/src/main.ts: imports "@t/beta" — the alpha → beta edge is forbidden by DEC-001',
-    ),
-    checked.lines.join('\n'),
-  );
-  assert.ok(
-    checked.lines.includes('(architecture: skipped module ghost — packages/ghost is not on disk)'),
-    checked.lines.join('\n'),
-  );
-
-  const arch = await architecture(cwd);
-  assert.equal(arch.code, 0);
-  const text = arch.lines.join('\n');
-  assert.match(text, /Violations — observed imports vs the intended architecture/);
-  assert.match(text, /alpha → beta\s+packages\/alpha\/src\/main\.ts imports "@t\/beta"\s+\(forbidden by DEC-001\)/);
-  assert.match(text, /\(architecture: skipped module ghost — packages\/ghost is not on disk\)/);
-});
-
-test('an observed import forbidden at severity: error is a check issue and exit 1 (DEC-062)', async (t) => {
-  const cwd = tempProject();
-  t.after(() => rmSync(cwd, { recursive: true, force: true }));
-  init(cwd, { demo: false });
-
-  const wf = join(cwd, 'veri/workflow.md');
-  writeFileSync(
-    wf,
-    readFileSync(wf, 'utf8').replace(
-      '---\n',
-      '---\nmodules:\n  - name: alpha\n    path: packages/alpha\n    purpose: Foundation\n  - name: beta\n    path: packages/beta\n    purpose: Surface\n',
-    ),
-  );
-  writeFileSync(
-    join(cwd, 'veri/decisions/DEC-001-boundary.md'),
-    '---\nid: DEC-001\ntype: decision\ntitle: Boundary\nstatus: active\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\narchitecture:\n  constraints:\n    - from: alpha\n      to: beta\n      allowed: false\n      severity: error\n---\n## Choice\n\nAlpha stays pure — hard.\n',
-  );
-  mkdirSync(join(cwd, 'packages/alpha/src'), { recursive: true });
-  mkdirSync(join(cwd, 'packages/beta'), { recursive: true });
-  writeFileSync(join(cwd, 'packages/alpha/package.json'), JSON.stringify({ name: '@t/alpha' }));
-  writeFileSync(join(cwd, 'packages/beta/package.json'), JSON.stringify({ name: '@t/beta' }));
-  writeFileSync(join(cwd, 'packages/alpha/src/main.ts'), "import thing from '@t/beta';\n");
-
-  // The violation is a counted issue: exit 1 through the issue pipeline.
-  const checked = await check(cwd);
-  assert.equal(checked.code, 1, checked.lines.join('\n'));
-  assert.match(checked.lines.at(-1) ?? '', /1 issue\(s\)/);
-  assert.ok(
-    checked.lines.includes(
-      'packages/alpha/src/main.ts: imports "@t/beta" — the alpha → beta edge is forbidden by DEC-001 (severity: error)',
-    ),
-    checked.lines.join('\n'),
-  );
-  assert.ok(!checked.lines.some((line) => line.startsWith('(advisory)') && line.includes('@t/beta')));
-
-  // veri architecture prints the severity and renders the violation with the issues.
-  const arch = await architecture(cwd);
-  assert.equal(arch.code, 0);
-  const text = arch.lines.join('\n');
-  assert.match(text, /alpha → beta\s+forbidden\s+error\s+\(DEC-001\)/);
-  assert.match(text, /Issues — error-severity violations \(these fail veri check\)/);
-  assert.match(text, /alpha → beta\s+packages\/alpha\/src\/main\.ts imports "@t\/beta"\s+\(forbidden by DEC-001\)/);
-  assert.match(text, /\(none at advisory severity\)/);
-
-  // Demoting the constraint restores WO-067's advisory posture, byte-identical.
-  writeFileSync(
-    join(cwd, 'veri/decisions/DEC-001-boundary.md'),
-    '---\nid: DEC-001\ntype: decision\ntitle: Boundary\nstatus: active\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\narchitecture:\n  constraints:\n    - from: alpha\n      to: beta\n      allowed: false\n---\n## Choice\n\nAlpha stays pure — hard.\n',
-  );
-  const demoted = await check(cwd);
-  assert.equal(demoted.code, 0, demoted.lines.join('\n'));
-  assert.ok(
-    demoted.lines.includes(
-      '(advisory) packages/alpha/src/main.ts: imports "@t/beta" — the alpha → beta edge is forbidden by DEC-001',
-    ),
-    demoted.lines.join('\n'),
-  );
+  assert.ok(!checked.lines.some((line) => line.includes('arch')), checked.lines.join('\n'));
 });
 
 test('veri import prints the kickoff prompt; init hints on brownfield folders (REQ-024)', async (t) => {

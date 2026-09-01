@@ -1,5 +1,3 @@
-import { checkObservedArchitecture } from './architecture.ts';
-import type { ImportEdge } from './architecture.ts';
 import { bindingClaimants, checkBindingDrift, checkBoundTests, staleAfterDays } from './binds.ts';
 import type { TestFact } from './binds.ts';
 import { checkDesignGateDiff, checkProject, checkStaleClaims, checkStaleFocus, designGatePaths, focusStaleAfterDays } from './check.ts';
@@ -9,7 +7,6 @@ import type { FormatClassification } from './format.ts';
 import type { LoadResult } from './load.ts';
 import { checkProvenance } from './provenance.ts';
 import type { GitFacts } from './provenance.ts';
-import type { ModuleEntry } from './schema.ts';
 import { checkShellDrift } from './skills.ts';
 import type { ShellFacts } from './skills.ts';
 import type { Advisory, Issue } from './types.ts';
@@ -39,9 +36,6 @@ export interface HostFacts {
   /** Existence facts for the ids `boundTests(documents)` names (WO-088).
       Ids with no fact are unresolved and produce no finding. */
   testFacts: TestFact[];
-  /** Collected import edges and skipped modules, when the host scanned the
-      registry's module paths (WO-067). Absent when there is no registry. */
-  importFacts?: { edges: ImportEdge[]; skipped: ModuleEntry[] };
   /** Emitted harness shells, for the drift comparator (WO-136). Absent when
       the host emits no shells at all and therefore claims nothing about a
       harness directory; `unavailable` when a host that could look is not the
@@ -94,11 +88,6 @@ function idOf(value: object): string | undefined {
   return typeof id === 'string' ? id : undefined;
 }
 
-/** Skip notes for registry modules the collector could not find on disk (WO-067). */
-export function importSkipNotes(skipped: ModuleEntry[]): string[] {
-  return skipped.map((entry) => `(architecture: skipped module ${entry.name} — ${entry.path} is not on disk)`);
-}
-
 export function deriveFindings(load: LoadResult, host: HostFacts): CheckFindings {
   const { issues, advisories } = checkProject(load);
   // Receipt verification (WO-044) and git drift (WO-045, WO-088): pure
@@ -130,15 +119,6 @@ export function deriveFindings(load: LoadResult, host: HostFacts): CheckFindings
   if (host.shells !== undefined && host.shells.kind === 'ok') {
     advisories.push(...checkShellDrift(load.documents, host.shells));
   }
-  // Observed architecture (WO-067): import edges vs the intended
-  // architecture, split by declared constraint severity (DEC-062) — error
-  // violations join the issues (counted, exit 1); advisory violations stay
-  // in the grey tier.
-  if (host.importFacts !== undefined) {
-    const observed = checkObservedArchitecture(load.documents, host.importFacts.edges);
-    issues.push(...observed.issues);
-    advisories.push(...observed.violations);
-  }
   return {
     issues,
     advisories,
@@ -159,7 +139,6 @@ export function deriveFindings(load: LoadResult, host: HostFacts): CheckFindings
       ...(host.shells !== undefined && host.shells.kind === 'unavailable'
         ? [`(shell drift: skipped — stale shells and orphaned triggers are not compared here: ${host.shells.reason})`]
         : []),
-      ...importSkipNotes(host.importFacts?.skipped ?? []),
     ],
   };
 }

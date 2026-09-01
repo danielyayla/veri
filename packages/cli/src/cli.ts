@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { approve, architecture, check, context, del, dispatch, implemented, importFile, importPrompt, init, intent, list, migrate, newDoc, next, open, renumber, supersede, withdraw } from './commands.ts';
+import { approve, check, context, del, dispatch, implemented, importFile, importPrompt, init, intent, list, migrate, newDoc, next, open, renumber, supersede, withdraw } from './commands.ts';
 import type { CmdResult } from './commands.ts';
 import { askTerminal, skillsEval, skillsInstall, skillsUpgrade } from './skills.ts';
 
@@ -52,7 +52,6 @@ const USAGE = `usage: veri <command>
                              (--approve is accepted for symmetry — a source is
                              born in play and needs no stamp)
   veri context <WO-id>       print the context package an agent receives
-  veri architecture          print the compiled intended architecture
   veri implemented <path>    work orders whose commits touched the path
   veri intent <path>         the documents governing a code path — bindings
                              and the module registry, never an index
@@ -140,9 +139,6 @@ switch (command) {
     break;
   case 'context':
     result = await context(cwd, rest[0]);
-    break;
-  case 'architecture':
-    result = await architecture(cwd);
     break;
   case 'implemented':
     result = await implemented(cwd, rest[0]);

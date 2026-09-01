@@ -14,7 +14,7 @@ const CLI = fileURLToPath(new URL('../../cli/src/cli.ts', import.meta.url));
  * a gate violation (broken link), a bound test that no longer resolves
  * (drift-missing-test, through this package's own fs collector), a binding
  * claimant (so the git-less binding-drift skip note fires), and a module
- * registry with one module on disk and one missing (architecture skip note).
+ * registry (inert to check since DEC-144, parsed all the same).
  * Deliberately not a git repository: the CLI degrades to the same posture
  * the MCP server always has, so the two surfaces must agree completely.
  */
@@ -187,7 +187,7 @@ test('run_check agrees with the CLI surface on one corpus (WO-089)', async () =>
     // they could not run. The reasons differ by posture — the CLI is outside
     // a repository, the server is subprocess-free by decision — and only the
     // server's reason cites the posture.
-    for (const prefix of ['(provenance: skipped', '(binding drift: skipped', '(architecture: skipped module ghost']) {
+    for (const prefix of ['(provenance: skipped', '(binding drift: skipped']) {
       assert.ok(out.includes(prefix), `CLI missing skip note ${prefix}`);
       assert.ok(result.skips.some((note) => note.startsWith(prefix)), `run_check missing skip note ${prefix}`);
     }
