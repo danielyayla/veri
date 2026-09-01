@@ -2,10 +2,11 @@
 id: DEC-108
 type: decision
 title: "Architecture enters the sidebar as an always-rendered view row; collection rows stay browsers"
-status: active
+status: superseded
+superseded_by: DEC-144
 approved: 2026-08-25
 created: 2026-08-25
-updated: 2026-08-25
+updated: 2026-09-01
 links:
   - id: SRC-049
     rel: derived-from
