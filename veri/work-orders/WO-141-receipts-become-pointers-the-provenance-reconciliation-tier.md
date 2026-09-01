@@ -2,7 +2,9 @@
 id: WO-141
 type: work-order
 title: "Receipts become pointers — the provenance reconciliation tier retires"
-status: ready
+status: in-progress
+claimed_by: fable-wo141
+claimed_at: 2026-09-01
 approved: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
