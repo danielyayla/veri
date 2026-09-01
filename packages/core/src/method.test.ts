@@ -243,8 +243,7 @@ const WORK_ORDER = [
   'id: WO-001',
   'type: work-order',
   'title: Do the thing',
-  'status: ready',
-  'approved: 2026-08-01',
+  'status: backlog',
   'created: 2026-08-01',
   'updated: 2026-08-01',
   '---',
@@ -350,9 +349,9 @@ test('generic creation mints a method under methods/ with a placeholder descript
   }
 });
 
-// --- Format 4 ------------------------------------------------------------
+// --- Format 4 (superseded as current by WO-143's format 5) ----------------
 
-test('a format-3 project migrates to 4 with no content change, and a newer marker reports the format', (t) => {
+test('a format-3 project migrates through 4 with no method-document change, and a newer marker reports the format', (t) => {
   const root = tmpVeri(t);
   const veriDir = join(root, 'veri');
   writeFormatMarker(veriDir, 3);
@@ -360,14 +359,11 @@ test('a format-3 project migrates to 4 with no content change, and a newer marke
   writeFileSync(join(veriDir, METHODS_DIR, 'MET-001-wayfinder.md'), doc);
 
   const result = migrateProject(veriDir);
-  assert.deepEqual(result, {
-    from: 3,
-    to: 4,
-    applied: ['3 → 4: the method document type joins the schema (marker only; documents are already valid)'],
-  });
-  assert.equal(CURRENT_FORMAT, 4);
-  assert.equal(readFileSync(join(veriDir, METHODS_DIR, 'MET-001-wayfinder.md'), 'utf8'), doc, 'marker-only: no document changes');
-  assert.deepEqual(classifyFormat(veriDir), { kind: 'current', version: 4 });
+  assert.equal(result.from, 3);
+  assert.equal(result.to, CURRENT_FORMAT);
+  assert.equal(result.applied[0], '3 → 4: the method document type joins the schema (marker only; documents are already valid)');
+  assert.equal(readFileSync(join(veriDir, METHODS_DIR, 'MET-001-wayfinder.md'), 'utf8'), doc, 'no method-document changes');
+  assert.deepEqual(classifyFormat(veriDir), { kind: 'current', version: CURRENT_FORMAT });
 
   // What a reader one format behind sees: the marker, read before any
   // document is parsed, so it says "update Veri" instead of reporting the

@@ -27,9 +27,9 @@ const PROMOTION: Record<string, { from: string; to: string }> = {
   requirement: { from: 'draft', to: 'accepted' },
   decision: { from: 'proposed', to: 'active' },
   workflow: { from: 'draft', to: 'accepted' },
-  // WO-098: the fourth stamped promotion — dispatch clearance. A started
-  // work order (in-progress/done) is past approving, same as superseded.
-  'work-order': { from: 'backlog', to: 'ready' },
+  // Work orders left this table with the ready state (DEC-143, WO-143):
+  // their stamp is written by the dispatch transition, together with the
+  // claim — approval and dispatch are one gesture (see dispatch.ts).
   // WO-121: product singletons promote like the workflow they mirror.
   product: { from: 'draft', to: 'accepted' },
   // WO-131: methods carry the workflow's lifecycle exactly (DEC-130) —
@@ -67,28 +67,28 @@ export function requireListedApprover(
 }
 
 /**
- * WO-098's prospective dispatch gates, shared by `veri approve` and the
- * combined act (WO-142): ready means dispatchable, and it must be born
- * check-clean — a requirement link exists, nothing it depends on is still
- * pending, and the work traces to a live requirement (REQ-039, WO-123).
- * Throws the refusal; passing is silent.
+ * The prospective dispatch gates (WO-098, re-anchored by DEC-143): dispatch
+ * is the moment in-progress is born, and it must be born check-clean — a
+ * requirement link exists, nothing it depends on is still pending, and the
+ * work traces to a live requirement (REQ-039, WO-123). Shared by the
+ * dispatch transition (dispatch.ts). Throws the refusal; passing is silent.
  */
 export function assertDispatchable(documents: VeriDocument[], doc: VeriDocument): void {
   if (!doc.links.some((link) => link.id.startsWith('REQ-'))) {
-    throw new Error(`refusing to ready ${doc.id} — it links no requirement; a dispatchable work order names what it implements`);
+    throw new Error(`refusing to dispatch ${doc.id} — it links no requirement; a dispatchable work order names what it implements`);
   }
   const byId = new Map(documents.map((candidate) => [candidate.id, candidate]));
   for (const link of doc.links) {
     const target = byId.get(link.id);
     if (target !== undefined && isPending(target)) {
       throw new Error(
-        `refusing to ready ${doc.id} — it depends on ${target.id}, which is still ${target.status} — approve it first (veri approve ${target.id})`,
+        `refusing to dispatch ${doc.id} — it depends on ${target.id}, which is still ${target.status} — approve it first (veri approve ${target.id})`,
       );
     }
   }
   if (!tracesToLiveRequirement(documents, doc)) {
     throw new Error(
-      `refusing to ready ${doc.id} — it traces to no live requirement; every requirement it reaches is retired or withdrawn (REQ-039)`,
+      `refusing to dispatch ${doc.id} — it traces to no live requirement; every requirement it reaches is retired or withdrawn (REQ-039)`,
     );
   }
 }
@@ -125,7 +125,14 @@ export async function approveDocument(
 
   const promotion = PROMOTION[doc.type];
   if (promotion === undefined) {
-    throw new Error(`${wanted} is a ${doc.type} — only requirements, decisions, workflows, work orders, product documents and methods are approved`);
+    // DEC-143: a work order's stamp is written by dispatch, together with
+    // the claim — one gesture, one commit. Answer with the gesture.
+    if (doc.type === 'work-order') {
+      throw new Error(
+        `${wanted} is a work order — work orders are dispatched, not approved: veri dispatch ${wanted} --as <session> stamps and claims in one gesture (DEC-143)`,
+      );
+    }
+    throw new Error(`${wanted} is a ${doc.type} — only requirements, decisions, workflows, product documents and methods are approved`);
   }
   // Already-promoted documents may be approved again: a re-approval
   // re-stamps `approved:` in place, ratifying the current text — the remedy
@@ -141,11 +148,6 @@ export async function approveDocument(
       `refusing to approve ${wanted} — fix its check issue(s) first:\n${blocking.map((issue) => `  ${issue.message}`).join('\n')}`,
     );
   }
-
-  // WO-098: the started-work checks exempt backlog, so a backlog work order
-  // carries no issue for the filter above to catch — but ready means
-  // dispatchable, and it must be born check-clean. Check prospectively.
-  if (doc.type === 'work-order') assertDispatchable(load.documents, doc);
 
   const path = join(root, doc.file);
   const raw = await readFile(path, 'utf8');
@@ -198,7 +200,8 @@ export interface CreateApprovedResult {
  * The combined file-and-approve act (WO-142, DEC-147): when the user is the
  * author, the filing carries the stamp — one command, one commit, one write.
  * Runs exactly the gates `approveDocument` runs today (maintainers validated,
- * issues block, work orders need a live requirement trace), but *between*
+ * issues block; work orders refuse — dispatch owns their stamp, DEC-143),
+ * but *between*
  * composition and the write: the issues gate runs on a synthetic load with
  * the parsed composed text appended, which is faithful because loadProject
  * parses every file through the same parseDocument. A refusal therefore
@@ -226,12 +229,20 @@ export async function createApprovedDocument(
 
   const promotion = PROMOTION[type];
   if (promotion === undefined) {
-    // Today this is only `source`: born `imported` and already in play, it
-    // has no pending state and takes no stamp (REQ-008's gate covers the
-    // types with one). The CLI answers the flag with this fact instead of
-    // filing anything half-approved.
+    // DEC-143: a work order has no pre-approved state to be born into —
+    // its stamp is written by dispatch, together with the claim. File it
+    // plain, then dispatch it.
+    if (type === 'work-order') {
+      throw new Error(
+        'a work order is dispatched, not approved — file it without --approve, then veri dispatch <WO-id> --as <session> stamps and claims in one gesture (DEC-143)',
+      );
+    }
+    // `source`: born `imported` and already in play, it has no pending
+    // state and takes no stamp (REQ-008's gate covers the types with one).
+    // The CLI answers the flag with this fact instead of filing anything
+    // half-approved.
     throw new Error(
-      `a ${type} is born in play and takes no approval stamp — only requirements, decisions, workflows, work orders, product documents and methods are approved`,
+      `a ${type} is born in play and takes no approval stamp — only requirements, decisions, workflows, product documents and methods are approved`,
     );
   }
 
@@ -247,9 +258,6 @@ export async function createApprovedDocument(
     throw new Error(`internal error — the composed document would corrupt ${composed.file}: ${outcome.issues[0]?.message}`);
   }
   const doc = outcome.document;
-
-  // The same prospective dispatch gates approve runs (WO-098, REQ-039).
-  if (doc.type === 'work-order') assertDispatchable(load.documents, doc);
 
   // The same issues gate approve runs (DEC-025: only issues block), on the
   // project as it would be the moment after the write.

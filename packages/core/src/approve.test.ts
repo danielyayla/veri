@@ -67,65 +67,21 @@ test('approve refuses documents in a non-approvable status', async (t) => {
 
 test('approve refuses non-approvable types and unknown ids', async (t) => {
   const dir = sandbox(t);
-  await assert.rejects(() => approveDocument(dir, 'SRC-001'), /is a source — only requirements, decisions, workflows, work orders, product documents and methods/);
+  await assert.rejects(() => approveDocument(dir, 'SRC-001'), /is a source — only requirements, decisions, workflows, product documents and methods/);
   await assert.rejects(() => approveDocument(dir, 'REQ-999'), /no document with id REQ-999/);
 });
 
-// --- Work-order dispatch clearance (WO-098) ---
+// --- Work orders left the approve surface (DEC-143, WO-143) ---
 
-test('approving a backlog work order with pending links is refused prospectively', async (t) => {
-  // REQ-001 is still draft — ready would be dispatch clearance over
-  // unratified spec, the exact hole the gate exists to close.
+test('approving a work order is refused toward the dispatch gesture', async (t) => {
+  // The stamp survives; it relocates: dispatch writes it with the claim.
   const dir = sandbox(t);
   await assert.rejects(
     () => approveDocument(dir, 'WO-001', '2026-08-25'),
-    /refusing to ready WO-001 — it depends on REQ-001, which is still draft/,
+    /WO-001 is a work order — work orders are dispatched, not approved: veri dispatch WO-001 --as <session>/,
   );
   const raw = readFileSync(join(dir, 'work-orders/WO-001-not-approvable.md'), 'utf8');
   assert.match(raw, /^status: backlog$/m); // untouched
-});
-
-test('approving a backlog work order promotes it to ready with the stamp', async (t) => {
-  const dir = sandbox(t);
-  await approveDocument(dir, 'REQ-001', '2026-08-25');
-  const result = await approveDocument(dir, 'WO-001', '2026-08-25');
-  assert.deepEqual(result, {
-    id: 'WO-001',
-    file: 'work-orders/WO-001-not-approvable.md',
-    from: 'backlog',
-    to: 'ready',
-    approved: '2026-08-25',
-  });
-  const after = readFileSync(join(dir, result.file), 'utf8');
-  assert.match(after, /^status: ready$/m);
-  assert.match(after, /^approved: 2026-08-25$/m);
-
-  const load = await loadProject(dir);
-  const doc = load.documents.find((d) => d.id === 'WO-001');
-  assert.equal(doc?.status, 'ready');
-  assert.equal(doc?.approved, '2026-08-25');
-  // The ready state is check-clean: the stamp satisfies the promoted-without-stamp rule.
-  const issues = checkProject(load).issues.filter((issue) => 'file' in issue && issue.file === result.file);
-  assert.deepEqual(issues, []);
-});
-
-test('approving a work order with no requirement link is refused', async (t) => {
-  // Ready must be born check-clean — a link-less ready work order would fail
-  // wo-without-requirement the moment the stamp landed.
-  const dir = sandbox(t);
-  const file = join(dir, 'work-orders/WO-001-not-approvable.md');
-  writeFileSync(
-    file,
-    readFileSync(file, 'utf8').replace(/links:\n(?:  .*\n)+/, ''),
-  );
-  await assert.rejects(() => approveDocument(dir, 'WO-001'), /refusing to ready WO-001 — it links no requirement/);
-});
-
-test('a started work order is past approving', async (t) => {
-  const dir = sandbox(t);
-  const file = join(dir, 'work-orders/WO-001-not-approvable.md');
-  writeFileSync(file, readFileSync(file, 'utf8').replace('status: backlog', 'status: in-progress'));
-  await assert.rejects(() => approveDocument(dir, 'WO-001'), /nothing to approve — WO-001 is in-progress/);
 });
 
 test('approving a draft workflow makes it accepted (DEC-018)', async (t) => {
@@ -234,15 +190,6 @@ test('approving a draft product singleton makes it accepted with the stamp (REQ-
   assert.match(after, /^approved: 2026-08-10$/m);
 });
 
-test('approving a work order whose only requirements are dead is refused (REQ-039, WO-123)', async (t) => {
-  const dir = sandbox(t);
-  await approveDocument(dir, 'REQ-001', '2026-08-25');
-  // Retire the only linked requirement: the trace now reaches nothing live.
-  const reqFile = join(dir, 'requirements/REQ-001-clean-draft.md');
-  writeFileSync(reqFile, readFileSync(reqFile, 'utf8').replace('status: accepted', 'status: retired'));
-  await assert.rejects(() => approveDocument(dir, 'WO-001'), /refusing to ready WO-001 — it traces to no live requirement/);
-});
-
 // --- The combined file-and-approve act (WO-142, DEC-147) ---
 
 test('file-and-approve: a requirement is born accepted and stamped in one write, check-clean (WO-142)', async (t) => {
@@ -273,37 +220,14 @@ test('file-and-approve: a decision is born active', async (t) => {
   assert.match(raw, /^approved: 2026-09-01$/m);
 });
 
-test('file-and-approve: a work order with a live requirement trace is born ready (WO-098 gates shared)', async (t) => {
-  const dir = sandbox(t);
-  await approveDocument(dir, 'REQ-001', '2026-09-01');
-  const result = await createApprovedDocument(dir, 'work-order', 'Dispatch me', {
-    date: '2026-09-01',
-    links: [{ id: 'REQ-001', rel: 'implements' }],
-  });
-  assert.equal(result.from, 'backlog');
-  assert.equal(result.to, 'ready');
-  const raw = readFileSync(join(dir, result.file), 'utf8');
-  assert.match(raw, /^status: ready$/m);
-  assert.match(raw, /^approved: 2026-09-01$/m);
-});
-
-test('file-and-approve refuses a work order with no requirement link, and nothing lands on disk', async (t) => {
+test('file-and-approve refuses a work order — dispatch owns the stamp (DEC-143), and nothing lands on disk', async (t) => {
   const dir = sandbox(t);
   await assert.rejects(
-    () => createApprovedDocument(dir, 'work-order', 'No trace'),
-    /refusing to ready WO-\d+ — it links no requirement/,
+    () => createApprovedDocument(dir, 'work-order', 'No pre-approved state to be born into'),
+    /a work order is dispatched, not approved — file it without --approve, then veri dispatch/,
   );
   const load = await loadProject(dir);
   assert.equal(load.documents.filter((doc) => doc.type === 'work-order').length, 1, 'only the fixture WO exists');
-});
-
-test('file-and-approve refuses a work order that depends on a pending document', async (t) => {
-  const dir = sandbox(t);
-  // REQ-001 is still draft — the prospective gate refuses, same as approve.
-  await assert.rejects(
-    () => createApprovedDocument(dir, 'work-order', 'Leans on a draft', { links: [{ id: 'REQ-001', rel: 'implements' }] }),
-    /which is still draft — approve it first/,
-  );
 });
 
 test('file-and-approve refuses a document that would carry a check issue (hypothesis without outcome)', async (t) => {

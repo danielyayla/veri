@@ -16,7 +16,7 @@ import {
   checkSharedClaims,
   checkStaleClaims,
   checkStaleFocus,
-  checkStampedBacklog,
+
   checkStructure,
   expectedSections,
   missingSections,
@@ -102,15 +102,11 @@ const CASES: BrokenCase[] = [
     expected: [{ kind: 'gated-wo', id: 'WO-001', targetId: 'WF-001', targetStatus: 'draft' }],
   },
   {
-    // WO-098: ready is a promotion — reached without the stamp it fails.
-    dir: 'ready-wo-unstamped',
-    expected: [{ kind: 'missing-approval', id: 'WO-001', file: 'work-orders/WO-001-ready-unstamped.md' }],
-  },
-  {
-    // WO-098: the gate covers ready like any started status — dispatch
-    // clearance over a pending link is a violation.
-    dir: 'gated-wo-ready',
-    expected: [{ kind: 'gated-wo', id: 'WO-001', targetId: 'REQ-001', targetStatus: 'draft' }],
+    // DEC-143 (WO-143): the ready status left the enum — a format-5 reader
+    // refuses the frontmatter loudly instead of silently dropping the doc;
+    // the remedy is the 4 → 5 migration (veri migrate).
+    dir: 'ready-status-retired',
+    expected: [{ kind: 'invalid-frontmatter', file: 'work-orders/WO-001-ready-retired.md', field: 'status' }],
   },
   {
     // WO-099: in-progress asserts a session holds the work — no claim, no
@@ -183,7 +179,7 @@ const OUTCOME_FILES = {
   hypothesis: (links = ''): string =>
     `---\nid: REQ-001\ntype: requirement\ntitle: The bet\nstatus: accepted\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\nkind: hypothesis\noutcome:\n  metric: activation-rate\n  target: "> 40%"\n${links}---\nBody.\n\n## Acceptance criteria\n\n- [x] x\n\n## Receipts\n\n- none\n`,
   wo: (status: string): string =>
-    `---\nid: WO-001\ntype: work-order\ntitle: Ship it\nstatus: ${status}\n${status === 'ready' || status === 'done' ? 'approved: 2026-08-01\n' : ''}${
+    `---\nid: WO-001\ntype: work-order\ntitle: Ship it\nstatus: ${status}\n${status === 'done' ? 'approved: 2026-08-01\n' : ''}${
       status === 'in-progress' ? 'claimed_by: s\nclaimed_at: 2026-08-01\n' : ''
     }created: 2026-08-01\nupdated: 2026-08-01\nlinks:\n  - id: REQ-001\n    rel: implements\n---\n## Summary\n\nx.\n\n## Acceptance tests\n\n- [x] x\n\n## Receipts\n\n- 2026-08-01 abc123 shipped\n`,
   outcomeSrc: (rel: string): string =>
@@ -676,67 +672,19 @@ test('shared claims: one identity holding two in-progress work orders advises; d
   assert.deepEqual(checkSharedClaims([chainHead, prerequisite]), []);
 });
 
-// --- The demotion hole (WO-111) ---
+// --- stamped-backlog retired with the ready state (DEC-143, WO-143) ---
 
-test('stamped backlog: a backlog work order carrying approved: is a violation naming veri approve', () => {
-  // The WO-104 shape: demoted ready → backlog with the stamp left behind.
-  const demoted = claimedWo('WO-104', 'backlog', {});
-  demoted.approved = '2026-08-25';
-  const issues = checkStampedBacklog([demoted]);
-  assert.equal(issues.length, 1);
-  assert.partialDeepStrictEqual(issues[0], {
-    kind: 'stamped-backlog',
-    id: 'WO-104',
-    file: 'work-orders/WO-104-t.md',
-  });
-  assert.match(issues[0]!.message, /veri approve WO-104/);
-
-});
-
-test('stamped backlog: checkProject reports it despite the backlog skips, and re-approval clears it', async (t) => {
+test('a stamped backlog work order is the legal transitional state, not a violation', async (t) => {
+  // The migrated ready queue's shape: clearance granted (the stamp) but not
+  // yet spent by dispatch. WO-111's demotion-hole rule retired with ready.
   const dir = mkdtempSync(join(tmpdir(), 'veri-stamped-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   mkdirSync(join(dir, 'work-orders'), { recursive: true });
-  const wo = (status: string, stamp: string): string =>
-    `---\nid: WO-001\ntype: work-order\ntitle: T\nstatus: ${status}\n${stamp}created: 2026-08-01\nupdated: 2026-08-01\nlinks:\n  - id: WO-001\n    rel: relates-to\n---\n## Summary\n\nWork.\n`;
-  const woPath = join(dir, 'work-orders', 'WO-001-t.md');
-
-  // The demoted state: backlog with the stamp stranded.
-  writeFileSync(woPath, wo('backlog', 'approved: 2026-08-25\n'));
-  const before = checkProject(await loadProject(dir)).issues;
-  assert.equal(before.length, 1);
-  assert.equal(before[0]!.kind, 'stamped-backlog');
-
-  // The remedy the message names — veri approve re-stamps to ready. (A REQ
-  // link would be required by the prospective gate; here we only assert the
-  // resulting state is clean.)
-  writeFileSync(woPath, wo('ready', 'approved: 2026-08-26\n'));
-  const after = checkProject(await loadProject(dir)).issues;
-  assert.ok(!after.some((issue) => issue.kind === 'stamped-backlog'));
-});
-
-test('stamped backlog: fires on the contradiction only', () => {
-  // An unstamped backlog work order is ordinary planning.
-  assert.deepEqual(checkStampedBacklog([claimedWo('WO-001', 'backlog', {})]), []);
-  // A stamped ready work order is the legitimate promoted state (DEC-096).
-  const ready = claimedWo('WO-002', 'ready', {});
-  ready.approved = '2026-08-25';
-  assert.deepEqual(checkStampedBacklog([ready]), []);
-  // Past ready, the stamp is spent clearance — valid history, never flagged.
-  const done = claimedWo('WO-003', 'done', {});
-  done.approved = '2026-08-25';
-  assert.deepEqual(checkStampedBacklog([done]), []);
-  // Withdrawn keeps its history out of play (DEC-110).
-  const withdrawn = claimedWo('WO-004', 'withdrawn', {});
-  withdrawn.approved = '2026-08-25';
-  assert.deepEqual(checkStampedBacklog([withdrawn]), []);
-  // Other types with stamps are the normal promoted world.
-  assert.deepEqual(
-    checkStampedBacklog([
-      { ...claimedWo('WO-005', 'backlog', {}), type: 'requirement', id: 'REQ-005', status: 'accepted', approved: '2026-08-01' },
-    ]),
-    [],
+  writeFileSync(
+    join(dir, 'work-orders', 'WO-001-t.md'),
+    '---\nid: WO-001\ntype: work-order\ntitle: T\nstatus: backlog\napproved: 2026-08-25\ncreated: 2026-08-01\nupdated: 2026-08-01\nlinks:\n  - id: WO-001\n    rel: relates-to\n---\n## Summary\n\nWork.\n',
   );
+  assert.deepEqual(checkProject(await loadProject(dir)).issues, []);
 });
 
 test('stale claims: silence past the window advises; a receipt inside it resets the clock', () => {
@@ -762,9 +710,9 @@ test('stale claims: silence past the window advises; a receipt inside it resets 
   assert.equal(staleAgain.length, 1);
   assert.match(staleAgain[0]!.message, /last filed a receipt 2026-08-10/);
 
-  // Only claimed in-progress work orders are eligible: ready, done, and
+  // Only claimed in-progress work orders are eligible: backlog, done, and
   // unclaimed (already a violation) never advise.
-  assert.deepEqual(checkStaleClaims([claimedWo('WO-002', 'ready', {})], '2027-01-01', 14), []);
+  assert.deepEqual(checkStaleClaims([claimedWo('WO-002', 'backlog', {})], '2027-01-01', 14), []);
   assert.deepEqual(checkStaleClaims([claimedWo('WO-003', 'done', { by: 'a', at: '2026-01-01' })], '2027-01-01', 14), []);
   assert.deepEqual(checkStaleClaims([claimedWo('WO-004', 'in-progress', {})], '2027-01-01', 14), []);
 });
@@ -982,24 +930,23 @@ function decDoc(id: string, links: Array<{ id: string; rel: string }> = []): Ver
   };
 }
 
-test('orphan work orders: ready work reaching only dead requirements fails; a transitive live trace passes', () => {
+test('orphan work orders: in-progress work reaching only dead requirements fails; a transitive live trace passes', () => {
   const live = reqDoc('REQ-001', 'accepted');
   const retired = reqDoc('REQ-002', 'retired');
   const gone = reqDoc('REQ-003', 'withdrawn');
 
   // Only-dead trace: orphan execution.
-  const orphan = linkedWo('WO-001', 'ready', [{ id: 'REQ-002', rel: 'implements' }]);
+  const orphan = linkedWo('WO-001', 'in-progress', [{ id: 'REQ-002', rel: 'implements' }]);
   const issues = checkOrphanWorkOrders([orphan, retired, live]);
   assert.equal(issues.length, 1);
   assert.partialDeepStrictEqual(issues[0], { kind: 'orphan-wo', id: 'WO-001', file: 'work-orders/WO-001-t.md' });
 
-  // A direct live link passes; so does in-progress with one.
-  assert.deepEqual(checkOrphanWorkOrders([linkedWo('WO-002', 'ready', [{ id: 'REQ-001', rel: 'implements' }]), live]), []);
+  // A direct live link passes.
   assert.deepEqual(checkOrphanWorkOrders([linkedWo('WO-003', 'in-progress', [{ id: 'REQ-001', rel: 'implements' }]), live]), []);
 
   // Transitive: WO → dead REQ, but also WO → DEC → live REQ.
   const dec = decDoc('DEC-001', [{ id: 'REQ-001', rel: 'implements' }]);
-  const viaDec = linkedWo('WO-004', 'ready', [
+  const viaDec = linkedWo('WO-004', 'in-progress', [
     { id: 'REQ-002', rel: 'implements' },
     { id: 'DEC-001', rel: 'constrained-by' },
   ]);
@@ -1007,21 +954,23 @@ test('orphan work orders: ready work reaching only dead requirements fails; a tr
 
   // A retired requirement's links still carry the trace to its successor.
   const retiredWithSuccessor = reqDoc('REQ-002', 'retired', [{ id: 'REQ-001', rel: 'superseded-by' }]);
-  const viaRetired = linkedWo('WO-005', 'ready', [{ id: 'REQ-002', rel: 'implements' }]);
+  const viaRetired = linkedWo('WO-005', 'in-progress', [{ id: 'REQ-002', rel: 'implements' }]);
   assert.deepEqual(checkOrphanWorkOrders([viaRetired, retiredWithSuccessor, live]), []);
 
   // A withdrawn document neither satisfies nor extends it.
-  const viaGone = linkedWo('WO-006', 'ready', [{ id: 'REQ-003', rel: 'implements' }]);
+  const viaGone = linkedWo('WO-006', 'in-progress', [{ id: 'REQ-003', rel: 'implements' }]);
   assert.equal(checkOrphanWorkOrders([viaGone, gone]).length, 1);
 
-  // Backlog sketches freely; done is history, never re-judged.
+  // Backlog sketches freely — even stamped backlog (DEC-143's transitional
+  // state) waits for dispatch's own prospective gate; done is history,
+  // never re-judged.
   assert.deepEqual(checkOrphanWorkOrders([linkedWo('WO-007', 'backlog', []), retired]), []);
   assert.deepEqual(checkOrphanWorkOrders([linkedWo('WO-008', 'done', [{ id: 'REQ-002', rel: 'implements' }]), retired]), []);
 
   // A cycle with no live requirement terminates and flags.
   const decA = decDoc('DEC-002', [{ id: 'DEC-003', rel: 'relates-to' }]);
   const decB = decDoc('DEC-003', [{ id: 'DEC-002', rel: 'relates-to' }]);
-  const cyclic = linkedWo('WO-009', 'ready', [
+  const cyclic = linkedWo('WO-009', 'in-progress', [
     { id: 'REQ-002', rel: 'implements' },
     { id: 'DEC-002', rel: 'constrained-by' },
   ]);
@@ -1029,5 +978,5 @@ test('orphan work orders: ready work reaching only dead requirements fails; a tr
 
   // The no-link case belongs to wo-without-requirement — orphan-wo stays
   // silent so one root cause yields one issue.
-  assert.deepEqual(checkOrphanWorkOrders([linkedWo('WO-010', 'ready', [{ id: 'DEC-002', rel: 'constrained-by' }]), decA, decB]), []);
+  assert.deepEqual(checkOrphanWorkOrders([linkedWo('WO-010', 'in-progress', [{ id: 'DEC-002', rel: 'constrained-by' }]), decA, decB]), []);
 });

@@ -2,7 +2,7 @@
 id: WO-146
 type: work-order
 title: "veri:review exists — the diff is read against the work order before done"
-status: ready
+status: backlog
 approved: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01

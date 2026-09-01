@@ -146,9 +146,10 @@ export function checkDrift(documents: VeriDocument[], facts: GitFacts, veriPath:
     // History, not drift — including `withdrawn` (DEC-110): a document taken
     // out of play binds nothing, so its stamp has nothing left to cover.
     if (doc.status === 'superseded' || doc.status === 'retired' || doc.status === 'withdrawn') continue;
-    // WO-098: a work order's stamp is dispatch clearance, spent once
-    // execution begins — receipts and checked boxes are progress, not drift.
-    if (doc.type === 'work-order' && doc.status !== 'ready') continue;
+    // DEC-143: a work order's stamp is dispatch clearance, written and spent
+    // by the same gesture — receipts and checked boxes are progress, not
+    // drift, and a migrated stamp waiting in backlog is re-gated at dispatch.
+    if (doc.type === 'work-order') continue;
     const touching = commitsTouching(facts, repoPath(veriPath, doc));
     const stamp = newestLifecycleIndex(facts, doc.id);
     const offending = (

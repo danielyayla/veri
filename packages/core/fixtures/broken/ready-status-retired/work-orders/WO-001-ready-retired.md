@@ -1,11 +1,11 @@
 ---
 id: WO-001
 type: work-order
-title: Ready against a pending requirement
+title: Still at the retired ready status
 status: ready
+approved: 2026-08-01
 created: 2026-08-01
 updated: 2026-08-01
-approved: 2026-08-01
 links:
   - id: REQ-001
     rel: implements
@@ -13,4 +13,4 @@ links:
 
 ## Summary
 
-Stamped ready while the requirement is still draft.
+A pre-format-5 work order the migration has not yet touched (DEC-143).

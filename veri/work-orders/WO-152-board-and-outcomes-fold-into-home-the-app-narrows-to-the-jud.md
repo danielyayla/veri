@@ -2,7 +2,7 @@
 id: WO-152
 type: work-order
 title: "Board and Outcomes fold into Home — the app narrows to the judgment surface"
-status: ready
+status: backlog
 approved: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01

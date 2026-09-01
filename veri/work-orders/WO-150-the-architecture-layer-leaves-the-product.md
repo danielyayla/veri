@@ -2,7 +2,7 @@
 id: WO-150
 type: work-order
 title: "The architecture layer leaves the product"
-status: ready
+status: backlog
 approved: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01

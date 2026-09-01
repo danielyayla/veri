@@ -189,10 +189,9 @@ export type Issue =
       message: string;
     }
   | { kind: 'missing-approval'; file: string; id: string; message: string }
-  // The demotion hole (WO-111): ready exists only via the stamp (DEC-096),
-  // so a backlog work order still carrying `approved:` left ready without
-  // discarding the record — a contradiction no legitimate path produces.
-  | { kind: 'stamped-backlog'; file: string; id: string; message: string }
+  // `stamped-backlog` (WO-111) retired with the ready state (DEC-143,
+  // WO-143): a stamp on a backlog work order is now clearance granted but
+  // not yet spent by dispatch — a legal state, not a contradiction.
   // Requirement kinds (REQ-032, WO-114): a hypothesis is a bet, and a bet
   // with no declared outcome cannot be confirmed or refuted — an untestable
   // claim is an issue, never a silent no-op (the DEC-058 posture).

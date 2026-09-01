@@ -29,7 +29,7 @@ export * from './workflow-default.ts';
 export * from './brownfield.ts';
 export * from './intake.ts';
 export * from './next.ts';
-export * from './start.ts';
+export * from './dispatch.ts';
 export * from './discard.ts';
 export * from './supersede.ts';
 export * from './intent.ts';

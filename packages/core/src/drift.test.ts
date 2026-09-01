@@ -150,7 +150,7 @@ test('the approve flow\'s own guarded-line write is not drift', () => {
   assert.deepEqual(checkDrift(documents, facts, 'veri'), []);
 });
 
-test('a stamped work order past ready is exempt — execution edits are progress, not drift (WO-098)', () => {
+test('a stamped work order is exempt everywhere — dispatch writes and spends the stamp in one gesture (DEC-143)', () => {
   const started = [
     doc({ id: 'WO-001', type: 'work-order', status: 'done', approved: '2026-08-10', file: 'work-orders/WO-001.md' }),
   ];
@@ -161,17 +161,15 @@ test('a stamped work order past ready is exempt — execution edits are progress
     ],
   };
   assert.deepEqual(checkDrift(started, facts, 'veri'), []);
-  // While still ready, the stamp covers the text like any other promotion.
-  const ready = [
-    doc({ id: 'WO-001', type: 'work-order', status: 'ready', approved: '2026-08-10', file: 'work-orders/WO-001.md' }),
+  // The transitional stamped-backlog state (the migrated ready queue) is
+  // exempt too: dispatch re-runs its gates when the stamp is finally spent.
+  const stampedBacklog = [
+    doc({ id: 'WO-001', type: 'work-order', status: 'backlog', approved: '2026-08-10', file: 'work-orders/WO-001.md' }),
   ];
   const edited: GitFacts = {
     commits: [commit('a', '2026-08-12', 'widen the scope', ['veri/work-orders/WO-001.md']), ...facts.commits.slice(1)],
   };
-  assert.deepEqual(
-    checkDrift(ready, edited, 'veri').map((a) => a.kind),
-    ['drift-approved-edited'],
-  );
+  assert.deepEqual(checkDrift(stampedBacklog, edited, 'veri'), []);
 });
 
 test('without a recognizable stamp commit, committer dates after the stamp date decide', () => {

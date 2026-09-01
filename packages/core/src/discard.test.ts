@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { approveDocument } from './approve.ts';
+import { dispatchWorkOrder } from './dispatch.ts';
 import { deleteDocument, deleteRefusal, withdrawDocument } from './discard.ts';
 import { loadProject } from './load.ts';
 import { checkProject } from './check.ts';
@@ -72,11 +73,7 @@ test('withdraw refuses the workflow document, a second withdrawal, and an unknow
 test('a withdrawn requirement neither gates a started work order nor reaches its package', async (t) => {
   const dir = sandbox(t);
   await approveDocument(dir, 'REQ-001', '2026-08-10');
-  await approveDocument(dir, 'WO-001', '2026-08-10');
-  writeFileSync(
-    join(dir, 'work-orders/WO-001-not-approvable.md'),
-    readFileSync(join(dir, 'work-orders/WO-001-not-approvable.md'), 'utf8').replace('status: ready', 'status: in-progress\nclaimed_by: test\nclaimed_at: 2026-08-10'),
-  );
+  await dispatchWorkOrder(dir, 'WO-001', 'test', { date: '2026-08-10' });
   await withdrawDocument(dir, 'REQ-001', '2026-08-26');
 
   const load = await loadProject(dir);
@@ -99,17 +96,19 @@ test('an inline [[ID]] pointing at a withdrawn document is still a resolving lin
   );
 });
 
-test('a withdrawn work order never reaches the dispatch queue, stamp or no stamp', async (t) => {
+test('a withdrawn work order never reaches the judgment queue, stamp or no stamp', async (t) => {
   const dir = sandbox(t);
   await approveDocument(dir, 'REQ-001', '2026-08-10');
-  await approveDocument(dir, 'WO-001', '2026-08-10');
   assert.equal(nextDispatchable((await loadProject(dir)).documents)?.id, 'WO-001');
 
+  // The transitional stamped-backlog shape (DEC-143): withdraw takes it out
+  // of the queue while the stamp stays on the file as history.
+  const woPath = join(dir, 'work-orders/WO-001-not-approvable.md');
+  writeFileSync(woPath, readFileSync(woPath, 'utf8').replace(/^status: backlog$/m, 'status: backlog\napproved: 2026-08-10'));
   await withdrawDocument(dir, 'WO-001', '2026-08-26');
   const load = await loadProject(dir);
   assert.equal(nextDispatchable(load.documents), undefined);
-  // The spent stamp stays on the file; it just no longer means dispatchable.
-  assert.match(readFileSync(join(dir, 'work-orders/WO-001-not-approvable.md'), 'utf8'), /^approved: 2026-08-10$/m);
+  assert.match(readFileSync(woPath, 'utf8'), /^approved: 2026-08-10$/m);
 });
 
 test('delete removes an unapproved, unreferenced document and never frees its id', async (t) => {

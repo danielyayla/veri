@@ -8,4 +8,4 @@ updated: 2026-08-01
 approved: 2026-08-01
 ---
 
-An accepted requirement so only the missing work-order stamp fires.
+An accepted requirement so only the retired-status refusal fires.

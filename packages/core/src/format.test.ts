@@ -12,7 +12,7 @@ import {
   migrateProject,
   writeFormatMarker,
 } from './format.ts';
-import { checkFormat } from './check.ts';
+import { checkFormat, checkProject } from './check.ts';
 import { loadProject } from './load.ts';
 
 function tmpVeriDir(t: TestContext): string {
@@ -83,7 +83,7 @@ test('migrating a pre-marker project writes the marker and touches nothing else'
   assert.equal(readFileSync(join(dir, 'requirements', 'REQ-001-t.md'), 'utf8'), doc);
 });
 
-test('a format-1 project migrates to current by markers alone — withdrawn (1→2), the product type (2→3) and the method type (3→4) need no document rewrite', (t) => {
+test('a format-1 project migrates to current — three marker-only steps, then the 4→5 ready rewrite', (t) => {
   const dir = tmpVeriDir(t);
   writeFormatMarker(dir, 1);
   const doc = '---\nid: REQ-001\ntype: requirement\ntitle: T\nstatus: draft\ncreated: 2026-08-01\nupdated: 2026-08-01\nlinks: []\n---\n\nBody.\n';
@@ -91,12 +91,58 @@ test('a format-1 project migrates to current by markers alone — withdrawn (1�
 
   const result = migrateProject(dir);
   assert.equal(result.from, 1);
-  assert.equal(result.to, 4);
-  assert.equal(result.applied.length, 3);
+  assert.equal(result.to, 5);
+  assert.equal(result.applied.length, 4);
   assert.match(result.applied[0] ?? '', /withdrawn status/);
   assert.match(result.applied[1] ?? '', /product document type/);
   assert.match(result.applied[2] ?? '', /method document type/);
+  assert.match(result.applied[3] ?? '', /ready status retires/);
   assert.equal(readFileSync(join(dir, 'requirements', 'REQ-001-t.md'), 'utf8'), doc);
+});
+
+// --- The 4 → 5 content migration (DEC-143, WO-143) ---
+
+test('a project holding on-disk ready work orders migrates them to backlog, stamps and everything else preserved', async (t) => {
+  const dir = tmpVeriDir(t);
+  mkdirSync(join(dir, 'work-orders'), { recursive: true });
+  mkdirSync(join(dir, 'templates'), { recursive: true });
+  writeFormatMarker(dir, 4);
+
+  const ready =
+    '---\nid: WO-001\ntype: work-order\ntitle: Cleared, unclaimed\nstatus: ready\napproved: 2026-08-25\napproved_by: Ada\ncreated: 2026-08-01\nupdated: 2026-08-25\nlinks:\n  - id: REQ-001\n    rel: implements\n---\n\n## Summary\n\nAwaiting a session.\n';
+  const done =
+    '---\nid: WO-002\ntype: work-order\ntitle: Finished\nstatus: done\napproved: 2026-08-10\nclaimed_by: s\nclaimed_at: 2026-08-10\ncreated: 2026-08-01\nupdated: 2026-08-12\nlinks:\n  - id: REQ-001\n    rel: implements\n---\n\n## Summary\n\nShipped.\n\n## Acceptance tests\n\n- [x] x\n\n## Receipts\n\n- 2026-08-12 — abc1234 — done\n';
+  const req =
+    '---\nid: REQ-001\ntype: requirement\ntitle: Live\nstatus: accepted\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\n---\n\nBody.\n\n## Acceptance criteria\n\n- [ ] x\n';
+  // A template naming ready is not a document — the walker must skip it.
+  const template = '---\ntype: work-order\nstatus: ready\n---\n\n## Summary\n';
+  writeFileSync(join(dir, 'work-orders', 'WO-001-cleared.md'), ready);
+  writeFileSync(join(dir, 'work-orders', 'WO-002-finished.md'), done);
+  writeFileSync(join(dir, 'requirements', 'REQ-001-live.md'), req);
+  writeFileSync(join(dir, 'templates', 'work-order.md'), template);
+
+  const result = migrateProject(dir);
+  assert.equal(result.from, 4);
+  assert.equal(result.to, 5);
+  assert.match(result.applied[0] ?? '', /ready status retires/);
+
+  const migrated = readFileSync(join(dir, 'work-orders', 'WO-001-cleared.md'), 'utf8');
+  // One line changed; the stamp and everything else survive byte-for-byte.
+  assert.equal(migrated, ready.replace('status: ready', 'status: backlog'));
+  assert.match(migrated, /^approved: 2026-08-25$/m);
+  assert.match(migrated, /^approved_by: Ada$/m);
+  // Non-ready documents and non-documents are untouched.
+  assert.equal(readFileSync(join(dir, 'work-orders', 'WO-002-finished.md'), 'utf8'), done);
+  assert.equal(readFileSync(join(dir, 'requirements', 'REQ-001-live.md'), 'utf8'), req);
+  assert.equal(readFileSync(join(dir, 'templates', 'work-order.md'), 'utf8'), template);
+
+  // The migrated project parses and checks clean — the acceptance bar.
+  const load = await loadProject(dir);
+  assert.deepEqual(load.format, { kind: 'current', version: CURRENT_FORMAT });
+  const wo = load.documents.find((d) => d.id === 'WO-001');
+  assert.equal(wo?.status, 'backlog');
+  assert.equal(wo?.approved, '2026-08-25');
+  assert.deepEqual(checkProject(load).issues, []);
 });
 
 test('migrating a current project is a no-op', (t) => {

@@ -19,7 +19,7 @@ const TYPE_PREFIX: Record<string, DocType> = {
 };
 
 /** `is:active` means living (SRC-005: lifecycle is the scale lever). */
-const LIVING = new Set(['draft', 'accepted', 'active', 'backlog', 'ready', 'inprogress', 'proposed']);
+const LIVING = new Set(['draft', 'accepted', 'active', 'backlog', 'inprogress', 'proposed']);
 
 /** `is:proposed` means awaiting review — proposed decisions AND draft
     requirements, one filter for the whole approval queue (SRC-006). */

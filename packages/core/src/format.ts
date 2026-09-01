@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -23,7 +23,14 @@ import { fileURLToPath } from 'node:url';
 // discriminated union and MET- joins ID_RE — a format-3 reader drops every
 // method document and misreports its inline references, the same WO-104
 // failure class the last two bumps answered.
-export const CURRENT_FORMAT = 4;
+// WO-143 bumps to 5 (DEC-143): `ready` leaves the work-order status enum —
+// approval and dispatch are one gesture. The first bump that *removes* a
+// value, so the migration is real for the first time: on-disk ready work
+// orders return to backlog with their stamps preserved (clearance granted,
+// not yet spent by dispatch), and a format-5 reader rejects a `ready`
+// document's frontmatter outright — the WO-104 failure class, remedied by
+// the marker's refusal plus this migration.
+export const CURRENT_FORMAT = 5;
 
 export const FORMAT_FILE = 'format';
 
@@ -121,7 +128,47 @@ export const MIGRATIONS: readonly MigrationStep[] = [
     summary: 'the method document type joins the schema (marker only; documents are already valid)',
     apply: (veriDir) => writeFormatMarker(veriDir, 4),
   },
+  {
+    from: 4,
+    to: 5,
+    summary: 'the ready status retires (DEC-143) — ready work orders return to backlog, stamps and claims preserved',
+    apply: (veriDir) => {
+      retireReadyStatus(veriDir);
+      writeFormatMarker(veriDir, 5);
+    },
+  },
 ];
+
+/**
+ * The 4 → 5 content migration (DEC-143, WO-143): every work-order document
+ * at `status: ready` becomes `status: backlog`, one line-targeted edit per
+ * file. Everything else — the `approved:`/`approved_by:` stamp above all —
+ * is preserved byte for byte: a migration records the format change, it is
+ * not a promotion and not a demotion; the stamp stays clearance on record,
+ * which dispatch spends without re-asking. Mirrors the loader's skip list
+ * (templates/, originals/, amendments/ hold non-documents).
+ */
+function retireReadyStatus(veriDir: string): void {
+  const entries = readdirSync(veriDir, { recursive: true }) as string[];
+  for (const entry of entries) {
+    const file = entry.split('\\').join('/');
+    if (!file.endsWith('.md')) continue;
+    if (file.startsWith('templates/') || file.startsWith('originals/') || file.startsWith('amendments/')) continue;
+    const path = join(veriDir, file);
+    let raw: string;
+    try {
+      raw = readFileSync(path, 'utf8');
+    } catch {
+      continue; // a directory named *.md, or a file that vanished mid-walk
+    }
+    const fm = /^---\r?\n[\s\S]*?\r?\n---/.exec(raw);
+    if (fm === null) continue;
+    const block = fm[0];
+    if (!/^type: work-order\r?$/m.test(block) || !/^status: ready\r?$/m.test(block)) continue;
+    const next = block.replace(/^status: ready(\r?)$/m, 'status: backlog$1') + raw.slice(block.length);
+    writeFileSync(path, next);
+  }
+}
 
 export interface MigrateResult {
   from: number;

@@ -138,17 +138,19 @@ const bindsSchema = z
 
 export type BindsBlock = z.infer<typeof bindsSchema>;
 
-// WO-098: `ready` sits between backlog and in-progress — the user's dispatch
-// clearance, entered only via the approve stamp, so `approved`/`approved_by`
-// ride work orders exactly as they ride the other promotable types.
+// DEC-143 (WO-143): the lifecycle is backlog → in-progress → done. The
+// `ready` state retired — approval and dispatch are one gesture, so
+// `approved`/`approved_by` are written by the dispatch transition together
+// with the claim, and a stamp on a backlog work order is clearance granted
+// but not yet spent (the migration's transitional state, legal and quiet).
 // WO-099: `claimed_by`/`claimed_at` record which session holds a started
 // work order — free-text identity plus the local calendar date (DEC-076),
-// written by the start transition and kept at done as provenance.
+// written by the dispatch transition and kept at done as provenance.
 const workOrderSchema = z
   .object({
     ...baseFields,
     type: z.literal('work-order'),
-    status: z.enum(['backlog', 'ready', 'in-progress', 'done', WITHDRAWN]),
+    status: z.enum(['backlog', 'in-progress', 'done', WITHDRAWN]),
     approved: dateField.optional(),
     approved_by: approvedByField,
     claimed_by: z.string().min(1).optional(),

@@ -2,7 +2,7 @@
 id: WO-148
 type: work-order
 title: "Every surface tells the truth — methods, README, and reference stop disagreeing with the code"
-status: ready
+status: backlog
 approved: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01

@@ -125,8 +125,10 @@ export function tracesToLiveRequirement(documents: VeriDocument[], start: VeriDo
 }
 
 /**
- * Orphan execution (REQ-039, WO-123): a ready or in-progress work order
- * whose links reach no live requirement. The direct-link rule
+ * Orphan execution (REQ-039, WO-123; re-anchored by DEC-143): an
+ * in-progress work order whose links reach no live requirement. The trace
+ * binds at dispatch (which refuses prospectively) and at in-progress —
+ * backlog is exempt, sketching is free. The direct-link rule
  * (wo-without-requirement) already demands *a* requirement and owns the
  * no-link case; this one takes over where a link exists but everything it
  * reaches has left play — enforcing the work order's definition as the
@@ -136,7 +138,7 @@ export function tracesToLiveRequirement(documents: VeriDocument[], start: VeriDo
 export function checkOrphanWorkOrders(documents: VeriDocument[]): Issue[] {
   const issues: Issue[] = [];
   for (const doc of documents) {
-    if (doc.type !== 'work-order' || (doc.status !== 'ready' && doc.status !== 'in-progress')) continue;
+    if (doc.type !== 'work-order' || doc.status !== 'in-progress') continue;
     if (!doc.links.some((link) => link.id.startsWith('REQ-'))) continue; // wo-without-requirement's case
     if (tracesToLiveRequirement(documents, doc)) continue;
     issues.push({
@@ -173,30 +175,11 @@ export function checkGatedWorkOrders(documents: VeriDocument[]): Issue[] {
   return issues;
 }
 
-/**
- * The demotion hole (WO-111): a work order carrying an `approved:` stamp
- * while sitting in `backlog`. Ready exists only via the stamp (DEC-096,
- * REQ-008), so this state means a demotion discarded dispatch clearance
- * without discarding its record — no legitimate path produces it. Runs
- * unconditionally: the other work-order checks `continue` on backlog
- * (planning is ungated), which is exactly why this contradiction was
- * invisible until now. Withdrawn work orders are out of play (DEC-110) and
- * keep their history unflagged; they are not `backlog`, so the status test
- * already exempts them.
- */
-export function checkStampedBacklog(documents: VeriDocument[]): Issue[] {
-  const issues: Issue[] = [];
-  for (const doc of documents) {
-    if (doc.type !== 'work-order' || doc.status !== 'backlog' || doc.approved === undefined) continue;
-    issues.push({
-      kind: 'stamped-backlog',
-      file: doc.file,
-      id: doc.id,
-      message: `work order ${doc.id} is backlog but carries an approved: ${doc.approved} stamp — it left ready without discarding the record; re-approve it (veri approve ${doc.id}), or remove the approved:/approved_by: lines in the commit that demotes it`,
-    });
-  }
-  return issues;
-}
+// `checkStampedBacklog` (WO-111) retired with the ready state (DEC-143,
+// WO-143): a backlog work order carrying an `approved:` stamp is no longer a
+// contradiction — it is clearance granted but not yet spent, the migrated
+// ready queue's transitional state, and dispatch preserves the stamp when it
+// finally spends it.
 
 /**
  * Claim semantics (WO-099): in-progress means a session holds the work, and
@@ -214,7 +197,7 @@ export function checkUnclaimedWorkOrders(documents: VeriDocument[]): Issue[] {
       kind: 'unclaimed-wo',
       file: doc.file,
       id: doc.id,
-      message: `work order ${doc.id} is in-progress but records no claim — start it with veri start ${doc.id} --as <session>, or add claimed_by/claimed_at`,
+      message: `work order ${doc.id} is in-progress but records no claim — dispatch it with veri dispatch ${doc.id} --as <session>, or add claimed_by/claimed_at`,
     });
   }
   return issues;
@@ -711,17 +694,16 @@ export function checkDesignGateDiff(documents: VeriDocument[], facts: GitFacts):
 }
 
 /**
- * A document whose status carries approval weight (REQ-008). A ready work
- * order is promoted — the status only exists via the stamp (WO-098) — but a
- * started one is not: execution spends the clearance, and historical work
- * orders that never passed through ready stay valid without a stamp.
+ * A document whose status carries approval weight (REQ-008). Work orders are
+ * never in this set (DEC-143): dispatch writes their stamp and spends it in
+ * the same gesture, so a started work order's stamp is provenance rather
+ * than a promotion, and historical work orders without one stay valid.
  */
 function isPromoted(doc: VeriDocument): boolean {
   return (
     (doc.type === 'requirement' && doc.status === 'accepted') ||
     (doc.type === 'decision' && doc.status === 'active') ||
-    (doc.type === 'workflow' && doc.status === 'accepted') ||
-    (doc.type === 'work-order' && doc.status === 'ready')
+    (doc.type === 'workflow' && doc.status === 'accepted')
   );
 }
 
@@ -918,7 +900,6 @@ export function checkProject(load: LoadResult): CheckResult {
       ...checkBrokenLinks(load.documents),
       ...checkWorkOrderRequirements(load.documents),
       ...checkOrphanWorkOrders(load.documents),
-      ...checkStampedBacklog(load.documents),
       ...checkHypothesisOutcomes(load.documents),
       ...checkOutcomeLinks(load.documents),
       ...checkUnclaimedWorkOrders(load.documents),

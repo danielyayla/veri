@@ -2,7 +2,7 @@
 id: WO-144
 type: work-order
 title: "The work-order template sheds its Requirements section"
-status: ready
+status: backlog
 approved: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
