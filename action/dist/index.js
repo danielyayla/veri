@@ -7367,7 +7367,7 @@ import { appendFileSync } from "node:fs";
 import { resolve as resolve3 } from "node:path";
 
 // ../cli/dist/commands.js
-import { existsSync as existsSync4, mkdirSync as mkdirSync3, readFileSync as readFileSync6, readdirSync as readdirSync3, realpathSync, writeFileSync as writeFileSync4 } from "node:fs";
+import { existsSync as existsSync4, mkdirSync as mkdirSync3, readFileSync as readFileSync6, readdirSync as readdirSync4, realpathSync, writeFileSync as writeFileSync4 } from "node:fs";
 import { basename, dirname as dirname3, join as join7, relative as relative3, resolve as resolve2, sep as sep2 } from "node:path";
 import { fileURLToPath as fileURLToPath5 } from "node:url";
 
@@ -11535,7 +11535,7 @@ var bindsSchema = external_exports.object({
 var workOrderSchema = external_exports.object({
   ...baseFields,
   type: external_exports.literal("work-order"),
-  status: external_exports.enum(["backlog", "ready", "in-progress", "done", WITHDRAWN]),
+  status: external_exports.enum(["backlog", "in-progress", "done", WITHDRAWN]),
   approved: dateField.optional(),
   approved_by: approvedByField,
   claimed_by: external_exports.string().min(1).optional(),
@@ -11704,10 +11704,10 @@ function invalidFrontmatter(file, field, message) {
 }
 
 // ../core/dist/format.js
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-var CURRENT_FORMAT = 4;
+var CURRENT_FORMAT = 5;
 var FORMAT_FILE = "format";
 function toPath(veriDir) {
   return typeof veriDir === "string" ? veriDir : fileURLToPath(veriDir);
@@ -12104,7 +12104,7 @@ function checkDrift(documents, facts, veriPath) {
       continue;
     if (doc.status === "superseded" || doc.status === "retired" || doc.status === "withdrawn")
       continue;
-    if (doc.type === "work-order" && doc.status !== "ready")
+    if (doc.type === "work-order")
       continue;
     const touching = commitsTouching(facts, repoPath(veriPath, doc));
     const stamp = newestLifecycleIndex(facts, doc.id);
@@ -12490,7 +12490,7 @@ function tracesToLiveRequirement(documents, start) {
 function checkOrphanWorkOrders(documents) {
   const issues = [];
   for (const doc of documents) {
-    if (doc.type !== "work-order" || doc.status !== "ready" && doc.status !== "in-progress")
+    if (doc.type !== "work-order" || doc.status !== "in-progress")
       continue;
     if (!doc.links.some((link) => link.id.startsWith("REQ-")))
       continue;
@@ -12527,20 +12527,6 @@ function checkGatedWorkOrders(documents) {
   }
   return issues;
 }
-function checkStampedBacklog(documents) {
-  const issues = [];
-  for (const doc of documents) {
-    if (doc.type !== "work-order" || doc.status !== "backlog" || doc.approved === void 0)
-      continue;
-    issues.push({
-      kind: "stamped-backlog",
-      file: doc.file,
-      id: doc.id,
-      message: `work order ${doc.id} is backlog but carries an approved: ${doc.approved} stamp \u2014 it left ready without discarding the record; re-approve it (veri approve ${doc.id}), or remove the approved:/approved_by: lines in the commit that demotes it`
-    });
-  }
-  return issues;
-}
 function checkUnclaimedWorkOrders(documents) {
   const issues = [];
   for (const doc of documents) {
@@ -12552,7 +12538,7 @@ function checkUnclaimedWorkOrders(documents) {
       kind: "unclaimed-wo",
       file: doc.file,
       id: doc.id,
-      message: `work order ${doc.id} is in-progress but records no claim \u2014 start it with veri start ${doc.id} --as <session>, or add claimed_by/claimed_at`
+      message: `work order ${doc.id} is in-progress but records no claim \u2014 dispatch it with veri dispatch ${doc.id} --as <session>, or add claimed_by/claimed_at`
     });
   }
   return issues;
@@ -12900,7 +12886,7 @@ function checkDesignGateDiff(documents, facts) {
   return advisories;
 }
 function isPromoted(doc) {
-  return doc.type === "requirement" && doc.status === "accepted" || doc.type === "decision" && doc.status === "active" || doc.type === "workflow" && doc.status === "accepted" || doc.type === "work-order" && doc.status === "ready";
+  return doc.type === "requirement" && doc.status === "accepted" || doc.type === "decision" && doc.status === "active" || doc.type === "workflow" && doc.status === "accepted";
 }
 function maintainerRegistry(documents) {
   return documents.filter((doc) => doc.type === "workflow" && doc.status !== "retired").flatMap((doc) => doc.frontmatter["maintainers"] ?? []);
@@ -13036,7 +13022,6 @@ function checkProject(load) {
       ...checkBrokenLinks(load.documents),
       ...checkWorkOrderRequirements(load.documents),
       ...checkOrphanWorkOrders(load.documents),
-      ...checkStampedBacklog(load.documents),
       ...checkHypothesisOutcomes(load.documents),
       ...checkOutcomeLinks(load.documents),
       ...checkUnclaimedWorkOrders(load.documents),
@@ -13323,7 +13308,7 @@ function collectGitFacts(cwd) {
 }
 
 // ../cli/dist/skills.js
-import { existsSync as existsSync2, mkdirSync as mkdirSync2, readdirSync, readFileSync as readFileSync3, rmSync, statSync, writeFileSync as writeFileSync3 } from "node:fs";
+import { existsSync as existsSync2, mkdirSync as mkdirSync2, readdirSync as readdirSync2, readFileSync as readFileSync3, rmSync, statSync, writeFileSync as writeFileSync3 } from "node:fs";
 import { createInterface } from "node:readline/promises";
 import { dirname, join as join4, relative } from "node:path";
 import { fileURLToPath as fileURLToPath4 } from "node:url";
@@ -13336,7 +13321,7 @@ function collectShells(root2, emitter) {
   const walk2 = (dir, depth) => {
     if (depth > 4)
       return;
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    for (const entry of readdirSync2(dir, { withFileTypes: true })) {
       const full = join4(dir, entry.name);
       if (entry.isDirectory()) {
         walk2(full, depth + 1);
@@ -13388,7 +13373,7 @@ function resolves(root2, id) {
 }
 
 // ../cli/dist/imports.js
-import { existsSync as existsSync3, readFileSync as readFileSync5, readdirSync as readdirSync2, statSync as statSync3 } from "node:fs";
+import { existsSync as existsSync3, readFileSync as readFileSync5, readdirSync as readdirSync3, statSync as statSync3 } from "node:fs";
 import { dirname as dirname2, extname, join as join6, relative as relative2, resolve, sep } from "node:path";
 var SOURCE_EXTENSIONS = /* @__PURE__ */ new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]);
 var SPECIFIER_RES = [
@@ -13397,7 +13382,7 @@ var SPECIFIER_RES = [
   /\brequire\(\s*["']([^"'\n]+)["']\s*\)/g
 ];
 function walk(dir, files) {
-  const entries = readdirSync2(dir, { withFileTypes: true }).sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+  const entries = readdirSync3(dir, { withFileTypes: true }).sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
   for (const entry of entries) {
     if (entry.name.startsWith(".") || entry.name === "node_modules")
       continue;
