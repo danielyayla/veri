@@ -11811,19 +11811,6 @@ function receiptItems(section) {
   }
   return items;
 }
-function expandBraces(token) {
-  const match = /^(.*)\{([^{}]+)\}(.*)$/.exec(token);
-  if (match === null)
-    return [token];
-  return match[2].split(",").map((part) => match[1] + part.trim() + match[3]);
-}
-function isPathLike(token) {
-  return token.includes("/") || /^\.?[\w@+-]+\.[A-Za-z][\w]*$/.test(token);
-}
-function pathTokens(text) {
-  const tokens = text.split(/\s+/).map((raw) => raw.replace(/\(.*?\)/g, "").replace(/^(?:["'[\](),;:]|\.(?!\w))+/, "").replace(/["'[\](),.;:]+$/, "")).flatMap(expandBraces).flatMap((token) => token.split(",")).map((token) => token.replace(/\/+$/, "")).filter((token) => token !== "" && isPathLike(token));
-  return [...new Set(tokens)];
-}
 function parseReceipts(body) {
   const section = receiptsSection(body);
   if (section === null)
@@ -11832,31 +11819,23 @@ function parseReceipts(body) {
     const segments = item.split(SEGMENT_SEPARATOR_RE);
     const shaSegment = segments[1] ?? "";
     const shas = shaSegment.split(/[\s+,]+/).filter((token) => token !== "commit" && SHA_RE.test(token)).map((token) => token.toLowerCase());
-    const paths = shas.length > 0 ? pathTokens(segments[2] ?? "") : [];
     const first = (segments[0] ?? "").trim();
     const date = ISO_DATE_RE.test(first) ? first : null;
-    const summary = segments.slice(3).map((segment) => segment.trim()).join(" \u2014 ").trim();
-    return { raw: item, date, shas, paths, summary };
+    const summary = segments.slice(2).map((segment) => segment.trim()).join(" \u2014 ").trim();
+    return { raw: item, date, shas, summary };
   });
 }
 function findCommit(facts, sha) {
   return facts.commits.find((commit) => commit.sha.toLowerCase().startsWith(sha));
-}
-function touches(file, token) {
-  return file === token || file.startsWith(token + "/") || file.endsWith("/" + token);
 }
 function checkProvenance(documents, facts) {
   const advisories = [];
   for (const doc of documents) {
     if (doc.type !== "work-order")
       continue;
-    const receipts = parseReceipts(doc.body);
-    let anyResolved = false;
-    for (const receipt of receipts) {
-      const resolved = [];
+    for (const receipt of parseReceipts(doc.body)) {
       for (const sha of receipt.shas) {
-        const commit = findCommit(facts, sha);
-        if (commit === void 0) {
+        if (findCommit(facts, sha) === void 0) {
           advisories.push({
             kind: "receipt-commit-missing",
             file: doc.file,
@@ -11864,42 +11843,8 @@ function checkProvenance(documents, facts) {
             sha,
             message: `${doc.id} has a receipt citing commit ${sha}, which is not in this repository's history`
           });
-          continue;
-        }
-        resolved.push(commit);
-        anyResolved = true;
-        if (!subjectWorkOrders(commit.subject).includes(doc.id)) {
-          advisories.push({
-            kind: "receipt-prefix",
-            file: doc.file,
-            id: doc.id,
-            sha,
-            subject: commit.subject,
-            message: `${doc.id} has a receipt citing commit ${sha}, whose message "${commit.subject}" lacks the ${doc.id}: prefix`
-          });
         }
       }
-      if (resolved.length > 0 && receipt.paths.length > 0) {
-        const committed = resolved.flatMap((commit) => commit.files);
-        const overlap = receipt.paths.some((token) => committed.some((file) => touches(file, token)));
-        if (!overlap) {
-          advisories.push({
-            kind: "receipt-files",
-            file: doc.file,
-            id: doc.id,
-            sha: receipt.shas[0],
-            message: `${doc.id} has a receipt citing commit ${receipt.shas[0]} but none of the files the receipt names appear in that commit`
-          });
-        }
-      }
-    }
-    if (doc.status === "done" && !anyResolved) {
-      advisories.push({
-        kind: "receipt-unverified",
-        file: doc.file,
-        id: doc.id,
-        message: `${doc.id} is done but no receipt cites a commit found in this repository's history`
-      });
     }
   }
   return advisories;
@@ -12348,6 +12293,8 @@ var WORK_ORDER_BODY = `
 - [ ] First test
 
 ## Receipts
+
+(one line per work session: date \u2014 commit or PR ref \u2014 one sentence)
 
 (none yet)
 `;

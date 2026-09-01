@@ -489,14 +489,14 @@ test('get_receipts answers over the wire, by id and corpus-wide, and refuses unk
   assert.ok(one && one.isError !== true, JSON.stringify(one));
   const oneText = one.content?.[0]?.text ?? '';
   assert.match(oneText, /^2 receipts across 1 work order \(SHAs as filed/m);
-  assert.match(oneText, /^WO-002 {2}2026-08-20 {2}aaaa111 {2}packages\/core\/src\/thing\.ts {2}did the thing$/m);
+  assert.match(oneText, /^WO-002 {2}2026-08-20 {2}aaaa111 {2}packages\/core\/src\/thing\.ts — did the thing$/m);
   assert.ok(!oneText.includes('WO-003'), 'an id narrows to that work order');
 
   const all = responses.get(3)?.result;
   assert.ok(all && all.isError !== true, JSON.stringify(all));
   const allText = all.content?.[0]?.text ?? '';
   assert.match(allText, /^3 receipts across 2 work orders \(SHAs as filed/m);
-  assert.match(allText, /^WO-003 {2}2026-08-22 {2}cccc333 {2}packages\/cli\/src\/cli\.ts {2}shipped the flag$/m);
+  assert.match(allText, /^WO-003 {2}2026-08-22 {2}cccc333 {2}packages\/cli\/src\/cli\.ts — shipped the flag$/m);
   // A work order that has filed none is simply absent, never an empty row.
   assert.ok(!allText.includes('WO-010'));
 

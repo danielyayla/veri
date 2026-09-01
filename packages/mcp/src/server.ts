@@ -202,8 +202,8 @@ server.registerTool(
   'get_receipts',
   {
     description:
-      'Receipts as data rather than prose: what each work order recorded when it shipped — date, the commit ' +
-      'SHAs it cites, the files it names, and its summary — one entry per line, work order first and summary ' +
+      'Receipts as data rather than prose: the pointers each work order carries into git — date, the commit ' +
+      'SHAs it cites, and its one-sentence summary — one entry per line, work order first and summary ' +
       'last. Pass id for a single work order; omit it for every work order that has filed one (those with none ' +
       'are simply absent, as are withdrawn work orders unless asked for by id). An unknown id answers with an ' +
       'empty result, never an error. The SHAs are as filed and unverified: this server runs no git, so ' +
@@ -616,11 +616,11 @@ server.registerTool(
   'get_intent',
   {
     description:
-      'The documents governing a code path (WO-095): work orders whose code bindings or receipts touch it — ' +
-      'bindings ranked above receipts, newest first — the module-registry entry covering it, and the ' +
-      'requirements and decisions those work orders cite. Grounded entirely in what this knowledge base ' +
-      'records (bindings, receipt file lists, the module registry), not a code index: unrecorded work will ' +
-      'not appear. Ask before editing a file to learn what governs it.',
+      'The documents governing a code path (WO-095): work orders whose code bindings touch it, newest ' +
+      'first, the module-registry entry covering it, and the requirements and decisions those work orders ' +
+      'cite. Grounded entirely in what this knowledge base records (bindings and the module registry), not ' +
+      'a code index: unrecorded work will not appear, and shipped work is git’s to answer — ' +
+      '`veri implemented` in a terminal. Ask before editing a file to learn what governs it.',
     inputSchema: { path: z.string().describe('Repo-relative file or directory path, e.g. packages/core/src/check.ts') },
   },
   async ({ path }) => {

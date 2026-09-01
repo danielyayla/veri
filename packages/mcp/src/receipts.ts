@@ -4,14 +4,15 @@ import { compareIds, isWithdrawn, loadProject, parseReceipts } from '@verikb/cor
 import type { VeriDocument } from '@verikb/core';
 
 /**
- * Receipts as data (REQ-041 item 3, WO-128): the implementation record a
- * work order carries in prose, read back as entries a health sweep or an
- * archaeology walk can correlate with git history without re-parsing
- * markdown. The parsing is core's `parseReceipts` — the same one the
- * receipt-verification advisories run on, so this surface can never
- * disagree with `veri check` about what a receipt claims (DEC-132).
+ * Receipts as data (REQ-041 item 3, WO-128): the pointers a work order
+ * carries into git (DEC-142) — date, commit or PR ref, one sentence — read
+ * back as entries a health sweep or an archaeology walk can correlate with
+ * history without re-parsing markdown. The parsing is core's
+ * `parseReceipts` — the same one the receipt-commit-missing advisory runs
+ * on, so this surface can never disagree with `veri check` about what a
+ * receipt claims (DEC-132).
  *
- * What this surface deliberately does not do is check those claims: the
+ * What this surface deliberately does not do is check that claim: the
  * server spawns no subprocess and touches no git history (DEC-081), so the
  * SHAs here are what the record says, not what the repository confirms.
  * Verification stays the terminal `veri check` tier.
@@ -27,8 +28,6 @@ export interface ReceiptRow {
   date: string | null;
   /** SHAs the receipt cites, as written — unverified against history. */
   shas: string[];
-  /** Path-like tokens from the receipt's files segment. */
-  files: string[];
   /** The receipt's trailing summary; empty when it has none. */
   summary: string;
   /** The receipt item verbatim, wrapped lines joined. */
@@ -47,7 +46,6 @@ function rows(doc: VeriDocument): ReceiptRow[] {
     file: `veri/${doc.file}`,
     date: receipt.date,
     shas: receipt.shas,
-    files: receipt.paths,
     summary: receipt.summary,
     raw: receipt.raw,
   }));
@@ -93,7 +91,7 @@ export function renderReceipts(receipts: ReceiptRow[], id?: string): string {
   const lines = receipts.map(
     (entry) =>
       `${entry.workOrder}  ${entry.date ?? '(no date)'}  ${list(entry.shas, '(no sha)')}  ` +
-      `${list(entry.files, '(no files)')}  ${entry.summary === '' ? entry.raw : entry.summary}`,
+      `${entry.summary === '' ? entry.raw : entry.summary}`,
   );
   return [`${scope} (SHAs as filed — this surface runs no git):`, ...lines].join('\n');
 }

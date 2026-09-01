@@ -58,7 +58,7 @@ test('advisories warn but pass by default', () => {
 test('strict-advisories escalates advisories to a failure with an explanatory error', () => {
   const report: CheckReport = {
     ...EMPTY,
-    advisories: [{ kind: 'receipt-prefix', file: 'work-orders/WO-002-c.md', message: 'commit lacks the WO-002: prefix' }],
+    advisories: [{ kind: 'receipt-commit-missing', file: 'work-orders/WO-002-c.md', message: 'receipt cites a commit not in history' }],
   };
   const verdict = render(report, readInputs({ 'INPUT_STRICT-ADVISORIES': 'true' }));
   assert.equal(verdict.code, 1);

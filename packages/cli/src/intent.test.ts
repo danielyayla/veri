@@ -25,7 +25,7 @@ test('veri intent without a veri/ directory says so', async (t) => {
   assert.match(result.lines[0], /no veri\/ directory/);
 });
 
-test('veri intent prints the core render for a receipt-matched path', async (t) => {
+test('veri intent prints the core render for a binding-matched path', async (t) => {
   const root = sandbox(t);
   mkdirSync(join(root, 'veri/work-orders'), { recursive: true });
   mkdirSync(join(root, 'veri/requirements'), { recursive: true });
@@ -53,23 +53,26 @@ test('veri intent prints the core render for a receipt-matched path', async (t) 
       'id: WO-001',
       'type: work-order',
       'title: Ship it',
-      'status: done',
+      'status: in-progress',
       'created: 2026-08-01',
       'updated: 2026-08-01',
       'links:',
       '  - id: REQ-001',
       '    rel: implements',
+      'binds:',
+      '  paths:',
+      '    - src/thing.ts',
       '---',
       '',
-      '## Receipts',
+      '## Summary',
       '',
-      '- 2026-08-01 — abc1234 — src/thing.ts — shipped',
+      'Work.',
       '',
     ].join('\n'),
   );
   const result = await intent(root, 'src/thing.ts');
   assert.equal(result.code, 0, result.lines.join('\n'));
   const text = result.lines.join('\n');
-  assert.match(text, /WO-001\s+done\s+via receipt \(src\/thing\.ts\) — Ship it/);
+  assert.match(text, /WO-001\s+in-progress\s+via binding \(src\/thing\.ts\) — Ship it/);
   assert.match(text, /REQ-001\s+accepted\s+Base — via WO-001 \(implements\)/);
 });

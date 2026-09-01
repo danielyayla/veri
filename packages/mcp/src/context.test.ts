@@ -144,11 +144,14 @@ test('unknown ids and non-work-order ids are rejected', async () => {
   await assert.rejects(() => assembleContext(FIXTURE, 'REQ-001'), /expects a work order id/);
 });
 
-test("get_context on this repo's WO-003 includes REQ-003 and DEC-003 in full", async () => {
+test("get_context on this repo's WO-003 includes REQ-003 in full and names DEC-003 as superseded", async () => {
   const { text, docCount, totalTokens } = await assembleContext(REPO_ROOT, 'WO-003');
   assert.match(text, /### REQ-003 — MCP server assembles and serves context packages · accepted/);
-  assert.match(text, /### DEC-003 — Receipts are per execution session/);
-  assert.ok(text.includes('Sessions are the natural unit of agent work'), 'DEC-003 body should be present in full');
+  // DEC-003 was superseded by DEC-142 (receipts are one-line pointers):
+  // a superseded decision is named as already rejected, body omitted.
+  assert.match(text, /### Already rejected \(superseded — bodies omitted\)/);
+  assert.match(text, /- DEC-003 — Receipts are per execution session.*\(superseded by DEC-142\)/);
+  assert.ok(!text.includes('Sessions are the natural unit of agent work'), 'a superseded decision body must be omitted');
   assert.match(text, /## Workflow · WF-001 — Veri project workflow/);
   assert.ok(docCount >= 4);
   assert.ok(totalTokens > 500);

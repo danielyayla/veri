@@ -26,8 +26,8 @@ function doc(id: string, type: string, title: string, status: string, extra: str
   ].join('\n');
 }
 
-/** A corpus exercising all three evidence tiers: a module registry, a done
-    work order with a receipt naming core files, and its linked REQ/DEC. */
+/** A corpus exercising both evidence tiers: a module registry, an
+    in-progress work order bound to a core file, and its linked REQ/DEC. */
 function sandbox(t: { after(fn: () => void): void }): string {
   const root = mkdtempSync(join(tmpdir(), 'veri-mcp-intent-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
@@ -55,19 +55,28 @@ function sandbox(t: { after(fn: () => void): void }): string {
       'WO-001',
       'work-order',
       'Ship the thing',
-      'done',
-      ['links:', '  - id: REQ-001', '    rel: implements', '  - id: DEC-001', '    rel: constrained-by'],
-      '## Summary\n\nx\n\n## Receipts\n\n- 2026-08-01 — abc1234 — packages/core/src/thing.ts — shipped\n',
+      'in-progress',
+      [
+        'links:',
+        '  - id: REQ-001',
+        '    rel: implements',
+        '  - id: DEC-001',
+        '    rel: constrained-by',
+        'binds:',
+        '  paths:',
+        '    - packages/core/src/thing.ts',
+      ],
+      '## Summary\n\nx\n',
     ),
   );
   return root;
 }
 
-test('get_intent surfaces receipt-matched work orders and their governing documents', async (t) => {
+test('get_intent surfaces binding-matched work orders and their governing documents', async (t) => {
   const root = sandbox(t);
   const text = await intentForPath(root, 'packages/core/src/thing.ts');
   assert.match(text, /not a code index/);
-  assert.match(text, /WO-001\s+done\s+via receipt \(packages\/core\/src\/thing\.ts\) — Ship the thing/);
+  assert.match(text, /WO-001\s+in-progress\s+via binding \(packages\/core\/src\/thing\.ts\) — Ship the thing/);
   assert.match(text, /core · packages\/core — Pure domain logic/);
   assert.match(text, /REQ-001\s+accepted\s+Base — via WO-001 \(implements\)/);
   assert.match(text, /DEC-001\s+active\s+Choice — via WO-001 \(constrained-by\)/);

@@ -613,8 +613,8 @@ export function open(cwd: string, dirArg: string | undefined, deps: OpenDeps = d
 
 /**
  * Code-to-intent lookup (WO-095, DEC-099): the documents governing a code
- * path, derived from what the corpus records — bindings, receipts, and the
- * module registry — never a code index. Pure over loaded documents, so this
+ * path, derived from what the corpus records — bindings and the module
+ * registry — never a code index. Pure over loaded documents, so this
  * prints byte-identically to the MCP get_intent tool (DEC-038).
  */
 export async function intent(cwd: string, pathArg: string | undefined): Promise<CmdResult> {

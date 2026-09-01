@@ -44,8 +44,8 @@ const USAGE = `usage: veri <command>
   veri context <WO-id>       print the context package an agent receives
   veri architecture          print the compiled intended architecture
   veri implemented <path>    work orders whose commits touched the path
-  veri intent <path>         the documents governing a code path — bindings,
-                             receipts, and the module registry, never an index
+  veri intent <path>         the documents governing a code path — bindings
+                             and the module registry, never an index
   veri list [type]           list documents: id, status, title
   veri open [dir]            open the project in the Veri desktop app
   veri skills install [--all] [--yes] [--harness <name>]

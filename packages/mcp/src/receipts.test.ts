@@ -36,10 +36,11 @@ function workOrder(id: string, title: string, status: string, receipts: string[]
 
 /**
  * A corpus spanning what receipts look like in practice: a work order with
- * three of them (canonical, middle-dot with two SHAs, and a pre-convention
- * item with nothing verifiable in it), a shipped one with a single receipt,
- * a ready one with none, a withdrawn one that did file one, and a
- * requirement — which can never carry receipts.
+ * three of them (an old-form entry with a files segment, middle-dot with
+ * two SHAs, and a pre-convention item with nothing verifiable in it), a
+ * shipped one with a single pointer-form receipt (DEC-142), a ready one
+ * with none, a withdrawn one that did file one, and a requirement — which
+ * can never carry receipts.
  */
 function sandbox(t: { after(fn: () => void): void }): string {
   const root = mkdtempSync(join(tmpdir(), 'veri-mcp-receipts-'));
@@ -61,31 +62,31 @@ function sandbox(t: { after(fn: () => void): void }): string {
       'an early receipt with no sha at all',
     ]),
   );
-  write('work-orders', 'WO-003-single.md', workOrder('WO-003', 'One session', 'done', ['2026-08-22 — dddd444 — packages/cli/src/cli.ts — shipped the flag']));
+  write('work-orders', 'WO-003-single.md', workOrder('WO-003', 'One session', 'done', ['2026-08-22 — dddd444 — shipped the flag']));
   write('work-orders', 'WO-010-pending.md', workOrder('WO-010', 'Nothing yet', 'ready', []));
-  write('work-orders', 'WO-011-gone.md', workOrder('WO-011', 'Retracted', 'withdrawn', ['2026-08-19 — eeee555 — packages/core/src/gone.ts — never mind']));
+  write('work-orders', 'WO-011-gone.md', workOrder('WO-011', 'Retracted', 'withdrawn', ['2026-08-19 — eeee555 — never mind']));
   return root;
 }
 
 test('get_receipts for one work order returns every receipt it filed, in filed order', async (t) => {
   const rows = await getReceipts(sandbox(t), 'WO-002');
   assert.equal(rows.length, 3);
+  // An old-form receipt stays as filed: its files segment rides along as
+  // summary text, uninterpreted (DEC-142 — the list left the format).
   assert.deepEqual(rows[0], {
     workOrder: 'WO-002',
     file: 'veri/work-orders/WO-002-shipped.md',
     date: '2026-08-20',
     shas: ['aaaa111'],
-    files: ['packages/core/src/thing.ts', 'README.md'],
-    summary: 'did the thing',
+    summary: 'packages/core/src/thing.ts, README.md — did the thing',
     raw: '2026-08-20 — aaaa111 — packages/core/src/thing.ts, README.md — did the thing',
   });
-  // Dual SHAs, middle-dot separators, and a summary spanning two segments.
+  // Dual SHAs, middle-dot separators, and a summary spanning segments.
   assert.deepEqual(rows[1].shas, ['bbbb222', 'cccc333']);
-  assert.deepEqual(rows[1].files, ['packages/core/src/other.ts']);
   assert.equal(rows[1].date, '2026-08-21');
-  assert.equal(rows[1].summary, 'did the other thing — and noted it');
+  assert.equal(rows[1].summary, 'packages/core/src/other.ts — did the other thing — and noted it');
   // A pre-convention receipt claims nothing rather than claiming wrongly.
-  assert.deepEqual([rows[2].date, rows[2].shas, rows[2].files, rows[2].summary], [null, [], [], '']);
+  assert.deepEqual([rows[2].date, rows[2].shas, rows[2].summary], [null, [], '']);
   assert.equal(rows[2].raw, 'an early receipt with no sha at all');
 });
 
@@ -131,7 +132,7 @@ test('the rendered receipts put the work order first and the summary last', asyn
     text,
     [
       '1 receipt across 1 work order (SHAs as filed — this surface runs no git):',
-      'WO-003  2026-08-22  dddd444  packages/cli/src/cli.ts  shipped the flag',
+      'WO-003  2026-08-22  dddd444  shipped the flag',
     ].join('\n'),
   );
 });
@@ -139,10 +140,10 @@ test('the rendered receipts put the work order first and the summary last', asyn
 test('the corpus-wide rendering counts both receipts and work orders, and names absent fields', async (t) => {
   const lines = renderReceipts(await getReceipts(sandbox(t))).split('\n');
   assert.equal(lines[0], '4 receipts across 2 work orders (SHAs as filed — this surface runs no git):');
-  assert.equal(lines[2], 'WO-002  2026-08-21  bbbb222, cccc333  packages/core/src/other.ts  did the other thing — and noted it');
+  assert.equal(lines[2], 'WO-002  2026-08-21  bbbb222, cccc333  packages/core/src/other.ts — did the other thing — and noted it');
   // Nothing parsed: the gaps are named, and the raw item stands in for the
   // summary rather than the line trailing off into nothing.
-  assert.equal(lines[3], 'WO-002  (no date)  (no sha)  (no files)  an early receipt with no sha at all');
+  assert.equal(lines[3], 'WO-002  (no date)  (no sha)  an early receipt with no sha at all');
 });
 
 test('an empty result renders as a statement, distinguishing "filed none" from "no such corpus"', async (t) => {
@@ -158,16 +159,16 @@ test('every field comes from core’s parseReceipts, unchanged', async (t) => {
   const body = [
     '## Receipts',
     '',
-    '- 2026-08-17 — 6f60207 — ["site/index.html",',
-    '  "veri/work-orders/WO-029.md"] — session: shipped the site.',
+    '- 2026-08-17 — 6f60207 — session: shipped the site,',
+    '  and wired the release.',
   ].join('\n');
   const [parsed] = parseReceipts(body);
 
   const root = sandbox(t);
   writeFileSync(join(root, 'veri', 'work-orders', 'WO-020-wrapped.md'), workOrder('WO-020', 'Wrapped', 'done', []).replace('(none yet)', body.split('\n').slice(2).join('\n')));
   const [row] = await getReceipts(root, 'WO-020');
-  assert.deepEqual([row.date, row.shas, row.files, row.summary, row.raw], [parsed.date, parsed.shas, parsed.paths, parsed.summary, parsed.raw]);
-  assert.deepEqual(row.files, ['site/index.html', 'veri/work-orders/WO-029.md']);
+  assert.deepEqual([row.date, row.shas, row.summary, row.raw], [parsed.date, parsed.shas, parsed.summary, parsed.raw]);
+  assert.equal(row.summary, 'session: shipped the site, and wired the release.');
 });
 
 // DEC-081: the agent door spawns no subprocess, so nothing here may reach
