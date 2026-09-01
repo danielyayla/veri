@@ -8,6 +8,8 @@ updated: 2026-09-02
 links:
   - id: REQ-004
     rel: implements
+  - id: SRC-074
+    rel: designed-by
   - id: DEC-143
     rel: constrained-by
   - id: DEC-142

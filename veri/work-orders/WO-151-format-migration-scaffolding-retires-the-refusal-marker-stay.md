@@ -2,9 +2,9 @@
 id: WO-151
 type: work-order
 title: "Format-migration scaffolding retires; the refusal marker stays"
-status: backlog
+status: withdrawn
 created: 2026-09-01
-updated: 2026-09-01
+updated: 2026-09-02
 links:
   - id: REQ-015
     rel: narrows
