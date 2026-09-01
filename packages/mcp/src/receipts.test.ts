@@ -45,13 +45,18 @@ function workOrder(id: string, title: string, status: string, receipts: string[]
 function sandbox(t: { after(fn: () => void): void }): string {
   const root = mkdtempSync(join(tmpdir(), 'veri-mcp-receipts-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  for (const sub of ['requirements', 'work-orders']) mkdirSync(join(root, 'veri', sub), { recursive: true });
+  for (const sub of ['requirements', 'work-orders', 'sources']) mkdirSync(join(root, 'veri', sub), { recursive: true });
   const write = (sub: string, name: string, text: string): void => writeFileSync(join(root, 'veri', sub, name), text);
 
   write(
     'requirements',
     'REQ-001-live.md',
     ['---', 'id: REQ-001', 'type: requirement', 'title: Live canon', 'status: accepted', 'approved: 2026-08-01', 'created: 2026-08-01', 'updated: 2026-08-01', '---', '', '## Acceptance criteria', '', '- [ ] x', ''].join('\n'),
+  );
+  write(
+    'sources',
+    'SRC-001-outcome.md',
+    ['---', 'id: SRC-001', 'type: source', 'title: What reality said', 'status: imported', 'kind: outcome', 'created: 2026-08-25', 'updated: 2026-08-25', 'links:', '  - id: REQ-001', '    rel: supports', '  - id: WO-003', '    rel: outcome-of', '---', '', 'The flag moved the number.', ''].join('\n'),
   );
   write(
     'work-orders',
@@ -80,6 +85,7 @@ test('get_receipts for one work order returns every receipt it filed, in filed o
     shas: ['aaaa111'],
     summary: 'packages/core/src/thing.ts, README.md — did the thing',
     raw: '2026-08-20 — aaaa111 — packages/core/src/thing.ts, README.md — did the thing',
+    outcomeSources: [],
   });
   // Dual SHAs, middle-dot separators, and a summary spanning segments.
   assert.deepEqual(rows[1].shas, ['bbbb222', 'cccc333']);
@@ -126,15 +132,32 @@ test('get_receipts refuses a project with no veri/ directory', async (t) => {
   await assert.rejects(getReceipts(root), /no veri\/ directory/);
 });
 
-test('the rendered receipts put the work order first and the summary last', async (t) => {
+test('the rendered receipts put the work order first and the summary last, and name outcome evidence where it exists (WO-154)', async (t) => {
   const text = renderReceipts(await getReceipts(sandbox(t), 'WO-003'), 'WO-003');
   assert.equal(
     text,
     [
       '1 receipt across 1 work order (SHAs as filed — this surface runs no git):',
       'WO-003  2026-08-22  dddd444  shipped the flag',
+      'WO-003  outcome evidence: SRC-001 — what shipped here reported back',
     ].join('\n'),
   );
+});
+
+test('outcome evidence rides the rows and closes each reported-on work order in the corpus sweep (REQ-033, WO-154)', async (t) => {
+  const rows = await getReceipts(sandbox(t));
+  // The rows carry the sources as data; work orders nothing reported on
+  // carry the empty set, not a gap.
+  assert.deepEqual(rows.map((entry) => [entry.workOrder, entry.outcomeSources]), [
+    ['WO-002', []],
+    ['WO-002', []],
+    ['WO-002', []],
+    ['WO-003', ['SRC-001']],
+  ]);
+  const lines = renderReceipts(rows).split('\n');
+  assert.equal(lines.at(-1), 'WO-003  outcome evidence: SRC-001 — what shipped here reported back');
+  // One naming per work order — never one per receipt.
+  assert.equal(lines.filter((line) => line.includes('outcome evidence:')).length, 1);
 });
 
 test('the corpus-wide rendering counts both receipts and work orders, and names absent fields', async (t) => {

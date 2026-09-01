@@ -207,9 +207,11 @@ server.registerTool(
       'Receipts as data rather than prose: the pointers each work order carries into git — date, the commit ' +
       'SHAs it cites, and its one-sentence summary — one entry per line, work order first and summary ' +
       'last. Pass id for a single work order; omit it for every work order that has filed one (those with none ' +
-      'are simply absent, as are withdrawn work orders unless asked for by id). An unknown id answers with an ' +
-      'empty result, never an error. The SHAs are as filed and unverified: this server runs no git, so ' +
-      'confirming a commit exists is `veri check` in a terminal.',
+      'are simply absent, as are withdrawn work orders unless asked for by id). A work order some source ' +
+      'reports back on (rel outcome-of, REQ-033) closes its run of lines with one naming that outcome ' +
+      'evidence — what reality said about what shipped, the question receipts cannot answer. An unknown id ' +
+      'answers with an empty result, never an error. The SHAs are as filed and unverified: this server runs ' +
+      'no git, so confirming a commit exists is `veri check` in a terminal.',
     inputSchema: z
       .object({ id: z.string().optional().describe('Work order id, e.g. WO-126; omit for every work order') })
       .strict(),
