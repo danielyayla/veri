@@ -8,7 +8,7 @@ updated: 2026-09-01
 links:
   - id: REQ-021
     rel: amends
-  - id: DEC-003
+  - id: DEC-142
     rel: constrained-by
   - id: SRC-066
     rel: derived-from
