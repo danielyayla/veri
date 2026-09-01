@@ -3,9 +3,9 @@ id: SRC-065
 type: source
 title: "Observed — the npm publish path has failed identically twice, and the objection that ruled out the fix has expired"
 status: imported
-kind: investigation
+kind: outcome
 created: 2026-08-29
-updated: 2026-08-29
+updated: 2026-09-02
 links:
   - id: WO-125
     rel: outcome-of

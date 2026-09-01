@@ -3,9 +3,9 @@ id: SRC-064
 type: source
 title: "Observed — the format-4 bump closed the whole MCP surface to a session already running, mid-session"
 status: imported
-kind: investigation
+kind: outcome
 created: 2026-08-28
-updated: 2026-08-28
+updated: 2026-09-02
 links:
   - id: WO-131
     rel: outcome-of
