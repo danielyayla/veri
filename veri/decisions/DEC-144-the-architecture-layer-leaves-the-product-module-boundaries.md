@@ -2,7 +2,8 @@
 id: DEC-144
 type: decision
 title: "The architecture layer leaves the product — module boundaries belong to lint and prose"
-status: proposed
+status: active
+approved: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
 links:

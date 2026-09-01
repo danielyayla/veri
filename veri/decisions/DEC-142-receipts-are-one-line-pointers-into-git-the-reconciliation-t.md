@@ -2,7 +2,8 @@
 id: DEC-142
 type: decision
 title: "Receipts are one-line pointers into git — the reconciliation tier retires"
-status: proposed
+status: active
+approved: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
 links:

@@ -2,7 +2,8 @@
 id: DEC-143
 type: decision
 title: "Approval and dispatch are one gesture — the ready state retires"
-status: proposed
+status: active
+approved: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
 links:
