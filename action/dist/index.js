@@ -11531,7 +11531,14 @@ var verifyField = external_exports.string().refine((command) => command.trim() !
 var workOrderSchema = external_exports.object({
   ...baseFields,
   type: external_exports.literal("work-order"),
-  status: external_exports.enum(["backlog", "in-progress", "done", WITHDRAWN]),
+  // REQ-015 (Checked): a pre-migration `ready` is an older format, not a
+  // malformed file — the error names the retirement and the one repair
+  // instead of a bare enum mismatch.
+  status: external_exports.enum(["backlog", "in-progress", "done", WITHDRAWN], {
+    errorMap: (_issue, ctx) => ctx.data === "ready" ? {
+      message: '"ready" was retired by the format-5 migration (DEC-143) \u2014 "veri migrate" rewrites it to backlog and keeps the approval stamp'
+    } : { message: ctx.defaultError }
+  }),
   approved: dateField.optional(),
   approved_by: approvedByField,
   claimed_by: external_exports.string().min(1).optional(),
