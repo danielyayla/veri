@@ -2,10 +2,10 @@
 id: REQ-030
 type: requirement
 title: "The desktop app and CLI run on Windows and Linux"
-status: accepted
+status: retired
 approved: 2026-08-24
 created: 2026-08-24
-updated: 2026-08-24
+updated: 2026-09-02
 links:
   - id: DEC-063
     rel: depends-on
@@ -14,6 +14,13 @@ links:
   - id: REQ-023
     rel: consistent-with
 ---
+
+> Retired 2026-09-02 by Daniel's direct judgment, in the evidence
+> backfill that followed SRC-058: the only one of the intuition-only
+> requirements whose work never started (WO-153 punted the macOS-only
+> paths here), with no source on record ever asking for the platforms.
+> macOS-first stands; if cross-platform demand ever arrives as
+> evidence, that source is the door back in.
 
 Veri ships macOS-only today: the release pipeline builds signed per-architecture DMGs and nothing else, and the site's platform statement tells non-Mac developers only what does not exist for them. The developer audience Veri targets works on all three platforms — Linux especially. The Tauri 2 migration ([[DEC-063]]) removed the main obstacle: the shell is cross-platform by construction, so Windows and Linux builds are chiefly release-pipeline work (bundling targets, updater artifacts, signing stories per platform) rather than product work.
 
