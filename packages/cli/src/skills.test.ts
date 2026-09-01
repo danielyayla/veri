@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { approve, check, init } from './commands.ts';
 import { SHIPPED_METHODS_ROOT, collectShellFacts, collectShells, loadShippedMethods, skillsInstall, skillsUpgrade } from './skills.ts';
-import { DEFAULT_SKILL_SLUGS, claudeCodeEmitter } from '@verikb/core';
+import { DEFAULT_SKILL_SLUGS, casesForSkill, claudeCodeEmitter, parseTriggerCorpus } from '@verikb/core';
 
 /**
  * The host half of WO-135: the two commands over a real filesystem. These
@@ -225,6 +225,28 @@ test('the advanced tier needs --all', async (t) => {
   assert.deepEqual(shellPaths(cwd), ['.claude/skills/veri-archaeology/SKILL.md']);
 });
 
+test('a draft review method emits no shell; an accepted one emits exactly one (WO-146)', async (t) => {
+  const cwd = project(t);
+  const file = writeMethod(cwd, 'review', methodText('MET-001', 'review', { status: 'draft' }));
+
+  const drafted = await skillsInstall(cwd, { yes: true, all: true });
+  assert.equal(drafted.code, 0, drafted.lines.join('\n'));
+  assert.match(drafted.lines.join('\n'), /skip\s+MET-001 — status draft/);
+  assert.deepEqual(shellPaths(cwd), []);
+
+  writeFileSync(
+    file,
+    readFileSync(file, 'utf8').replace('status: draft', 'status: accepted\napproved: 2026-08-02'),
+    'utf8',
+  );
+  const accepted = await skillsInstall(cwd, { yes: true, all: true });
+  assert.equal(accepted.code, 0, accepted.lines.join('\n'));
+  assert.deepEqual(shellPaths(cwd), ['.claude/skills/veri-review/SKILL.md']);
+  const shell = readFileSync(join(cwd, '.claude/skills/veri-review/SKILL.md'), 'utf8');
+  assert.match(shell, /^name: veri-review$/m);
+  assert.match(shell, /MET-001/);
+});
+
 test('an unknown harness is refused before anything is read', async (t) => {
   const cwd = project(t);
   const result = await skillsInstall(cwd, { yes: true, harness: 'emacs' });
@@ -306,17 +328,39 @@ test('upgrade without --yes and with nobody to ask writes nothing', async (t) =>
 
 // --- The shipped library ------------------------------------------------------
 
-test('the shipped method library parses and covers the nine defaults REQ-040 names', () => {
+test('the shipped method library parses: the nine defaults REQ-040 names, plus the advanced review gate (WO-146)', () => {
   const shipped = loadShippedMethods();
-  assert.equal(shipped.length, 9);
+  assert.equal(shipped.length, 10);
   assert.deepEqual(
     shipped.map((entry) => entry.slug).sort(),
-    [...DEFAULT_SKILL_SLUGS].sort(),
+    [...DEFAULT_SKILL_SLUGS, 'review'].sort(),
   );
   for (const entry of shipped) {
     assert.ok(entry.description.trim() !== '', `${entry.slug} ships an empty description`);
     assert.ok(entry.body.trim() !== '', `${entry.slug} ships an empty body`);
   }
+});
+
+test("every shipped method's skill id is declared in the trigger corpus at its REQ-040 tier — veri:review's cases and the did-it-work-vs-review pair now name a real method (WO-146)", () => {
+  const corpus = parseTriggerCorpus(readFileSync(join(REPO_ROOT, 'skills/trigger-corpus.yaml'), 'utf8'));
+  const declared = new Map(corpus.skills.map((skill) => [skill.id, skill.tier]));
+  const shipped = loadShippedMethods();
+  for (const method of shipped) {
+    const id = `veri:${method.slug}`;
+    assert.ok(declared.has(id), `${id} is not a declared corpus skill`);
+    const tier = DEFAULT_SKILL_SLUGS.includes(method.slug) ? 'default' : 'advanced';
+    assert.equal(declared.get(id), tier, `${id}: corpus tier disagrees with REQ-040's tiering`);
+    assert.ok(casesForSkill(corpus, id).length > 0, `no corpus case expects ${id}`);
+  }
+  // The near-miss pair's second target is a method that exists, not a declared ghost.
+  const pair = corpus.near_miss_pairs.find((candidate) => candidate.id === 'did-it-work-vs-review');
+  assert.ok(pair, 'the did-it-work-vs-review pair is not declared');
+  assert.ok(pair.skills.includes('veri:review'), 'the pair does not name veri:review');
+  assert.ok(shipped.some((method) => method.slug === 'review'), 'no shipped method stands behind veri:review');
+  assert.ok(
+    corpus.cases.some((entry) => entry.pair === 'did-it-work-vs-review' && entry.expect === 'veri:review'),
+    'the pair has no case on the veri:review side',
+  );
 });
 
 test('the shipped library is byte-identical to the methods this repository authors', () => {
