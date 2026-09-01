@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFi
 import { createRequire } from 'node:module';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createDocument, deleteDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, lookupIntent, maintainerRegistry, migrateProject, moduleRegistry, nextDispatchable, nextIdNumber, originalStoragePath, outcomeLabel, recordIssuedId, renderArchitecture, renderIntent, renumberDocument, requirementKind, scaffoldProject, slugifyTitle, startWorkOrder, supersedeDecision, withdrawDocument, workOrdersTouching } from '@verikb/core';
+import { CURRENT_FORMAT, DOC_TYPES, ProjectExistsError, approveDocument, assembleContext, boundTests, buildCheckReport, buildImportedSource, classifyFormat, compareIds, createApprovedDocument, createDocument, deleteDocument, deriveIntakeTitle, extractIntake, formatStatement, importKickoffPrompt, importSkipNotes, isBrownfieldRoot, isOperableFormat, loadProject, localToday, lookupIntent, maintainerRegistry, migrateProject, moduleRegistry, nextDispatchable, nextIdNumber, originalStoragePath, outcomeLabel, recordIssuedId, renderArchitecture, renderIntent, renumberDocument, requirementKind, scaffoldProject, slugifyTitle, startWorkOrder, supersedeDecision, withdrawDocument, workOrdersTouching } from '@verikb/core';
 import type { CheckReport, DocType } from '@verikb/core';
 import { collectGitFacts, gitUserName } from './git.ts';
 import { collectShellFacts } from './skills.ts';
@@ -96,7 +96,7 @@ export function importPrompt(cwd: string): CmdResult {
  * original copy; every derivation (extraction, refusal, title, paths, the
  * document text) is core's pure intake module (DEC-060, DEC-093, DEC-094).
  */
-export async function importFile(cwd: string, fileArg: string): Promise<CmdResult> {
+export async function importFile(cwd: string, fileArg: string, opts: { approve?: boolean } = {}): Promise<CmdResult> {
   const dir = requireVeriDir(cwd);
   if (dir === null) return NO_VERI_DIR;
 
@@ -135,10 +135,14 @@ export async function importFile(cwd: string, fileArg: string): Promise<CmdResul
     return { code: 1, lines: [`import failed: ${err instanceof Error ? err.message : String(err)}`] };
   }
   recordIssuedId(dir, 'SRC', next);
-  return {
-    code: 0,
-    lines: [`Imported ${name} → veri/${docFile} (${id})`, `original preserved at veri/${original}`],
-  };
+  const lines = [`Imported ${name} → veri/${docFile} (${id})`, `original preserved at veri/${original}`];
+  // WO-142 (DEC-147): the flag is acknowledged loudly, never stamped — a
+  // source has no pending state, so the import already did everything the
+  // combined act could.
+  if (opts.approve === true) {
+    lines.push(`${id} is a source — born imported and already in play; nothing needed approving.`);
+  }
+  return { code: 0, lines };
 }
 
 function requireVeriDir(cwd: string): string | null {
@@ -152,11 +156,29 @@ function isDocType(value: string): value is DocType {
   return (DOC_TYPES as readonly string[]).includes(value);
 }
 
-export async function newDoc(cwd: string, typeArg: string | undefined, title: string | undefined): Promise<CmdResult> {
+/** The host's half of the DEC-071 identity handshake, shared by `veri
+    approve` and `veri new --approve` (WO-142): --as explicitly, or defaulted
+    from git user.name when that exactly matches a listed maintainer. Core
+    validates whatever this collects. */
+async function resolveApprover(dir: string, cwd: string, asName?: string): Promise<string | undefined> {
+  const explicit = asName?.trim();
+  if (explicit !== undefined && explicit !== '') return explicit;
+  const maintainers = maintainerRegistry((await loadProject(dir)).documents);
+  const gitName = gitUserName(cwd);
+  if (maintainers.length > 0 && gitName !== null && maintainers.includes(gitName)) return gitName;
+  return undefined;
+}
+
+export async function newDoc(
+  cwd: string,
+  typeArg: string | undefined,
+  title: string | undefined,
+  opts: { approve?: boolean; as?: string } = {},
+): Promise<CmdResult> {
   if (typeArg === undefined || !isDocType(typeArg)) {
     return { code: 1, lines: [`usage: veri new <type> "<title>" where <type> is ${TYPE_LIST}`] };
   }
-  if (title === undefined || title.trim() === '') {
+  if (title === undefined || title.trim() === '' || title.startsWith('--')) {
     return { code: 1, lines: ['a title is required: veri new ' + typeArg + ' "<title>"'] };
   }
   const dir = requireVeriDir(cwd);
@@ -165,10 +187,40 @@ export async function newDoc(cwd: string, typeArg: string | undefined, title: st
   // Creation lives in core so the CLI and the desktop app share one write
   // path (WO-022): next free id, initial status, template, kebab filename.
   try {
-    const { id, file } = await createDocument(dir, typeArg, title);
-    return { code: 0, lines: [`Created veri/${file} (${id})`] };
+    if (opts.approve !== true) {
+      const { id, file } = await createDocument(dir, typeArg, title);
+      return { code: 0, lines: [`Created veri/${file} (${id})`] };
+    }
+    // The combined file-and-approve act (WO-142, DEC-147): the user is the
+    // author, so the filing carries the stamp — same gates as veri approve,
+    // run in core before the one write. A source has no pending state: file
+    // it and say so, rather than refuse the exact act the flag asks for.
+    if (typeArg === 'source') {
+      const { id, file } = await createDocument(dir, typeArg, title);
+      return {
+        code: 0,
+        lines: [`Created veri/${file} (${id})`, `${id} is a source — born imported and already in play; nothing needed approving.`],
+      };
+    }
+    const approver = await resolveApprover(dir, cwd, opts.as);
+    const result = await createApprovedDocument(dir, typeArg, title, {
+      ...(approver !== undefined ? { approvedBy: approver } : {}),
+    });
+    const by = result.approvedBy === undefined ? '' : ` by ${result.approvedBy}`;
+    return {
+      code: 0,
+      lines: [
+        `Created veri/${result.file} (${result.id}) — ${result.from} → ${result.to}, approved: ${result.approved}${by}`,
+        // The lifecycle-subject convention (WO-045) anchors drift detection:
+        // a subject naming the id and "approved" marks the stamp commit.
+        `commit the filing with an approval subject, e.g. git commit -m "${result.id}: filed and approved"`,
+      ],
+    };
   } catch (err) {
-    return { code: 1, lines: [`${err instanceof Error ? err.message : String(err)}.`] };
+    const message = err instanceof Error ? err.message : String(err);
+    // Combined-act refusals are approve's refusals (multi-line, already
+    // punctuated) and render the way `veri approve` renders them.
+    return { code: 1, lines: opts.approve === true ? message.split('\n') : [`${message}.`] };
   }
 }
 
@@ -368,12 +420,7 @@ export async function approve(cwd: string, idArg: string | undefined, asName?: s
   const dir = requireVeriDir(cwd);
   if (dir === null) return NO_VERI_DIR;
   try {
-    let approver = asName?.trim();
-    if (approver === undefined || approver === '') {
-      const maintainers = maintainerRegistry((await loadProject(dir)).documents);
-      const gitName = gitUserName(cwd);
-      if (maintainers.length > 0 && gitName !== null && maintainers.includes(gitName)) approver = gitName;
-    }
+    const approver = await resolveApprover(dir, cwd, asName);
     const result = await approveDocument(dir, idArg.trim(), undefined, approver);
     const by = result.approvedBy === undefined ? '' : ` by ${result.approvedBy}`;
     return {

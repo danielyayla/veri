@@ -4,7 +4,7 @@ import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } f
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { approveDocument } from './approve.ts';
+import { approveDocument, createApprovedDocument } from './approve.ts';
 import { loadProject } from './load.ts';
 import { checkProject } from './check.ts';
 
@@ -241,4 +241,106 @@ test('approving a work order whose only requirements are dead is refused (REQ-03
   const reqFile = join(dir, 'requirements/REQ-001-clean-draft.md');
   writeFileSync(reqFile, readFileSync(reqFile, 'utf8').replace('status: accepted', 'status: retired'));
   await assert.rejects(() => approveDocument(dir, 'WO-001'), /refusing to ready WO-001 — it traces to no live requirement/);
+});
+
+// --- The combined file-and-approve act (WO-142, DEC-147) ---
+
+test('file-and-approve: a requirement is born accepted and stamped in one write, check-clean (WO-142)', async (t) => {
+  const dir = sandbox(t);
+  const result = await createApprovedDocument(dir, 'requirement', 'Born approved', { date: '2026-09-01' });
+  assert.equal(result.from, 'draft');
+  assert.equal(result.to, 'accepted');
+  assert.equal(result.approved, '2026-09-01');
+
+  const raw = readFileSync(join(dir, result.file), 'utf8');
+  assert.match(raw, /^status: accepted$/m);
+  assert.match(raw, /^approved: 2026-09-01$/m);
+  assert.doesNotMatch(raw, /^approved_by:/m);
+
+  // The result is indistinguishable from file-then-approve: same document
+  // gates, and the project carries no new issues.
+  const load = await loadProject(dir);
+  const issues = checkProject(load).issues.filter((issue) => 'file' in issue && issue.file === result.file);
+  assert.deepEqual(issues, []);
+});
+
+test('file-and-approve: a decision is born active', async (t) => {
+  const dir = sandbox(t);
+  const result = await createApprovedDocument(dir, 'decision', 'Chosen at filing', { date: '2026-09-01' });
+  assert.equal(result.to, 'active');
+  const raw = readFileSync(join(dir, result.file), 'utf8');
+  assert.match(raw, /^status: active$/m);
+  assert.match(raw, /^approved: 2026-09-01$/m);
+});
+
+test('file-and-approve: a work order with a live requirement trace is born ready (WO-098 gates shared)', async (t) => {
+  const dir = sandbox(t);
+  await approveDocument(dir, 'REQ-001', '2026-09-01');
+  const result = await createApprovedDocument(dir, 'work-order', 'Dispatch me', {
+    date: '2026-09-01',
+    links: [{ id: 'REQ-001', rel: 'implements' }],
+  });
+  assert.equal(result.from, 'backlog');
+  assert.equal(result.to, 'ready');
+  const raw = readFileSync(join(dir, result.file), 'utf8');
+  assert.match(raw, /^status: ready$/m);
+  assert.match(raw, /^approved: 2026-09-01$/m);
+});
+
+test('file-and-approve refuses a work order with no requirement link, and nothing lands on disk', async (t) => {
+  const dir = sandbox(t);
+  await assert.rejects(
+    () => createApprovedDocument(dir, 'work-order', 'No trace'),
+    /refusing to ready WO-\d+ — it links no requirement/,
+  );
+  const load = await loadProject(dir);
+  assert.equal(load.documents.filter((doc) => doc.type === 'work-order').length, 1, 'only the fixture WO exists');
+});
+
+test('file-and-approve refuses a work order that depends on a pending document', async (t) => {
+  const dir = sandbox(t);
+  // REQ-001 is still draft — the prospective gate refuses, same as approve.
+  await assert.rejects(
+    () => createApprovedDocument(dir, 'work-order', 'Leans on a draft', { links: [{ id: 'REQ-001', rel: 'implements' }] }),
+    /which is still draft — approve it first/,
+  );
+});
+
+test('file-and-approve refuses a document that would carry a check issue (hypothesis without outcome)', async (t) => {
+  const dir = sandbox(t);
+  await assert.rejects(
+    () => createApprovedDocument(dir, 'requirement', 'An untestable bet', { kind: 'hypothesis' }),
+    /would carry check issue\(s\):[\s\S]*declares no outcome/,
+  );
+  const load = await loadProject(dir);
+  assert.equal(load.documents.filter((doc) => doc.type === 'requirement').length, 2, 'only the fixture requirements exist');
+});
+
+test('file-and-approve in a maintainers project validates the approver before anything is written', async (t) => {
+  const dir = sandbox(t);
+  declareMaintainers(dir);
+  await assert.rejects(
+    () => createApprovedDocument(dir, 'requirement', 'Team stamped'),
+    /must name one.*--approve --as.*Ada, Grace/s,
+  );
+  await assert.rejects(
+    () => createApprovedDocument(dir, 'requirement', 'Team stamped', { approvedBy: 'Mallory' }),
+    /"Mallory" is not in the workflow's maintainers list/,
+  );
+  const before = await loadProject(dir);
+  assert.equal(before.documents.filter((doc) => doc.type === 'requirement').length, 2, 'refusals filed nothing');
+
+  const result = await createApprovedDocument(dir, 'requirement', 'Team stamped', { approvedBy: 'Grace', date: '2026-09-01' });
+  assert.equal(result.approvedBy, 'Grace');
+  const raw = readFileSync(join(dir, result.file), 'utf8');
+  // The name rides directly under the date, the approve-edit order.
+  assert.match(raw, /^approved: 2026-09-01\napproved_by: Grace$/m);
+});
+
+test('file-and-approve refuses sources — born in play, no stamp to carry', async (t) => {
+  const dir = sandbox(t);
+  await assert.rejects(
+    () => createApprovedDocument(dir, 'source', 'Evidence'),
+    /a source is born in play and takes no approval stamp/,
+  );
 });

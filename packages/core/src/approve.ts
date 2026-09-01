@@ -2,10 +2,15 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadProject } from './load.ts';
+import type { LoadResult } from './load.ts';
 import { checkProject, maintainerRegistry, tracesToLiveRequirement } from './check.ts';
 import { isPending } from './pending.ts';
 import { parseDocument } from './parse.ts';
 import { localToday } from './dates.ts';
+import { INITIAL_STATUS, composeNewDocument, writeNewDocument } from './create.ts';
+import type { CreateOptions } from './create.ts';
+import type { DocType } from './ids.ts';
+import type { Issue, VeriDocument } from './types.ts';
 
 export interface ApproveResult {
   id: string;
@@ -34,6 +39,69 @@ const PROMOTION: Record<string, { from: string; to: string }> = {
 };
 
 /**
+ * DEC-071's maintainers gate, shared by `veri approve` and the combined
+ * file-and-approve act (WO-142, DEC-147): a maintainers list on the workflow
+ * doc activates team semantics — the stamp must then name a listed
+ * maintainer. No list means solo, and a name (if given) is recorded without
+ * validation. `repair` is the command sample the refusal suggests. Returns
+ * the trimmed approver, or undefined when none was given.
+ */
+export function requireListedApprover(
+  documents: VeriDocument[],
+  approvedBy: string | undefined,
+  repair: string,
+): string | undefined {
+  const maintainers = maintainerRegistry(documents);
+  const approver = approvedBy?.trim();
+  if (maintainers.length > 0) {
+    if (approver === undefined || approver === '') {
+      throw new Error(
+        `this project declares maintainers — the stamp must name one: ${repair} (maintainers: ${maintainers.join(', ')})`,
+      );
+    }
+    if (!maintainers.includes(approver)) {
+      throw new Error(`"${approver}" is not in the workflow's maintainers list (${maintainers.join(', ')})`);
+    }
+  }
+  return approver === undefined || approver === '' ? undefined : approver;
+}
+
+/**
+ * WO-098's prospective dispatch gates, shared by `veri approve` and the
+ * combined act (WO-142): ready means dispatchable, and it must be born
+ * check-clean — a requirement link exists, nothing it depends on is still
+ * pending, and the work traces to a live requirement (REQ-039, WO-123).
+ * Throws the refusal; passing is silent.
+ */
+export function assertDispatchable(documents: VeriDocument[], doc: VeriDocument): void {
+  if (!doc.links.some((link) => link.id.startsWith('REQ-'))) {
+    throw new Error(`refusing to ready ${doc.id} — it links no requirement; a dispatchable work order names what it implements`);
+  }
+  const byId = new Map(documents.map((candidate) => [candidate.id, candidate]));
+  for (const link of doc.links) {
+    const target = byId.get(link.id);
+    if (target !== undefined && isPending(target)) {
+      throw new Error(
+        `refusing to ready ${doc.id} — it depends on ${target.id}, which is still ${target.status} — approve it first (veri approve ${target.id})`,
+      );
+    }
+  }
+  if (!tracesToLiveRequirement(documents, doc)) {
+    throw new Error(
+      `refusing to ready ${doc.id} — it traces to no live requirement; every requirement it reaches is retired or withdrawn (REQ-039)`,
+    );
+  }
+}
+
+/** The issues that block approving `file` — approve's gate: only issues,
+    never advisories (DEC-025), and only the document's own. */
+function blockingIssues(load: LoadResult, file: string): Issue[] {
+  return checkProject(load).issues.filter((issue) =>
+    issue.kind === 'duplicate-id' ? issue.files.includes(file) : issue.file === file,
+  );
+}
+
+/**
  * The user's approval act per REQ-008: flip a pending document's status and
  * stamp `approved:` with the given date, editing only those frontmatter lines
  * so the rest of the file stays byte-for-byte intact. Refuses documents that
@@ -53,21 +121,7 @@ export async function approveDocument(
   const doc = load.documents.find((candidate) => candidate.id === wanted);
   if (doc === undefined) throw new Error(`no document with id ${wanted}`);
 
-  // DEC-071: a maintainers list on the workflow doc activates team
-  // semantics — the stamp must then name a listed maintainer. No list means
-  // solo, and a name (if given) is recorded without validation.
-  const maintainers = maintainerRegistry(load.documents);
-  const approver = approvedBy?.trim();
-  if (maintainers.length > 0) {
-    if (approver === undefined || approver === '') {
-      throw new Error(
-        `this project declares maintainers — the stamp must name one: veri approve ${wanted} --as <name> (maintainers: ${maintainers.join(', ')})`,
-      );
-    }
-    if (!maintainers.includes(approver)) {
-      throw new Error(`"${approver}" is not in the workflow's maintainers list (${maintainers.join(', ')})`);
-    }
-  }
+  const approver = requireListedApprover(load.documents, approvedBy, `veri approve ${wanted} --as <name>`);
 
   const promotion = PROMOTION[doc.type];
   if (promotion === undefined) {
@@ -81,9 +135,7 @@ export async function approveDocument(
   }
 
   // Only issues block approval — advisories are a separate, non-gating tier (DEC-025).
-  const blocking = checkProject(load).issues.filter((issue) =>
-    issue.kind === 'duplicate-id' ? issue.files.includes(doc.file) : issue.file === doc.file,
-  );
+  const blocking = blockingIssues(load, doc.file);
   if (blocking.length > 0) {
     throw new Error(
       `refusing to approve ${wanted} — fix its check issue(s) first:\n${blocking.map((issue) => `  ${issue.message}`).join('\n')}`,
@@ -92,30 +144,8 @@ export async function approveDocument(
 
   // WO-098: the started-work checks exempt backlog, so a backlog work order
   // carries no issue for the filter above to catch — but ready means
-  // dispatchable, and it must be born check-clean: a requirement link exists
-  // and nothing it depends on is still pending. Check prospectively.
-  if (doc.type === 'work-order') {
-    if (!doc.links.some((link) => link.id.startsWith('REQ-'))) {
-      throw new Error(`refusing to ready ${wanted} — it links no requirement; a dispatchable work order names what it implements`);
-    }
-    const byId = new Map(load.documents.map((candidate) => [candidate.id, candidate]));
-    for (const link of doc.links) {
-      const target = byId.get(link.id);
-      if (target !== undefined && isPending(target)) {
-        throw new Error(
-          `refusing to ready ${wanted} — it depends on ${target.id}, which is still ${target.status} — approve it first (veri approve ${target.id})`,
-        );
-      }
-    }
-    // The worth-making trace (REQ-039, WO-123): ready means dispatchable,
-    // and dispatch clearance over only retired or withdrawn requirements
-    // would fail the orphan check the moment the stamp landed.
-    if (!tracesToLiveRequirement(load.documents, doc)) {
-      throw new Error(
-        `refusing to ready ${wanted} — it traces to no live requirement; every requirement it reaches is retired or withdrawn (REQ-039)`,
-      );
-    }
-  }
+  // dispatchable, and it must be born check-clean. Check prospectively.
+  if (doc.type === 'work-order') assertDispatchable(load.documents, doc);
 
   const path = join(root, doc.file);
   const raw = await readFile(path, 'utf8');
@@ -149,5 +179,95 @@ export async function approveDocument(
     to: promotion.to,
     approved: date,
     ...(approver !== undefined && approver !== '' ? { approvedBy: approver } : {}),
+  };
+}
+
+export interface CreateApprovedResult {
+  id: string;
+  /** Path relative to the veri/ directory. */
+  file: string;
+  text: string;
+  from: string;
+  to: string;
+  approved: string;
+  /** Present when the stamp names its maintainer (DEC-071). */
+  approvedBy?: string;
+}
+
+/**
+ * The combined file-and-approve act (WO-142, DEC-147): when the user is the
+ * author, the filing carries the stamp — one command, one commit, one write.
+ * Runs exactly the gates `approveDocument` runs today (maintainers validated,
+ * issues block, work orders need a live requirement trace), but *between*
+ * composition and the write: the issues gate runs on a synthetic load with
+ * the parsed composed text appended, which is faithful because loadProject
+ * parses every file through the same parseDocument. A refusal therefore
+ * leaves nothing on disk — no pending file, no rollback path.
+ *
+ * This is a user surface (`veri new --approve`), never an agent one: the MCP
+ * filing tools call `createDocument` and cannot reach this (REQ-008).
+ */
+export async function createApprovedDocument(
+  veriDir: string | URL,
+  type: DocType,
+  title: string,
+  options: CreateOptions & { approvedBy?: string } = {},
+): Promise<CreateApprovedResult> {
+  const date = options.date ?? localToday();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error(`approval date must be YYYY-MM-DD, got "${date}"`);
+  const root = typeof veriDir === 'string' ? veriDir : fileURLToPath(veriDir);
+  const load = await loadProject(root);
+
+  const approver = requireListedApprover(
+    load.documents,
+    options.approvedBy,
+    `veri new ${type} "<title>" --approve --as <name>`,
+  );
+
+  const promotion = PROMOTION[type];
+  if (promotion === undefined) {
+    // Today this is only `source`: born `imported` and already in play, it
+    // has no pending state and takes no stamp (REQ-008's gate covers the
+    // types with one). The CLI answers the flag with this fact instead of
+    // filing anything half-approved.
+    throw new Error(
+      `a ${type} is born in play and takes no approval stamp — only requirements, decisions, workflows, work orders, product documents and methods are approved`,
+    );
+  }
+
+  const { approvedBy: _approvedBy, ...createOptions } = options;
+  const composed = await composeNewDocument(root, load.documents, type, title, createOptions, {
+    status: promotion.to,
+    approved: date,
+    ...(approver !== undefined ? { approvedBy: approver } : {}),
+  });
+
+  const outcome = parseDocument(composed.file, composed.text);
+  if (outcome.document === undefined) {
+    throw new Error(`internal error — the composed document would corrupt ${composed.file}: ${outcome.issues[0]?.message}`);
+  }
+  const doc = outcome.document;
+
+  // The same prospective dispatch gates approve runs (WO-098, REQ-039).
+  if (doc.type === 'work-order') assertDispatchable(load.documents, doc);
+
+  // The same issues gate approve runs (DEC-025: only issues block), on the
+  // project as it would be the moment after the write.
+  const blocking = blockingIssues({ ...load, documents: [...load.documents, doc] }, doc.file);
+  if (blocking.length > 0) {
+    throw new Error(
+      `refusing to approve ${doc.id} — the document would carry check issue(s):\n${blocking.map((issue) => `  ${issue.message}`).join('\n')}`,
+    );
+  }
+
+  writeNewDocument(root, composed);
+  return {
+    id: composed.id,
+    file: composed.file,
+    text: composed.text,
+    from: INITIAL_STATUS[type],
+    to: promotion.to,
+    approved: date,
+    ...(approver !== undefined ? { approvedBy: approver } : {}),
   };
 }

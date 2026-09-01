@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { DocType } from './ids.ts';
 import { nextIdNumber, recordIssuedId, type IdPrefix } from './idstore.ts';
@@ -7,7 +7,7 @@ import { loadProject } from './load.ts';
 import { getTemplate } from './templates.ts';
 import { localToday } from './dates.ts';
 import { METHODS_DIR, PRODUCT_FILES, REQUIREMENT_KINDS, SOURCE_KINDS } from './pending.ts';
-import type { Link } from './types.ts';
+import type { Link, VeriDocument } from './types.ts';
 
 /**
  * Document creation (REQ-009 §2): type + title in, a check-passing file out.
@@ -98,6 +98,35 @@ export interface CreateOptions {
 }
 
 /**
+ * The stamp a combined file-and-approve act (WO-142) bakes into its one
+ * composed write: the promoted status plus the approval lines, exactly what
+ * `approveDocument` would have edited in afterwards. Only the user's own
+ * surfaces construct one — the MCP filing tools call `createDocument`, which
+ * never stamps (REQ-008).
+ */
+export interface ApprovalStamp {
+  /** The promoted status the document is born with (e.g. `accepted`). */
+  status: string;
+  /** `approved:` date, YYYY-MM-DD. */
+  approved: string;
+  /** `approved_by:` maintainer name (DEC-071), when the stamp names one. */
+  approvedBy?: string;
+}
+
+/** A composed-but-unwritten document: everything `writeNewDocument` needs to
+    put it on disk and consume its id. The gap between the two calls is where
+    the combined act (WO-142) runs the approval gates — nothing exists on disk
+    while they run, so a refusal leaves no half-finished state behind. */
+export interface ComposedDocument {
+  id: string;
+  /** Path relative to the veri/ directory, forward slashes. */
+  file: string;
+  text: string;
+  prefix: IdPrefix;
+  number: number;
+}
+
+/**
  * Create a new document: next free id for the type, initial status, today's
  * dates, the type's body template (or the given body), kebab-case filename.
  * The one creation implementation for every surface — `veri new`, the app,
@@ -110,6 +139,28 @@ export async function createDocument(
   title: string,
   options: CreateOptions = {},
 ): Promise<CreateResult> {
+  const root = typeof veriDir === 'string' ? veriDir : fileURLToPath(veriDir);
+  const { documents } = await loadProject(root);
+  const composed = await composeNewDocument(root, documents, type, title, options);
+  writeNewDocument(root, composed);
+  return { id: composed.id, file: composed.file, text: composed.text };
+}
+
+/**
+ * Compose a new document without writing it: validation, id selection, and
+ * the full text. `createDocument` is compose-plus-write; the combined
+ * file-and-approve act (WO-142, DEC-147) runs the approval gates between the
+ * two so the document is born already promoted and stamped in a single write.
+ * The id is *selected*, not consumed — only `writeNewDocument` records it.
+ */
+export async function composeNewDocument(
+  veriDir: string | URL,
+  documents: VeriDocument[],
+  type: DocType,
+  title: string,
+  options: CreateOptions = {},
+  stamp?: ApprovalStamp,
+): Promise<ComposedDocument> {
   const trimmed = title.trim();
   if (trimmed === '') throw new Error('a title is required');
   // REQ-037: product singletons are fixed files, not a growing collection —
@@ -149,7 +200,6 @@ export async function createDocument(
     }
   }
 
-  const { documents } = await loadProject(root);
   const known = new Set(documents.map((doc) => doc.id));
   for (const link of links) {
     if (!known.has(link.id)) {
@@ -169,7 +219,12 @@ export async function createDocument(
     `id: ${id}`,
     `type: ${type}`,
     `title: ${JSON.stringify(trimmed)}`,
-    `status: ${INITIAL_STATUS[type]}`,
+    `status: ${stamp?.status ?? INITIAL_STATUS[type]}`,
+    // WO-142: the combined act's stamp rides directly under status — the
+    // same lines, in the same order, that approveDocument would edit in.
+    ...(stamp !== undefined
+      ? [`approved: ${stamp.approved}`, ...(stamp.approvedBy !== undefined ? [`approved_by: ${stamp.approvedBy}`] : [])]
+      : []),
     ...(options.kind !== undefined ? [`kind: ${options.kind}`] : []),
     // The bet's terms ride directly under its kind, the order the corpus
     // already reads in. Strings are quoted (the `title` treatment) so a
@@ -203,8 +258,16 @@ export async function createDocument(
   const file = `${TYPE_SUBDIR[type]}/${id}-${slugifyTitle(trimmed)}.md`;
   const body = options.body ?? getTemplate(root, type).body;
   const text = `${frontmatter}\n${body}`;
-  if (TYPE_SUBDIR[type] !== '') mkdirSync(join(root, TYPE_SUBDIR[type]), { recursive: true });
-  writeFileSync(join(root, file), text, { flag: 'wx' });
-  recordIssuedId(root, prefix, next);
-  return { id, file, text };
+  return { id, file, text, prefix, number: next };
+}
+
+/** Put a composed document on disk and consume its id: mkdir, one `wx`
+    write (never an overwrite), and the idstore record — the exact tail
+    `createDocument` has always run. */
+export function writeNewDocument(veriDir: string | URL, composed: ComposedDocument): void {
+  const root = typeof veriDir === 'string' ? veriDir : fileURLToPath(veriDir);
+  const subdir = dirname(composed.file);
+  if (subdir !== '.' && subdir !== '') mkdirSync(join(root, subdir), { recursive: true });
+  writeFileSync(join(root, composed.file), composed.text, { flag: 'wx' });
+  recordIssuedId(root, composed.prefix, composed.number);
 }

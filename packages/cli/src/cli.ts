@@ -14,7 +14,11 @@ const USAGE = `usage: veri <command>
   veri init [--demo] [--starter <name>]
                              scaffold a veri/ directory (--demo: the sample
                              project; --starter: draft seed docs per project type)
-  veri new <type> "<title>"  create a document with the next free id
+  veri new <type> "<title>" [--approve [--as <maintainer>]]
+                             create a document with the next free id;
+                             --approve: when you are the author, the filing
+                             carries your stamp — born promoted, same gates
+                             as veri approve, one commit
   veri check                 report knowledge-base issues (exit 1 if any)
   veri approve <id> [--as <maintainer>]
                              approve a pending document (stamps approved: today);
@@ -38,9 +42,12 @@ const USAGE = `usage: veri <command>
   veri renumber <id> [--to <new-id>] [--file <path>] [--refs <path,path>]
                              move a document to a new id, rewriting inbound links
   veri migrate               bring veri/ to the current on-disk format
-  veri import [file]         with a file: import it as a source document, original
+  veri import [file] [--approve]
+                             with a file: import it as a source document, original
                              preserved (.md .txt .eml); bare: print the kickoff
                              prompt for mining this repo into proposals
+                             (--approve is accepted for symmetry — a source is
+                             born in play and needs no stamp)
   veri context <WO-id>       print the context package an agent receives
   veri architecture          print the compiled intended architecture
   veri implemented <path>    work orders whose commits touched the path
@@ -72,7 +79,10 @@ switch (command) {
     });
     break;
   case 'new':
-    result = await newDoc(cwd, rest[0], rest[1]);
+    result = await newDoc(cwd, rest[0], rest[1], {
+      approve: rest.includes('--approve'),
+      as: flagValue(rest, '--as'),
+    });
     break;
   case 'check':
     result = await check(cwd);
@@ -109,9 +119,13 @@ switch (command) {
     result = migrate(cwd);
     break;
   case 'import':
-    // With a file argument: intake (WO-094). Bare: the brownfield kickoff
-    // prompt (REQ-024) — one verb, split on the argument (DEC-093).
-    result = rest[0] === undefined ? importPrompt(cwd) : await importFile(cwd, rest[0]);
+    // With a file argument: intake (WO-094). Bare (or flags only): the
+    // brownfield kickoff prompt (REQ-024) — one verb, split on the argument
+    // (DEC-093). --approve is acknowledged, never stamped (WO-142, DEC-147).
+    result =
+      rest[0] === undefined || rest[0].startsWith('--')
+        ? importPrompt(cwd)
+        : await importFile(cwd, rest[0], { approve: rest.includes('--approve') });
     break;
   case 'context':
     result = await context(cwd, rest[0]);

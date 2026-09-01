@@ -960,3 +960,73 @@ test('a withdrawn document leaves the context package while its neighbors stay',
   assert.doesNotMatch(after, /### DEC-001/);
   assert.match(after, /### REQ-001/);
 });
+
+// --- The combined file-and-approve act (WO-142, DEC-147) ---
+
+test('veri new requirement --approve creates an accepted, stamped document in one command and check passes (WO-142)', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  assert.equal(init(cwd, { demo: false }).code, 0);
+
+  const created = await newDoc(cwd, 'requirement', 'User authentication', { approve: true });
+  assert.equal(created.code, 0, created.lines.join('\n'));
+  assert.match(created.lines[0], /Created veri\/requirements\/REQ-001-user-authentication\.md \(REQ-001\) — draft → accepted, approved: \d{4}-\d{2}-\d{2}/);
+  // The lifecycle-subject hint: id plus "approved", the drift-anchor convention (WO-045).
+  assert.match(created.lines[1], /git commit -m "REQ-001: filed and approved"/);
+
+  const content = readFileSync(join(cwd, 'veri/requirements/REQ-001-user-authentication.md'), 'utf8');
+  assert.match(content, /^status: accepted$/m);
+  assert.match(content, /^approved: \d{4}-\d{2}-\d{2}$/m);
+
+  const checked = await check(cwd);
+  assert.equal(checked.code, 0, checked.lines.join('\n'));
+});
+
+test('the combined path refuses what veri approve refuses, filing nothing (WO-142)', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  assert.equal(init(cwd, { demo: false }).code, 0);
+
+  // A work order with no requirement trace: approve's dispatch gate, verbatim.
+  const noTrace = await newDoc(cwd, 'work-order', 'Ship the thing', { approve: true });
+  assert.equal(noTrace.code, 1);
+  assert.match(noTrace.lines.join('\n'), /refusing to ready WO-001 — it links no requirement/);
+  assert.ok(!existsSync(join(cwd, 'veri/work-orders/WO-001-ship-the-thing.md')), 'refusal files nothing');
+
+  // An unlisted approver in a maintainers project: approve's DEC-071 gate.
+  const wf = join(cwd, 'veri/workflow.md');
+  writeFileSync(wf, readFileSync(wf, 'utf8').replace(/^status: /m, 'maintainers:\n  - Ada\nstatus: '));
+  const unnamed = await newDoc(cwd, 'requirement', 'Team stamped', { approve: true });
+  assert.equal(unnamed.code, 1);
+  assert.match(unnamed.lines.join('\n'), /declares maintainers — the stamp must name one/);
+  const unlisted = await newDoc(cwd, 'requirement', 'Team stamped', { approve: true, as: 'Mallory' });
+  assert.equal(unlisted.code, 1);
+  assert.match(unlisted.lines.join('\n'), /"Mallory" is not in the workflow's maintainers list/);
+  assert.equal(readdirSync(join(cwd, 'veri/requirements')).filter((f) => f.endsWith('.md')).length, 0, 'refusals file nothing');
+
+  // A listed approver lands the stamp with approved_by, as veri approve would.
+  const listed = await newDoc(cwd, 'requirement', 'Team stamped', { approve: true, as: 'Ada' });
+  assert.equal(listed.code, 0, listed.lines.join('\n'));
+  assert.match(listed.lines[0], / by Ada/);
+  const content = readFileSync(join(cwd, 'veri/requirements/REQ-001-team-stamped.md'), 'utf8');
+  assert.match(content, /^approved_by: Ada$/m);
+});
+
+test('sources under --approve are filed with a notice, never stamped (WO-142, DEC-147)', async (t) => {
+  const cwd = tempProject();
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  assert.equal(init(cwd, { demo: false }).code, 0);
+
+  const filed = await newDoc(cwd, 'source', 'Hand-authored evidence', { approve: true });
+  assert.equal(filed.code, 0, filed.lines.join('\n'));
+  assert.match(filed.lines[1], /SRC-001 is a source — born imported and already in play; nothing needed approving\./);
+
+  writeFileSync(join(cwd, 'notes.md'), '# Notes\n\nEvidence body.\n');
+  const imported = await importFile(cwd, 'notes.md', { approve: true });
+  assert.equal(imported.code, 0, imported.lines.join('\n'));
+  assert.match(imported.lines.at(-1) ?? '', /SRC-002 is a source — born imported and already in play; nothing needed approving\./);
+
+  for (const file of readdirSync(join(cwd, 'veri/sources'))) {
+    assert.doesNotMatch(readFileSync(join(cwd, 'veri/sources', file), 'utf8'), /^approved:/m, `${file} must carry no stamp`);
+  }
+});

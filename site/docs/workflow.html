@@ -68,6 +68,13 @@
 <h2>The approval gate</h2>
 <p>Agents write drafts; <b>only you promote them</b>. A requirement an agent files arrives as <code>draft</code>, a decision as <code>proposed</code> — visibly non-binding, queued on your home view under NEEDS REVIEW. Approving (in the app, or <code>veri approve REQ-007</code>) stamps the document with an approval date, and only then does it bind future work.</p>
 <p>This is the deal that makes agent authorship safe: agents can capture anything, and nothing they capture becomes canon behind your back. A context package always tells the agent which documents are ratified and which are pending.</p>
+<h3>Two gestures, one gate</h3>
+<p>The gate has two gestures, and which one fits depends on who authored the document:</p>
+<ul>
+  <li><b>File, then review</b> — the default, and the only path agents have. Anything filed by an agent (over MCP, or in a session working on your behalf) arrives pending and waits for your judgment. The review is the point: you are ratifying something you did not write.</li>
+  <li><b>File and approve</b> (<code>veri new &lt;type&gt; "&lt;title&gt;" --approve</code>) — for when <em>you</em> are the author. The judgment already happened in your head before you typed the title, so a separate approve gesture would only re-stamp a review that already occurred. The filing carries the stamp: the document is born promoted and approved in one command and one commit, behind exactly the gates <code>veri approve</code> runs — check issues block, maintainers projects validate <code>--as</code>, and a work order still needs a live requirement trace.</li>
+</ul>
+<p>Sources are the exception that needs no gesture at all: evidence is born <code>imported</code> and already in play, so <code>veri import --approve</code> files it and tells you nothing needed approving. And the boundary is unchanged — no MCP tool, and no agent, can use the combined act: filing over MCP still mints pending documents only.</p>
 
 <h2>Why the loop compounds</h2>
 <ul>

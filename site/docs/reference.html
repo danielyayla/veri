@@ -176,7 +176,11 @@ binds:
                            decisions, and a workflow tuned to a project type —
                            cli-tool, library, or web-app — all pending your
                            approval)
-veri new &lt;type&gt; "&lt;title&gt;"  create a document with the next free id
+veri new &lt;type&gt; "&lt;title&gt;" [--approve [--as &lt;maintainer&gt;]]
+                           create a document with the next free id; --approve:
+                           when you are the author, the filing carries your
+                           stamp — born promoted, same gates as veri approve,
+                           one commit
 veri check                 report knowledge-base issues (exit 1 if any)
 veri approve &lt;id&gt; [--as &lt;maintainer&gt;]
                            approve a pending document (stamps approved: today,
@@ -193,7 +197,12 @@ veri renumber &lt;id&gt; [--to &lt;new-id&gt;] [--file &lt;path&gt;] [--refs &lt
                            and inbound links in one atomic pass (collision
                            resolution: see the team workflow page)
 veri migrate               bring veri/ to the current on-disk format
-veri import                print the kickoff prompt for mining this repo into proposals
+veri import [file] [--approve]
+                           with a file: import it as a source document, the
+                           original preserved; bare: print the kickoff prompt
+                           for mining this repo into proposals (--approve is
+                           accepted for symmetry — a source is born in play
+                           and needs no stamp)
 veri list [type]           list documents: id, status, title
 veri open [dir]            open the project in the Veri desktop app</code></pre>
 <p>The CLI and the desktop app read and write the same files; everything above works identically from either.</p>
