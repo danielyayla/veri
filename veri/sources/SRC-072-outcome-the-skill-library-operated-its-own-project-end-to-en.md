@@ -49,6 +49,14 @@ and found them genuinely argued, not filled in.
 done lacks an outcome source — the check's untested-bet advisory
 count returns to zero.
 
+**The promotion boundary held** ([[REQ-008]]). Every document the
+skills filed across the week arrived draft or proposed; every
+promotion in the record is a user stamp with a recognized approval
+commit; and the MCP e2e suite pins that no tool on the server can
+promote or dispatch. The zero-violation graph above includes
+REQ-008's machine-checked criteria — this is the measurement the
+`supports` link to REQ-008 rests on.
+
 **Continued skill use after first invocation.** All ten skills remain
 installed in `.claude/skills/`. In the week after first install the
 gates ran repeatedly and productively: veri:plan-work cut the

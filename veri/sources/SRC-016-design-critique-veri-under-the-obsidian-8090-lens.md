@@ -9,8 +9,6 @@ updated: 2026-09-02
 links:
   - id: REQ-009
     rel: supports
-  - id: REQ-005
-    rel: supports
 ---
 
 Full-surface design critique of Veri 0.1.3, conducted 2026-08-18 by an agent

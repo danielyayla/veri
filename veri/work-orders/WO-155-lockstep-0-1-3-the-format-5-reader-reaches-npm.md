@@ -4,6 +4,7 @@ type: work-order
 title: "Lockstep 0.1.3: the format-5 reader reaches npm"
 status: done
 approved: 2026-09-02
+approved_by: Daniel Kapper
 claimed_by: fable-wo155
 claimed_at: 2026-09-02
 created: 2026-09-02

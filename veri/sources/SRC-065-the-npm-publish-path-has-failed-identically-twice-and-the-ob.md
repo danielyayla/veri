@@ -27,6 +27,11 @@ v0.4.0. Filed as evidence rather than as a bug: nothing malfunctioned.
 npm enforced 2FA exactly as configured, and the cost of that being
 unresolvable from CI is the finding.
 
+(Scope of the [[REQ-011]] `supports` link, added 2026-09-02 at
+Daniel's direction: it rests on the v0.5.0 release and its verified
+bridge assets alone — the self-update path itself was not tested
+here, as *What this does not show* states.)
+
 ## What happened
 
 On 2026-08-29, with `v0.5.0` tagged, released, and its bridge assets

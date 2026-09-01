@@ -22,6 +22,11 @@ carry a `designed-by` link before implementation (WF-001 rule 7). The
 undeclared-touch advisory retires when the work order reaches done and
 leaves no trace, so the gate only works if it is honored at filing.
 
+`veri/ids` is a shared counter file that other sessions' filing tools
+may have bumped uncommitted. Before committing it, diff it and claim
+only the counter lines your own filing moved; leave the rest for the
+session that owns them.
+
 ## Document format
 
 Every document in `veri/` is markdown with YAML frontmatter:
