@@ -151,9 +151,11 @@ test('every document type gets its template and initial status', async (t) => {
 
   const wo = readFileSync(join(cwd, 'veri/work-orders/WO-001-build-a-thing.md'), 'utf8');
   assert.match(wo, /^status: backlog$/m);
-  for (const section of ['Summary', 'In scope', 'Out of scope', 'Requirements', 'Acceptance tests', 'Receipts']) {
+  for (const section of ['Summary', 'In scope', 'Out of scope', 'Acceptance tests', 'Receipts']) {
     assert.match(wo, new RegExp(`^## ${section}$`, 'm'));
   }
+  // Five sections, not six (WO-144): requirement links bind in frontmatter.
+  assert.doesNotMatch(wo, /^## Requirements$/m);
   const src = readFileSync(join(cwd, 'veri/sources/SRC-001-old-notes.md'), 'utf8');
   assert.match(src, /^status: imported$/m);
 });
@@ -285,14 +287,14 @@ test('check on the five-issues fixture reports exactly 5 issues and exits 1', as
   cpSync(FIVE_ISSUES, cwd, { recursive: true });
   const result = await check(cwd);
   assert.equal(result.code, 1);
-  assert.equal(result.lines.at(-1), '5 issue(s) · 14 advisories', result.lines.join('\n'));
+  assert.equal(result.lines.at(-1), '5 issue(s) · 12 advisories', result.lines.join('\n'));
   // The fixture predates the marker: the leading format line says so.
   assert.match(result.lines[0] ?? '', /^format 0 \(pre-marker/);
   const body = result.lines.slice(1, -1).filter((line) => !line.startsWith('(provenance:'));
   const issueLines = body.filter((line) => !line.startsWith('(advisory) '));
   const advisoryLines = body.filter((line) => line.startsWith('(advisory) '));
   assert.equal(issueLines.length, 5);
-  assert.equal(advisoryLines.length, 14);
+  assert.equal(advisoryLines.length, 12);
   // Advisories print after every issue (DEC-025), each one line with a file.
   assert.deepEqual(body.slice(0, 5), issueLines);
   for (const line of body) {
@@ -357,7 +359,7 @@ test('checkReport is the structured source check renders from (WO-076)', async (
   const report = await checkReport(cwd);
   assert.ok(report !== null);
   assert.equal(report.issues.length, 5);
-  assert.equal(report.advisories.length, 14);
+  assert.equal(report.advisories.length, 12);
   for (const advisory of report.advisories) {
     assert.ok(advisory.kind.length > 0 && advisory.file.endsWith('.md'), `advisory carries kind and file: ${JSON.stringify(advisory)}`);
   }

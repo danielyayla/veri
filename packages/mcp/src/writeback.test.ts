@@ -79,7 +79,9 @@ test('file_work_order is born backlog and unapproved with the next free WO id', 
   assert.match(content, /## Summary/);
   assert.match(content, /## In scope/);
   assert.match(content, /## Out of scope/);
-  assert.match(content, /- \[\[REQ-001\]\] — implements/);
+  // The binding rides frontmatter alone (WO-144): no Requirements section.
+  assert.doesNotMatch(content, /^## Requirements$/m);
+  assert.match(content, /^  - id: REQ-001\n    rel: implements$/m);
   assert.match(content, /- \[ \] Widgets are polished/);
   assert.match(content, /## Receipts\n\n\(none yet\)/);
 });

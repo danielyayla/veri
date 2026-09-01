@@ -113,8 +113,8 @@ Before writing any code:
    that package (canonical copy: \`veri/workflow.md\`).
 
 Before filing a receipt or declaring work done, verify: call
-\`run_check()\` over MCP, or run \`veri check\` in a terminal. Zero
-violations is the bar — advisories inform, never block.
+\`run_check()\` over MCP, or run \`veri check\` in a terminal. The
+workflow states the bar.
 
 The package contains everything that binds: the workflow, the work
 order, its linked requirements and decisions, and source excerpts.

@@ -35,7 +35,9 @@ const DECISION_BODY = `
 (Why this beats the alternatives.)
 `;
 
-// The six-section work-order skeleton (see WO-002).
+// The five-section work-order skeleton (WO-002, trimmed by WO-144):
+// requirement links live in frontmatter, where every check rule reads them —
+// a body section restating them carried no information (SRC-066).
 const WORK_ORDER_BODY = `
 ## Summary
 
@@ -48,10 +50,6 @@ const WORK_ORDER_BODY = `
 ## Out of scope
 
 - (First exclusion)
-
-## Requirements
-
-(Link the requirements this delivers, e.g. [[REQ-001]].)
 
 ## Acceptance tests
 

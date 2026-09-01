@@ -116,9 +116,8 @@ export async function fileWorkOrder(
   if (input.out_of_scope !== undefined && input.out_of_scope.trim() !== '') {
     sections.push(`## Out of scope\n\n${input.out_of_scope.trim()}`);
   }
-  if (input.links && input.links.length > 0) {
-    sections.push(`## Requirements\n\n${input.links.map((link) => `- [[${link.id}]] — ${link.rel}`).join('\n')}`);
-  }
+  // No Requirements section (WO-144): the frontmatter links carry the
+  // binding, and a body restatement added nothing above them (SRC-066).
   if (input.acceptance_tests !== undefined && input.acceptance_tests.trim() !== '') {
     sections.push(`## Acceptance tests\n\n${input.acceptance_tests.trim()}`);
   }
