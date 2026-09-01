@@ -23,7 +23,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # No registry-url: that input writes an _authToken line into
       # .npmrc, and trusted publishing needs no token at all.
