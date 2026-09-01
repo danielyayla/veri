@@ -2,8 +2,10 @@
 id: WO-147
 type: work-order
 title: "The trigger corpus gets its runner — DEC-129's floor becomes mechanical"
-status: backlog
+status: in-progress
 approved: 2026-09-01
+claimed_by: fable-wo147
+claimed_at: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
 links:
