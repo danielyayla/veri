@@ -7,8 +7,10 @@ claimed_by: fable-wo143
 claimed_at: 2026-09-01
 approved: 2026-09-01
 created: 2026-09-01
-updated: 2026-09-01
+updated: 2026-09-02
 links:
+  - id: SRC-070
+    rel: designed-by
   - id: REQ-008
     rel: constrained-by
   - id: REQ-039
@@ -56,4 +58,6 @@ SRC-066's audit: the ready state exists so a stamp can precede a claim, but the 
 
 ## Receipts
 
-- 2026-09-01 — d624dce..587de5a — dispatch replaces ready (DEC-143): one gesture stamps and claims, format 5 migrates this repo's ready queue to stamped backlog, start_work_order retires; site/README/methods truth-sweep rides WO-148 (its named scope), receipt filed by direct append because the running MCP server refuses format 5 until restarted (DEC-139)
+- 2026-09-01 — d624dce, 587de5a — dispatch replaces ready (DEC-143): one gesture stamps and claims, format 5 migrates this repo's ready queue to stamped backlog, start_work_order retires; site/README/methods truth-sweep rides WO-148 (its named scope), receipt filed by direct append because the running MCP server refuses format 5 until restarted (DEC-139)
+- 2026-09-02 — d624dce — review addendum (MET-010, at Daniel's direction): the Summary's sequencing blocker was overrun — the format bump shipped while WO-125 was still in-progress, and every installed reader refused the repo for the rest of 2026-09-01; the strand stands until WO-155 ships the format-5 reader to npm (newest published is format-4 0.1.2).
+- 2026-09-02 — b6d17fd — review repair: a still-ready format-4 document now fails parse with DEC-143's retirement and "veri migrate" named, closing the misparse-shaped report the review found against REQ-015; the SHA range in the first receipt rewritten comma-separated so provenance can verify it, and SRC-070 filed as the retroactive design note for e0abf33's UI touch (WF-001 rule 7).
