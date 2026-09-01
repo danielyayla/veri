@@ -2,8 +2,10 @@
 id: WO-153
 type: work-order
 title: "Dead paths and stale artifacts are deleted"
-status: backlog
+status: in-progress
 approved: 2026-09-01
+claimed_by: fable-wo153
+claimed_at: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
 links:
