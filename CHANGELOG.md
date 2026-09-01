@@ -9,6 +9,22 @@ git and the `veri/` knowledge base rather than backfilled here.
 
 ## [Unreleased]
 
+### Removed
+
+- The architecture layer leaves the product (DEC-144): the
+  `arch-unknown-module`, `arch-conflict`, and `arch-violation` check
+  rules, the compiled projection, the observed-import scan,
+  `veri architecture` in the CLI, and the app's Architecture view
+  (sidebar row, Home card, ⌘K entry, Map and Rules tabs) are all gone.
+  The `architecture:` frontmatter block on decisions is now inert:
+  existing documents keep parsing — the field rides passthrough like
+  any unknown key — but it validates nothing and binds nothing.
+  Projects wanting enforced module boundaries bring their own
+  dependency linter; the choice of a boundary lives in a decision's
+  prose. The `modules:` registry on the workflow document stays —
+  `veri intent` and `get_intent` still read it. A saved app session
+  that referenced the removed view reopens on Home.
+
 ### Changed
 
 - Approval and dispatch are one gesture (DEC-143): the `ready` work-order
