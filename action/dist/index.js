@@ -12284,10 +12284,6 @@ var WORK_ORDER_BODY = `
 
 - (First exclusion)
 
-## Requirements
-
-(Link the requirements this delivers, e.g. [[REQ-001]].)
-
 ## Acceptance tests
 
 - [ ] First test
