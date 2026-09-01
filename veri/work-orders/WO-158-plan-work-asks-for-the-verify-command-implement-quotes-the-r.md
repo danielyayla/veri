@@ -2,7 +2,10 @@
 id: WO-158
 type: work-order
 title: "plan-work asks for the verify command; implement quotes the run"
-status: backlog
+status: in-progress
+approved: 2026-09-02
+claimed_by: fable-wo158
+claimed_at: 2026-09-02
 created: 2026-09-02
 updated: 2026-09-02
 links:
