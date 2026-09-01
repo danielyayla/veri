@@ -2,10 +2,11 @@
 id: DEC-120
 type: decision
 title: "Outcomes registers as a view key over the existing singleton-tab machinery; layer headers reuse the RECENT register; the receipts window is session state"
-status: active
+status: superseded
+superseded_by: DEC-145
 approved: 2026-08-27
 created: 2026-08-27
-updated: 2026-08-27
+updated: 2026-09-01
 links:
   - id: WO-119
     rel: decided-during
