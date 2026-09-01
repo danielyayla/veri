@@ -2,7 +2,7 @@
 id: WO-141
 type: work-order
 title: "Receipts become pointers — the provenance reconciliation tier retires"
-status: in-progress
+status: done
 claimed_by: fable-wo141
 claimed_at: 2026-09-01
 approved: 2026-09-01
@@ -47,12 +47,12 @@ SRC-066's audit found receipts duplicating what git already holds (SHA, files, d
 
 ## Acceptance tests
 
-- [ ] veri check emits none of the three retired advisories on a fixture corpus that previously triggered all three
-- [ ] receipt-commit-missing still fires on a receipt citing a SHA absent from history
-- [ ] parseReceipts no longer returns path tokens, and no caller expects them
-- [ ] The default workflow text and work-order template describe the pointer form: date — commit/PR ref — one sentence
-- [ ] Full suite green, veri check zero issues on this repo
+- [x] veri check emits none of the three retired advisories on a fixture corpus that previously triggered all three
+- [x] receipt-commit-missing still fires on a receipt citing a SHA absent from history
+- [x] parseReceipts no longer returns path tokens, and no caller expects them
+- [x] The default workflow text and work-order template describe the pointer form: date — commit/PR ref — one sentence
+- [x] Full suite green, veri check zero issues on this repo
 
 ## Receipts
 
-(none yet)
+- 2026-09-01 — ff4071b + b2abf35 — agent session: the reconciliation tier retired — receipts parse and render as one-line pointers, the intent lookup speaks bindings only, and the workflow/template guidance teaches the pointer form (DEC-146 filed)
