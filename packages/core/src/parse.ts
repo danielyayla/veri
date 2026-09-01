@@ -53,6 +53,9 @@ export function parseDocument(file: string, content: string): ParseOutcome {
     ...(fm.type === 'work-order' && fm.binds !== undefined
       ? { binds: { paths: fm.binds.paths, tests: fm.binds.tests } }
       : {}),
+    // REQ-042 (WO-145): the declared verification command. Absent stays
+    // absent — a work order without the field behaves exactly as today.
+    ...(fm.type === 'work-order' && fm.verify !== undefined ? { verify: fm.verify } : {}),
     // REQ-032 (WO-114): a requirement's declared kind and outcome. `kind`
     // stays absent when undeclared — "absent means constraint" is the
     // readers' rule (requirementKind), so round-tripping never invents a

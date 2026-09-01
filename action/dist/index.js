@@ -11532,6 +11532,9 @@ var bindsSchema = external_exports.object({
   paths: external_exports.array(external_exports.string().min(1)).default([]),
   tests: external_exports.array(external_exports.string().min(1)).default([])
 }).passthrough();
+var verifyField = external_exports.string().refine((command) => command.trim() !== "", {
+  message: "must be one non-empty command string \u2014 the single thing an implementer runs to prove the change works"
+}).optional();
 var workOrderSchema = external_exports.object({
   ...baseFields,
   type: external_exports.literal("work-order"),
@@ -11540,7 +11543,8 @@ var workOrderSchema = external_exports.object({
   approved_by: approvedByField,
   claimed_by: external_exports.string().min(1).optional(),
   claimed_at: dateField.optional(),
-  binds: bindsSchema.optional()
+  binds: bindsSchema.optional(),
+  verify: verifyField
 }).passthrough();
 var sourceSchema = external_exports.object({
   ...baseFields,
@@ -11667,6 +11671,9 @@ function parseDocument(file, content) {
     links: fm.links.map(({ id, rel }) => ({ id, rel })),
     ...fm.type === "decision" && fm.superseded_by !== void 0 ? { supersededBy: fm.superseded_by } : {},
     ...fm.type === "work-order" && fm.binds !== void 0 ? { binds: { paths: fm.binds.paths, tests: fm.binds.tests } } : {},
+    // REQ-042 (WO-145): the declared verification command. Absent stays
+    // absent — a work order without the field behaves exactly as today.
+    ...fm.type === "work-order" && fm.verify !== void 0 ? { verify: fm.verify } : {},
     // REQ-032 (WO-114): a requirement's declared kind and outcome. `kind`
     // stays absent when undeclared — "absent means constraint" is the
     // readers' rule (requirementKind), so round-tripping never invents a
@@ -12971,6 +12978,26 @@ function checkDoneWorkOrders(documents) {
   }
   return issues;
 }
+var VERIFY_WORD_RE = /\bverif/i;
+function checkVerifyEvidence(documents) {
+  const advisories = [];
+  for (const doc of documents) {
+    if (doc.type !== "work-order" || doc.status !== "done" || doc.verify === void 0)
+      continue;
+    const command = doc.verify.trim();
+    const evidenced = parseReceipts(doc.body).some((receipt) => receipt.raw.includes(command) || VERIFY_WORD_RE.test(receipt.raw));
+    if (evidenced)
+      continue;
+    advisories.push({
+      kind: "verify-unevidenced",
+      file: doc.file,
+      id: doc.id,
+      command,
+      message: `${doc.id} is done and declares verify: "${command}" but no receipt mentions the run \u2014 run the command and state its outcome in the receipt's one-line sentence (REQ-042)`
+    });
+  }
+  return advisories;
+}
 var SECTION_HEADING_RE = /^##\s+(.+?)\s*$/;
 function sectionHeadings(body) {
   return body.split("\n").map((line) => SECTION_HEADING_RE.exec(line)?.[1]).filter((heading) => heading !== void 0);
@@ -13039,6 +13066,7 @@ function checkProject(load) {
       ...checkMissingApprovers(load.documents),
       ...checkSharedClaims(load.documents),
       ...checkUntestedBets(load.documents),
+      ...checkVerifyEvidence(load.documents),
       ...checkIntuitionOnly(load.documents),
       ...checkDesignGateMentions(load.documents)
       // Stale claims need a clock (host territory, DEC-076) — deriveFindings

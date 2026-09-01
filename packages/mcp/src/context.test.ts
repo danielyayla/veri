@@ -133,6 +133,34 @@ test('outcome sources stay inlined in layered mode instead of falling to the con
   assert.ok(!text.slice(mapAt).includes('- SRC-001'), 'SRC-001 must not appear as a map row');
 });
 
+// --- The verify command in the work-order section (REQ-042, WO-145) ---
+
+test('a work order declaring verify: shows the command in the work-order section', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-verify-ctx-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeOutcomeProject(dir, {
+    'work-orders/WO-001-ship.md':
+      '---\nid: WO-001\ntype: work-order\ntitle: Ship it\nstatus: done\napproved: 2026-08-01\ncreated: 2026-08-01\nupdated: 2026-08-01\nverify: npm test\nlinks:\n  - id: REQ-001\n    rel: implements\n---\n## Summary\n\nWO-BODY.\n\n## Receipts\n\n- 2026-08-01 abc123 shipped\n',
+  });
+  const { text } = await assembleContext(dir, 'WO-001');
+  const woAt = text.indexOf('## Work order WO-001');
+  const verifyAt = text.indexOf(
+    "Verify: npm test — must exit 0; run it before the receipt and state the outcome in the receipt's sentence (REQ-042)",
+  );
+  assert.ok(woAt >= 0, 'package should contain the work-order section');
+  assert.ok(verifyAt > woAt, 'the verify line renders in the work-order section');
+  const nextSection = text.indexOf('## Requirements');
+  assert.ok(nextSection > verifyAt, 'the verify line renders before the next section');
+});
+
+test('a work order without verify: renders no verify line — behaves exactly as today (REQ-042)', async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-noverify-ctx-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeOutcomeProject(dir);
+  const { text } = await assembleContext(dir, 'WO-001');
+  assert.ok(!text.includes('Verify:'), 'no verify line without the field');
+});
+
 test('assembly is deterministic', async () => {
   const first = await assembleContext(FIXTURE, 'WO-001');
   const second = await assembleContext(FIXTURE, 'WO-001');

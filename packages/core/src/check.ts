@@ -4,7 +4,7 @@ import { CURRENT_FOCUS_FILE, METHODS_DIR, OUTCOME_OF_REL, OUTCOME_RELS, PRODUCT_
 import { compareIds } from './ids.ts';
 import type { DocType } from './ids.ts';
 import { daysBetween, pathMatchesBinds } from './binds.ts';
-import { commitsByWorkOrder } from './provenance.ts';
+import { commitsByWorkOrder, parseReceipts } from './provenance.ts';
 import type { GitFacts } from './provenance.ts';
 import { checkSupersededLinks } from './drift.ts';
 import { checkArchitecture } from './architecture.ts';
@@ -818,6 +818,41 @@ export function checkDoneWorkOrders(documents: VeriDocument[]): Issue[] {
   return issues;
 }
 
+/** A "verif-" wordform — verify, verified, verification — at a word start,
+    so "unverified" never counts as evidence of a run (DEC-149, proposed). */
+const VERIFY_WORD_RE = /\bverif/i;
+
+/**
+ * The unevidenced verify run (REQ-042, WO-145): a done work order that
+ * declares a `verify:` command but none of whose receipts mention the run.
+ * A receipt mentions it when its text quotes the declared command verbatim
+ * or carries a "verif-" wordform (DEC-149, proposed) — the outcome lives in
+ * the receipt's one-line sentence (DEC-142), never a quoted log. Advisory,
+ * never an issue (DEC-025): the gap informs; a human judges it. Pure over
+ * documents, so every surface — the subprocess-free MCP server included —
+ * reaches the same verdict, and the command is never executed here
+ * (DEC-037: Veri states the bar and audits that it was met).
+ */
+export function checkVerifyEvidence(documents: VeriDocument[]): Advisory[] {
+  const advisories: Advisory[] = [];
+  for (const doc of documents) {
+    if (doc.type !== 'work-order' || doc.status !== 'done' || doc.verify === undefined) continue;
+    const command = doc.verify.trim();
+    const evidenced = parseReceipts(doc.body).some(
+      (receipt) => receipt.raw.includes(command) || VERIFY_WORD_RE.test(receipt.raw),
+    );
+    if (evidenced) continue;
+    advisories.push({
+      kind: 'verify-unevidenced',
+      file: doc.file,
+      id: doc.id,
+      command,
+      message: `${doc.id} is done and declares verify: "${command}" but no receipt mentions the run — run the command and state its outcome in the receipt's one-line sentence (REQ-042)`,
+    });
+  }
+  return advisories;
+}
+
 const SECTION_HEADING_RE = /^##\s+(.+?)\s*$/;
 
 function sectionHeadings(body: string): string[] {
@@ -921,6 +956,7 @@ export function checkProject(load: LoadResult): CheckResult {
       ...checkMissingApprovers(load.documents),
       ...checkSharedClaims(load.documents),
       ...checkUntestedBets(load.documents),
+      ...checkVerifyEvidence(load.documents),
       ...checkIntuitionOnly(load.documents),
       ...checkDesignGateMentions(load.documents),
       // Stale claims need a clock (host territory, DEC-076) — deriveFindings

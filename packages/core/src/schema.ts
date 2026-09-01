@@ -138,6 +138,21 @@ const bindsSchema = z
 
 export type BindsBlock = z.infer<typeof bindsSchema>;
 
+// REQ-042 (WO-145): the one verification command an implementer runs to
+// prove the change works — `npm test`, a script, a smoke check. Optional: a
+// record-only work order has nothing to verify and behaves exactly as today.
+// A malformed declaration (empty or whitespace-only string, list, mapping) is
+// an invalid-frontmatter issue, never a silent no-op (the DEC-058 posture).
+// Veri itself never executes it: core, the MCP server, and the check
+// derivation stay subprocess-free (DEC-037) — the implementing session's
+// harness runs it, and the receipt's sentence evidences the outcome.
+const verifyField = z
+  .string()
+  .refine((command) => command.trim() !== '', {
+    message: 'must be one non-empty command string — the single thing an implementer runs to prove the change works',
+  })
+  .optional();
+
 // DEC-143 (WO-143): the lifecycle is backlog → in-progress → done. The
 // `ready` state retired — approval and dispatch are one gesture, so
 // `approved`/`approved_by` are written by the dispatch transition together
@@ -156,6 +171,7 @@ const workOrderSchema = z
     claimed_by: z.string().min(1).optional(),
     claimed_at: dateField.optional(),
     binds: bindsSchema.optional(),
+    verify: verifyField,
   })
   .passthrough();
 

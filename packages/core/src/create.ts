@@ -249,7 +249,14 @@ export async function composeNewDocument(
     // WO-088: new work orders surface the binding block ready to uncomment —
     // the field is optional, so the commented form changes nothing.
     ...(type === 'work-order'
-      ? ['# binds:         # code this work order claims (optional)', '#   paths: []    # repo-root-relative globs', '#   tests: []    # test files proving it (path or path::name)']
+      ? [
+          '# binds:         # code this work order claims (optional)',
+          '#   paths: []    # repo-root-relative globs',
+          '#   tests: []    # test files proving it (path or path::name)',
+          // REQ-042 (WO-145): the verify bar, surfaced ready to uncomment —
+          // optional, so the commented form changes nothing.
+          '# verify:        # one command that must exit 0 to prove the change (the agent harness runs it, never Veri)',
+        ]
       : []),
     '---',
   ].join('\n');

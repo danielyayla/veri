@@ -96,3 +96,42 @@ test('id prefix must match document type', () => {
   const issue = outcome.issues[0];
   assert.ok(issue.kind === 'invalid-frontmatter' && issue.field === 'id');
 });
+
+// --- The verify command (REQ-042, WO-145) ---
+
+const WO_FM = `id: WO-001
+type: work-order
+title: A work order
+status: backlog
+created: 2026-09-01
+updated: 2026-09-01`;
+
+test('a work order with verify: parses, types, and preserves the command for round-trip', () => {
+  const outcome = parseDocument('x.md', doc(`${WO_FM}\nverify: npm test`));
+  assert.deepEqual(outcome.issues, []);
+  assert.equal(outcome.document?.verify, 'npm test');
+  // Round-trip: the validated frontmatter record keeps the field, so the
+  // save path (verbatim buffer) and any re-serialization never drop it.
+  assert.equal(outcome.document?.frontmatter['verify'], 'npm test');
+});
+
+test('absent verify: stays absent — a work order without the field behaves exactly as today', () => {
+  const outcome = parseDocument('x.md', doc(WO_FM));
+  assert.deepEqual(outcome.issues, []);
+  assert.equal(outcome.document?.verify, undefined);
+  assert.equal('verify' in (outcome.document?.frontmatter ?? {}), false);
+});
+
+test('a malformed verify: is an invalid-frontmatter issue, never a silent no-op', () => {
+  const empty = parseDocument('x.md', doc(`${WO_FM}\nverify: ""`));
+  assert.equal(empty.document, undefined);
+  assert.ok(empty.issues.some((i) => i.kind === 'invalid-frontmatter' && i.field === 'verify'));
+
+  const list = parseDocument('x.md', doc(`${WO_FM}\nverify:\n  - npm test\n  - npm run lint`));
+  assert.equal(list.document, undefined);
+  assert.ok(list.issues.some((i) => i.kind === 'invalid-frontmatter' && i.field === 'verify'));
+
+  const mapping = parseDocument('x.md', doc(`${WO_FM}\nverify:\n  command: npm test`));
+  assert.equal(mapping.document, undefined);
+  assert.ok(mapping.issues.some((i) => i.kind === 'invalid-frontmatter' && i.field === 'verify'));
+});

@@ -18,6 +18,7 @@ import {
   checkStaleFocus,
 
   checkStructure,
+  checkVerifyEvidence,
   expectedSections,
   missingSections,
 } from './check.ts';
@@ -715,6 +716,49 @@ test('stale claims: silence past the window advises; a receipt inside it resets 
   assert.deepEqual(checkStaleClaims([claimedWo('WO-002', 'backlog', {})], '2027-01-01', 14), []);
   assert.deepEqual(checkStaleClaims([claimedWo('WO-003', 'done', { by: 'a', at: '2026-01-01' })], '2027-01-01', 14), []);
   assert.deepEqual(checkStaleClaims([claimedWo('WO-004', 'in-progress', {})], '2027-01-01', 14), []);
+});
+
+// --- The unevidenced verify run (REQ-042, WO-145) ---
+
+/** A done work order declaring a verify command, with the given receipts section. */
+function verifyWo(receipts: string, options: { status?: string; verify?: string } = {}): VeriDocument {
+  return {
+    ...claimedWo('WO-001', options.status ?? 'done', {}, `## Summary\n\nWork.\n\n## Receipts\n\n${receipts}`),
+    verify: options.verify ?? 'npm test',
+  };
+}
+
+test('verify evidence: a done work order declaring verify: with no receipt mentioning the run advises, naming the work order', () => {
+  const advisories = checkVerifyEvidence([verifyWo('- 2026-09-01 — abc1234 — shipped the thing.\n')]);
+  assert.equal(advisories.length, 1);
+  const advisory = advisories[0]!;
+  assert.equal(advisory.kind, 'verify-unevidenced');
+  assert.ok(advisory.kind === 'verify-unevidenced' && advisory.command === 'npm test');
+  assert.match(advisory.message, /WO-001/);
+  assert.match(advisory.message, /npm test/);
+
+  // No receipts at all is the same gap (done-wo-violation reports the
+  // missing receipt separately; this advisory reports the unproven run).
+  assert.equal(checkVerifyEvidence([verifyWo('(none yet)\n')]).length, 1);
+});
+
+test('verify evidence: a receipt quoting the run silences the advisory — the command verbatim or a verif- wordform', () => {
+  // The declared command, quoted verbatim in the sentence.
+  assert.deepEqual(checkVerifyEvidence([verifyWo('- 2026-09-01 — abc1234 — shipped; npm test exits 0.\n')]), []);
+  // A verif- wordform stating the outcome.
+  assert.deepEqual(checkVerifyEvidence([verifyWo('- 2026-09-01 — abc1234 — shipped; verify run passed.\n')]), []);
+  assert.deepEqual(checkVerifyEvidence([verifyWo('- 2026-09-01 — abc1234 — shipped, verified against staging.\n')]), []);
+  // "unverified" is not evidence of a run — the wordform must start a word.
+  assert.equal(checkVerifyEvidence([verifyWo('- 2026-09-01 — abc1234 — shipped unverified.\n')]).length, 1);
+});
+
+test('verify evidence: only done work orders that declare the field are judged', () => {
+  // In-progress with the field: the bet is still shipping.
+  assert.deepEqual(checkVerifyEvidence([verifyWo('- 2026-09-01 — abc1234 — shipped.\n', { status: 'in-progress' })]), []);
+  // Done without the field: behaves exactly as today (REQ-042).
+  assert.deepEqual(checkVerifyEvidence([claimedWo('WO-001', 'done', {}, '## Summary\n\nWork.\n\n## Receipts\n\n- 2026-09-01 — abc1234 — shipped.\n')]), []);
+  // Withdrawn is out of play (DEC-110).
+  assert.deepEqual(checkVerifyEvidence([verifyWo('- 2026-09-01 — abc1234 — shipped.\n', { status: 'withdrawn' })]), []);
 });
 
 // --- The product layer (REQ-037, WO-121) ---

@@ -158,6 +158,16 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
   const linksLine = (doc: VeriDocument): string =>
     doc.links.length === 0 ? '' : `Links: ${doc.links.map((l) => `${l.id} (${l.rel})`).join(', ')}\n\n`;
 
+  // REQ-042 (WO-145): the declared verification command ships beside Links,
+  // so every briefed agent knows before writing code what will be run
+  // against the change. Veri states the bar and never runs the command
+  // (DEC-037) — the implementing session's harness executes it, and the
+  // receipt's one-line sentence evidences the outcome.
+  const verifyLine = (doc: VeriDocument): string =>
+    doc.type === 'work-order' && doc.verify !== undefined
+      ? `Verify: ${doc.verify} — must exit 0; run it before the receipt and state the outcome in the receipt's sentence (REQ-042)\n\n`
+      : '';
+
   // REQ-032 (WO-114): a requirement's kind rides its heading — constraint or
   // hypothesis, the default made explicit so agents read the epistemic weight
   // — and a declared outcome ships as its own line beside Links.
@@ -216,7 +226,7 @@ export async function assembleContext(projectRoot: string, workOrderId: string):
       text: string;
     }
     const renderFull = (doc: VeriDocument, level: string): Rendered => {
-      const text = `${linksLine(doc)}${outcomeLine(doc)}${evidenceLine(doc)}${doc.body.trim()}\n`;
+      const text = `${linksLine(doc)}${verifyLine(doc)}${outcomeLine(doc)}${evidenceLine(doc)}${doc.body.trim()}\n`;
       return {
         heading: `${level} ${doc.id} — ${doc.title} · ${doc.status}${kindTag(doc)} · ~${estimateTokens(text)} tokens`,
         text,

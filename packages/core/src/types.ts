@@ -45,6 +45,12 @@ export interface VeriDocument {
       (DEC-130). Absent on project-authored methods, which is what tells
       upgrade-by-proposal to leave them alone. */
   upstream?: string;
+  /** The one verification command that proves this work order's change
+      works (REQ-042, WO-145): a single command string that must exit 0.
+      Only on work orders that declare `verify:`. Veri never executes it
+      (DEC-037) — the implementing session's harness runs it, and the
+      receipt's one-line sentence evidences the outcome. */
+  verify?: string;
   /** Who holds this work order (WO-099): free-text session/agent identity,
       written by the start transition. Only on claimed work orders. */
   claimedBy?: string;
@@ -119,6 +125,12 @@ export type Advisory =
   // reported on. Advisory by design — the open loop must inform, never
   // block; judging the evidence stays a human act.
   | { kind: 'untested-bet'; file: string; id: string; workOrderIds: string[]; message: string }
+  // The unevidenced verify run (REQ-042, WO-145): a done work order that
+  // declares a verify: command but none of whose receipts mention the run.
+  // Advisory by design (DEC-025) — the gap informs, never blocks. The
+  // receipt's one-line sentence is the evidence (DEC-142), and Veri never
+  // executes the command itself (DEC-037) — it audits that the bar was met.
+  | { kind: 'verify-unevidenced'; file: string; id: string; command: string; message: string }
   // The design gate's advisory tiers (WO-113, DEC-114). `design-mention` is
   // the demoted v1 heuristic: prose names a gated path but the work order
   // declares no binds paths and links no design — a nudge to declare or
