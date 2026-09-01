@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The dispatcher — Veri</title>
-<meta name="description" content="Give the ready queue a consumer: a copyable GitHub Actions recipe that polls veri next, briefs a headless agent on the queue head, and opens a pull request — never a merge.">
+<meta name="description" content="Scheduled dispatch for clearance you already granted: a copyable GitHub Actions recipe that polls veri next, claims a stamped backlog head with veri dispatch, briefs a headless agent, and opens a pull request — never a merge.">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="../assets/favicon-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
@@ -38,12 +38,12 @@
 
 <article class="doc" id="main">
 <h1>The dispatcher</h1>
-<p class="doc-lead">Approving a work order puts it in the ready queue — but a queue with no consumer still waits for a human to open a session. The dispatcher closes that gap: a GitHub Actions recipe that polls <code>veri next</code>, briefs a headless agent on the queue head, and ends at a <b>pull request</b>. Never a merge — everything above "open a PR" stays yours.</p>
+<p class="doc-lead">In Veri's lifecycle, dispatch is one human gesture: <code>veri dispatch</code> writes the approval stamp and the claim in the same act. The dispatcher is the scheduled half of that gesture — a GitHub Actions recipe that polls <code>veri next</code> and, when the backlog head already carries your <code>approved:</code> stamp, claims it, briefs a headless agent, and ends at a <b>pull request</b>. It spends clearance you granted; it can never grant any. Never a merge — everything above "open a PR" stays yours.</p>
 
-<p>The recipe is one workflow file you copy. It costs nothing while the queue is empty: <code>veri next</code> is a deterministic poll that exits before any agent spawns, so scheduled runs on an idle repo spend no tokens.</p>
+<p>The recipe is one workflow file you copy. It costs nothing while there is nothing to spend: <code>veri next</code> is a deterministic poll, and an empty backlog — or a head still awaiting your judgment — exits before any agent spawns, so scheduled runs on an idle repo spend no tokens.</p>
 
 <h2>1. Add the workflow</h2>
-<p>One file, <code>.github/workflows/veri-dispatch.yml</code>, plus an <code>ANTHROPIC_API_KEY</code> secret for the agent shown (needs <code>@verikb/cli</code> newer than 0.1.0 for <code>veri next</code> / <code>veri start</code>):</p>
+<p>One file, <code>.github/workflows/veri-dispatch.yml</code>, plus an <code>ANTHROPIC_API_KEY</code> secret for the agent shown (needs <code>@verikb/cli</code> 0.1.3 or newer for <code>veri next</code> / <code>veri dispatch</code>):</p>
 <pre><code>name: Veri dispatch
 
 on:
@@ -75,21 +75,29 @@ jobs:
       - name: Install Veri
         run: npm install -g @verikb/cli
 
-      # veri next prints the queue head as one tab-separated line —
-      # id, title, path — and exits 1 when nothing is ready. An existing
-      # veri/&lt;id&gt; branch means an earlier run already dispatched this
-      # work order and its PR is pending review.
+      # veri next prints the backlog head as one tab-separated line —
+      # id, title, path — and exits 1 when the backlog is empty. An
+      # existing veri/&lt;id&gt; branch means an earlier run already
+      # dispatched this work order and its PR is pending review. The
+      # stamp guard is the boundary: a fresh approved: stamp is yours
+      # to write, never this workflow's — it dispatches a head only
+      # when your clearance is already on record.
       - name: Poll the queue
         id: poll
         run: |
           if ! LINE=$(veri next); then
-            echo "Queue empty — exiting without dispatching an agent."
+            echo "Backlog empty — exiting without dispatching an agent."
             echo "dispatch=false" &gt;&gt; "$GITHUB_OUTPUT"
             exit 0
           fi
           IFS=$'\t' read -r ID TITLE WOPATH &lt;&lt;&lt;"$LINE"
           if git ls-remote --exit-code origin "refs/heads/veri/$ID" &gt;/dev/null 2&gt;&amp;1; then
             echo "$ID already dispatched — branch veri/$ID exists, its PR awaits review."
+            echo "dispatch=false" &gt;&gt; "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! grep -q '^approved: ' "$WOPATH"; then
+            echo "$ID awaits your dispatch judgment — nothing claimed."
             echo "dispatch=false" &gt;&gt; "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -108,24 +116,33 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           if [ -z "$ANTHROPIC_API_KEY" ]; then
-            echo "::error::${{ steps.poll.outputs.id }} is ready but no ANTHROPIC_API_KEY secret is configured — nothing was claimed."
+            echo "::error::${{ steps.poll.outputs.id }} is cleared for dispatch but no ANTHROPIC_API_KEY secret is configured — nothing was claimed."
             exit 1
           fi
 
-      # veri start flips ready → in-progress and records the claim —
+      # veri dispatch flips backlog → in-progress and records the claim —
       # claimed_by / claimed_at — refusing a work order another session
-      # holds.
+      # holds. The poll step guaranteed the stamp is already on record,
+      # so this only spends it: dispatch preserves an existing stamp and
+      # never re-dates it. In a maintainers project, set the
+      # VERI_DISPATCH_BY repository variable to a listed maintainer and
+      # it rides as --by.
       - name: Claim the work order on its own branch
         if: steps.poll.outputs.dispatch == 'true'
         env:
           ID: ${{ steps.poll.outputs.id }}
           WOPATH: ${{ steps.poll.outputs.wopath }}
+          VERI_DISPATCH_BY: ${{ vars.VERI_DISPATCH_BY }}
         run: |
           git config user.name "veri-dispatcher"
           git config user.email "veri-dispatcher@users.noreply.github.com"
           git switch -c "veri/$ID"
           CLAIMANT="dispatcher-run-${{ github.run_id }}"
-          veri start "$ID" --as "$CLAIMANT"
+          if [ -n "$VERI_DISPATCH_BY" ]; then
+            veri dispatch "$ID" --as "$CLAIMANT" --by "$VERI_DISPATCH_BY"
+          else
+            veri dispatch "$ID" --as "$CLAIMANT"
+          fi
           git add "$WOPATH"
           git commit -m "$ID: started — claimed by $CLAIMANT"
 
@@ -186,7 +203,7 @@ jobs:
           fi
           git push origin "veri/$ID"
           {
-            echo "Dispatched from the ready queue by [Veri dispatch](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
+            echo "Dispatched from the backlog by [Veri dispatch](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) — recorded clearance spent, never minted."
             echo
             echo "- Work order: $ID — $TITLE"
             echo "- Gate: $GATE_OUTCOME — ${GATE_ISSUES:-?} issue(s), ${GATE_ADVISORIES:-?} advisories"
@@ -199,21 +216,24 @@ jobs:
 
 <h2>2. What a run does</h2>
 <ul>
-  <li><b>Poll.</b> <code>veri next</code> names the ready work order with the lowest id, or exits 1. Empty queue, or a <code>veri/&lt;id&gt;</code> branch already on the remote (a pending PR from an earlier run): the job ends here, silently, before any agent exists.</li>
-  <li><b>Claim.</b> On a fresh <code>veri/&lt;id&gt;</code> branch, <code>veri start</code> flips the work order to in-progress and records <code>claimed_by</code>/<code>claimed_at</code> — the same claim any interactive session would leave, so concurrent workers see who holds what.</li>
-  <li><b>Brief and run.</b> The agent gets a short kickoff prompt: fetch the context package with <code>veri context</code>, stay in scope, file proposed decisions, append a receipt, commit with <code>WO-xxx:</code> subjects.</li>
+  <li><b>Poll.</b> <code>veri next</code> names the backlog work order with the lowest id, or exits 1. Empty backlog, a <code>veri/&lt;id&gt;</code> branch already on the remote (a pending PR from an earlier run), or a head with no <code>approved:</code> stamp — the job ends here, silently, before any agent exists.</li>
+  <li><b>Claim.</b> On a fresh <code>veri/&lt;id&gt;</code> branch, <code>veri dispatch</code> flips the work order to in-progress and records <code>claimed_by</code>/<code>claimed_at</code> — the same claim any interactive session would leave, so concurrent workers see who holds what. Your stamp is preserved, never re-dated: the run spends the clearance already on record.</li>
+  <li><b>Brief and run.</b> The agent gets a short kickoff prompt: fetch the context package with <code>veri context</code>, stay in scope, file proposed decisions, run the work order's <code>verify:</code> command if it declares one, append a receipt, commit with <code>WO-xxx:</code> subjects.</li>
   <li><b>Gate.</b> The <a href="ci.html">Veri Check action</a> evaluates the result inside the dispatch run, and its verdict lands in the PR body.</li>
   <li><b>PR.</b> The branch pushes and a pull request opens — implementation, receipt, and claim included. The dispatcher never merges, never approves, never promotes a document; drafts and proposals in the PR wait for your stamp like any other.</li>
 </ul>
 
-<h2>3. Swapping the agent</h2>
+<h2>3. Granting clearance</h2>
+<p>Interactively, dispatch is one gesture: <code>veri dispatch &lt;WO-id&gt; --as &lt;session&gt;</code> writes the stamp and the claim together, and that judgment is yours alone — which is exactly why this workflow refuses to perform it on an unstamped work order. To queue work for scheduled dispatch, grant the clearance yourself first: write <code>approved: YYYY-MM-DD</code> (and <code>approved_by:</code> naming a listed maintainer, in a <a href="team.html">maintainers project</a>) into the backlog work order's frontmatter and commit it. That is a legal, quiet state — clearance granted but not yet spent — and the next scheduled run spends it. A backlog work order you never stamp is never touched.</p>
+
+<h2>4. Swapping the agent</h2>
 <p>Everything provider-specific lives in the one step marked <b>the agent seam</b>. The contract is small: a CLI that runs non-interactively, receives the prompt, and can read files, execute commands, and commit. To use a different agent, change the install line and the invocation — Codex CLI, Gemini CLI, and their peers all take a prompt and work in a checkout the same way. The kickoff prompt is deliberately agent-neutral: it names the work order and tells the agent to brief itself with <code>veri context</code>, which any tool that can run a shell command can do.</p>
 
-<h2>4. Tokens and the PR check</h2>
+<h2>5. Tokens and the PR check</h2>
 <p>Pull requests created with the workflow's own <code>GITHUB_TOKEN</code> don't trigger other workflows — GitHub's guard against action loops — so your <code>veri-check.yml</code> won't run on the dispatcher's PR by default. The recipe compensates by running the gate inside the dispatch run and writing the verdict into the PR body. If you want the check to appear as a real status on the PR, store a fine-grained personal access token (contents + pull requests, this repo only) as a secret and use it for <code>GH_TOKEN</code> and the checkout instead.</p>
 
 <h2>The trust ladder</h2>
-<p>This recipe is deliberately the lowest rung: scheduled polling in CI, one work order at a time, ending at a PR a human reviews. The next rung is <code>veri watch</code> — a local daemon that spawns one agent per ready work order, each in its own git worktree — which is a named follow-up, not something this recipe does. There is no rung where merging is automatic: the approval gate (<a href="workflow.html">who stamps what</a>) is the product, and the dispatcher exists to feed it, not to bypass it.</p>
+<p>This recipe is deliberately the lowest rung: scheduled polling in CI, one work order at a time, only clearance you already granted, ending at a PR a human reviews. The next rung is <code>veri watch</code> — a local daemon that spawns one agent per cleared work order, each in its own git worktree — which is a named follow-up, not something this recipe does. There is no rung where merging is automatic: the approval gate (<a href="workflow.html">who stamps what</a>) is the product, and the dispatcher exists to feed it, not to bypass it.</p>
 
 <div class="next">
   <b>Where next:</b> the <a href="ci.html">CI gate</a> the dispatcher's PRs land in front of, or the <a href="workflow.html">workflow guide</a> for the lifecycle the queue runs on.
