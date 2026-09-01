@@ -18,13 +18,14 @@ start of each session — and done losing track of whether what shipped
 actually worked.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="site/assets/app-dark.png">
-  <img src="site/assets/app-light.png" alt="The Veri desktop app: a work order open in the editor, with its assembled context package and an agent-session kickoff in the right sidebar">
+  <source media="(prefers-reduced-motion: reduce)" srcset="site/assets/loop-demo-still.png">
+  <img src="site/assets/loop-demo.gif" alt="Five app captures from one pass around the loop, dark theme, each captioned. One: the work order PDF export pipeline beside its nine-document context package, about 1.8k tokens. Two: the Start agent session menu listing Claude Code, Cursor, Codex CLI, Gemini CLI, and web chat. Three: decision DEC-006, veraPDF for PDF/A validation, filed as a proposal awaiting review. Four: the work order again, now done, with the receipt the agent filed — commit 4c9f2e1, three files. Five: the home view with DEC-006 pending in the review queue and the receipt at the top of agent activity.">
 </picture>
 
-**[Download Veri for macOS](https://github.com/danielyayla/veri/releases/latest)**
-— macOS 13+, Apple silicon & Intel. Agents launch Veri's MCP server with
-your own Node (20+).
+**[Download Veri](https://github.com/danielyayla/veri/releases/latest)**
+— macOS 13+ (Apple silicon & Intel), Windows 10+, or Linux
+(AppImage / .deb). Agents launch Veri's MCP server with your own
+Node (20+).
 
 Start with the **[10-minute quickstart](https://danielyayla.github.io/veri/docs/quickstart.html)**:
 install → open the sample project → connect your agent → file a work
@@ -49,10 +50,13 @@ package, implementation, receipts — with every commit linked.
 
 ## Platforms
 
-The desktop app runs on macOS 13+ (Apple silicon and Intel). No Windows
-or Linux app exists yet, and none is currently scheduled. The CLI, MCP
-server, and GitHub Action are plain Node and run anywhere Node 20+
-does.
+Every release ships desktop installers for all three platforms
+(built by [release.yml](.github/workflows/release.yml)): macOS 13+
+(Apple silicon and Intel DMGs), Windows 10+ (x64 NSIS installer —
+unsigned for now, so SmartScreen warns on first install), and Linux
+x64 (an AppImage that auto-updates, or a .deb that doesn't). The CLI,
+MCP server, and GitHub Action are plain Node and run anywhere Node
+20+ does.
 
 ## Installing the CLI
 
@@ -67,7 +71,7 @@ npm install -g @verikb/cli   # installs the `veri` binary
 
 The CLI also ships two other ways:
 
-- **Inside the app** — the [macOS app](https://github.com/danielyayla/veri/releases/latest)
+- **Inside the app** — the [desktop app](https://github.com/danielyayla/veri/releases/latest)
   bundles the same `@verikb/cli` code it runs on, and CI runs it for you:
   the [Veri Check GitHub Action](https://danielyayla.github.io/veri/docs/ci.html)
   is the CLI's `check` in a workflow snippet.
@@ -91,7 +95,7 @@ DEC-004); published output targets Node >= 20.
 
 - `@verikb/core` — parse, validate, and graph a `veri/` directory
 - `@verikb/cli` — the `veri` binary: `init`, `new`, `check`, `approve`, `renumber`, `migrate`, `import`, `list`, `open`
-- `@verikb/mcp` — stdio MCP server: `get_context`, `search`, `file_decision`, `file_receipt`
+- `@verikb/mcp` — the stdio MCP server: context packages, search and retrieval, and guarded write-back
 - `@verikb/action` — the Veri Check GitHub Action runner, bundled to `action/dist/` (the root `action.yml` is the published surface)
 - `@verikb/ui` — the Tauri 2 desktop app (Rust shell, Node sidecar)
 - `site/` — the website, hand-authored static files deployed by CI
@@ -125,7 +129,8 @@ Or add a project-scoped `.mcp.json` next to your `veri/` directory:
 
 (This repository's own [.mcp.json](.mcp.json) does exactly that.)
 
-The server exposes ten tools — context packages, search, document
-retrieval, and guarded write-back. The
+The server exposes eighteen tools — context packages, search and
+document retrieval, queue and receipt introspection, and guarded
+write-back that only ever files pending documents. The
 [reference page](https://danielyayla.github.io/veri/docs/reference.html#mcp-tools)
 lists each tool and what it returns.

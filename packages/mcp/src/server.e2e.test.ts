@@ -683,3 +683,50 @@ test('supersede_decision retires an active decision and refuses an unapproved su
   // The schema is strict: no status field rides in on this tool either.
   assert.equal(responses.get(4)?.result?.isError, true);
 });
+
+// WO-148 (REQ-019, REQ-012): the documented tool surface may not silently fork
+// from the registered one again. The reference page's tool table must name
+// exactly the tools the built server registers — a retired tool lingering
+// there fails, and so does a shipped tool the page omits — and the README's
+// stated tool count must equal the same number.
+test('the site reference names every registered tool, and the README count matches (WO-148)', { skip: !existsSync(SERVER) }, async () => {
+  const responses = await rpcSession(
+    [
+      {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test', version: '0.0.0' } },
+      },
+      { jsonrpc: '2.0', method: 'notifications/initialized' },
+      { jsonrpc: '2.0', id: 2, method: 'tools/list' },
+    ],
+    [1, 2],
+  );
+  const registered = (responses.get(2)?.result?.tools ?? []).map((tool) => tool.name).sort();
+  assert.ok(registered.length >= 15, `tools/list looks implausibly small: ${registered.length}`);
+
+  const reference = readFileSync(fileURLToPath(new URL('../../../site/docs/reference.html', import.meta.url)), 'utf8');
+  const section = reference.slice(reference.indexOf('id="mcp-tools"'));
+  assert.ok(section.length < reference.length, 'reference.html must keep its mcp-tools section');
+  const table = section.slice(0, section.indexOf('</table>'));
+  const documented = [...table.matchAll(/<td><code>([a-z_]+)\(/g)].map((match) => match[1]!).sort();
+  assert.deepEqual(
+    documented,
+    registered,
+    'site/docs/reference.html#mcp-tools must list exactly the tools the server registers',
+  );
+
+  const readme = readFileSync(fileURLToPath(new URL('../../../README.md', import.meta.url)), 'utf8');
+  const counted = readme.match(/exposes ([a-z-]+) tools/);
+  assert.ok(counted, 'README must state how many tools the server exposes');
+  // prettier-ignore
+  const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
+    'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen',
+    'twenty', 'twenty-one', 'twenty-two', 'twenty-three', 'twenty-four', 'twenty-five'];
+  assert.equal(
+    counted[1],
+    words[registered.length],
+    `README says the server exposes ${counted[1]} tools; the build registers ${registered.length}`,
+  );
+});
