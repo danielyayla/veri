@@ -5,8 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { approve, check, init } from './commands.ts';
-import { SHIPPED_METHODS_ROOT, collectShellFacts, collectShells, loadShippedMethods, skillsInstall, skillsUpgrade } from './skills.ts';
-import { DEFAULT_SKILL_SLUGS, casesForSkill, claudeCodeEmitter, parseTriggerCorpus } from '@verikb/core';
+import { CORPUS_FILE, SHIPPED_METHODS_ROOT, collectShellFacts, collectShells, loadShippedMethods, skillsEval, skillsInstall, skillsUpgrade } from './skills.ts';
+import { DEFAULT_SKILL_SLUGS, casesForSkill, checkCorpusIntegrity, claudeCodeEmitter, parseTriggerCorpus } from '@verikb/core';
 
 /**
  * The host half of WO-135: the two commands over a real filesystem. These
@@ -363,6 +363,12 @@ test("every shipped method's skill id is declared in the trigger corpus at its R
   );
 });
 
+test('the shipped corpus has referential integrity: every entry names a skill a shipped method stands behind (WO-147)', () => {
+  const corpus = parseTriggerCorpus(readFileSync(join(REPO_ROOT, CORPUS_FILE), 'utf8'));
+  const backed = loadShippedMethods().map((method) => `veri:${method.slug}`);
+  assert.deepEqual(checkCorpusIntegrity(corpus, backed), []);
+});
+
 test('the shipped library is byte-identical to the methods this repository authors', () => {
   const authored = join(REPO_ROOT, 'veri/methods');
   const names = readdirSync(authored).filter((name) => name.endsWith('.md')).sort();
@@ -513,4 +519,168 @@ test('the collector reports an unknown harness rather than guessing at one', asy
     collected.kind === 'ok' ? collected.shells.map((shell) => shell.path) : [],
     ['.claude/skills/veri-define/SKILL.md'],
   );
+});
+
+// --- The corpus runner: veri skills eval (WO-147, DEC-129) --------------------
+
+/** A small sound corpus over the define and decide gates, written where the
+    runner looks for it. */
+function writeFixtureCorpus(cwd: string, { ghost = false } = {}): void {
+  mkdirSync(join(cwd, 'skills'), { recursive: true });
+  const text = [
+    'version: 1',
+    'skills:',
+    '  - id: veri:define',
+    '    tier: default',
+    '    gate: requirements',
+    '  - id: veri:decide',
+    '    tier: default',
+    '    gate: tradeoffs',
+    ...(ghost ? ['  - id: veri:ghost', '    tier: advanced', '    gate: the beyond'] : []),
+    'near_miss_pairs:',
+    '  - id: define-vs-decide',
+    '    skills: [veri:define, veri:decide]',
+    '    boundary: b',
+    'cases:',
+    '  - id: TC-001',
+    '    utterance: a want',
+    '    expect: veri:define',
+    '    kind: coverage',
+    '    pair: define-vs-decide',
+    '    rationale: r',
+    '  - id: TC-002',
+    '    utterance: a fork',
+    '    expect: veri:decide',
+    '    kind: coverage',
+    '    pair: define-vs-decide',
+    '    rationale: r',
+    '  - id: TC-003',
+    '    utterance: run the tests',
+    '    expect: none',
+    '    kind: negative',
+    ...(ghost ? ['  - id: TC-004', '    utterance: a haunting', '    expect: veri:ghost', '    kind: coverage'] : []),
+    '',
+  ].join('\n');
+  writeFileSync(join(cwd, ...CORPUS_FILE.split('/')), text, 'utf8');
+}
+
+/** A judge as the contract sees one: a script file, run as `node <path>`,
+    quoted so the command survives every platform's shell. */
+function writeJudge(t: { after: (fn: () => void) => void }, source: string): string {
+  const dir = mkdtempSync(join(tmpdir(), 'veri-judge-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const file = join(dir, 'judge.mjs');
+  writeFileSync(file, source, 'utf8');
+  return `"${process.execPath}" "${file}"`;
+}
+
+test('eval refuses a repo with no veri/ and a project with no corpus, each loudly', async (t) => {
+  const bare = mkdtempSync(join(tmpdir(), 'veri-eval-bare-'));
+  t.after(() => rmSync(bare, { recursive: true, force: true }));
+  const noVeri = await skillsEval(bare);
+  assert.equal(noVeri.code, 1);
+  assert.match(noVeri.lines.join('\n'), /no veri\/ directory here/);
+
+  const cwd = project(t);
+  writeMethod(cwd, 'define', methodText('MET-001', 'define'));
+  const noCorpus = await skillsEval(cwd);
+  assert.equal(noCorpus.code, 1);
+  assert.match(noCorpus.lines.join('\n'), /no trigger corpus at skills\/trigger-corpus\.yaml/);
+});
+
+test('a corpus case naming a skill with no MET document fails validation loudly, and nothing is judged', async (t) => {
+  const cwd = project(t);
+  writeMethod(cwd, 'define', methodText('MET-001', 'define'));
+  writeMethod(cwd, 'decide', methodText('MET-002', 'decide'));
+  writeFixtureCorpus(cwd, { ghost: true });
+
+  // Even with a judge supplied, integrity fails first: grading against a
+  // phantom skill would report noise as signal.
+  const result = await skillsEval(cwd, { judge: writeJudge(t, 'console.log("none");\n') });
+  assert.equal(result.code, 1);
+  const output = result.lines.join('\n');
+  assert.match(output, /TC-004 expects veri:ghost, which has no method document/);
+  assert.match(output, /skill veri:ghost is declared but no method document stands behind it/);
+  assert.match(output, /nothing was judged/);
+  assert.ok(!output.includes('pass    TC-001'), output);
+});
+
+test('without a judge the run is integrity only, and says so with the contract', async (t) => {
+  const cwd = project(t);
+  writeMethod(cwd, 'define', methodText('MET-001', 'define'));
+  writeMethod(cwd, 'decide', methodText('MET-002', 'decide'));
+  writeFixtureCorpus(cwd);
+
+  const result = await skillsEval(cwd);
+  assert.equal(result.code, 0, result.lines.join('\n'));
+  const output = result.lines.join('\n');
+  assert.match(output, /validates clean: 3 cases over 2 skills/);
+  assert.match(output, /No judge supplied/);
+  assert.match(output, /stdin/);
+});
+
+test('a judge that routes every utterance somewhere breaks the floor: false triggers counted, per-case failures named', async (t) => {
+  const cwd = project(t);
+  writeMethod(cwd, 'define', methodText('MET-001', 'define'));
+  writeMethod(cwd, 'decide', methodText('MET-002', 'decide'));
+  writeFixtureCorpus(cwd);
+
+  const result = await skillsEval(cwd, { judge: writeJudge(t, 'console.log("veri:define");\n') });
+  assert.equal(result.code, 1);
+  const output = result.lines.join('\n');
+  assert.match(output, /pass    TC-001 → veri:define/);
+  assert.match(output, /fail    TC-002 — expected veri:decide, the judge said veri:define/);
+  assert.match(output, /FALSE   TC-003 — expected nothing, the judge fired veri:define/);
+  assert.match(output, /1\/3 cases pass; negative set: 1 false trigger across 1 cases\./);
+  assert.match(output, /floor is broken/);
+});
+
+test('a judge outside the contract is a judge error, reported per case and never a pass', async (t) => {
+  const cwd = project(t);
+  writeMethod(cwd, 'define', methodText('MET-001', 'define'));
+  writeMethod(cwd, 'decide', methodText('MET-002', 'decide'));
+  writeFixtureCorpus(cwd);
+
+  const result = await skillsEval(cwd, { judge: writeJudge(t, 'console.log("veri:hallucinated");\n') });
+  assert.equal(result.code, 1);
+  const output = result.lines.join('\n');
+  assert.match(output, /error   TC-001 — the judge answered "veri:hallucinated"/);
+  assert.match(output, /3 judge errors/);
+});
+
+test('the full shipped corpus runs end to end: integrity clean, every case judged, per-case results reported (WO-147)', async (t) => {
+  // The oracle judge answers from the corpus's own expectations — a stub, not
+  // a model. What this proves is the runner: the lineup reaches the judge on
+  // stdin per the contract, all coverage and negative cases execute, and the
+  // report carries a line per case plus the negative set's count.
+  const corpus = parseTriggerCorpus(readFileSync(join(REPO_ROOT, CORPUS_FILE), 'utf8'));
+  const dir = mkdtempSync(join(tmpdir(), 'veri-oracle-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const oracle = Object.fromEntries(corpus.cases.map((entry) => [entry.utterance, entry.expect]));
+  writeFileSync(join(dir, 'oracle.json'), JSON.stringify(oracle), 'utf8');
+  writeFileSync(
+    join(dir, 'judge.mjs'),
+    [
+      "import { readFileSync } from 'node:fs';",
+      "const input = JSON.parse(readFileSync(0, 'utf8'));",
+      "const oracle = JSON.parse(readFileSync(new URL('./oracle.json', import.meta.url), 'utf8'));",
+      "if (!Array.isArray(input.skills) || input.skills.some((skill) => typeof skill.description !== 'string')) {",
+      "  console.error('no lineup on stdin'); process.exit(2);",
+      '}',
+      "console.log('considering…');",
+      "console.log(oracle[input.utterance] ?? 'none');",
+      '',
+    ].join('\n'),
+    'utf8',
+  );
+
+  const result = await skillsEval(REPO_ROOT, { judge: `"${process.execPath}" "${join(dir, 'judge.mjs')}"` });
+  assert.equal(result.code, 0, result.lines.join('\n'));
+  const output = result.lines.join('\n');
+  assert.match(output, /validates clean/);
+  const perCase = result.lines.filter((line) => line.startsWith('pass    TC-'));
+  assert.equal(perCase.length, corpus.cases.length, output);
+  const negatives = corpus.cases.filter((entry) => entry.kind === 'negative').length;
+  assert.match(output, new RegExp(`${corpus.cases.length}/${corpus.cases.length} cases pass; negative set: 0 false triggers across ${negatives} cases\\.`));
+  assert.match(output, /floor holds/);
 });

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { approve, architecture, check, context, del, dispatch, implemented, importFile, importPrompt, init, intent, list, migrate, newDoc, next, open, renumber, supersede, withdraw } from './commands.ts';
 import type { CmdResult } from './commands.ts';
-import { askTerminal, skillsInstall, skillsUpgrade } from './skills.ts';
+import { askTerminal, skillsEval, skillsInstall, skillsUpgrade } from './skills.ts';
 
 /** The value following `--flag`, or undefined when the flag is absent. */
 function flagValue(args: string[], flag: string): string | undefined {
@@ -66,6 +66,14 @@ const USAGE = `usage: veri <command>
                              compare this project's methods against the ones
                              this build ships and propose the differences
                              under veri/amendments/ — never an overwrite
+  veri skills eval [--judge <command>]
+                             validate the trigger corpus — an entry naming a
+                             skill with no method document is a hard failure —
+                             and with --judge play every case against the
+                             method trigger descriptions through your command
+                             (DEC-129's floor: no regression, zero false
+                             triggers; the judge reads {utterance, skills}
+                             JSON on stdin and prints a skill id or none)
 `;
 
 const [command, ...rest] = process.argv.slice(2);
@@ -152,8 +160,10 @@ switch (command) {
       result = await skillsInstall(cwd, { yes, all: rest.includes('--all'), harness: flagValue(rest, '--harness') }, confirm);
     } else if (rest[0] === 'upgrade') {
       result = await skillsUpgrade(cwd, { yes }, confirm);
+    } else if (rest[0] === 'eval') {
+      result = await skillsEval(cwd, { judge: flagValue(rest, '--judge') });
     } else {
-      result = { code: 1, lines: ['usage: veri skills install [--all] [--yes] [--harness <name>] | veri skills upgrade [--yes]'] };
+      result = { code: 1, lines: ['usage: veri skills install [--all] [--yes] [--harness <name>] | veri skills upgrade [--yes] | veri skills eval [--judge <command>]'] };
     }
     break;
   }

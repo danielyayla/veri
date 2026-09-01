@@ -1,9 +1,27 @@
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createInterface } from 'node:readline/promises';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { AMENDMENTS_DIR, METHODS_DIR, SKILL_EMITTERS, claudeCodeEmitter, loadProject, parseDocument, planMethodUpgrade, planSkillInstall, shippedMethodFrom } from '@verikb/core';
-import type { CollectedShell, ShellFactsInput, ShippedMethod, SkillEmitter } from '@verikb/core';
+import {
+  AMENDMENTS_DIR,
+  METHODS_DIR,
+  SKILL_EMITTERS,
+  checkCorpusIntegrity,
+  checkTriggerCorpus,
+  claudeCodeEmitter,
+  judgeInputFor,
+  loadProject,
+  methodTriggerLineup,
+  parseDocument,
+  parseJudgeAnswer,
+  parseTriggerCorpus,
+  planMethodUpgrade,
+  planSkillInstall,
+  scoreTriggerEval,
+  shippedMethodFrom,
+} from '@verikb/core';
+import type { CollectedShell, JudgeAnswer, ShellFactsInput, ShippedMethod, SkillEmitter, TriggerCorpus, TriggerSkill } from '@verikb/core';
 import type { CmdResult } from './commands.ts';
 
 /**
@@ -240,6 +258,121 @@ export async function skillsUpgrade(cwd: string, opts: SkillsUpgradeOptions = {}
     'Read each one, apply what you want by editing the method yourself, then delete it. Declining is a legitimate answer — a project that has tuned a gate keeps its tuning.',
   );
   return { code: 0, lines };
+}
+
+// --- The trigger corpus's runner (WO-147, DEC-129) ----------------------------
+
+/** Where the corpus lives, cwd-relative — DEC-134's choice, now shared by the
+    schema test and this runner. */
+export const CORPUS_FILE = 'skills/trigger-corpus.yaml';
+
+export interface SkillsEvalOptions {
+  /** The user's judge command, run through the shell once per case. The
+      product ships no judge and makes no network call (WO-147's v1
+      constraint holds); grading is whatever command the user supplies. */
+  judge?: string;
+  /** Per-case timeout — a hung judge is a judge error, never a hung run. */
+  timeoutMs?: number;
+}
+
+/**
+ * `veri skills eval`: DEC-129's pre-ship triggering floor, mechanical.
+ *
+ * Always: parse the corpus, hold its invariants, and hold referential
+ * integrity — every declared skill, near-miss pair, and case expectation must
+ * name a skill whose method document exists. Any of that failing is a hard
+ * failure and nothing gets judged; a corpus graded against phantom skills
+ * would report noise as signal.
+ *
+ * With `--judge`: play every case's utterance against the trigger lineup —
+ * the `veri:<slug>` ids and descriptions of the project's method documents,
+ * the same descriptions the shell emitter installs — through the judge
+ * command, and report per-case pass/fail plus the negative set's
+ * false-trigger count. The floor is the committed corpus itself: every case
+ * keeps passing, and zero false triggers is its hardest subset. There is no
+ * percentage and no side file of tolerated failures (DEC-129).
+ */
+export async function skillsEval(cwd: string, opts: SkillsEvalOptions = {}): Promise<CmdResult> {
+  const veriDir = join(cwd, 'veri');
+  if (!existsSync(veriDir)) {
+    return { code: 1, lines: ['no veri/ directory here — the corpus grades the trigger descriptions of method documents under veri/methods/, and there are none to grade against.'] };
+  }
+  const corpusPath = join(cwd, ...CORPUS_FILE.split('/'));
+  if (!existsSync(corpusPath)) {
+    return { code: 1, lines: [`no trigger corpus at ${CORPUS_FILE} — nothing to validate (DEC-134 fixes the corpus's home there).`] };
+  }
+
+  let corpus: TriggerCorpus;
+  try {
+    corpus = parseTriggerCorpus(readFileSync(corpusPath, 'utf8'));
+  } catch (err) {
+    return { code: 1, lines: [(err as Error).message] };
+  }
+
+  const load = await loadProject(veriDir);
+  const lineup = methodTriggerLineup(load.documents);
+  const problems = [...checkTriggerCorpus(corpus), ...checkCorpusIntegrity(corpus, lineup.map((skill) => skill.id))];
+
+  const lines: string[] = [];
+  if (problems.length > 0) {
+    for (const problem of problems) lines.push(`issue   ${problem}`);
+    lines.push(
+      `${CORPUS_FILE} fails validation: ${problems.length} problem${problems.length === 1 ? '' : 's'}. A corpus entry naming a skill with no method document is a hard failure (WO-147); nothing was judged.`,
+    );
+    return { code: 1, lines };
+  }
+  lines.push(
+    `${CORPUS_FILE} validates clean: ${corpus.cases.length} cases over ${corpus.skills.length} skills, every entry backed by a method document.`,
+  );
+
+  if (opts.judge === undefined) {
+    lines.push(
+      'No judge supplied, so no utterance was played — integrity only. Pass --judge <command> for the judged run:',
+      'per case, the command receives {"utterance", "skills": [{"id", "description"}, …]} as JSON on stdin and answers with the id of the one skill that should fire, or `none`; the verdict is the last non-empty line of its stdout.',
+    );
+    return { code: 0, lines };
+  }
+
+  const answers = new Map<string, JudgeAnswer>();
+  for (const entry of corpus.cases) {
+    answers.set(entry.id, runJudge(opts.judge, lineup, entry.utterance, opts.timeoutMs ?? 120_000));
+  }
+  const report = scoreTriggerEval(corpus, answers);
+
+  for (const result of report.results) {
+    if (result.error !== undefined) lines.push(`error   ${result.id} — ${result.error}`);
+    else if (result.falseTrigger) lines.push(`FALSE   ${result.id} — expected nothing, the judge fired ${result.answer}: "${result.utterance}"`);
+    else if (result.pass) lines.push(`pass    ${result.id} → ${result.answer}`);
+    else lines.push(`fail    ${result.id} — expected ${result.expect}, the judge said ${result.answer}: "${result.utterance}"`);
+  }
+  lines.push(
+    `${report.passed}/${report.results.length} cases pass; negative set: ${report.falseTriggers} false trigger${report.falseTriggers === 1 ? '' : 's'} across ${report.negatives} cases` +
+      (report.errors > 0 ? `; ${report.errors} judge error${report.errors === 1 ? '' : 's'}` : '') +
+      '.',
+    report.ok
+      ? "DEC-129's floor holds: no regression against the committed corpus, zero false triggers on the negative set."
+      : "DEC-129's floor is broken: every committed case must keep passing, and a false trigger is the failure that gets a library uninstalled.",
+  );
+  return { code: report.ok ? 0 : 1, lines };
+}
+
+/** One judge invocation. The command is the user's, run through the shell so
+    "node scripts/judge.mjs" and friends work as typed; everything it is told
+    goes through `judgeInputFor`, so the contract has one statement. */
+function runJudge(command: string, lineup: TriggerSkill[], utterance: string, timeoutMs: number): JudgeAnswer {
+  const run = spawnSync(command, {
+    shell: true,
+    input: judgeInputFor(lineup, utterance),
+    encoding: 'utf8',
+    timeout: timeoutMs,
+    maxBuffer: 16 * 1024 * 1024,
+  });
+  if (run.error !== undefined) return { error: `the judge did not run: ${run.error.message}` };
+  if (run.status !== 0) {
+    const stderr = (run.stderr ?? '').trim().split('\n', 1)[0] ?? '';
+    return { error: `the judge exited ${run.status ?? `on signal ${run.signal ?? 'unknown'}`}${stderr === '' ? '' : ` — ${stderr}`}` };
+  }
+  return parseJudgeAnswer(run.stdout ?? '', lineup);
 }
 
 /** The terminal's answer to a write question. Supplied by `cli.ts` only when
