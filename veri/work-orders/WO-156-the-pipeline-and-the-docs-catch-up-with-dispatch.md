@@ -2,7 +2,7 @@
 id: WO-156
 type: work-order
 title: "The pipeline and the docs catch up with dispatch"
-status: in-progress
+status: done
 approved: 2026-09-02
 claimed_by: fable-wo156
 claimed_at: 2026-09-02
@@ -45,11 +45,11 @@ WO-143 retired `ready` and shipped `veri dispatch`, but three outward surfaces s
 
 ## Acceptance tests
 
-- [ ] No occurrence of `veri start` remains anywhere under `.github/workflows/` or `site/docs/` — the declared verify command proves it
-- [ ] `veri-dispatch.yml` claims with `veri dispatch <id> --as <claimant>`, passes `--by` when a maintainers registry is configured, and dispatches only a head that already carries an `approved:` stamp — an unstamped head is reported and left for the user, and no run path can mint a stamp (DEC-148)
-- [ ] reference.html's lifecycle and CLI sections name only live statuses and commands; no page under site/docs presents `ready` as a current status or `veri approve`/`veri start` as work-order transitions
-- [ ] dispatch.html teaches the dispatch model end to end, including that dispatch is the approval (DEC-143) and the fresh-stamp/spent-stamp distinction (DEC-148)
+- [x] No occurrence of `veri start` remains anywhere under `.github/workflows/` or `site/docs/` — the declared verify command proves it
+- [x] `veri-dispatch.yml` claims with `veri dispatch <id> --as <claimant>`, passes `--by` when a maintainers registry is configured, and dispatches only a head that already carries an `approved:` stamp — an unstamped head is reported and left for the user, and no run path can mint a stamp (DEC-148)
+- [x] reference.html's lifecycle and CLI sections name only live statuses and commands; no page under site/docs presents `ready` as a current status or `veri approve`/`veri start` as work-order transitions
+- [x] dispatch.html teaches the dispatch model end to end, including that dispatch is the approval (DEC-143) and the fresh-stamp/spent-stamp distinction (DEC-148)
 
 ## Receipts
 
-(none yet)
+- 2026-09-02 — 050fdc3 — [".github/workflows/veri-dispatch.yml", "site/docs/reference.html", "site/docs/dispatch.html", "site/docs/ci.html"] — verify ran clean (bash -c '! grep -rn "veri start" .github/workflows site/docs' exit 0) — veri-dispatch.yml claims via veri dispatch --as with the DEC-148 stamp guard (only a pre-stamped head is dispatched; --by rides from VERI_DISPATCH_BY), reference.html/dispatch.html/ci.html teach the dispatch lifecycle, workflow YAML parses, veri check 438 docs 0 issues.
