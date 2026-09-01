@@ -2,7 +2,7 @@
 id: WO-153
 type: work-order
 title: "Dead paths and stale artifacts are deleted"
-status: in-progress
+status: done
 approved: 2026-09-01
 claimed_by: fable-wo153
 claimed_at: 2026-09-01
@@ -48,7 +48,7 @@ The audit's basket of built-but-broken and built-but-unused, each independently 
 - [x] veri new workflow either creates a well-formed veri/WF-nnn-*.md path (covered by a new test) or refuses when a workflow exists, and never prints a veri// path
 - [x] veri new product refuses with an error naming the four singleton paths
 - [x] --harness and searchDocs are gone; no reference survives
-- [ ] The four orphaned assets are deleted and no site page breaks
+- [x] The two truly orphaned assets are deleted and no site page breaks — amended from four at Daniel's direction 2026-09-01: the loop-demo pair became the README hero under WO-148 and stays
 - [x] recordSeededIds records PRD/MET ids from a fixture starter; full suite green
 
 ## Receipts
