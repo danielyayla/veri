@@ -514,19 +514,6 @@ a:hover { color: var(--link-hover); }
   font-size: 11.5px; color: var(--ghost); cursor: pointer; border-radius: 6px;
 }
 .tp-more:hover { color: var(--muted); }
-/* The board's promotion row (WO-103, SRC-047, DEC-105 as revised): the
-   Work Orders panel's first row opens the ▤ Board view tab — the panel
-   stays the collection's default surface, in the tp-row grammar. */
-.tp-board {
-  min-height: 28px; display: flex; align-items: center; gap: 8px;
-  padding: 3px 8px; margin-top: 6px; border-radius: 6px; cursor: pointer;
-}
-.tp-board:hover { background: var(--row-hover); }
-.tp-board-active { background: var(--ember-tint); }
-.tp-board-glyph { font-family: var(--mono); font-size: 11px; color: var(--t-wo); flex: 0 0 auto; width: 52px; }
-.tp-board-lbl { flex: 1; font-size: 12.5px; color: var(--body-text-2); }
-.tp-board-active .tp-board-lbl { color: var(--text); }
-.tp-board-hint { font-family: var(--mono); font-size: 9px; color: var(--ghost); flex: 0 0 auto; }
 .tp-empty { padding: 14px 10px; font-size: 12px; color: var(--faint); }
 /* Teaching empty state (WO-030), re-homed from the old tree: hint by
    default, the action on hover (CSS swap). */
@@ -1220,21 +1207,9 @@ a:hover { color: var(--link-hover); }
 .hv-verdict:hover { filter: brightness(1.15); }
 .hv-row-split .hv-time { padding-right: 14px; }
 
-/* ===== Outcomes view (WO-119, SRC-054, REQ-036) ===== */
-
-/* DID IT WORK?'s full-depth surface: one column of full-width cards in the
-   home's card grammar — evidence rows get room to breathe (SRC-054). */
-.screen-outcomes { flex: 1; overflow-y: auto; min-width: 0; }
-.ov-wrap { max-width: 920px; margin: 0 auto; padding: 28px 36px 60px; display: flex; flex-direction: column; gap: 14px; }
-.ov-wrap .hv-head { margin-bottom: 6px; }
-.ov-row .hv-flight-title { flex: 1; }
-.ov-row.hv-row-split .hv-split-main { padding-top: 11px; padding-bottom: 11px; }
-.ov-teach { padding: 18px 14px; line-height: 1.55; }
-.ov-shipped { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--faint); flex: 0 0 auto; white-space: nowrap; }
-.ov-req { font-family: var(--mono); font-size: 10px; color: var(--t-req); flex: 0 0 auto; white-space: nowrap; }
-
-/* Sidebar layer headers (WO-119, SRC-054): WHY / WHAT / HOW / DID IT WORK?
-   — non-interactive labels in the RECENT-header register; grouping only. */
+/* Sidebar layer headers (WO-119, SRC-054; DID IT WORK? left with the
+   Outcomes row — WO-152, DEC-145): WHY / WHAT / HOW — non-interactive
+   labels in the RECENT-header register; grouping only. */
 .side-layer { margin: 12px 9px 4px; }
 
 /* ===== Approval gate (WO-017, SRC-006) ===== */
@@ -1831,52 +1806,9 @@ a:hover { color: var(--link-hover); }
 .sv-more { padding: 10px; font-size: 12px; color: var(--faint); }
 .sv-empty { padding: 18px 2px; font-size: 12.5px; color: var(--faint); }
 
-/* ===== Work Orders board (WO-103, SRC-047) — the WO-053 board returns as
-   a view tab, four columns over the WO-098 lifecycle. Existing tokens
-   only; elevation is surface + border steps, hover moves border color
-   only, no shadows (design README: popovers only). ===== */
-.screen-board { flex: 1; overflow: auto; min-width: 0; padding: 26px 28px; }
-.board-head { display: flex; align-items: baseline; gap: 12px; }
-.board-count { font-family: var(--mono); font-size: 11px; color: var(--faint); }
-.board-grid {
-  display: grid; grid-template-columns: repeat(4, minmax(228px, 300px));
-  gap: 14px; margin-top: 20px; align-items: start;
-}
-.board-col { border: 1px solid var(--hair); border-radius: 10px; background: var(--panel); padding: 10px; }
-.board-col-head { display: flex; align-items: center; gap: 8px; padding: 2px 4px 10px; }
-.board-col-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
-.board-col-label { font-family: var(--mono); font-size: 10.5px; letter-spacing: .09em; color: var(--secondary); }
-.board-col-count { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--ghost-2); }
-.board-cards { display: flex; flex-direction: column; gap: 8px; }
-.board-card {
-  border: 1px solid var(--card-border-2); border-radius: 8px;
-  background: var(--card-2); padding: 10px 12px; cursor: pointer; text-align: left;
-}
-.board-card:hover { border-color: var(--hover-border-2); }
-.board-card-head { display: flex; align-items: center; gap: 8px; }
-.board-card-id { font-family: var(--mono); font-size: 10.5px; color: var(--ember); }
-.board-health-dot { margin-left: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--amber); }
-.board-card-title { display: block; font-size: 13.5px; font-weight: 500; color: var(--text); margin-top: 5px; line-height: 1.35; }
-.board-card-done .board-card-title { color: var(--body-text-2); font-weight: 400; }
-.board-card-meta { display: block; margin-top: 7px; font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
-.board-card-rcpt { color: var(--green); }
-.board-more {
-  padding: 6px 8px; border-radius: 6px; cursor: pointer; text-align: left;
-  font-family: var(--mono); font-size: 10.5px; color: var(--ghost);
-}
-.board-more:hover { background: var(--row-hover); color: var(--muted); }
 /* The stamped `ready` segment (WO-098): visible state, never a click
    target — dimmed like a count, not disabled-greyed like an error. */
 .seg-item-gated { color: var(--ghost); cursor: default; }
-/* Narrow panes (WO-064 vocabulary): 2×2 in the mid band, stacked below
-   the 640px threshold — the board survives a 320px split pane. */
-@container pane (max-width: 1160px) {
-  .board-grid { grid-template-columns: repeat(2, minmax(228px, 1fr)); }
-}
-@container pane (max-width: 640px) {
-  .board-grid { grid-template-columns: minmax(0, 1fr); }
-}
-
 /* ===== Multi-panel density (WO-064, SRC-034) — existing tokens only =====
    Each pane is a container; below the 640px narrow threshold the reading
    column is protected: the Connections rail collapses to the crumb-row

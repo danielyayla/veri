@@ -356,7 +356,8 @@ export function homeView(ctx: Ctx): HTMLElement {
   // entered the evidence door. An outcome source is a split row: the verdict
   // chip is its own button opening the hypothesis it answers; the rest of
   // the row opens the source (one row, two honest targets — never nested
-  // buttons).
+  // buttons). Since the Outcomes view folded in (DEC-145, SRC-068) this is
+  // DID IT WORK?'s surface, and the empty state carries its teaching copy.
   const learnedRows = recentlyLearned(ctx.snap, ctx.rel);
   const learnedCard = card(
     [dot('var(--t-src)'), label('RECENTLY LEARNED')],
@@ -392,7 +393,7 @@ export function homeView(ctx: Ctx): HTMLElement {
             h('span', { class: 'hv-time' }, r.time),
           ),
     ),
-    'No sources yet — evidence comes first',
+    'Nothing reported back yet — when a shipped hypothesis gets outcome evidence (a source linked tests/supports/refutes), reality’s answers land here.',
   );
 
   // Ids the cards above already rendered (SRC-055): RECENTLY CHANGED shows

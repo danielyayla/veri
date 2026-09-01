@@ -67,11 +67,9 @@ import { paletteRows } from './palette.ts';
 import type { PaletteRow } from './palette.ts';
 import { TPL_TYPES } from './views/templates.ts';
 import { settingsView } from './views/settings.ts';
-import { boardView } from './views/board.ts';
-import { outcomesView } from './views/outcomes.ts';
 import { DEAD_LABEL, livingCount, livingGroups, panelList, pushRecent } from './sidebar.ts';
 
-export type View = 'home' | 'workorder' | 'homeview' | 'search' | 'settings' | 'import' | 'board' | 'outcomes';
+export type View = 'home' | 'workorder' | 'homeview' | 'search' | 'settings' | 'import';
 
 /** Sections of the Settings view (WO-036, SRC-014). */
 export type SettingsSection = 'templates' | 'agent' | 'project' | 'updates' | 'appearance';
@@ -199,12 +197,6 @@ export interface State {
       user's expand choice in a narrow pane — session state, never persisted.
       Meaningless while the pane is wide (the rail is inline there). */
   connOpen: boolean[];
-  /** Board view (WO-103, SRC-047): the DONE column's expander — session
-      state, never persisted, like the Search view's query. */
-  boardDone: boolean;
-  /** Outcomes view (WO-119, SRC-054): the RECENT RECEIPTS expander —
-      session state, never persisted, like the board's DONE window. */
-  outcomesDone: boolean;
 }
 
 /** The add-link inline row (WO-056): target + rel drafts, the inline error,
@@ -446,8 +438,6 @@ class App implements Ctx {
     importOfferDismissed: false,
     find: null,
     connOpen: [false, false],
-    boardDone: false,
-    outcomesDone: false,
   };
   renderPane = 0;
   appInfo: AppInfo | null = null;
@@ -1014,7 +1004,7 @@ class App implements Ctx {
   }
 
   /** Popover rows and the sub-nav land here: one Settings tab (preview
-      semantics like Board), opened at the invoked section (WO-036). */
+      semantics like any view), opened at the invoked section (WO-036). */
   openSettings(section: SettingsSection): void {
     if (section === 'updates') this.refreshUpdateStatus();
     this.applyPanes(navigateFocused(this.paneState(), 'settings', { surface: 'preview', previewTabs: this.state.previewTabs }), {
@@ -2655,13 +2645,13 @@ class App implements Ctx {
     return { healthy, label };
   }
 
-  /** The labeled sidebar (WO-035, SRC-014): Home, the four collections,
-      and the Settings gear at the foot. Replaces the icon rail and the
+  /** The labeled sidebar (WO-035, SRC-014): Home, the collections, and
+      the Settings gear at the foot. Replaces the icon rail and the
       working-set tree. Graph left the sidebar with WO-052 (SRC-024);
-      Board folded into the Work Orders panel with WO-053 (SRC-025) and
-      returned with WO-103 (SRC-047) as a view tab opened from the Work
-      Orders panel's ▤ Board row — the collection row stays a panel
-      toggle like every other collection (DEC-105 as revised). */
+      the Board and Outcomes views folded into Home with WO-152
+      (DEC-145, SRC-068) — the Work Orders panel and the detail's status
+      control carry the lifecycle, and Home carries what reality
+      reported back. */
   private sidebar(): HTMLElement {
     const target = activeTarget(this.tabState());
     const viewItem = (key: View, label: string, glyph: string): HTMLElement =>
@@ -2781,11 +2771,9 @@ class App implements Ctx {
       collItem('decision'),
       layer('HOW'),
       collItem('work-order'),
-      // DID IT WORK? has no collection — its first-class surface is the
-      // Outcomes view row, always rendered so the empty state can teach
-      // the learning loop (the DEC-108 posture).
-      layer('DID IT WORK?'),
-      viewItem('outcomes', 'Outcomes', '◎'),
+      // DID IT WORK? is answered on Home, not by a header (DEC-145,
+      // REQ-036 as amended): headers group, never navigate, and after
+      // the Outcomes row left there is nothing here for one to group.
       ...(recents.length > 0
         ? [h('div', { class: 'side-div' }), h('div', { class: 'side-label' }, 'RECENT'), ...recentRows]
         : []),
@@ -2856,26 +2844,6 @@ class App implements Ctx {
     // under BACKLOG / IN PROGRESS micro-headers; other types stay flat.
     const groups = livingGroups(list.living, type);
     const rows: HTMLElement[] = [];
-    // The board's entry point (WO-103, SRC-047, DEC-105 as revised): the
-    // panel is the collection's default surface; the board is its alternate
-    // view, promoted from the top of the list. setView closes the panel —
-    // the SRC-014 "selecting any view closes the panel" rule.
-    if (type === 'work-order') {
-      rows.push(
-        h(
-          'button',
-          {
-            class: `btn-reset btn-block tp-board${target === 'board' ? ' tp-board-active' : ''}`,
-            label: 'Open the board view',
-            fkey: 'tp-board',
-            onClick: () => this.setView('board'),
-          },
-          h('span', { class: 'tp-board-glyph' }, '▤'),
-          h('span', { class: 'tp-board-lbl' }, 'Board'),
-          h('span', { class: 'tp-board-hint' }, 'view'),
-        ),
-      );
-    }
     if (list.pinned.length > 0) {
       rows.push(h('div', { class: 'tp-group' }, 'Pinned'), ...list.pinned.map((d) => row(d, true)));
       // Subgroup headers take over the living list's labeling below.
@@ -3204,7 +3172,7 @@ class App implements Ctx {
 
   /** The active view's scrollable regions, in document order — queried per
       pane container (WO-055), never per root. */
-  private static readonly SCROLL_SEL = '.reader, .panel-right, .screen-homeview, .screen-search, .screen-board, .mcp-view, .set-scroll';
+  private static readonly SCROLL_SEL = '.reader, .panel-right, .screen-homeview, .screen-search, .mcp-view, .set-scroll';
 
   /** A mousedown anywhere in an unfocused pane focuses it (WO-055): the
       state flips silently — no render, no preventDefault, so the click it
@@ -3252,8 +3220,6 @@ class App implements Ctx {
       else if (view === 'search') screen = searchView(this);
       else if (view === 'settings') screen = settingsView(this);
       else if (view === 'import') screen = importView(this);
-      else if (view === 'board') screen = boardView(this);
-      else if (view === 'outcomes') screen = outcomesView(this);
       else screen = readerView(this);
       this.state.view = saved.view;
       this.state.docId = saved.docId;

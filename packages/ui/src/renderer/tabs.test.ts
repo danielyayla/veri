@@ -248,22 +248,29 @@ describe('retainTabs', () => {
     deepStrictEqual(targets(mixed.tabs[0]), ['WO-005']);
   });
 
-  // WO-103 (SRC-047): the board returns as the Work Orders view tab —
-  // 'board' is a ViewKey again, so it survives retention like any view
-  // (pre-retirement persisted board tabs simply come back, no migration).
-  it("a 'board' view tab survives retention — views always survive", () => {
-    ok(isViewKey('board'));
-    const lone = retainTabs(s([{ t: ['board'] }, { t: ['search'] }], 0), () => false);
-    deepStrictEqual(lone.tabs.map((t) => targets(t)), [['board'], ['search']]);
-    strictEqual(lone.activeKey, 't1');
-  });
-
   // DEC-144 (SRC-067): the Architecture view retired with the layer —
   // 'architecture' is no ViewKey, so a stale session naming it restores
   // away silently; with nothing else saved the caller falls back to Home.
   it("a persisted 'architecture' tab restores away — the view retired with the layer", () => {
     ok(!isViewKey('architecture'));
     const restored = restoreTabs([{ target: 'architecture', preview: false }], 0, () => false);
+    deepStrictEqual(restored, EMPTY_TABS);
+  });
+
+  // DEC-145 (SRC-068, WO-152): the Board and Outcomes views folded into
+  // Home — neither is a ViewKey, so stale sessions naming them restore
+  // away the same silent way, and the caller lands on Home.
+  it("persisted 'board' and 'outcomes' tabs restore away — the views folded into Home", () => {
+    ok(!isViewKey('board'));
+    ok(!isViewKey('outcomes'));
+    const restored = restoreTabs(
+      [
+        { target: 'board', preview: false },
+        { target: 'outcomes', preview: false },
+      ],
+      0,
+      () => false,
+    );
     deepStrictEqual(restored, EMPTY_TABS);
   });
 });
@@ -299,14 +306,15 @@ describe('persistTabs / restoreTabs', () => {
     const saved = [
       { target: 'graph', preview: false }, // retired WO-052
       { target: 'REQ-001', preview: false },
-      { target: 'board', preview: false }, // retired WO-053, back with WO-103
+      { target: 'board', preview: false }, // folded into Home, WO-152 (DEC-145)
       { target: 'decisions', preview: false }, // retired WO-049
       { target: 'architecture', preview: false }, // retired WO-150 (DEC-144)
+      { target: 'outcomes', preview: false }, // folded into Home, WO-152 (DEC-145)
       { target: 'GONE-001', preview: false }, // byId miss
       { target: 'search', preview: false },
     ];
     const restored = restoreTabs(saved, 1, (id) => id === 'REQ-001');
-    deepStrictEqual(restored.tabs.map((t) => targets(t)), [['REQ-001'], ['board'], ['search']]);
+    deepStrictEqual(restored.tabs.map((t) => targets(t)), [['REQ-001'], ['search']]);
     strictEqual(activeTarget(restored), 'REQ-001');
   });
 
