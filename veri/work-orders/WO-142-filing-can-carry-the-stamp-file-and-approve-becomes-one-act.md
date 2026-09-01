@@ -2,7 +2,7 @@
 id: WO-142
 type: work-order
 title: "Filing can carry the stamp — file-and-approve becomes one act"
-status: in-progress
+status: done
 claimed_by: fable-wo142
 claimed_at: 2026-09-01
 approved: 2026-09-01
@@ -45,12 +45,12 @@ SRC-066 measured the current choreography: 57 of 194 stamps landed in the very c
 
 ## Acceptance tests
 
-- [ ] veri new requirement "x" --approve creates an accepted, stamped document in one command, and veri check passes on the result
-- [ ] The combined path refuses exactly what veri approve refuses today (issue on file, unlisted approver, work order without a requirement trace)
-- [ ] MCP e2e still asserts no tool can promote or stamp anything
-- [ ] Docs describe both gestures and when each fits
-- [ ] Full suite green
+- [x] veri new requirement "x" --approve creates an accepted, stamped document in one command, and veri check passes on the result
+- [x] The combined path refuses exactly what veri approve refuses today (issue on file, unlisted approver, work order without a requirement trace)
+- [x] MCP e2e still asserts no tool can promote or stamp anything
+- [x] Docs describe both gestures and when each fits
+- [x] Full suite green
 
 ## Receipts
 
-(none yet)
+- 2026-09-01 — a0c2ca0 — veri new/import learn --approve: the combined act runs approve's gates in core before one stamped write (DEC-147)
