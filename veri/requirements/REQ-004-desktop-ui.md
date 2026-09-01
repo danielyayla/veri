@@ -5,7 +5,7 @@ title: Desktop UI for browsing and editing the knowledge base
 status: accepted
 approved: 2026-08-27
 created: 2026-08-07
-updated: 2026-08-27
+updated: 2026-09-01
 links:
   - id: REQ-001
     rel: depends-on
@@ -27,21 +27,15 @@ design sources:
 
 - **Sidebar** — four collection panels (the type-grouped doc tree),
   grouped under the pivot's non-interactive layer headers WHY (Sources)
-  / WHAT (Requirements, Decisions) / HOW (Work Orders, Architecture) /
-  DID IT WORK? (Outcomes) — grouping, never containers: no collection,
-  count, or panel behavior changes ([[SRC-054]], [[REQ-036]]). The
-  Work Orders panel groups its living list into status subgroups with
-  done behind an expander ([[SRC-025]]), and carries a `▤ Board` row
-  opening the Board view tab: a four-column kanban over the [[WO-098]]
-  lifecycle, DONE windowed behind an expander; the collection row stays
-  a panel toggle like every other collection ([[SRC-047]]). Under HOW,
-  an always-rendered `⌗ Architecture` view row opens the one-instance
-  Architecture tab, its empty-state card serving projects with no
-  module registry; no collection panel carries a promoted row for it
-  ([[SRC-049]], [[DEC-108]]). Under DID IT WORK?, an always-rendered
-  `◎ Outcomes` view row opens the one-instance Outcomes tab — outcome
-  evidence, untested bets, recent receipts, derived and stateless, with
-  a teaching empty state ([[SRC-054]], [[REQ-036]]).
+  / WHAT (Requirements, Decisions) / HOW (Work Orders) — grouping,
+  never containers: no collection, count, or panel behavior changes
+  ([[SRC-054]], [[REQ-036]]). The Work Orders panel groups its living
+  list into status subgroups with done behind an expander
+  ([[SRC-025]]); that panel and the work-order detail's status control
+  are the lifecycle's whole surface — the Board and Outcomes views
+  folded into Home and the Architecture view left the product
+  ([[DEC-145]], [[DEC-144]]); outcome evidence and untested bets
+  render on Home ([[REQ-035]]).
 - **No dedicated Decision log or Graph screens** — the decisions
   chronology, status signals, and supersession pointers live in the
   Decisions panel, the documents themselves, and hover previews
