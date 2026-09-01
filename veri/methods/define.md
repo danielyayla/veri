@@ -13,6 +13,7 @@ updated: 2026-09-01
 links:
   - { id: WF-001, rel: derived-from }
   - { id: SRC-060, rel: derived-from }
+  - { id: SRC-066, rel: derived-from }
   - { id: REQ-040, rel: serves }
   - { id: REQ-032, rel: constrained-by }
   - { id: REQ-038, rel: constrained-by }
@@ -51,9 +52,13 @@ interrupts — the want is a fork, or contradicts approved intent.
 2. **What must be true when this ships — observable how?** Asked again
    for every unobservable word, until a stranger could check it or
    beat 3 takes over.
-3. **Constraint, or bet?** The two honest endings ([[REQ-032]]):
-   observable criteria that must keep holding, or a hypothesis with
-   metric, target and source of the number. A bet is not a demotion.
+3. **Constraint, or bet? Bet, unless argued.** The evidence sets the
+   default ([[REQ-032]], [[SRC-066]]): a want with no source behind it
+   files as `kind: hypothesis` with an outcome block — metric and
+   target — and `constraint` is the argued exception: an invariant true
+   by definition, or a want whose filed evidence says it must hold and
+   keep holding. A bet is not a demotion; an assumption laundered into
+   a constraint is the failure this beat exists to refuse.
 4. **What does this tension with, and what is explicitly out?** Named
    tensions become links; unnamed ones become an argument mid-diff.
 5. **Read it back, then file** — statement, kind, criteria, links,
@@ -89,6 +94,9 @@ untested-bet advisory ([[REQ-033]]): the laundering beat 3 refuses.
 - **Never drafts a constraint with untestable criteria** — "fast",
   "intuitive", "reliable" repeat until observable or the kind flips
   ([[REQ-032]]).
+- **An unevidenced want defaults to hypothesis** — filing it as a
+  constraint takes an argument, definitionally invariant or evidenced
+  on the record, never inertia ([[REQ-032]], [[SRC-066]]).
 - **Never writes an `approved:` stamp.** Promotion is the user's act,
   always ([[REQ-008]], [[DEC-111]]). Everything here lands `draft`, and a
   draft steers nothing until the stamp lands.

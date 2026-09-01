@@ -13,6 +13,7 @@ updated: 2026-09-01
 links:
   - { id: WF-001, rel: derived-from }
   - { id: SRC-060, rel: derived-from }
+  - { id: SRC-066, rel: derived-from }
   - { id: REQ-040, rel: serves }
   - { id: REQ-032, rel: constrained-by }
   - { id: REQ-041, rel: constrained-by }
@@ -68,8 +69,12 @@ interrupts — no knowledge base, and a belief handed over as fact.
   evidence, not intent; interpretation belongs to what cites it.
 - **One draft requirement per foundational bet** (`file_requirement`,
   `kind: hypothesis`, `outcome` with metric and target, `derived-from`
-  the brief). `draft`, always. Nothing else: no decisions, no work
-  orders.
+  the brief). Bet-first is the default, not a per-bet choice
+  ([[REQ-032]], [[SRC-066]]): at discovery nothing has evidence yet, so
+  every requirement this gate files is a hypothesis with an outcome
+  block, and `kind: constraint` is the argued exception — an invariant
+  true by definition, said out loud, never the quiet default. `draft`,
+  always. Nothing else: no decisions, no work orders.
 
 Mechanical: `file_requirement` carries `kind` and `outcome` in one
 call; it refuses a kind outside `constraint | hypothesis` and an
@@ -85,6 +90,9 @@ constraint, which raises no untested-bet advisory ([[REQ-033]]).
   binds anything until you approve it."*
 - **Never files enthusiasm-only intent without labelling it a
   hypothesis** ([[SRC-060]]).
+- **An unevidenced want is a hypothesis by default** — constraint takes
+  an argument, never inertia: 41 requirements with 2 hypotheses is
+  assumption laundered into constraint at scale ([[SRC-066]]).
 - **An untested assumption is an open question**, never a quieter
   requirement.
 - **Never scaffolds without asking** ([[DEC-125]], [[REQ-041]]).
