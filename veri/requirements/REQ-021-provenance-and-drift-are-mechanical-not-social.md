@@ -5,11 +5,11 @@ title: Provenance and drift are mechanical, not social
 status: accepted
 approved: 2026-08-27
 created: 2026-08-18
-updated: 2026-08-27
+updated: 2026-09-01
 links:
   - id: SRC-016
     rel: derived-from
-  - id: DEC-003
+  - id: DEC-142
     rel: follows-from
   - id: DEC-025
     rel: constrained-by
@@ -23,11 +23,11 @@ finding that "provenance, drift, and propagation are social, not
 mechanical" ([[SRC-016]]). This requirement makes the machine carry
 that weight.
 
-Two obligations, one principle. Receipts must be verifiable: what a
-receipt claims about git — the commit exists, follows the `WO-nnn:`
-convention, touched the files named — is checked, and the same
-convention read in reverse answers "why does this file exist?" with a
-work order. Drift must be surfaced: when the knowledge base moves out
+Two obligations, one principle. Receipts must point truthfully: a
+receipt is a one-line pointer into git ([[DEC-142]]), and the one
+claim it makes — the commit or PR it cites exists in history — is
+checked; the commit-subject convention (`WO-nnn:`) read in reverse
+answers "why does this file exist?" with a work order. Drift must be surfaced: when the knowledge base moves out
 from under its own stamps (a requirement edited after its implementing
 work order closed, active work citing superseded authority, an
 approved document that no longer says what was approved), Veri notices
@@ -40,10 +40,10 @@ they never block.
 
 ## Acceptance criteria
 
-- [ ] Every receipt's git claims are machine-checked: a missing commit,
-      a commit without the `WO-nnn:` prefix, a file list disjoint from
-      the commit's changes, or a `done` work order with no verifiable
-      receipt each surface as an advisory naming the work order.
+- [ ] A receipt's pointer is machine-checked: a cited commit absent
+      from history, or a `done` work order with no receipt at all,
+      surfaces as an advisory naming the work order ([[DEC-142]] —
+      the pointer's one claim is the one thing verified).
 - [ ] The reverse mapping is derivable on demand: for any file, the
       work orders whose commits touched it; for any work order, the
       commits that realized it — with no stored index.
