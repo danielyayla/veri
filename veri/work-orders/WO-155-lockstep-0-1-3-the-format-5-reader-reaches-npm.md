@@ -72,3 +72,4 @@ format-5 behavior already lives on main; this ships it.
 (one line per work session: date — commit or PR ref — one sentence)
 
 - 2026-09-02 — 6e8a232 — Lockstep 0.1.3 published via trusted publishing: dry run 33563041769 reviewed (three 0.1.3 tarballs, suite green in-workflow), real run 33563388195 fired by Daniel (the permission classifier reserves the non-dry gesture to the user; no OTP, no token), npm view reports 0.1.3 for all three; clean-install proof: @verikb/cli@0.1.3 init writes format marker 5 and its check reads this repository 431 docs, 0 issues; no verify: declared — stale action bundle from WO-143s schema repair fixed en route (5f9a4c7).
+- 2026-09-02 — 6e8a232 — review addendum: the lockfile hunk also synced the private packages/ui entry 0.4.0 → 0.5.0, npm mechanically truing the lockfile to the manifest already on main — disclosed at the review's finding; nothing about it published.
