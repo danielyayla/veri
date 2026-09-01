@@ -2,7 +2,9 @@
 id: WO-142
 type: work-order
 title: "Filing can carry the stamp — file-and-approve becomes one act"
-status: ready
+status: in-progress
+claimed_by: fable-wo142
+claimed_at: 2026-09-01
 approved: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
