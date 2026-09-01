@@ -71,7 +71,10 @@ something is wrong.
   work order depend on an unapproved document, a check violation
   ([[REQ-008]]).
 - **Receipts** (`file_receipt`) — date, SHA, files, one line;
-  append-only, one per session, the verify outcome inside the line.
+  append-only, one per session. A declared `verify:` run is quoted in
+  the line — the command or its outcome ([[DEC-149]]); a work order
+  declaring none gets no verify sentence at all: absence is never
+  declared ([[REQ-042]]).
 - **Code and commits** — explicit paths, subject led by the WO id.
 
 Never filed: an amendment to its own claimed work order

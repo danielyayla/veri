@@ -51,9 +51,11 @@ read-back, two interrupts — unapproved intent, or a fork in the cut.
 1. **Say what is accepted and what is already queued** — the cut sits
    beside existing work orders or becomes an amendment, never an
    overlap.
-2. **Can each slice be verified alone?** "If this shipped and nothing
-   else did, what would you look at?" — needing the next slice means
-   one work order, not two. Repeats until every slice carries proof.
+2. **Can each slice be verified alone — and by what command?** "If this
+   shipped and nothing else did, what would you look at?" — needing the
+   next slice means one work order, not two; repeats until every slice
+   carries proof, and the one machine-runnable command becomes its
+   `verify:` line ([[REQ-042]]) — none is honest, invented is not.
 3. **Which criterion proves which clause — and what is explicitly
    out?** A criterion tracing to no clause is scaffolding, declared, or
    scope through the back door.
@@ -64,9 +66,8 @@ read-back, two interrupts — unapproved intent, or a fork in the cut.
 5. **Read the cut back, then file** — per work order: one line, proven
    by, out; the ordering and why; none startable until approved.
 6. **Interrupt — the intent is not approved yet.** Disclosure, not
-   refusal: a backlog work order may cite a pending document, but
-   nothing starts before acceptance, and the cut changes if the intent
-   does.
+   refusal: backlog may cite a pending document, but nothing starts
+   before acceptance, and the cut changes if the intent does.
 7. **Interrupt — the cut reaches a fork.** Writing one shape down would
    choose it: `veri:decide`; the cut resumes with the id.
 
@@ -85,10 +86,10 @@ requirement, a pending citation, an undesigned gated path all pass
 `veri check` until the work starts (`wo-without-requirement`,
 `gated-wo`, `ui-wo-without-design`) — so planning runs ahead of the
 stamp, and the read-back names which gate each work order still waits
-on. `binds: paths:` has no `file_work_order` parameter (the strict
-schema refuses it), so the declaration [[DEC-114]] reads has no MCP
-path: name the paths in In scope, show the exact `binds:` edit, apply
-it in the filing's commit or hand it to the user, and say which — an
+on. `binds: paths:` ([[DEC-114]]) and `verify:` ([[REQ-042]]) have no
+`file_work_order` parameters (the strict schema refuses them): name
+the paths in In scope, show the exact frontmatter edit, apply it in
+the filing's commit or hand it to the user, and say which — an
 undeclared gated path is caught only by the diff tier, after the work
 was done without the design. `amend_document` is pending-only
 (unstamped `backlog`): splitting an approved work order means fresh
@@ -125,5 +126,5 @@ slices plus the user's own narrowing edit.
 - **`veri:decide`** — when beat 7 fired; the cut resumes with the id.
 - **`veri:define`** — intent that could not be cut into provable
   clauses.
-- **The `binds:` edit for every gated declaration** — same commit or
-  the user's hands; the closing report says which.
+- **The `binds:` and `verify:` edits for every declaration** — same
+  commit or the user's hands; the closing report says which.
