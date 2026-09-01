@@ -2,7 +2,7 @@
 id: WO-143
 type: work-order
 title: "Dispatch replaces ready — approve-and-start becomes one gesture"
-status: in-progress
+status: done
 claimed_by: fable-wo143
 claimed_at: 2026-09-01
 approved: 2026-09-01
@@ -48,12 +48,12 @@ SRC-066's audit: the ready state exists so a stamp can precede a claim, but the 
 
 ## Acceptance tests
 
-- [ ] The work-order schema has no ready status, and veri dispatch flips backlog to in-progress with stamp and claim in one write
-- [ ] MCP e2e proves no agent path can dispatch
-- [ ] A project holding an on-disk ready work order migrates cleanly and veri check passes after migration
-- [ ] stamped-backlog no longer exists or its replacement is tested against the new semantics
-- [ ] workflow.md rule 8 and the docs describe the single gesture; full suite green
+- [x] The work-order schema has no ready status, and veri dispatch flips backlog to in-progress with stamp and claim in one write
+- [x] MCP e2e proves no agent path can dispatch
+- [x] A project holding an on-disk ready work order migrates cleanly and veri check passes after migration
+- [x] stamped-backlog no longer exists or its replacement is tested against the new semantics
+- [x] workflow.md rule 8 and the docs describe the single gesture; full suite green
 
 ## Receipts
 
-(none yet)
+- 2026-09-01 — d624dce..587de5a — dispatch replaces ready (DEC-143): one gesture stamps and claims, format 5 migrates this repo's ready queue to stamped backlog, start_work_order retires; site/README/methods truth-sweep rides WO-148 (its named scope), receipt filed by direct append because the running MCP server refuses format 5 until restarted (DEC-139)
