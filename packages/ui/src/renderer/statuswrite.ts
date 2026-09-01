@@ -11,28 +11,19 @@ import { ipcErrorMessage } from './editlogic.ts';
  * the radiogroup's ↩/Space activation lands on the same button press a click
  * does.
  *
- * Entry gate (WO-103, DEC-096): `ready` is entered only by the user's stamp.
- * Exit gate (WO-111, SRC-051): leaving `ready` discards that stamp, so it is
- * refused symmetrically — a deliberate demotion is a git act, dispatch is
- * `veri start`, and no click writes out of `ready`.
+ * The `ready` segment and its entry/exit gates (WO-103, DEC-096; WO-111,
+ * SRC-051) retired with the state itself (DEC-143, WO-143): the lifecycle
+ * is backlog → in-progress → done, entered through the user's dispatch
+ * gesture. The rest of the control is the follow-up design pass's business.
  */
 export function segmentRefusal(current: string, target: string): string | null {
   if (target === current) return null;
-  // WO-110 (SRC-052): withdrawn is terminal — the ready exit-gate grammar
-  // extended to the second terminal state, so no click can resurrect a
+  // WO-110 (SRC-052): withdrawn is terminal — no click can resurrect a
   // withdrawn work order (git is the undo, DEC-002).
   if (current === 'withdrawn') {
     return 'a withdrawn work order is terminal — restoring it is a git edit, not a status click';
   }
-  if (target === 'ready') return 'ready is entered via veri approve — the stamp is the only path';
-  if (current !== 'ready') return null;
-  if (target === 'backlog') {
-    return 'leaving ready discards the approval stamp — a deliberate demotion is a file edit committed in git, not a click';
-  }
-  if (target === 'in-progress') {
-    return 'a ready work order is started with veri start <id> — the claim records who holds it, a click would not';
-  }
-  return 'a ready work order reaches done through veri start and a receipt — dispatch is veri start, not a status click';
+  return null;
 }
 
 /**

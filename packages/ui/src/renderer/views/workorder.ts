@@ -11,13 +11,12 @@ import { roveIndex, roveKey } from '../a11y.ts';
 import { segmentRefusal, writeStatus } from '../statuswrite.ts';
 import type { Ctx } from '../app.ts';
 
-/** `ready` renders but is never a click target (WO-103): it is entered only
-    by the user's stamp via `veri approve` (WO-098, DEC-096) — and left only
-    by a deliberate git act (WO-111, SRC-051). The refusal table for both
-    directions lives in segmentRefusal. */
+/** The `ready` segment retired with the state (DEC-143, WO-143): the
+    lifecycle is backlog → in-progress → done, and the door into in-progress
+    is the user's dispatch gesture. The refusal table lives in
+    segmentRefusal. */
 const STATUS_SEGMENTS: Array<{ status: string; label: string }> = [
   { status: 'backlog', label: 'backlog' },
-  { status: 'ready', label: 'ready' },
   { status: 'in-progress', label: 'in progress' },
   { status: 'done', label: 'done' },
 ];

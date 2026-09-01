@@ -1,52 +1,35 @@
-/** The status control's write policy (WO-111, SRC-051): leaving `ready` is
-    as deliberate as entering it, on both input paths, and no status write
-    fails silently. Pure — no DOM; the keyboard path is modeled through the
-    same rove helpers the radiogroup uses. */
+/** The status control's write policy (WO-111, SRC-051 — narrowed by
+    DEC-143/WO-143: the `ready` segment and its gates retired with the
+    state), and no status write fails silently. Pure — no DOM; the keyboard
+    path is modeled through the same rove helpers the radiogroup uses. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { segmentRefusal, writeStatus } from './statuswrite.ts';
 import { roveIndex, roveKey } from './a11y.ts';
 
-const SEGMENTS = ['backlog', 'ready', 'in-progress', 'done'];
+const SEGMENTS = ['backlog', 'in-progress', 'done'];
 
-test('click path: on a ready work order every other segment refuses with a reason', () => {
-  assert.match(segmentRefusal('ready', 'backlog')!, /discards the approval stamp/);
-  assert.match(segmentRefusal('ready', 'backlog')!, /git/);
-  assert.match(segmentRefusal('ready', 'in-progress')!, /veri start/);
-  assert.match(segmentRefusal('ready', 'done')!, /veri start/);
-  // The active segment itself is a no-op, not a refusal.
-  assert.equal(segmentRefusal('ready', 'ready'), null);
+test('the active segment itself is a no-op, not a refusal', () => {
+  for (const status of SEGMENTS) assert.equal(segmentRefusal(status, status), null);
 });
 
-test('keyboard path: on a ready work order, ← from the focused ready segment then Space refuses', () => {
-  // The radiogroup roves with the a11y helpers; on a ready work order the
-  // `ready` segment holds tabindex=0 and focus. ← moves to backlog, and
-  // Space is native button activation on that segment — the same handler a
-  // click reaches, deciding by the same table.
-  const focused = SEGMENTS.indexOf('ready');
-  const move = roveKey('ArrowLeft');
-  assert.equal(move, 'prev');
-  const landed = roveIndex(SEGMENTS.length, focused, move!);
-  assert.equal(SEGMENTS[landed], 'backlog');
-  assert.match(segmentRefusal('ready', SEGMENTS[landed]!)!, /discards the approval stamp/);
-  // → then Space is the in-progress demotion; wrapping further reaches done.
-  const right = roveIndex(SEGMENTS.length, focused, roveKey('ArrowRight')!);
-  assert.match(segmentRefusal('ready', SEGMENTS[right]!)!, /veri start/);
-});
-
-test('entry stays gated: ready is never a write target from any status (WO-103, DEC-096)', () => {
-  for (const from of ['backlog', 'in-progress', 'done']) {
-    assert.match(segmentRefusal(from, 'ready')!, /veri approve/);
-  }
-});
-
-test('ordinary transitions still write: nothing else is gated', () => {
+test('ordinary transitions still write: the lifecycle segments are ungated (DEC-143)', () => {
   assert.equal(segmentRefusal('backlog', 'in-progress'), null);
   assert.equal(segmentRefusal('backlog', 'done'), null);
   assert.equal(segmentRefusal('in-progress', 'done'), null);
   assert.equal(segmentRefusal('in-progress', 'backlog'), null);
   assert.equal(segmentRefusal('done', 'in-progress'), null);
   assert.equal(segmentRefusal('done', 'backlog'), null);
+});
+
+test('keyboard path: the radiogroup roves over the three lifecycle segments', () => {
+  // On an in-progress work order that segment holds tabindex=0 and focus;
+  // ← lands on backlog, → on done — the same handler a click reaches.
+  const focused = SEGMENTS.indexOf('in-progress');
+  const left = roveIndex(SEGMENTS.length, focused, roveKey('ArrowLeft')!);
+  assert.equal(SEGMENTS[left], 'backlog');
+  const right = roveIndex(SEGMENTS.length, focused, roveKey('ArrowRight')!);
+  assert.equal(SEGMENTS[right], 'done');
 });
 
 test('writeStatus: success runs done and never refused', async () => {
@@ -68,8 +51,8 @@ test('writeStatus: success runs done and never refused', async () => {
 });
 
 test('writeStatus: a refusal surfaces its reason instead of vanishing (WO-111)', async () => {
-  // The writable-status guard's exact shape: setStatus rejects, e.g. when a
-  // revert targets `ready`, which the UI may never write (write.ts).
+  // The writable-status guard's exact shape: setStatus rejects any status
+  // outside the lifecycle vocabulary (write.ts).
   let surfaced: string | null = null;
   await writeStatus(
     () => Promise.reject(new Error('"ready" is not a valid work-order status (expected backlog | in-progress | done)')),
@@ -100,7 +83,7 @@ test('writeStatus: IPC framing is stripped from the surfaced reason', async () =
 // ---- the withdrawn gate (WO-110, SRC-052) ----
 
 test('on a withdrawn work order every segment refuses — restoring is a git act', () => {
-  for (const target of ['backlog', 'ready', 'in-progress', 'done']) {
+  for (const target of SEGMENTS) {
     const refusal = segmentRefusal('withdrawn', target);
     assert.match(refusal!, /withdrawn work order is terminal/, `target ${target}`);
     assert.match(refusal!, /git/, `target ${target}`);
