@@ -10,7 +10,11 @@
 #
 #   version            integer, currently 1
 #   skills[]           the library's gates
-#     id               `veri:<name>` — must match SRC-060's fourteen skills
+#     id               `veri:<name>` — a skill a MET document under
+#                      veri/methods/ actually stands behind (WO-147: a case or
+#                      pair naming a phantom skill fails `veri skills eval`).
+#                      SRC-060 charts fourteen gates; the ones not yet written
+#                      enter here with their methods, not before
 #     tier             default | advanced (REQ-040 enumerates the nine defaults)
 #     gate             the gate this skill staffs, one line
 #   near_miss_pairs[]  the adjacent gates that actually need discriminating
@@ -31,6 +35,13 @@
 #                      neighbour (required on paired cases, used freely
 #                      elsewhere)
 #
+# RETIRED CASE IDS (WO-147) — never reuse; each returns with its method:
+#   TC-006, TC-042, TC-043 (veri:archaeology); TC-008, TC-035, TC-036
+#   (veri:user-discovery); TC-014, TC-015 (veri:approval-session); TC-022,
+#   TC-023 (veri:onboard). Their pairs (wayfinder-vs-archaeology,
+#   product-discovery-vs-user-discovery) retired with them. Case identity is
+#   what DEC-129's no-regression floor keys on, so a retired id stays spent.
+#
 # ROUTING PRINCIPLE (the one this corpus leans on most)
 #
 # A trigger description sees the utterance, not the project's state. Several
@@ -48,15 +59,9 @@ skills:
   - id: veri:wayfinder
     tier: default
     gate: "routing — which gate am I at?"
-  - id: veri:archaeology
-    tier: advanced
-    gate: "understanding the past"
   - id: veri:product-discovery
     tier: default
     gate: "idea to problem and bets"
-  - id: veri:user-discovery
-    tier: advanced
-    gate: "who is this for, really"
   - id: veri:evidence-intake
     tier: default
     gate: "reality through the evidence door"
@@ -66,9 +71,6 @@ skills:
   - id: veri:decide
     tier: default
     gate: "choosing tradeoffs"
-  - id: veri:approval-session
-    tier: advanced
-    gate: "the stamp itself"
   - id: veri:plan-work
     tier: default
     gate: "intent to bounded work"
@@ -84,9 +86,6 @@ skills:
   - id: veri:health
     tier: default
     gate: "trust in the record over time"
-  - id: veri:onboard
-    tier: advanced
-    gate: "bringing newcomers inside the loop"
 
 near_miss_pairs:
   - id: define-vs-decide
@@ -107,15 +106,6 @@ near_miss_pairs:
       bounded work order exists: "build X" with no work order behind it is
       plan-work's, because WF-001 rule 1 forbids implement from coding out of a
       chat prompt.
-  - id: product-discovery-vs-user-discovery
-    skills: [veri:product-discovery, veri:user-discovery]
-    boundary: >-
-      product-discovery frames the problem, the direction, the non-goals and
-      the first bets when there is no brief to argue with. user-discovery runs
-      after that, or when the brief cannot name a user concretely: it
-      interrogates who the user is and separates observed from assumed. If the
-      thing in doubt is what the product is for, it is product-discovery; if
-      the thing in doubt is who it is for, it is user-discovery.
   - id: did-it-work-vs-review
     skills: [veri:did-it-work, veri:review]
     boundary: >-
@@ -125,16 +115,6 @@ near_miss_pairs:
       the outcome it bet on, measured against the hypothesis's declared metric,
       and runs after shipping. Fidelity to the record versus reality's answer to
       the record.
-  - id: wayfinder-vs-archaeology
-    skills: [veri:wayfinder, veri:archaeology]
-    boundary: >-
-      archaeology fires when the utterance asks for the recorded rationale or
-      its authorship — who decided, what was rejected, why this over that — and
-      names an artifact concrete enough to walk backwards from. wayfinder fires
-      when a why-question is an entry point rather than a request for history:
-      no named target, or a user signalling they do not yet know what they are
-      asking about. SRC-060 puts "why is search built this way?" on the
-      wayfinder side by its own example, which is where this line was drawn from.
 
 cases:
   # --- Front door: the four utterances REQ-040 names by example -------------
@@ -166,11 +146,9 @@ cases:
     utterance: "Why did we build this this way?"
     expect: veri:wayfinder
     kind: front-door
-    pair: wayfinder-vs-archaeology
     rationale: >-
       The deictic "this" names no artifact, so there is nothing to walk
-      backwards from. Archaeology needs a target before it can cite anything;
-      wayfinder gets the target named and then routes.
+      backwards from. Wayfinder gets the target named and then routes.
 
   # --- Coverage: every gate answers at least one utterance ------------------
   - id: TC-005
@@ -180,13 +158,6 @@ cases:
     rationale: >-
       Session start with no claimed work order and an explicit statement of
       disorientation — the front door's own invoke-when.
-  - id: TC-006
-    utterance: "Walk me back from the retry code in the uploader to whatever requirement asked for it."
-    expect: veri:archaeology
-    kind: coverage
-    rationale: >-
-      Asks for the backwards walk archaeology owns: implementation to receipt
-      to work order to decision to requirement.
   - id: TC-007
     utterance: "We are pivoting — the team-collaboration angle is not landing and I want to restart from the solo user's problem."
     expect: veri:product-discovery
@@ -194,13 +165,6 @@ cases:
     rationale: >-
       A pivot is product-discovery's named trigger: the problem and the bets
       are being reopened, not the requirements written against the old ones.
-  - id: TC-008
-    utterance: "Before I build approvals I want to know what people do today instead, and which of our claims about them we have actually observed."
-    expect: veri:user-discovery
-    kind: coverage
-    rationale: >-
-      Jobs-to-be-done plus the known-versus-assumed split, which is the exact
-      discipline user-discovery's user model enforces.
   - id: TC-009
     utterance: "Here is a support thread where three customers hit the same import failure — get it on the record against whatever it bears on."
     expect: veri:evidence-intake
@@ -236,20 +200,6 @@ cases:
     rationale: >-
       An active decision being questioned routes to decide for supersession —
       never a silent edit of the existing one.
-  - id: TC-014
-    utterance: "What is waiting on me?"
-    expect: veri:approval-session
-    kind: coverage
-    rationale: >-
-      The stamp queue, verbatim from approval-session's card. Wayfinder shows
-      where you are; this asks specifically for what needs a verdict.
-  - id: TC-015
-    utterance: "I have twenty minutes — walk me through everything that needs my stamp before we plan the next batch."
-    expect: veri:approval-session
-    kind: coverage
-    rationale: >-
-      End-of-batch promotion pass, with plan-work named as the thing it
-      unblocks — approval-session's own handoff.
   - id: TC-016
     utterance: "The backlog is empty but REQ-039 and REQ-041 are both accepted — turn them into work."
     expect: veri:plan-work
@@ -293,21 +243,6 @@ cases:
       line MET-009 draws: an arrived revisit condition is judgment no rule
       computes, while an abandoned claim already has a stale-claim advisory —
       what health adds there is triage, not detection.
-  - id: TC-022
-    utterance: "A new engineer starts Monday — get them up to speed on how this project actually works."
-    expect: veri:onboard
-    kind: coverage
-    rationale: >-
-      A newcomer needing the guided tour built from the record, including the
-      gates, before any tool.
-  - id: TC-023
-    utterance: "I have configured a new agent on this repo; give it the tour before it touches anything."
-    expect: veri:onboard
-    kind: coverage
-    rationale: >-
-      Onboard's card names a newly configured agent alongside a new person; the
-      read-only tour is the same act.
-
   # --- Near miss: define versus decide --------------------------------------
   - id: TC-024
     utterance: "Every uploaded file has to be virus-scanned before anyone can download it, and that has to stay true."
@@ -388,12 +323,11 @@ cases:
       Resuming an existing claim — implement's second named trigger. Planning
       is finished; the lines are already drawn.
 
-  # --- Near miss: product-discovery versus user-discovery --------------------
+  # --- Coverage: product-discovery beyond the pivot --------------------------
   - id: TC-033
     utterance: "I have an idea for a tool that helps freelance designers chase unpaid invoices — nothing is written down yet."
     expect: veri:product-discovery
     kind: coverage
-    pair: product-discovery-vs-user-discovery
     rationale: >-
       Carries enough content for the discovery interview to open on, and names
       an empty record. A user is mentioned in passing, but what is undefined is
@@ -402,28 +336,9 @@ cases:
     utterance: "Nobody is using the free tier and I do not think we ever defined the problem it solves."
     expect: veri:product-discovery
     kind: coverage
-    pair: product-discovery-vs-user-discovery
     rationale: >-
       The gap named is a missing problem statement, not a fuzzy user. The brief
       with its non-goals and first bets is what is absent.
-  - id: TC-035
-    utterance: "We keep writing 'small teams' into every requirement and I could not tell you who that actually is."
-    expect: veri:user-discovery
-    kind: coverage
-    pair: product-discovery-vs-user-discovery
-    rationale: >-
-      Product-discovery ran and could not name a user concretely, which is
-      user-discovery's first named trigger. The problem is not in doubt; the
-      segment is.
-  - id: TC-036
-    utterance: "The brief says our user is an ops lead, but the interviews we filed last month contradict that."
-    expect: veri:user-discovery
-    kind: coverage
-    pair: product-discovery-vs-user-discovery
-    rationale: >-
-      Evidence contradicting the current user model. The evidence is already
-      filed, so this is not intake; what needs rebuilding is the user model,
-      with each claim tagged observed or assumed.
 
   # --- Near miss: did-it-work versus review ---------------------------------
   - id: TC-037
@@ -460,32 +375,15 @@ cases:
       Distrusts the ticks, not the bet. Criteria genuinely met versus merely
       checked is the distinction review is built on.
 
-  # --- Near miss: wayfinder versus archaeology ------------------------------
+  # --- Coverage: the vague why-question stays at the front door ---------------
   - id: TC-041
     utterance: "Why is search built this way?"
     expect: veri:wayfinder
     kind: coverage
-    pair: wayfinder-vs-archaeology
     rationale: >-
       SRC-060's wayfinder card lists this utterance verbatim as vague. It asks
       about present shape rather than for the recorded rationale, and names an
       area rather than an artifact to walk back from.
-  - id: TC-042
-    utterance: "Why does the importer normalise dates in two places, and who decided that?"
-    expect: veri:archaeology
-    kind: coverage
-    pair: wayfinder-vs-archaeology
-    rationale: >-
-      Names a concrete artifact and asks who decided — a request for the record
-      with a target to walk backwards from.
-  - id: TC-043
-    utterance: "What alternatives did we reject when we picked the file-based store?"
-    expect: veri:archaeology
-    kind: coverage
-    pair: wayfinder-vs-archaeology
-    rationale: >-
-      Asks for a decision's rejected alternatives, which archaeology reads
-      straight out of the DEC. Wayfinder would only route this.
 
   # --- Negative set: nothing should fire ------------------------------------
   - id: TC-044

@@ -4,9 +4,13 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
   casesForSkill,
+  checkCorpusIntegrity,
   checkTriggerCorpus,
+  judgeInputFor,
   normalizeUtterance,
+  parseJudgeAnswer,
   parseTriggerCorpus,
+  scoreTriggerEval,
 } from './skill-corpus.ts';
 
 /** The committed corpus this repository ships (WO-130). Read from the repo
@@ -15,23 +19,24 @@ import {
 const CORPUS_PATH = fileURLToPath(new URL('../../../skills/trigger-corpus.yaml', import.meta.url));
 const corpus = parseTriggerCorpus(readFileSync(CORPUS_PATH, 'utf8'));
 
-/** SRC-060's fourteen skills, named here so dropping one from the corpus
-    fails rather than silently shrinking what the library claims to staff. */
-const SRC_060_SKILLS = [
+/** The skills a MET document actually stands behind (WO-147): SRC-060 charts
+    fourteen gates, but the corpus only declares the ones written — REQ-040's
+    nine defaults plus the advanced review gate (WO-146). Named here so
+    dropping a written gate from the corpus fails rather than silently
+    shrinking what the library claims to staff; the unwritten four enter with
+    their methods. skills.test.ts in the CLI holds this list to the shipped
+    method files themselves. */
+const BACKED_SKILLS = [
   'veri:wayfinder',
-  'veri:archaeology',
   'veri:product-discovery',
-  'veri:user-discovery',
   'veri:evidence-intake',
   'veri:define',
   'veri:decide',
-  'veri:approval-session',
   'veri:plan-work',
   'veri:implement',
   'veri:did-it-work',
   'veri:review',
   'veri:health',
-  'veri:onboard',
 ];
 
 /** REQ-040's nine defaults; SRC-060's editorial note is explicit that the
@@ -48,14 +53,14 @@ const REQ_040_DEFAULTS = [
   'veri:health',
 ];
 
-/** The five adjacent gates WO-130 names as the ones that actually need
-    discriminating. */
+/** The adjacent gates that need discriminating among the methods actually
+    written. WO-130 named five; the two whose far side has no MET document
+    (wayfinder-vs-archaeology, product-discovery-vs-user-discovery) retired
+    with their phantom skills under WO-147 and return with the methods. */
 const NAMED_PAIRS = [
   'define-vs-decide',
   'plan-work-vs-implement',
-  'product-discovery-vs-user-discovery',
   'did-it-work-vs-review',
-  'wayfinder-vs-archaeology',
 ];
 
 /** The vague front-door utterances REQ-040 names by example. */
@@ -97,13 +102,14 @@ test('case ids are unique', () => {
   assert.equal(new Set(ids).size, ids.length);
 });
 
-test("SRC-060's fourteen skills are declared, tiered, and covered", () => {
-  assert.deepEqual([...corpus.skills.map((skill) => skill.id)].sort(), [...SRC_060_SKILLS].sort());
+test('every backed skill is declared, tiered, and covered — and no phantom is declared (WO-147)', () => {
+  assert.deepEqual([...corpus.skills.map((skill) => skill.id)].sort(), [...BACKED_SKILLS].sort());
   const defaults = corpus.skills.filter((skill) => skill.tier === 'default').map((skill) => skill.id);
   assert.deepEqual(defaults.sort(), [...REQ_040_DEFAULTS].sort());
-  for (const id of SRC_060_SKILLS) {
+  for (const id of BACKED_SKILLS) {
     assert.ok(casesForSkill(corpus, id).length > 0, `no utterance expects ${id}`);
   }
+  assert.deepEqual(checkCorpusIntegrity(corpus, BACKED_SKILLS), []);
 });
 
 test('each named near-miss pair has a case on both sides, each with a rationale', () => {
@@ -196,4 +202,118 @@ test('parseTriggerCorpus refuses malformed corpora', () => {
     () => parseTriggerCorpus('version: 1\nskills:\n  - id: define\n    tier: default\n    gate: g\nnear_miss_pairs: []\ncases: []\n'),
     /skill id/,
   );
+});
+
+// --- Referential integrity (WO-147) ------------------------------------------
+
+/** A corpus that is internally sound but leans on veri:ghost, which no MET
+    document stands behind. */
+const HAUNTED = {
+  version: 1 as const,
+  skills: [
+    { id: 'veri:define', tier: 'default' as const, gate: 'requirements' },
+    { id: 'veri:ghost', tier: 'advanced' as const, gate: 'the beyond' },
+  ],
+  near_miss_pairs: [
+    { id: 'define-vs-ghost', skills: ['veri:define', 'veri:ghost'] as [string, string], boundary: 'b' },
+  ],
+  cases: [
+    { id: 'TC-001', utterance: 'a want', expect: 'veri:define', kind: 'coverage' as const, pair: 'define-vs-ghost', rationale: 'r' },
+    { id: 'TC-002', utterance: 'a haunting', expect: 'veri:ghost', kind: 'coverage' as const, pair: 'define-vs-ghost', rationale: 'r' },
+    { id: 'TC-003', utterance: 'run the tests', expect: 'none', kind: 'negative' as const },
+  ],
+};
+
+test('a corpus case naming a skill with no MET document fails integrity loudly', () => {
+  assert.deepEqual(checkCorpusIntegrity(HAUNTED, ['veri:define']), [
+    'skill veri:ghost is declared but no method document stands behind it — the corpus grades trigger descriptions, and this skill has none to grade',
+    'near-miss pair define-vs-ghost discriminates against veri:ghost, which has no method document',
+    'TC-002 expects veri:ghost, which has no method document',
+  ]);
+});
+
+test('a fully backed corpus passes integrity, and negatives never need backing', () => {
+  assert.deepEqual(checkCorpusIntegrity(HAUNTED, ['veri:define', 'veri:ghost']), []);
+  const negativesOnly = {
+    ...HAUNTED,
+    skills: [HAUNTED.skills[0]!],
+    near_miss_pairs: [],
+    cases: [HAUNTED.cases[0]!, HAUNTED.cases[2]!],
+  };
+  assert.deepEqual(checkCorpusIntegrity(negativesOnly, ['veri:define']), []);
+});
+
+// --- The judged run's pure half (WO-147) --------------------------------------
+
+const LINEUP = [
+  { id: 'veri:define', description: 'Interviews a want into a requirement.' },
+  { id: 'veri:decide', description: 'Files the fork with its rejected paths.' },
+];
+
+test('judgeInputFor states the whole contract input as one JSON object', () => {
+  const input = JSON.parse(judgeInputFor(LINEUP, 'a want')) as { utterance: string; skills: typeof LINEUP };
+  assert.equal(input.utterance, 'a want');
+  assert.deepEqual(input.skills, LINEUP);
+});
+
+test('parseJudgeAnswer takes the last non-empty line and holds the contract', () => {
+  assert.deepEqual(parseJudgeAnswer('veri:define\n', LINEUP), { answer: 'veri:define' });
+  assert.deepEqual(parseJudgeAnswer('thinking aloud…\n  none  \n\n', LINEUP), { answer: 'none' });
+  const empty = parseJudgeAnswer('  \n\n', LINEUP);
+  assert.match('error' in empty ? empty.error : '', /printed nothing/);
+  const outside = parseJudgeAnswer('veri:ghost', LINEUP);
+  assert.match('error' in outside ? outside.error : '', /neither `none` nor a skill in the lineup/);
+});
+
+test('scoreTriggerEval reports per-case results, the false-trigger count, and the floor', () => {
+  const sound = {
+    version: 1 as const,
+    skills: [
+      { id: 'veri:define', tier: 'default' as const, gate: 'requirements' },
+      { id: 'veri:decide', tier: 'default' as const, gate: 'tradeoffs' },
+    ],
+    near_miss_pairs: [{ id: 'define-vs-decide', skills: ['veri:define', 'veri:decide'] as [string, string], boundary: 'b' }],
+    cases: [
+      { id: 'TC-001', utterance: 'a want', expect: 'veri:define', kind: 'coverage' as const, pair: 'define-vs-decide', rationale: 'r' },
+      { id: 'TC-002', utterance: 'a fork', expect: 'veri:decide', kind: 'coverage' as const, pair: 'define-vs-decide', rationale: 'r' },
+      { id: 'TC-003', utterance: 'run the tests', expect: 'none', kind: 'negative' as const },
+      { id: 'TC-004', utterance: 'git stash', expect: 'none', kind: 'negative' as const },
+    ],
+  };
+
+  const clean = scoreTriggerEval(
+    sound,
+    new Map([
+      ['TC-001', { answer: 'veri:define' }],
+      ['TC-002', { answer: 'veri:decide' }],
+      ['TC-003', { answer: 'none' }],
+      ['TC-004', { answer: 'none' }],
+    ]),
+  );
+  assert.equal(clean.ok, true);
+  assert.deepEqual(
+    { passed: clean.passed, failed: clean.failed, errors: clean.errors, negatives: clean.negatives, falseTriggers: clean.falseTriggers },
+    { passed: 4, failed: 0, errors: 0, negatives: 2, falseTriggers: 0 },
+  );
+
+  // A misroute, a false trigger, and a case nobody judged — each its own kind
+  // of failure, all three loud, none of them ok.
+  const broken = scoreTriggerEval(
+    sound,
+    new Map([
+      ['TC-001', { answer: 'none' }],
+      ['TC-002', { answer: 'veri:decide' }],
+      ['TC-003', { answer: 'veri:define' }],
+    ]),
+  );
+  assert.equal(broken.ok, false);
+  assert.equal(broken.passed, 1);
+  assert.equal(broken.failed, 3);
+  assert.equal(broken.errors, 1);
+  assert.equal(broken.falseTriggers, 1);
+  const byId = new Map(broken.results.map((entry) => [entry.id, entry]));
+  assert.equal(byId.get('TC-001')?.pass, false);
+  assert.equal(byId.get('TC-001')?.falseTrigger, false);
+  assert.equal(byId.get('TC-003')?.falseTrigger, true);
+  assert.match(byId.get('TC-004')?.error ?? '', /no verdict was collected/);
 });

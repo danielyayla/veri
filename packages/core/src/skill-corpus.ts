@@ -171,3 +171,145 @@ export function checkTriggerCorpus(corpus: TriggerCorpus): string[] {
 
   return problems;
 }
+
+// --- Referential integrity against the method library (WO-147) ---------------
+
+/**
+ * The corpus against the skills that actually exist: every declared skill,
+ * every near-miss pair side, and every case expectation must name a skill
+ * with a MET document standing behind it. A corpus entry pointing at a
+ * phantom skill is a hard failure, not a style problem — it grades trigger
+ * descriptions that no method emits, so its pass/fail says nothing.
+ *
+ * Pure over the corpus plus the backing set; who counts as backed is the
+ * caller's fact to collect (`methodTriggerLineup` derives it from loaded
+ * documents). Empty when the corpus is fully backed.
+ */
+export function checkCorpusIntegrity(corpus: TriggerCorpus, backedSkillIds: Iterable<string>): string[] {
+  const backed = new Set(backedSkillIds);
+  const problems: string[] = [];
+  for (const skill of corpus.skills) {
+    if (!backed.has(skill.id)) {
+      problems.push(`skill ${skill.id} is declared but no method document stands behind it — the corpus grades trigger descriptions, and this skill has none to grade`);
+    }
+  }
+  for (const pair of corpus.near_miss_pairs) {
+    for (const skill of pair.skills) {
+      if (!backed.has(skill)) problems.push(`near-miss pair ${pair.id} discriminates against ${skill}, which has no method document`);
+    }
+  }
+  for (const entry of corpus.cases) {
+    if (entry.expect !== NO_SKILL && !backed.has(entry.expect)) {
+      problems.push(`${entry.id} expects ${entry.expect}, which has no method document`);
+    }
+  }
+  return problems;
+}
+
+// --- The judged run's pure half (WO-147, DEC-129) ----------------------------
+
+/** One skill as the judge sees it: the id and the trigger description the
+    emitter would put in its shell. The lineup is the whole context a judge
+    gets — a trigger description sees the utterance, never the project. */
+export interface TriggerSkill {
+  id: string;
+  description: string;
+}
+
+/**
+ * The judge contract's input: one JSON object per case on the judge's stdin —
+ * `{ utterance, skills: [{ id, description }, …] }`. The judge answers with
+ * the id of the one skill whose description should fire, or `none`, on
+ * stdout. Defined here so the runner, the tests, and any replacement judge
+ * read one statement of the shape.
+ */
+export function judgeInputFor(skills: TriggerSkill[], utterance: string): string {
+  return JSON.stringify({ utterance, skills });
+}
+
+/** What a judge invocation produced: a verdict inside the contract, or the
+    reason it was outside it. An error is never a pass and never a false
+    trigger — it fails the run loudly as its own thing. */
+export type JudgeAnswer = { answer: string } | { error: string };
+
+/**
+ * Read a judge's stdout against the contract. The verdict is the last
+ * non-empty line — a judge that reasons aloud before answering stays inside
+ * the contract — and it must be `none` or a skill id in the lineup; anything
+ * else is a contract violation, reported verbatim rather than coerced.
+ */
+export function parseJudgeAnswer(stdout: string, skills: TriggerSkill[]): JudgeAnswer {
+  const lines = stdout
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line !== '');
+  const verdict = lines.at(-1);
+  if (verdict === undefined) return { error: 'the judge printed nothing — the contract is one line: a skill id from the lineup, or `none`' };
+  if (verdict === NO_SKILL || skills.some((skill) => skill.id === verdict)) return { answer: verdict };
+  return { error: `the judge answered "${verdict}", which is neither \`none\` nor a skill in the lineup` };
+}
+
+/** One case, judged. */
+export interface TriggerEvalCaseResult {
+  id: string;
+  utterance: string;
+  kind: TriggerCase['kind'];
+  expect: string;
+  /** The judge's verdict, when there was one inside the contract. */
+  answer?: string;
+  /** Why there was no verdict, when there was not. */
+  error?: string;
+  pass: boolean;
+  /** A negative case the judge routed somewhere — the failure DEC-129 weights
+      above every other, because it is the one that gets a library uninstalled. */
+  falseTrigger: boolean;
+}
+
+export interface TriggerEvalReport {
+  results: TriggerEvalCaseResult[];
+  passed: number;
+  failed: number;
+  /** Judge invocations that produced no verdict inside the contract. */
+  errors: number;
+  negatives: number;
+  falseTriggers: number;
+  /**
+   * DEC-129's floor, mechanical: every committed case keeps passing. The
+   * corpus is the known-good artifact — there is no score to slip against and
+   * no side file of tolerated failures, so "no regression" means exactly
+   * this, and zero false triggers on the negative set is its hardest subset.
+   */
+  ok: boolean;
+}
+
+/** Score collected verdicts against the corpus. A case nobody judged is an
+    error, never a silent skip — a floor with holes in it holds nothing. */
+export function scoreTriggerEval(corpus: TriggerCorpus, answers: ReadonlyMap<string, JudgeAnswer>): TriggerEvalReport {
+  const results: TriggerEvalCaseResult[] = corpus.cases.map((entry) => {
+    const judged = answers.get(entry.id) ?? { error: 'no verdict was collected for this case' };
+    if ('error' in judged) {
+      return { id: entry.id, utterance: entry.utterance, kind: entry.kind, expect: entry.expect, error: judged.error, pass: false, falseTrigger: false };
+    }
+    const pass = judged.answer === entry.expect;
+    return {
+      id: entry.id,
+      utterance: entry.utterance,
+      kind: entry.kind,
+      expect: entry.expect,
+      answer: judged.answer,
+      pass,
+      falseTrigger: entry.expect === NO_SKILL && judged.answer !== NO_SKILL,
+    };
+  });
+  const passed = results.filter((entry) => entry.pass).length;
+  const errors = results.filter((entry) => entry.error !== undefined).length;
+  return {
+    results,
+    passed,
+    failed: results.length - passed,
+    errors,
+    negatives: results.filter((entry) => entry.expect === NO_SKILL).length,
+    falseTriggers: results.filter((entry) => entry.falseTrigger).length,
+    ok: passed === results.length,
+  };
+}

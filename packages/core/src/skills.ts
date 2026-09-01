@@ -1,5 +1,6 @@
 import { slugifyTitle } from './create.ts';
 import { AMENDMENTS_DIR } from './pending.ts';
+import type { TriggerSkill } from './skill-corpus.ts';
 import type { Advisory, VeriDocument } from './types.ts';
 
 /**
@@ -105,6 +106,24 @@ export function isDefaultTier(doc: VeriDocument): boolean {
     `accepted`, so a draft can never trigger before it has been read. */
 export function isEmittable(doc: VeriDocument): boolean {
   return doc.type === 'method' && doc.status === 'accepted';
+}
+
+/**
+ * The trigger lineup (WO-147): every method document present, as the judge
+ * sees it — `veri:<slug>` plus the description its shell would carry.
+ *
+ * Existence of the MET document is the whole bar, status deliberately not
+ * consulted: WO-147's integrity floor is "a skill whose MET document exists",
+ * and the corpus is allowed to cover a draft gate (WO-146 committed cases for
+ * the draft veri:review) — a lineup narrowed to `accepted` would flunk a
+ * corpus the same repository ships. The ids double as the backing set
+ * `checkCorpusIntegrity` validates against, so the two floors cannot drift.
+ */
+export function methodTriggerLineup(documents: VeriDocument[]): TriggerSkill[] {
+  return documents
+    .filter((doc) => doc.type === 'method')
+    .map((doc) => ({ id: `${SKILL_PREFIX}:${methodSlug(doc)}`, description: doc.description ?? '' }))
+    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
 
 /** One emitted shell: where it goes, and exactly what belongs in it. */
