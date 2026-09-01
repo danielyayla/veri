@@ -2,7 +2,8 @@
 id: DEC-148
 type: decision
 title: "Dispatch spends an existing stamp — migration sends ready to backlog and never re-dates a judgment"
-status: proposed
+status: active
+approved: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
 links:

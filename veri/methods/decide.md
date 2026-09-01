@@ -3,7 +3,7 @@ id: MET-006
 type: method
 title: "veri:decide — the fork made on purpose and on record"
 status: accepted
-approved: 2026-08-28
+approved: 2026-09-01
 description: >-
   The gate where two or more real ways forward with different sacrifices become one proposed decision carrying the paths that lost. Use it when the choice is the live thing: "should we scan uploads inline on the request, or queue them to a worker?", "we already agreed uploads must be scanned, now it is a Postgres queue versus SQS", "DEC-062 says advisory by default and I now think that is wrong, I want to revisit it". It forces at least two alternatives that could genuinely have been chosen, pressure-tests each against the requirements it strains, and files the choice as proposed with its revisit conditions and rejection reasons. Not for a wanted property with no alternatives on the table: "every uploaded file has to be virus-scanned before anyone can download it, and that has to stay true", "I want search results to feel faster" are veri:define's, because what is missing is a requirement, not a choice. Not for a chore with only one way to do it — "bump zod to the latest 3.x and fix whatever breaks", "reformat this file and sort the imports".
 requires: [file_decision, search, get_neighbors, get_document]

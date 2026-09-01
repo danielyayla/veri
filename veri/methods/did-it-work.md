@@ -3,7 +3,7 @@ id: MET-008
 type: method
 title: "veri:did-it-work — three questions the receipt did not answer"
 status: accepted
-approved: 2026-08-28
+approved: 2026-09-01
 description: >-
   The learning gate: after the work orders ship, the questions a receipt cannot answer. Use it when the shipping is finished and the verdict is not: "did the caching work actually move p95 latency to the target REQ-028 declared?", "we shipped the onboarding rewrite six weeks ago — did it actually help activation?", "all of REQ-035's work orders are done, was the bet right or do we retire it?". It keeps three questions apart — criteria met, constraints still holding, and what the declared metric did against its target — reaches one of four verdicts including inconclusive, and files reality's answer as an outcome source linked to the bet and to the work that shipped, without applying it to the requirement. Not for checking code against its spec before anything ships: "go through the diff on the wo-118 branch against its work order before I mark it done", "WO-124's acceptance criteria are all ticked — check whether we actually did what we said" are veri:review's, because nothing has shipped and there is no outcome yet to measure. Not for "thanks, that worked" or "summarise what you just changed".
 requires: [file_source, get_document, get_neighbors, get_receipts, run_check]

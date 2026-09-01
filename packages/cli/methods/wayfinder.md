@@ -3,7 +3,7 @@ id: MET-002
 type: method
 title: "veri:wayfinder — the front door that routes into a gate"
 status: accepted
-approved: 2026-08-28
+approved: 2026-09-01
 description: >-
   Routes an utterance to the gate it belongs to — the front door, standing before every gate rather than at one. Use it when a session opens with a want and no document: "I have an idea for a product", "what should I work on next?", "I need to change something in this codebase", "why is search built this way?". It asks one triage question, then stops asking and shows — the current intent, the queue awaiting dispatch and who holds what, the subgraph around whatever was named, what is approved versus still pending — and hands over to the gate that owns it with the ids already gathered. Not for a question that already names its target and asks for the record: "why does the importer normalise dates in two places, and who decided that?", "what alternatives did we reject when we picked the file-based store?" — those walk the record backwards from a named artifact, no triage needed. Not for ordinary work — "where is the retry logic for the upload queue?", "run the test suite", "good morning" — where no gate is in question at all.
 requires: [get_intent, get_queue, list_documents, search, get_neighbors, run_check]

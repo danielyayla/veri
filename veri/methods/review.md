@@ -2,7 +2,8 @@
 id: MET-010
 type: method
 title: "veri:review — spec fidelity of the diff, read against the work order before done"
-status: draft
+status: accepted
+approved: 2026-09-01
 description: >-
   The pre-done gate: the branch diff read against the work order that
   produced it, by a session that did not write it. Use it before done:

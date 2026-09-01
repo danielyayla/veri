@@ -2,7 +2,8 @@
 id: DEC-149
 type: decision
 title: "A receipt evidences a verify run by quoting the command or a verif- wordform"
-status: proposed
+status: active
+approved: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
 links:

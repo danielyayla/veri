@@ -3,7 +3,7 @@ id: MET-009
 type: method
 title: "veri:health — the periodic sweep for decay the check cannot see"
 status: accepted
-approved: 2026-08-28
+approved: 2026-09-01
 description: >-
   The periodic inspection: the decay `veri check`'s hard rules cannot catch, swept and filed so two sweeps months apart compare. Use it when the question is the record's condition rather than its content: "how healthy is this project? anything rotting?", "it has been a quarter — sweep the record for decisions whose revisit conditions have arrived and claims nobody ever finished", "tell me what we left behind after three hard weeks". It reports first and triaged — stale documents, arrived revisit conditions, abandoned claims, untested bets, orphans, the age of your stamp queue — then asks only which you want to act on, and files a health-report source with a fixed shape so the next sweep is a comparison, not a fresh impression. It proposes; it repairs nothing. Not for running the stamp queue itself: "what is waiting on me?", "walk me through everything that needs my stamp before we plan the next batch" — that is an approval pass you run yourself, `veri approve` or the app's review queue, document by document. Not for "run the test suite", "why is this test flaky?", "the CI matrix is failing on Node 18 — fix it".
 requires: [run_check, list_documents, get_queue, get_receipts, file_source]

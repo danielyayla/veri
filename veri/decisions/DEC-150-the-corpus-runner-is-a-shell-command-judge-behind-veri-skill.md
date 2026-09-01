@@ -2,7 +2,8 @@
 id: DEC-150
 type: decision
 title: "The corpus runner is a shell-command judge behind veri skills eval, and the committed corpus is its own baseline"
-status: proposed
+status: active
+approved: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
 links:

@@ -3,7 +3,7 @@ id: MET-004
 type: method
 title: "veri:evidence-intake — the evidence door, staffed"
 status: accepted
-approved: 2026-08-28
+approved: 2026-09-01
 description: >-
   Staffs the evidence door: takes material arriving from outside — user feedback, metrics, a support ticket, a competitor move, an incident, research findings — and files it as a source linked to what it bears on, so it lands on the graph instead of in a drawer. Use it when something external is pointed at the record: "here is a support thread where three customers hit the same import failure, get it on the record against whatever it bears on", "last month's activation numbers came back for the onboarding release, file them", "a competitor just shipped the thing REQ-021 bets against, where does that go?". It files the material faithfully, with tests, supports or refutes links to the requirements and outcome-of links to the shipping work orders, and leaves what it means to you. Not for judging a bet whose evidence is already in: "did the caching work actually move p95 latency to the target REQ-028 declared?", "all of REQ-035's work orders are done, was the bet right or do we retire it?" are veri:did-it-work's, which needs the filing first. Not for "thanks, that worked", or anything carrying no observation.
 requires: [file_source, search, get_neighbors, get_import_instructions, run_check]

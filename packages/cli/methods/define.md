@@ -3,7 +3,7 @@ id: MET-005
 type: method
 title: "veri:define — interviewing intent into a requirement worth approving"
 status: accepted
-approved: 2026-08-28
+approved: 2026-09-01
 description: >-
   Interrogates a want until the requirement writes itself — the gate between a rough want and a requirement worth approving, correctly typed and carrying criteria a machine could check. Use it when a property is wanted and no alternatives are on the table: "turn the export idea into a requirement with acceptance criteria I can actually check", "every uploaded file has to be virus-scanned before anyone can download it, and that has to stay true", "I want search results to feel faster, I think it would cut bounce on the results page". It pushes on every vague word until the criteria are observable, or until the thing is admitted to be a bet with a metric and a target. Not for a choice between named options: "should we scan uploads inline on the request, or queue them to a worker?", "we already agreed uploads must be scanned, now it is a Postgres queue versus SQS" are veri:decide's, because what is open is which way to satisfy something already wanted. Not for ordinary work inside existing intent — "add a null check to parseDate", "write a unit test for globToRegExp".
 requires: [file_requirement, amend_document, search, get_neighbors, get_intent]

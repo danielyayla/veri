@@ -2,7 +2,8 @@
 id: DEC-147
 type: decision
 title: "The combined file-and-approve act composes once behind shared gates; sources acknowledge --approve with a notice"
-status: proposed
+status: active
+approved: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
 links:

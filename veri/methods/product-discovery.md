@@ -3,7 +3,7 @@ id: MET-003
 type: method
 title: "veri:product-discovery — idea to problem, direction and first bets"
 status: accepted
-approved: 2026-08-28
+approved: 2026-09-01
 description: >-
   Turns a vague idea into a defined problem, a direction, non-goals and the first named bets — the gate an empty or reopened record passes through before anything can be required of it. Use it when the utterance carries enough to argue with: "I have an idea for a tool that helps freelance designers chase unpaid invoices, nothing is written down yet", "we are pivoting, the team-collaboration angle is not landing and I want to restart from the solo user's problem", "nobody is using the free tier and we never defined the problem it solves". It interviews Socratically, one question at a time, then files a product-brief source and one draft requirement per foundational bet. Not for a record whose problem is settled and whose user is the thing in doubt: "we keep writing 'small teams' into every requirement and I could not tell you who that actually is" wants a user-research pass, not this interview, because what is undefined is who rather than what. Not for a bare "I have an idea" carrying nothing — that is veri:wayfinder's triage — nor for chores like "bump zod to the latest 3.x".
 requires: [file_source, file_requirement, get_intent]

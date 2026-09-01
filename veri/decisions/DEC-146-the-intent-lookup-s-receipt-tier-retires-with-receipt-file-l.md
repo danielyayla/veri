@@ -2,7 +2,8 @@
 id: DEC-146
 type: decision
 title: "The intent lookup's receipt tier retires with receipt file lists — bindings and the module registry remain"
-status: proposed
+status: active
+approved: 2026-09-01
 created: 2026-09-01
 updated: 2026-09-01
 links:
