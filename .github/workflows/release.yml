@@ -282,6 +282,41 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: xargs -a ASSETS.txt gh release upload "${GITHUB_REF_NAME}" --clobber
 
+      # WO-165 (DEC-154): every app release must also carry the Electron-
+      # bridge files, because 0.1.x installs read releases/latest for
+      # latest-mac.yml to reach the 0.1.8 bridge build (DEC-064). They are
+      # fetched from the immutable v0.1.8 release — never copied forward
+      # from an intermediate one — and the zip is gated on the sha512
+      # pinned inside the fetched latest-mac.yml, the same value
+      # electron-updater verifies on the user's machine. Appending the
+      # names to ASSETS.txt makes the completeness check below refuse a
+      # release without them.
+      - name: Attach the Electron-bridge assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir bridge-assets
+          cd bridge-assets
+          for f in Veri-0.1.8-universal-mac.zip Veri-0.1.8-universal-mac.zip.blockmap latest-mac.yml; do
+            gh release download v0.1.8 --repo "${GITHUB_REPOSITORY}" --pattern "$f"
+            if [ ! -f "$f" ]; then
+              echo "Bridge asset missing from the v0.1.8 release: $f" >&2
+              exit 1
+            fi
+          done
+          pinned=$(awk '/^sha512:/ {print $2}' latest-mac.yml)
+          actual=$(openssl dgst -sha512 -binary Veri-0.1.8-universal-mac.zip | openssl base64 -A)
+          if [ -z "$pinned" ] || [ "$actual" != "$pinned" ]; then
+            echo "Bridge zip sha512 mismatch: fetched asset does not match latest-mac.yml's pinned value" >&2
+            echo "  pinned: ${pinned}" >&2
+            echo "  actual: ${actual}" >&2
+            exit 1
+          fi
+          gh release upload "${GITHUB_REF_NAME}" \
+            Veri-0.1.8-universal-mac.zip Veri-0.1.8-universal-mac.zip.blockmap latest-mac.yml --clobber
+          printf '%s\n' Veri-0.1.8-universal-mac.zip Veri-0.1.8-universal-mac.zip.blockmap latest-mac.yml \
+            >> ../packages/ui/src-tauri/release-assets/ASSETS.txt
+
       # WO-033: fail loudly if the feed is split or incomplete — a partial
       # latest.json release would break auto-update. Counts via GraphQL: the
       # REST list endpoint serves stale results. The expected list is

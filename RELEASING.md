@@ -67,12 +67,17 @@ trigger; CI builds, signs, notarizes, and publishes (see
    with "What's new" (from the changelog) above the artifact sizes and
    per-platform update caveats, and verifies the release is complete.
    Review the draft and publish it.
-6. After publishing, copy the Electron-bridge assets forward from the
-   previous release (`Veri-0.1.8-universal-mac.zip`, its `.blockmap`,
-   and `latest-mac.yml`): 0.1.x installs read `releases/latest` for
+6. The Electron-bridge assets (`Veri-0.1.8-universal-mac.zip`, its
+   `.blockmap`, and `latest-mac.yml`) are attached by CI (WO-165): the
+   publish job fetches them from the immutable v0.1.8 release, gates
+   the zip on the sha512 pinned inside `latest-mac.yml` (DEC-154), and
+   the completeness check refuses a release without them. Nothing to
+   copy by hand — the draft you review already carries all three.
+   They matter because 0.1.x installs read `releases/latest` for
    `latest-mac.yml` to reach the 0.1.8 bridge build, which then offers
-   the current installer. Skip only when no 0.1.x installs remain in
-   the wild.
+   the current installer (DEC-064). When no 0.1.x installs remain in
+   the wild, retire the attach step in `release.yml`, not just this
+   note.
 
 Installed apps pick the release up through the tauri-updater feed
 (`latest.json`); nothing else to do.

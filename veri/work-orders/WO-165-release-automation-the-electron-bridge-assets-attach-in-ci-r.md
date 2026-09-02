@@ -41,9 +41,9 @@ Every app release must carry the Electron-bridge files — Veri-0.1.8-universal-
 ## Acceptance tests
 
 - [ ] A workflow run on an app-version tag produces a draft release carrying all three bridge assets with no manual copy (proves REQ-011: 0.1.x installs keep an upgrade path on every release)
-- [ ] The attached zip's sha512 matches the value inside the attached latest-mac.yml, and the job fails if the fetched asset does not (proves the bridge cannot silently corrupt)
-- [ ] A non-app tag still passes through the pipeline green with no attach attempt (proves REQ-028 is untouched)
-- [ ] RELEASING.md no longer instructs a manual copy; the step reads as verification only
+- [x] The attached zip's sha512 matches the value inside the attached latest-mac.yml, and the job fails if the fetched asset does not (proves the bridge cannot silently corrupt)
+- [x] A non-app tag still passes through the pipeline green with no attach attempt (proves REQ-028 is untouched)
+- [x] RELEASING.md no longer instructs a manual copy; the step reads as verification only
 
 ## Receipts
 
