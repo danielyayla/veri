@@ -16,10 +16,12 @@
     Home carries outcome evidence and untested bets. Persisted retired-view
     tabs restore away via restoreTabs — a stale session lands on Home,
     silently. */
-export type ViewKey = 'homeview' | 'search' | 'settings' | 'import';
+export type ViewKey = 'homeview' | 'gates' | 'search' | 'settings' | 'import';
 
 export const VIEW_META: Record<ViewKey, { label: string; glyph: string }> = {
   homeview: { label: 'Home', glyph: '⌂' },
+  // Gate Queue (WO-162, SRC-076): the approval pass as a first-class view.
+  gates: { label: 'Gates', glyph: '▦' },
   // The palette's thorough sibling (WO-048, SRC-022): one query, every hit.
   search: { label: 'Search', glyph: '⌕' },
   // One Settings tab hosts Templates and Agent connection too (WO-036).

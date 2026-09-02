@@ -2009,3 +2009,120 @@ a:hover { color: var(--link-hover); }
 .toast-import-label { color: var(--body-text); }
 .toast-import-link { font-family: var(--mono); font-size: 11px; color: var(--ember); cursor: pointer; }
 .toast-import-link:hover { color: var(--link-hover); }
+
+/* ---- Gate Queue (WO-162, SRC-076 §Gate Queue) ------------------------- */
+
+/* Two-column surface: 330px gate list over the panel bg, detail fills. */
+.screen-gates { flex: 1; display: flex; min-width: 0; min-height: 0; }
+.gq-list {
+  flex: 0 0 330px; display: flex; flex-direction: column; min-height: 0;
+  background: var(--panel); border-right: 1px solid var(--hair);
+}
+.gq-list-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: 13px 14px 9px; border-bottom: 1px solid var(--hair-2);
+}
+.gq-list-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.gq-list-meta { font-family: var(--mono); font-size: 10px; color: var(--faint); }
+.gq-list-rows { flex: 1; overflow-y: auto; padding: 6px 8px; }
+.gq-gate-label {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.07em;
+  color: var(--faint); padding: 10px 6px 4px;
+}
+.gq-row {
+  display: flex; align-items: flex-start; gap: 8px; width: 100%;
+  padding: 7px 8px; border-radius: 7px; cursor: pointer; text-align: left;
+}
+.gq-row:hover { background: var(--row-hover); }
+.gq-row-sel, .gq-row-sel:hover { background: var(--pop-2); }
+.gq-row-id { font-family: var(--mono); font-size: 10px; flex: 0 0 auto; min-width: 52px; padding-top: 1px; }
+.gq-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.gq-row-title {
+  font-size: 12.5px; color: var(--body-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gq-row-sel .gq-row-title { color: var(--text); }
+.gq-row-status { font-family: var(--mono); font-size: 9.5px; color: var(--faint); }
+.gq-row-hint { font-family: var(--mono); font-size: 10px; color: var(--ghost); padding-top: 1px; }
+.gq-list-foot {
+  padding: 10px 14px; border-top: 1px solid var(--hair-2);
+  font-size: 11px; color: var(--faint); line-height: 1.5;
+}
+
+/* Detail pane: header, anatomy sections, pinned action bar. */
+.gq-detail { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; position: relative; }
+.gq-detail-scroll { flex: 1; overflow-y: auto; padding: 22px 28px 18px; }
+.gq-detail-head { display: flex; align-items: center; gap: 9px; }
+.gq-id { font-family: var(--mono); font-size: 11px; }
+.gq-filed { font-size: 11.5px; color: var(--faint); }
+.gq-title { font-size: 24px; font-weight: 600; color: var(--text); margin: 10px 0 4px; line-height: 1.25; }
+.gq-context { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-bottom: 6px; }
+
+/* FLAGGED BY THE AGENT — the warning card that leads the pane. */
+.gq-flag-card {
+  margin: 14px 0 4px; border: 1px solid var(--amber-border); border-radius: 8px;
+  background: var(--amber-tint-7); padding: 12px 14px;
+}
+.gq-flag-label {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.07em;
+  color: var(--amber); margin-bottom: 8px;
+}
+.gq-flag-item { display: flex; gap: 9px; font-size: 12.5px; color: var(--body-text); line-height: 1.55; padding: 3px 0; }
+.gq-flag-dot { flex: 0 0 auto; color: var(--amber); font-size: 9px; padding-top: 3px; }
+
+.gq-sec { margin-top: 16px; }
+.gq-sec-label {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.07em;
+  color: var(--faint); margin-bottom: 7px;
+}
+.gq-alt { border: 1px solid var(--card-border); border-radius: 8px; background: var(--card); padding: 10px 13px; margin-bottom: 8px; }
+.gq-alt-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.gq-alt-name { font-size: 12.5px; font-weight: 600; color: var(--body-text); }
+.gq-alt-chip {
+  font-family: var(--mono); font-size: 9.5px; color: var(--muted);
+  background: var(--chip-bg); border-radius: 4px; padding: 2px 7px;
+}
+.gq-alt-reason { font-size: 12px; color: var(--secondary); line-height: 1.5; margin-top: 5px; }
+.gq-revisit { font-size: 12.5px; color: var(--body-text); line-height: 1.55; }
+.gq-sec-body .rd-p, .gq-sec-body li { font-size: 12.5px; }
+.gq-composer { margin-top: 16px; }
+
+/* Action bar: 56px, pinned; Approve is the ember-filled primary (SRC-076). */
+.gq-bar {
+  flex: 0 0 56px; display: flex; align-items: center; gap: 8px;
+  padding: 0 28px; border-top: 1px solid var(--hair); background: var(--panel);
+}
+.gq-primary {
+  height: 30px; display: flex; align-items: center; gap: 7px; padding: 0 14px; border-radius: 7px;
+  background: var(--ember); color: var(--on-accent); font-weight: 600; font-size: 12px; cursor: pointer;
+  position: relative;
+}
+.gq-primary:hover { background: var(--ember-btn-hov); }
+.gq-primary-off { opacity: 0.4; cursor: not-allowed; }
+.gq-primary-off:hover { background: var(--ember); }
+.gq-primary-off:hover .rv-tip { display: block; }
+.gq-primary .rv-tip { top: 34px; }
+.gq-ghost {
+  height: 30px; display: flex; align-items: center; gap: 7px; padding: 0 12px; border-radius: 7px;
+  border: 1px solid var(--int-border); color: var(--body-text); font-size: 12px; cursor: pointer;
+}
+.gq-ghost:hover { border-color: var(--pop-border); color: var(--text); }
+.gq-key {
+  font-family: var(--mono); font-size: 9.5px; border: 1px solid var(--int-border);
+  border-radius: 4px; padding: 1px 5px; opacity: 0.75;
+}
+.gq-primary .gq-key { border-color: rgba(20,20,20,0.35); }
+.gq-bar-cap { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--faint); }
+.gq-bar-code { color: var(--muted); }
+
+/* The confirm popover: rv-pop chrome, centered over the detail pane. */
+.gq-pop.rv-pop { top: auto; bottom: 68px; right: 28px; }
+
+/* Empty state: the queue with nothing to judge. */
+.gq-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; }
+.gq-empty-title { font-size: 15px; font-weight: 600; color: var(--secondary); }
+.gq-empty-cap { font-size: 12px; color: var(--faint); }
+
+/* Home entry point (WO-162): trailing the AWAITING JUDGMENT card head. */
+.hv-gates-btn { margin-left: auto; font-size: 11.5px; color: var(--ember); cursor: pointer; }
+.hv-gates-btn:hover { color: var(--link-hover); }

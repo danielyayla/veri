@@ -20,6 +20,7 @@ import type { AgentInfo } from '../lib/agents.ts';
 import { importKickoffPrompt, kickoffPrompt } from './derive.ts';
 import { readerView } from './views/reader.ts';
 import { homeView } from './views/home.ts';
+import { gatesApprove, gatesEdit, gatesMove, gatesOpen, gatesSendBack, gatesView } from './views/gates.ts';
 import { importView } from './views/import.ts';
 import { welcomeView } from './views/welcome.ts';
 import { workOrderView } from './views/workorder.ts';
@@ -69,7 +70,7 @@ import { TPL_TYPES } from './views/templates.ts';
 import { settingsView } from './views/settings.ts';
 import { DEAD_LABEL, livingCount, livingGroups, panelList, pushRecent } from './sidebar.ts';
 
-export type View = 'home' | 'workorder' | 'homeview' | 'search' | 'settings' | 'import';
+export type View = 'home' | 'workorder' | 'homeview' | 'gates' | 'search' | 'settings' | 'import';
 
 /** Sections of the Settings view (WO-036, SRC-014). */
 export type SettingsSection = 'templates' | 'agent' | 'project' | 'updates' | 'appearance';
@@ -121,6 +122,11 @@ export interface State {
   settingsPop: boolean;
   /** The Settings view's open section — session state, never persisted. */
   settingsSection: SettingsSection;
+  /** Gate Queue (WO-162, SRC-076): selected row id (null = first), the
+      approve-confirm popover, and the send-back composer draft. */
+  gatesSel: string | null;
+  gatesPop: boolean;
+  gatesNote: string | null;
   /** Review banner (SRC-006): approve-confirm popover and note composer. */
   reviewPop: boolean;
   /** Discard popover (WO-110, SRC-052): open with core's delete-guard
@@ -401,6 +407,9 @@ class App implements Ctx {
     showDead: {},
     settingsPop: false,
     settingsSection: 'templates',
+    gatesSel: null,
+    gatesPop: false,
+    gatesNote: null,
     reviewPop: false,
     reviewText: null,
     discardPop: null,
@@ -530,6 +539,10 @@ class App implements Ctx {
       layers.push({ kind: 'tplReset', sel: '.tpl-reset-confirm', trap: true, initial: 'tpl-reset-no', close: () => this.update({ tplResetConfirm: false }) });
     if (this.state.reviewPop)
       layers.push({ kind: 'reviewPop', sel: '.rv-pop', trap: true, close: () => this.update({ reviewPop: false }) });
+    if (this.state.gatesPop)
+      // Initial focus lands on the stamp button, so ↩ confirms (WO-162:
+      // the full pass runs without a mouse).
+      layers.push({ kind: 'gatesPop', sel: '.gq-pop', trap: true, initial: 'gq-stamp', close: () => this.update({ gatesPop: false }) });
     if (this.state.discardPop !== null)
       layers.push({ kind: 'discardPop', sel: '.dc-pop', trap: true, initial: 'dc-cancel', close: () => this.update({ discardPop: null }) });
     if (this.state.paletteOpen)
@@ -726,6 +739,10 @@ class App implements Ctx {
         // Plain ⌘N: new document, centered popover (SRC-008).
         e.preventDefault();
         if (this.state.newDoc === null) this.openNewDoc('requirement', null);
+      } else if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'g') {
+        // ⌘G: the Gate Queue (WO-162) — the approval pass, one key away.
+        e.preventDefault();
+        this.setView('gates');
       } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'e') {
         e.preventDefault();
         this.toggleEditMode();
@@ -759,6 +776,38 @@ class App implements Ctx {
         this.applyTabs(cycleTab(this.tabState(), e.shiftKey ? -1 : 1));
       } else if (e.key === 'Tab' && !e.metaKey && !e.ctrlKey && !e.altKey && this.trapTab(e)) {
         // Focus stayed inside the topmost trapping layer (SRC-019 rule 3).
+      } else if (
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        activeTarget(this.tabState()) === 'gates' &&
+        !inTextTarget(e) &&
+        !this.layerDefs().some((l) => l.trap)
+      ) {
+        // Gate Queue keys (WO-162, SRC-076): the full pass without a mouse —
+        // j/k to move, a/e/b to act, ↩ opens the document. The approve
+        // popover is a trapping layer, so these rest while it is up and ↩
+        // lands on its stamp button.
+        if (e.key === 'j' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          gatesMove(this, 1);
+        } else if (e.key === 'k' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          gatesMove(this, -1);
+        } else if (e.key === 'a') {
+          e.preventDefault();
+          gatesApprove(this);
+        } else if (e.key === 'e') {
+          e.preventDefault();
+          gatesEdit(this);
+        } else if (e.key === 'b') {
+          e.preventDefault();
+          gatesSendBack(this);
+        } else if (e.key === 'Enter' && !(e.target instanceof HTMLButtonElement)) {
+          // A focused button keeps its native ↩ activation.
+          e.preventDefault();
+          gatesOpen(this);
+        }
       } else if (this.state.paletteOpen) {
         // ↑↓ / ↩ / ⌘↩ while the palette is up (SRC-005 layer 2).
         if (e.key === 'ArrowDown') {
@@ -3217,6 +3266,7 @@ class App implements Ctx {
       if (edit !== null) screen = editorScreen(this, edit);
       else if (view === 'workorder' && this.doc()?.type === 'work-order') screen = workOrderView(this);
       else if (view === 'homeview') screen = homeView(this);
+      else if (view === 'gates') screen = gatesView(this);
       else if (view === 'search') screen = searchView(this);
       else if (view === 'settings') screen = settingsView(this);
       else if (view === 'import') screen = importView(this);

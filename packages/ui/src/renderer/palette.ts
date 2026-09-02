@@ -32,6 +32,8 @@ const COMMAND_META: Record<CommandKey, { label: string; glyph: string; terms: st
 /** Extra query terms a view answers to beyond its label (WO-036: the
     Settings view answers for the sections it hosts). */
 const VIEW_ALIASES: Partial<Record<ViewKey, string[]>> = {
+  // The Gate Queue (WO-162) answers for the judgment vocabulary too.
+  gates: ['gate queue', 'approve', 'stamps', 'judgment', 'review queue'],
   settings: ['templates', 'agent', 'connection', 'updates'],
   import: ['import', 'brownfield', 'mine', 'knowledge'],
 };

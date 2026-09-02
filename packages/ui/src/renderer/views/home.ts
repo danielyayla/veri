@@ -188,6 +188,13 @@ export function homeView(ctx: Ctx): HTMLElement {
             dot('var(--amber)'),
             h('span', { class: 'hv-label', style: 'color:var(--amber);' }, 'AWAITING JUDGMENT'),
             h('span', { class: 'hv-meta' }, `${pending.length} gate crossing${pending.length === 1 ? '' : 's'}`),
+            // The Gate Queue entry point (WO-162, SRC-076): the same queue as
+            // a first-class keyboard pass, one click or ⌘G away.
+            h(
+              'button',
+              { class: 'btn-reset hv-gates-btn', fkey: 'hv-gates', title: 'Run the gates — ⌘G', onClick: () => ctx.setView('gates') },
+              'Run the gates →',
+            ),
           ),
           ...groupSections,
           ...ungrouped.map(pendingRow),
