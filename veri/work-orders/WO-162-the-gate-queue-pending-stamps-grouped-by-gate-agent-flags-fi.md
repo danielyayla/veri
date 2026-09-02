@@ -2,7 +2,7 @@
 id: WO-162
 type: work-order
 title: "The Gate Queue — pending stamps grouped by gate, agent flags first"
-status: in-progress
+status: done
 approved: 2026-09-02
 claimed_by: fable-wo162
 claimed_at: 2026-09-02
@@ -49,9 +49,10 @@ The approval pass as a first-class surface, per [[SRC-076]] §Gate Queue: every 
 - [x] With fixture documents in all four pending states, the queue groups them into the four gates with correct counts and SRC-076's gate order (proves SRC-076 §Gate Queue grouping)
 - [x] Approving a proposed decision from the queue writes an `approved:` stamp byte-identical to `veri approve`'s and the file passes `veri check` (proves REQ-004 "all UI edits … pass `veri check`")
 - [x] The detail pane renders flagged concerns above alternatives and revisit conditions (proves SRC-076 §Gate Queue detail anatomy)
-- [ ] The full pass runs without a mouse: j/k to move, a/e/b to act (proves SRC-076 §Gate Queue keyboard path)
+- [x] The full pass runs without a mouse: j/k to move, a/e/b to act (proves SRC-076 §Gate Queue keyboard path)
 - [x] The derivation module is covered by `node --test` cases including an empty queue (scaffolding, declared: guards the degenerate render)
 
 ## Receipts
 
 - 2026-09-02 — 015b3f5 — ["packages/ui/src/renderer/gatequeue.ts", "packages/ui/src/renderer/gatequeue.test.ts", "packages/ui/src/renderer/views/gates.ts", "packages/ui/src/renderer/app.ts", "packages/ui/src/renderer/tabs.ts", "packages/ui/src/renderer/views/home.ts", "packages/ui/src/renderer/palette.ts", "packages/ui/renderer/styles.css"] — claude session fable-wo162 shipped the Gate Queue — derivation module + gates view with j/k, flagged-first detail, a/e/b bar; verify `npm -w @verikb/ui test` exit 0 (349 pass); the in-app keyboard pass awaits a live run
+- 2026-09-02 — verified — no code changes — ["packages/ui/src-tauri (VERI_UI_SHOT harness)", "scratch project fixtures"] — claude session fable-wo162 closed the keyboard box via the VERI_UI_SHOT harness against a scratch project with all four gate states: j/k moved selection, a opened the confirm and stamped DEC-001 (file byte-identical to `veri approve`'s via cmp, scratch `veri check` 0 issues), e opened the editor, b opened the send-back composer — all boxes checked, status set to done
