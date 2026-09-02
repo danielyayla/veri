@@ -2,7 +2,8 @@
 id: DEC-152
 type: decision
 title: "Four WF-001 gates on the loop strip's five crossings"
-status: proposed
+status: active
+approved: 2026-09-02
 created: 2026-09-02
 updated: 2026-09-02
 links:

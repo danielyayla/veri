@@ -2,7 +2,8 @@
 id: DEC-153
 type: decision
 title: "The Change Trace scopes evidence to provenance links, not the requirement's whole neighborhood"
-status: proposed
+status: active
+approved: 2026-09-02
 created: 2026-09-02
 updated: 2026-09-02
 links:
