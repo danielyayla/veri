@@ -21,8 +21,8 @@ links:
 
 > Drafted 2026-09-02 by an agent session (Claude Code) at Daniel's
 > direction, from Anthropic's AI-native SDLC playbook brief (audited
-> against Veri in [[SRC-066]]). **Direction-level proposal — not
-> approved; no work orders are cut from it.** The high-fidelity mockup
+> against Veri in [[SRC-066]]). **Approved by Daniel 2026-09-02; work
+> orders cut per the slice order below.** The high-fidelity mockup
 > bundle (README + three Design Component artboards + canvas layout)
 > lives in `design/loop-redesign/`; the editable canvas is published at
 > https://claude.ai/code/artifact/4b6a9712-ae40-4492-b391-38ab64e74051.
@@ -76,10 +76,13 @@ three surfaces so the loop is the interface.
 The artboards' icon rail shows five items including Board ▤, drawn from
 the navigation-model handoff; [[SRC-067]] and [[SRC-068]] (which this
 note revisits for the Home surface) have since removed the Architecture
-view and folded Board and Outcomes into Home. The rail in the mockups
-is illustrative — the proposed rail is Loop ⟳ (replacing Home ⌂),
-Gates ▦ (new), Graph ◉, Decisions §. Reconcile against the shipped
-rail if and when work is cut.
+view and folded Board and Outcomes into Home. The rail — and its
+Graph ◉ and Decisions § items — is wholly illustrative: the shipped
+app has no icon rail, and [[REQ-004]] (approved 2026-09-01) ships no
+dedicated Graph or Decisions screens. As cut on 2026-09-02: the Gate
+Queue lands as a document-area view opened from Home ([[WO-162]]),
+the loop strip as a Home section ([[WO-163]]), and the Change Trace
+on the work-order surface per the [[SRC-024]] precedent ([[WO-164]]).
 
 ## Fidelity and fixture content
 
@@ -89,11 +92,11 @@ The demo dataset ("skiff", an invoicing app) is illustrative fixture
 content per the canon's convention — real screens render live `veri/`
 files.
 
-## If accepted, the likely cuts
+## The cuts
 
 Three independently shippable slices, in value order, mirroring the
 [[SRC-005]] precedent: (1) Gate Queue — highest leverage, exercises the
 approval model end to end; (2) Loop strip on Home — presentation over
 data Home already has; (3) Change Trace — needs subgraph traversal the
-Graph view already computes. Cutting these is a veri:plan-work pass
-after Daniel reviews this direction.
+Graph view already computes. Cut as work orders on 2026-09-02 after
+Daniel approved this direction.
