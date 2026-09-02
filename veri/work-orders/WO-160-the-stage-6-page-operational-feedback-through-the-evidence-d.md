@@ -2,7 +2,10 @@
 id: WO-160
 type: work-order
 title: "The Stage-6 page — operational feedback through the evidence door"
-status: backlog
+status: in-progress
+approved: 2026-09-02
+claimed_by: fable-wo160
+claimed_at: 2026-09-02
 created: 2026-09-02
 updated: 2026-09-02
 links:
