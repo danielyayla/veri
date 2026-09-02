@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The feedback loop — Veri</title>
+<meta name="description" content="Operational feedback through the evidence door: detection stays deterministic in your monitoring stack, a breach briefs a headless session that runs veri:evidence-intake, the source lands linked to the bets it bears on, and judging what it means stays human.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../assets/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<link rel="preload" href="../assets/fonts/source-sans-3-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../assets/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../site.css?v=9">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <a class="top-wordmark" href="../"><span class="v">V</span>eri</a>
+  <a class="nav here" href="quickstart.html">Docs</a>
+  <a class="nav" href="https://github.com/danielyayla/veri">GitHub</a>
+  <a class="top-dl" href="https://github.com/danielyayla/veri/releases/latest">Download</a>
+</header>
+
+<nav class="docs-strip" aria-label="Documentation pages">
+  <a href="quickstart.html">Quickstart</a>
+  <a href="workflow.html">Workflow</a>
+  <a href="connect-claude-code.html">Connect your agent</a>
+  <a href="brownfield.html">Import a repo</a>
+  <a href="ci.html">CI gate</a>
+  <a href="dispatch.html">Dispatch</a>
+  <a href="operational-feedback.html" class="here">Feedback loop</a>
+  <a href="team.html">Teams</a>
+  <a href="how-veri-builds-veri.html">Built with Veri</a>
+  <a href="reference.html">Reference</a>
+  <a href="troubleshooting.html">Troubleshooting</a>
+</nav>
+
+<article class="doc" id="main">
+<h1>The feedback loop</h1>
+<p class="doc-lead">A shipped change is a question, not an answer — did the thing it was for happen? This page is the pattern for letting production answer: detection stays deterministic and stays in <b>your</b> monitoring stack; a breach briefs a headless session that runs <code>veri:evidence-intake</code>; the evidence lands on the graph linked to the bets it bears on; and judging what it means stays yours. Veri ships no watcher. The pattern is a page, not a platform.</p>
+
+<h2>1. The loop, end to end</h2>
+
+<p><b>Detect — deterministic, yours.</b> An error-rate threshold, a latency budget, a nightly metrics export, a support-ticket spike: whatever your monitoring stack already does. No model is involved in noticing. Veri adds nothing here on purpose — thresholds and alert routing belong in the tools built for them, and a detector that lives in your stack keeps firing when Veri is closed.</p>
+
+<p><b>Brief — a headless session at the door.</b> The alert's payload becomes the brief for an agent session connected to your project's MCP server. The session's job is the <code>veri:evidence-intake</code> gate: file what was observed, faithfully, linked to what it bears on — and nothing else.</p>
+
+<pre><code>claude -p 'Run veri:evidence-intake on this alert.
+
+checkout-error-rate breached its 2% threshold at 04:10 UTC —
+6.1% over 30 minutes, 214 requests affected. Dashboard:
+&lt;link to the graph&gt;. The last change on that path shipped
+under WO-131.
+
+File it as a source against whatever it bears on. Do not judge
+the bet — leave that for my morning.'</code></pre>
+
+<p>Wire that command to your alerting webhook, a scheduled job, or run it by hand — the gate is the same either way. The session classifies the material (<code>kind: metric</code>, <code>user-feedback</code>, or <code>investigation</code>), searches for what it plausibly bears on, and files one source with provenance: where, when, who.</p>
+
+<p><b>File — the edges are the point.</b> From a source, <code>tests</code> / <code>supports</code> / <code>refutes</code> point at the <em>requirement</em> whose bet the evidence answers, and <code>outcome-of</code> points at the <em>work order</em> that shipped the change. Direction is enforced at issue tier — a backwards edge is a no-op that leaves the bet untested forever, which is why the gate runs <code>veri check</code> after filing and reports the advisory count before and after: the untested-bet advisory clearing is the proof the edges landed the right way round. Interpretation stays out of the document — "so we should retire it" is a reading, and it stays in the conversation so someone who disagrees can re-read the evidence.</p>
+
+<p><b>Travel — the record briefs the next session.</b> A correct edge pays out immediately: the source rides into the requirement's context package, the work order's section gains a "what shipped here reported back" line, and <code>get_receipts</code> closes the work order's history with its outcome evidence. The next agent briefed on that area reads what reality already said before adding to it.</p>
+
+<p><b>Judge — yours, through veri:did-it-work.</b> When the evidence is in, the learning gate keeps three questions apart — did we build what we said, do the constraints still hold, what did the declared metric do against its declared target — and names one of four verdicts: <em>supported</em>, <em>refuted</em>, <em>inconclusive</em>, <em>unmeasured</em>. Inconclusive files too; "measured, and the instrument cannot discriminate" is a real answer. What the verdict means for the requirement — revise, retire, harden, re-bet — is your act and only yours.</p>
+
+<h2>2. What Veri deliberately does not do</h2>
+
+<p>Veri never watches anything, schedules anything, or calls the network — there is no bands file, no poller, no webhook receiver, and none is planned. Core, the MCP server, and <code>veri check</code> spawn no subprocesses, which is also why Veri never executes a work order's <code>verify:</code> command: the record can require that a run be <em>evidenced</em>, but the running is always done by a session or CI, never by the record-keeper. And evidence never promotes: a source's arrival changes no requirement's status, kind, or declared outcome. Reality reports; you judge. The gate that files and the gate that judges are deliberately different gates.</p>
+
+<h2>3. The verification pattern on the way in</h2>
+
+<p>The same division — Veri holds the contract, the harness does the running — governs verification <em>before</em> anything ships:</p>
+
+<ul>
+  <li><b>The work order declares its proof.</b> An optional <code>verify:</code> line carries the one command that must exit 0 — <code>npm test -w that-package</code>, a smoke script, a <code>curl</code> check. Planning asks for it when the work is cut; the context package renders it to every session that picks the work up.</li>
+  <li><b>The session runs it; the receipt quotes it.</b> The implement gate runs the declared command before writing the receipt and states the outcome in the receipt's sentence. The <a href="dispatch.html">dispatcher</a>'s kickoff prompt gives headless sessions the same instruction. A <code>done</code> work order that declares a command and whose receipts nowhere evidence the run is surfaced by the <code>verify-unevidenced</code> advisory — the machine flags the gap; it does not fill it.</li>
+  <li><b>Hooks are harness configuration, not Veri features.</b> Your agent harness can enforce what a page can only recommend: a pre-edit hook that blocks changes to test files during a fix task, deny rules on protected paths, a gate that demands a green run before commit. Configure those where your agent runs (for Claude Code, hooks in <code>settings.json</code>); Veri's record then holds what it is good at — the declared contract and the evidenced run.</li>
+</ul>
+
+<div class="next">
+  <b>Where next:</b> the <a href="workflow.html">workflow guide</a> for rule 9 — how hypotheses declare the outcome that settles them — or the <a href="dispatch.html">dispatcher</a> that runs the same headless pattern on the way out.
+</div>
+</article>
+
+<footer class="foot">
+  <span>Veri — plain files, no telemetry.</span>
+  <span><a href="../">Home</a> · <a href="https://github.com/danielyayla/veri">Source</a> · <a href="https://github.com/danielyayla/veri/issues">Issues</a></span>
+</footer>
+
+<script>
+// Copy buttons on code blocks (WO-087, design SRC-042) — the same small
+// inline script on every docs page with a code block; vanilla JS, no
+// dependencies, per DEC-033. Buttons are injected here, so with scripts
+// disabled no dead control renders.
+(function () {
+  'use strict';
+  if (!navigator.clipboard) return;
+  document.querySelectorAll('.doc pre').forEach(function (pre) {
+    var code = pre.querySelector('code') || pre;
+    var wrap = document.createElement('div');
+    wrap.className = 'pre-wrap';
+    pre.parentNode.insertBefore(wrap, pre);
+    wrap.appendChild(pre);
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy-btn';
+    btn.textContent = 'Copy';
+    var timer = null;
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(code.textContent).then(function () {
+        btn.textContent = 'Copied';
+        clearTimeout(timer);
+        timer = setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      }, function () { /* clipboard refused — don't claim Copied */ });
+    });
+    wrap.appendChild(btn);
+  });
+})();
+</script>
+
+</body>
+</html>
