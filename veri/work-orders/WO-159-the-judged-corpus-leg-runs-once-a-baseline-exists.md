@@ -2,7 +2,7 @@
 id: WO-159
 type: work-order
 title: "The judged corpus leg runs once — a baseline exists"
-status: in-progress
+status: done
 approved: 2026-09-02
 claimed_by: fable-wo159
 claimed_at: 2026-09-02
@@ -42,11 +42,11 @@ WO-147 built the runner and DEC-150 chose its judge protocol, and the judged leg
 
 ## Acceptance tests
 
-- [ ] `scripts/trigger-judge.sh` conforms to DEC-150's contract: invoked once per case, JSON on stdin, verdict as the last non-empty line of stdout
-- [ ] A full judged run over all corpus cases completes — the declared verify command proves it
-- [ ] The baseline source is filed with the pass rate and named failing cases, linked to DEC-150 and DEC-129
-- [ ] DEC-129's no-regression floor is evaluated against the run and the result stated plainly in the source
+- [x] `scripts/trigger-judge.sh` conforms to DEC-150's contract: invoked once per case, JSON on stdin, verdict as the last non-empty line of stdout
+- [x] A full judged run over all corpus cases completes — the declared verify command proves it
+- [x] The baseline source is filed with the pass rate and named failing cases, linked to DEC-150 and DEC-129
+- [x] DEC-129's no-regression floor is evaluated against the run and the result stated plainly in the source
 
 ## Receipts
 
-(none yet)
+- 2026-09-02 — fb0f5a8 — ["scripts/trigger-judge.sh", "veri/sources/SRC-075-metric-the-judged-corpus-baseline-49-49-under-the-pinned-hai.md"] — verify ran clean (node packages/cli/dist/cli.js skills eval --judge scripts/trigger-judge.sh — full judged run, 49/49 pass, 0 false triggers across the 16-case negative set, exit 0) — the reference judge conforms to DEC-150's stdin/last-line contract with the model pinned, SRC-075 records the baseline and reads DEC-129's floor as holding with no failure budget, VERI_TRIGGER_JUDGE stays the maintainer's act, veri check 440 docs 0 issues.
