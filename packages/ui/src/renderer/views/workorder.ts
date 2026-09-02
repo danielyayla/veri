@@ -7,6 +7,7 @@ import type { Block } from '../markdown.ts';
 import { PACKAGE_RULES_TEXT, fileActivity, gatingDocs, receipts } from '../derive.ts';
 import { activityFeed, dirtyStrip, displayTitle, idChip, imgDirFor, modeToggle, pinChip, renderBlocks, statusChip } from '../widgets.ts';
 import { frontmatterCard } from './reader.ts';
+import { traceSection } from './trace.ts';
 import { roveIndex, roveKey } from '../a11y.ts';
 import { segmentRefusal, writeStatus } from '../statuswrite.ts';
 import type { Ctx } from '../app.ts';
@@ -516,6 +517,9 @@ export function workOrderView(ctx: Ctx): HTMLElement {
           ? h('div', { class: 'linked-list' }, ...linkedDecs.map((d) => linkedCard(ctx, doc.id, d, () => decisionDetail(ctx, d))))
           : null,
         ...section('Acceptance tests', secs.get('Acceptance tests')),
+        // WO-164 (SRC-076 §Change Trace): the trace lives on the work-order
+        // surface, the SRC-024 on-the-document precedent — no new screen.
+        ...traceSection(ctx, doc),
         activityFeed([...ctx.sessionRows(doc.id), ...fileActivity(doc, ctx.rel)]),
       ),
     ),

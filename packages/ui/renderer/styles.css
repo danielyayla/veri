@@ -2163,3 +2163,46 @@ a:hover { color: var(--link-hover); }
 /* Home entry point (WO-162): trailing the AWAITING JUDGMENT card head. */
 .hv-gates-btn { margin-left: auto; font-size: 11.5px; color: var(--ember); cursor: pointer; }
 .hv-gates-btn:hover { color: var(--link-hover); }
+
+/* ===== The Change Trace (WO-164, SRC-076 §Change Trace) =====
+   One turn of the loop on the work-order surface: a vertical spine of
+   type-colored node dots on a hairline, artifact cards at each node,
+   connector labels naming what fired each hop, and the stamp ledger +
+   elapsed rail below. Existing tokens only — no new colors. */
+.tr-section { margin-top: 26px; }
+.tr-toggle { display: flex; align-items: baseline; gap: 8px; width: 100%; text-align: left; cursor: pointer; }
+.tr-toggle-label { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: .01em; }
+.tr-chev { color: var(--faint); font-size: 11px; flex: 0 0 auto; }
+.tr-toggle:hover .tr-toggle-label { color: var(--ember-light); }
+.tr-toggle-hint { font-family: var(--mono); font-size: 10px; color: var(--ghost); }
+.tr-cap { font-size: 12.5px; color: var(--muted); margin: 6px 0 16px; }
+.tr-spine { display: flex; flex-direction: column; }
+.tr-row { display: flex; gap: 14px; }
+.tr-rail { width: 20px; flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; }
+.tr-line { width: 1px; background: var(--int-border); }
+.tr-line-full { flex: 1; }
+.tr-line-top { height: 10px; flex: 0 0 auto; }
+.tr-line-grow { flex: 1; }
+.tr-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; margin: 6px 0 0; }
+.tr-dot-absent { background: none; border: 1px dashed var(--ghost-2); width: 7px; height: 7px; }
+.tr-card { flex: 1; min-width: 0; border: 1px solid var(--card-border); border-radius: 9px; background: var(--card); padding: 10px 14px; margin-bottom: 2px; }
+.tr-card-wo { border-color: var(--ember-border); background: var(--ember-tint-faint); }
+.tr-card-head { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.tr-card-title { flex: 1; min-width: 0; font-size: 13px; font-weight: 500; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr-status { font-family: var(--mono); font-size: 10px; flex: 0 0 auto; }
+.tr-meta { font-family: var(--mono); font-size: 10.5px; color: var(--faint); margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr-commits { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.tr-commit { font-family: var(--mono); font-size: 10px; color: var(--muted); border: 1px solid var(--int-border); border-radius: 4px; padding: 2px 7px; }
+.tr-conn { padding: 5px 0 5px 2px; font-family: var(--mono); font-size: 10px; }
+.tr-conn-amber { color: var(--amber); }
+.tr-conn-green { color: var(--green); }
+.tr-absence { padding: 8px 0; font-family: var(--mono); font-size: 10px; color: var(--ghost); font-style: italic; }
+.tr-rails { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+.tr-rail-card { border: 1px solid var(--hair); border-radius: 10px; background: var(--panel); padding: 14px 16px; min-width: 0; }
+.tr-rail-label { margin-bottom: 10px; }
+.tr-ledger-row { display: flex; justify-content: space-between; gap: 10px; font-family: var(--mono); font-size: 10.5px; padding: 4px 0; min-width: 0; }
+.tr-ledger-row > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr-ledger-when { color: var(--faint); flex: 0 0 auto; }
+.tr-elapsed-label { color: var(--secondary); }
+.tr-elapsed-days { color: var(--body-text); flex: 0 0 auto; }
+.tr-rail-empty { font-family: var(--mono); font-size: 10.5px; color: var(--ghost); }
