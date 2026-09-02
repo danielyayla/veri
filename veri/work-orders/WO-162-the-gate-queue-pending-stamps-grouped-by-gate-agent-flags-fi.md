@@ -2,7 +2,10 @@
 id: WO-162
 type: work-order
 title: "The Gate Queue — pending stamps grouped by gate, agent flags first"
-status: backlog
+status: in-progress
+approved: 2026-09-02
+claimed_by: fable-wo162
+claimed_at: 2026-09-02
 created: 2026-09-02
 updated: 2026-09-02
 links:
