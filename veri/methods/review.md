@@ -3,7 +3,7 @@ id: MET-010
 type: method
 title: "veri:review — spec fidelity of the diff, read against the work order before done"
 status: accepted
-approved: 2026-09-01
+approved: 2026-09-02
 description: >-
   The pre-done gate: the branch diff read against the work order that produced it, by a session that did not write it. Use it before done: "go through the diff on the wo-118 branch against its work order before I mark it done", "WO-124's acceptance criteria are all ticked — check whether we actually did what we said", "read the last five receipts and tell me whether any of them smuggled a decision into code without a DEC". It reports rather than asks — every in-scope item delivered, nothing out-of-scope touched, every criterion genuinely evidenced, no linked decision silently contradicted — findings ranked important/nit, nits capped at five, each citing the clause it violates. Not for judging what shipped against its declared outcome: "did the caching work actually move p95 latency to the target REQ-028 declared?", "we shipped the onboarding rewrite six weeks ago — did it actually help activation?" are veri:did-it-work's, because those need reality's answer, not the diff. Not for general code review with no work order behind the diff — the harness's own tooling — nor for "run the test suite", "summarise what you just changed".
 requires: [get_context, run_check, file_decision]
