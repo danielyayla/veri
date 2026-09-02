@@ -46,12 +46,12 @@ The approval pass as a first-class surface, per [[SRC-076]] §Gate Queue: every 
 
 ## Acceptance tests
 
-- [ ] With fixture documents in all four pending states, the queue groups them into the four gates with correct counts and SRC-076's gate order (proves SRC-076 §Gate Queue grouping)
-- [ ] Approving a proposed decision from the queue writes an `approved:` stamp byte-identical to `veri approve`'s and the file passes `veri check` (proves REQ-004 "all UI edits … pass `veri check`")
-- [ ] The detail pane renders flagged concerns above alternatives and revisit conditions (proves SRC-076 §Gate Queue detail anatomy)
+- [x] With fixture documents in all four pending states, the queue groups them into the four gates with correct counts and SRC-076's gate order (proves SRC-076 §Gate Queue grouping)
+- [x] Approving a proposed decision from the queue writes an `approved:` stamp byte-identical to `veri approve`'s and the file passes `veri check` (proves REQ-004 "all UI edits … pass `veri check`")
+- [x] The detail pane renders flagged concerns above alternatives and revisit conditions (proves SRC-076 §Gate Queue detail anatomy)
 - [ ] The full pass runs without a mouse: j/k to move, a/e/b to act (proves SRC-076 §Gate Queue keyboard path)
-- [ ] The derivation module is covered by `node --test` cases including an empty queue (scaffolding, declared: guards the degenerate render)
+- [x] The derivation module is covered by `node --test` cases including an empty queue (scaffolding, declared: guards the degenerate render)
 
 ## Receipts
 
-(none yet)
+- 2026-09-02 — 015b3f5 — ["packages/ui/src/renderer/gatequeue.ts", "packages/ui/src/renderer/gatequeue.test.ts", "packages/ui/src/renderer/views/gates.ts", "packages/ui/src/renderer/app.ts", "packages/ui/src/renderer/tabs.ts", "packages/ui/src/renderer/views/home.ts", "packages/ui/src/renderer/palette.ts", "packages/ui/renderer/styles.css"] — claude session fable-wo162 shipped the Gate Queue — derivation module + gates view with j/k, flagged-first detail, a/e/b bar; verify `npm -w @verikb/ui test` exit 0 (349 pass); the in-app keyboard pass awaits a live run
