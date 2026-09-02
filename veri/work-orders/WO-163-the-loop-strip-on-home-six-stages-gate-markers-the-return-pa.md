@@ -2,7 +2,10 @@
 id: WO-163
 type: work-order
 title: "The loop strip on Home — six stages, gate markers, the return path"
-status: backlog
+status: in-progress
+approved: 2026-09-02
+claimed_by: fable-wo163
+claimed_at: 2026-09-02
 created: 2026-09-02
 updated: 2026-09-02
 links:
