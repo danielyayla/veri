@@ -2,7 +2,10 @@
 id: WO-165
 type: work-order
 title: "Release automation: the Electron-bridge assets attach in CI, retiring RELEASING.md's manual step 6"
-status: backlog
+status: in-progress
+approved: 2026-09-02
+claimed_by: fable-wo165
+claimed_at: 2026-09-02
 created: 2026-09-02
 updated: 2026-09-02
 links:
