@@ -2,7 +2,7 @@
 id: WO-163
 type: work-order
 title: "The loop strip on Home — six stages, gate markers, the return path"
-status: in-progress
+status: done
 approved: 2026-09-02
 claimed_by: fable-wo163
 claimed_at: 2026-09-02
@@ -42,12 +42,12 @@ Home leads with [[SRC-076]] §The Loop: a six-stage strip (Plan → Design → B
 
 ## Acceptance tests
 
-- [ ] A fixture project renders all six stages with counts derived correctly from document statuses (proves SRC-076 §The Loop stage mapping)
-- [ ] A gate marker is amber if and only if a promotion is pending at that gate, green otherwise (proves SRC-076 §The Loop gate markers)
-- [ ] A stage with nothing in flight renders with a zero-state count, not an empty card (proves SRC-076 fixture-independence; degenerate render)
-- [ ] The strip renders against live files and updates when `veri/` changes externally, without restart (proves REQ-004 "external edits … reflected without restart")
-- [ ] The derivation module is covered by `node --test` cases (scaffolding, declared: pins the stage mapping)
+- [x] A fixture project renders all six stages with counts derived correctly from document statuses (proves SRC-076 §The Loop stage mapping)
+- [x] A gate marker is amber if and only if a promotion is pending at that gate, green otherwise (proves SRC-076 §The Loop gate markers)
+- [x] A stage with nothing in flight renders with a zero-state count, not an empty card (proves SRC-076 fixture-independence; degenerate render)
+- [x] The strip renders against live files and updates when `veri/` changes externally, without restart (proves REQ-004 "external edits … reflected without restart")
+- [x] The derivation module is covered by `node --test` cases (scaffolding, declared: pins the stage mapping)
 
 ## Receipts
 
-(none yet)
+- 2026-09-02 — 9972917 — packages/ui/src/renderer/loopstrip.ts, packages/ui/src/renderer/loopstrip.test.ts, packages/ui/src/renderer/views/home.ts, packages/ui/renderer/styles.css, veri/decisions/DEC-152-four-wf-001-gates-on-the-loop-strip-s-five-crossings.md — Claude session shipped the Home loop strip — pure loopstrip derivation over the snapshot with gate markers reading gateQueue, six stage cards with the ember claimed-work tint, return path and legend, gate names on AWAITING JUDGMENT rows; npm -w @verikb/ui test exits 0 (355 pass), veri check 0 issues, live-update and both fixture/real-repo renders verified by screenshot.
