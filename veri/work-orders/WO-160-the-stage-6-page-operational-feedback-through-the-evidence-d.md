@@ -2,7 +2,7 @@
 id: WO-160
 type: work-order
 title: "The Stage-6 page — operational feedback through the evidence door"
-status: in-progress
+status: done
 approved: 2026-09-02
 claimed_by: fable-wo160
 claimed_at: 2026-09-02
@@ -44,11 +44,11 @@ The one SRC-066 recommendation with no landing work order. The capability exists
 
 ## Acceptance tests
 
-- [ ] The page exists — the declared verify command proves it — and walks alert → evidence-intake → linked source → judgment with real names throughout
-- [ ] It states plainly what Veri does not do, citing the subprocess-free constraint
-- [ ] The WO-145-deferred harness verification pattern is documented on it
-- [ ] The docs navigation links it wherever sibling pages are listed
+- [x] The page exists — the declared verify command proves it — and walks alert → evidence-intake → linked source → judgment with real names throughout
+- [x] It states plainly what Veri does not do, citing the subprocess-free constraint
+- [x] The WO-145-deferred harness verification pattern is documented on it
+- [x] The docs navigation links it wherever sibling pages are listed
 
 ## Receipts
 
-(none yet)
+- 2026-09-02 — df5bc11 — ["site/docs/operational-feedback.html", "site/docs/reference.html", "site/docs/dispatch.html", "site/docs/ci.html"] — verify ran clean (test -f site/docs/operational-feedback.html exit 0) — the page walks alert → evidence-intake → linked source → did-it-work judgment with the gates' real beats, states the no-watching/no-subprocess boundary citing DEC-037 and REQ-042's third clause, documents the WO-145-deferred harness verification pattern, and all fifteen docs pages' nav strips gain the Feedback loop entry once each; veri check 440 docs 0 issues.
