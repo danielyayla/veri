@@ -2,7 +2,8 @@
 id: DEC-154
 type: decision
 title: "The release workflow sources bridge assets from the published v0.1.8 release, gated by the pinned sha512"
-status: proposed
+status: active
+approved: 2026-09-02
 created: 2026-09-02
 updated: 2026-09-02
 links:

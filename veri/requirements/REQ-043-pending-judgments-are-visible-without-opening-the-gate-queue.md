@@ -2,7 +2,8 @@
 id: REQ-043
 type: requirement
 title: "Pending judgments are visible without opening the Gate Queue"
-status: draft
+status: accepted
+approved: 2026-09-02
 kind: hypothesis
 outcome:
   metric: "age of the oldest pending item when a Gate Queue pass begins"
