@@ -2,7 +2,10 @@
 id: WO-164
 type: work-order
 title: "The Change Trace — one turn of the loop on the work-order surface"
-status: backlog
+status: in-progress
+approved: 2026-09-02
+claimed_by: fable-wo164
+claimed_at: 2026-09-02
 created: 2026-09-02
 updated: 2026-09-02
 links:
