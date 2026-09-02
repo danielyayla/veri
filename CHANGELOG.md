@@ -9,8 +9,42 @@ git and the `veri/` knowledge base rather than backfilled here.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-02
+
+### Added
+
+- The app reframes around the loop (SRC-076, from Anthropic's AI-native
+  SDLC playbook): three new surfaces over the same documents, no new
+  document types, no workflow change.
+  - **Gate Queue** (⌘G, or "Run the gates" on Home): every promotion
+    waiting on your stamp, grouped by gate — intent / decision /
+    dispatch / done — in the order the loop turns. The detail pane
+    leads with what the agent flagged, then alternatives with their
+    rejection reasons, then revisit conditions, and the full pass runs
+    without a mouse: j/k to move, `a` to approve (the confirm shows
+    the exact frontmatter diff), `e` to edit first, `b` to send back
+    with a note. Approve writes the same stamp `veri approve` writes;
+    dispatch- and done-gate rows hand off to the work-order surface —
+    dispatch stays your gesture (DEC-143).
+  - **The Loop on Home**: Home now leads with a six-stage strip
+    (Plan → Design → Build → Test → Deploy → Maintain) mapped onto
+    Veri's artifact types with live counts, amber/green gate markers
+    on the crossings between stages (DEC-152), and the return path —
+    outcomes re-enter as intent.
+  - **Change Trace** on the work-order detail: one turn of the loop
+    read off the record — evidence → requirement → decision → work
+    order (with receipt commits) → outcome verdict — with connector
+    labels naming what fired each hop, a stamp ledger, and elapsed
+    times. Evidence scopes to provenance links (DEC-153), and missing
+    hops render honestly as absences, never invented.
+
 ### Removed
 
+- Board and Outcomes fold into Home (DEC-145): the ▤ Board and
+  Outcomes views are gone. The Work Orders panel's status groups and
+  the work-order detail's status control carry the lifecycle, and Home
+  carries outcome evidence and untested bets. A saved session that
+  referenced either view reopens on Home.
 - The architecture layer leaves the product (DEC-144): the
   `arch-unknown-module`, `arch-conflict`, and `arch-violation` check
   rules, the compiled projection, the observed-import scan,
