@@ -2,7 +2,10 @@
 id: WO-161
 type: work-order
 title: "review.md takes the diet it arrived too late for"
-status: backlog
+status: in-progress
+approved: 2026-09-02
+claimed_by: fable-wo161
+claimed_at: 2026-09-02
 created: 2026-09-02
 updated: 2026-09-02
 links:
