@@ -3,6 +3,8 @@
 import { h } from '../dom.ts';
 import { TYPE_META, statusColor } from '../theme.ts';
 import { currentBets, focusStrip, importBatches, importGroupLabel, inFlight, isPending, issueDocId, pendingDocs, projectActivity, recentlyChanged, recentlyLearned } from '../derive.ts';
+import { GATE_META, gateOf } from '../gatequeue.ts';
+import { loopStrip } from '../loopstrip.ts';
 import { isLiving } from '../sidebar.ts';
 import type { Ctx } from '../app.ts';
 
@@ -112,6 +114,73 @@ function brownfieldStartCard(ctx: Ctx): HTMLElement {
   );
 }
 
+/**
+ * THE LOOP (WO-163, SRC-076 §The Loop): six stages over live counts, gate
+ * markers between them, the return path closing the loop. Static by design —
+ * the strip states where the loop stands; the cards below it act. Derivation
+ * is loopStrip's, pure over the snapshot, so the strip re-renders with every
+ * refresh the file watcher triggers (REQ-004: no restart).
+ */
+function loopStripCard(ctx: Ctx): HTMLElement {
+  const strip = loopStrip(ctx.snap);
+  const rowParts: HTMLElement[] = [];
+  strip.stages.forEach((stage, i) => {
+    if (i > 0) {
+      const m = strip.markers[i - 1];
+      const names = m.gates.map((g) => GATE_META[g].label.toLowerCase()).join(' + ');
+      const title =
+        m.gates.length === 0
+          ? 'no human gate — fires on commit'
+          : `${names} — ${m.pending ? 'waiting on your stamp' : 'nothing pending'}`;
+      rowParts.push(
+        h(
+          'div',
+          { class: 'hv-loop-join' },
+          h('span', { class: `hv-loop-gate ${m.pending ? 'hv-loop-gate-amber' : 'hv-loop-gate-green'}`, title }),
+          h('span', { class: 'hv-loop-arrow' }, '→'),
+        ),
+      );
+    }
+    rowParts.push(
+      h(
+        'div',
+        { class: `hv-loop-stage${stage.ember ? ' hv-loop-stage-ember' : ''}` },
+        h(
+          'div',
+          { class: 'hv-loop-stage-head' },
+          h('span', { class: 'hv-loop-stage-label', style: `color:${stage.color};` }, stage.label),
+          h('span', { class: 'hv-loop-swatch', style: `background:${stage.color};` }),
+        ),
+        h('div', { class: 'hv-loop-desc' }, stage.desc),
+        h('div', { class: `hv-loop-count${stage.ember ? ' hv-loop-count-ember' : ''}`, title: stage.count }, stage.count),
+      ),
+    );
+  });
+  return h(
+    'div',
+    { class: 'hv-card hv-loop' },
+    h(
+      'div',
+      { class: 'hv-loop-head' },
+      h('span', { class: 'hv-label' }, 'THE LOOP'),
+      h('span', { class: 'hv-loop-cap' }, 'a stage ends by committing an artifact — the commit fires the next gate'),
+    ),
+    h('div', { class: 'hv-loop-strip' }, ...rowParts),
+    h(
+      'div',
+      { class: 'hv-loop-return' },
+      h('span', { class: 'hv-loop-return-tip' }, '▲'),
+      h('span', { class: 'hv-loop-return-label' }, 'outcomes re-enter as intent'),
+    ),
+    h(
+      'div',
+      { class: 'hv-loop-legend' },
+      h('span', { class: 'hv-loop-legend-item' }, h('span', { class: 'hv-loop-gate hv-loop-gate-amber' }), 'gate waiting on your stamp'),
+      h('span', { class: 'hv-loop-legend-item' }, h('span', { class: 'hv-loop-gate hv-loop-gate-green' }), 'gate fires on commit'),
+    ),
+  );
+}
+
 export function homeView(ctx: Ctx): HTMLElement {
   const open = (id: string | null) => (e: MouseEvent) => {
     if (id !== null) ctx.openDoc(id, { preview: true, background: e.metaKey || e.ctrlKey });
@@ -136,15 +205,20 @@ export function homeView(ctx: Ctx): HTMLElement {
   // Imported documents group under their manifest (WO-075, SRC-039 surface
   // 3): evidence sources lead as uncounted context, pending claims follow.
   const pending = pendingDocs(ctx.snap);
-  const pendingRow = (d: (typeof pending)[number]): HTMLElement =>
-    row(
+  // Each pending row names its gate at right (WO-163, SRC-076 §At your
+  // gates); the row itself opens the pending document, as it always has.
+  const pendingRow = (d: (typeof pending)[number]): HTMLElement => {
+    const gate = gateOf(d);
+    return row(
       d.id,
       'hv-row',
       h('span', { class: 'hv-id', style: `color:${TYPE_META[d.type].color};` }, d.id),
       h('span', { class: 'hv-flight-title' }, d.title),
       h('span', { class: 'gate-chip gate-chip-static' }, d.status),
+      gate !== null ? h('span', { class: 'hv-gate-name' }, GATE_META[gate].label.toLowerCase()) : null,
       h('span', { class: 'hv-time' }, `filed ${ctx.rel(d.created)}`),
     );
+  };
   const batches = importBatches(ctx.snap).filter((b) => b.claims.some(isPending));
   const grouped = new Set(batches.flatMap((b) => b.claims.map((c) => c.id)));
   const groupSections = batches.flatMap((b) => [
@@ -461,6 +535,9 @@ export function homeView(ctx: Ctx): HTMLElement {
         h('h1', { class: 'hv-title' }, ctx.snap.projectName),
         h('span', { class: 'hv-count' }, `${docs.length} docs · ${living} living`),
       ),
+      // Home leads with the loop (WO-163): rendered even at all zeros — the
+      // empty strip teaches the same shape a busy one reports on.
+      loopStripCard(ctx),
       focusRow,
       reviewCard,
       betsCard,
