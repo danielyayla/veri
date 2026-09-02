@@ -1,0 +1,11 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "The Loop — Home" },
+    { "file": "Gates.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 900, "title": "Gate Queue" },
+    { "file": "Trace.dc.html", "x": 3120, "y": 0, "w": 1440, "h": 900, "title": "Change Trace" }
+  ],
+  "annotations": [
+    { "id": "direction-note", "x": 0, "y": -330, "w": 520, "text": "Veri, redesigned around the AI-native SDLC loop.\nHome becomes The Loop: six stages, artifacts committed at each, your attention at the gates. The stamp queue becomes the Gate Queue (review what the agent flagged). The graph view gains a Change Trace: one turn of the loop as the audit trail.\nSame canon: dark ember theme, Source Sans 3 / JetBrains Mono, existing topbar, rail, and card anatomy." }
+  ],
+  "launch": { "view": "canvas" }
+}

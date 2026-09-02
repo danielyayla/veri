@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F0F11;}
+a{color:#E8703A;text-decoration:none;}
+a:hover{color:#F49463;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:#26262C;border-radius:5px;border:2px solid #0F0F11;}
+::-webkit-scrollbar-track{background:transparent;}
+</style>
+</helmet>
+<div style="width:1440px;height:900px;display:flex;flex-direction:column;background:#0F0F11;color:#E7E4DE;font-family:'Source Sans 3',sans-serif;font-size:14px;overflow:hidden;">
+
+  <!-- Top bar -->
+  <div style="height:44px;flex:0 0 auto;display:flex;align-items:center;gap:16px;padding:0 14px;border-bottom:1px solid #1E1E24;background:#131316;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="width:18px;height:18px;border-radius:4px;background:#E8703A;display:flex;align-items:center;justify-content:center;color:#0F0F11;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;">v</div>
+      <span style="font-weight:600;font-size:13px;letter-spacing:.2px;">Veri</span>
+      <span style="color:#4A4852;">/</span>
+      <div style="display:flex;align-items:center;gap:6px;height:24px;padding:0 8px;margin-left:-4px;border-radius:6px;cursor:pointer;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#A09DA6;">skiff</span>
+        <span style="font-size:9px;color:#6E6B76;">▾</span>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;justify-content:center;">
+      <div style="display:flex;align-items:center;gap:8px;width:340px;height:26px;padding:0 10px;border:1px solid #26262C;border-radius:6px;background:#0F0F11;color:#6E6B76;font-size:12px;cursor:pointer;">
+        <span>Search docs…</span>
+        <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;border:1px solid #26262C;border-radius:4px;padding:1px 5px;">⌘K</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="display:flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:6px;border:1px solid #24352A;background:rgba(127,175,138,0.07);color:#7FAF8A;font-family:'JetBrains Mono',monospace;font-size:11px;">
+        <span style="width:6px;height:6px;border-radius:50%;background:#7FAF8A;"></span>
+        <span>veri check · clean</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:6px;border:1px solid #26262C;color:#A09DA6;font-family:'JetBrains Mono',monospace;font-size:11px;">
+        <span style="color:#7FAF8A;">⎇</span><span>main · clean</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex:1;display:flex;min-height:0;">
+    <!-- Icon rail -->
+    <div style="width:44px;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;background:#101013;border-right:1px solid #1E1E24;padding:10px 0;gap:5px;">
+      <div style="width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#C9C6CF;font-family:'JetBrains Mono',monospace;font-size:14px;cursor:pointer;">⟳</div>
+      <div style="width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#C9C6CF;font-family:'JetBrains Mono',monospace;font-size:14px;cursor:pointer;">▦</div>
+      <div style="width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#C9C6CF;font-family:'JetBrains Mono',monospace;font-size:14px;cursor:pointer;">▤</div>
+      <div style="width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;background:rgba(232,112,58,0.09);color:#F0A87E;font-family:'JetBrains Mono',monospace;font-size:14px;cursor:pointer;">◉</div>
+      <div style="width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#C9C6CF;font-family:'JetBrains Mono',monospace;font-size:14px;cursor:pointer;">§</div>
+      <div style="flex:1;"></div>
+      <div style="position:relative;width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#8B8893;font-family:'JetBrains Mono',monospace;font-size:14px;cursor:pointer;">⌁<span style="position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:#7FAF8A;border:1px solid #101013;"></span></div>
+    </div>
+
+    <!-- Editor area -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+      <div style="height:37px;flex:0 0 auto;display:flex;align-items:stretch;background:#131316;border-bottom:1px solid #1E1E24;">
+        <div style="display:flex;align-items:center;gap:7px;padding:0 14px;background:#0F0F11;border-right:1px solid #1E1E24;font-size:12.5px;color:#E7E4DE;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#F0A87E;">◉</span>
+          <span>Trace · WO-159</span>
+        </div>
+      </div>
+
+      <div style="flex:1;overflow-y:auto;padding:26px 0 24px;">
+        <div style="max-width:1180px;margin:0 auto;padding:0 28px;">
+
+          <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:6px;">
+            <span style="font-size:20px;font-weight:600;">One turn of the loop</span>
+          </div>
+          <div style="font-size:12.5px;color:#8B8893;margin-bottom:20px;">Overdue-invoice reminders, traced end to end — who asked, what the agent produced, who approved, what reality said.</div>
+
+          <div style="display:flex;gap:24px;align-items:flex-start;">
+
+            <!-- Chain -->
+            <div style="flex:1;min-width:0;">
+
+              <!-- SRC-044 -->
+              <div style="display:flex;gap:14px;">
+                <div style="width:20px;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;">
+                  <span style="width:9px;height:9px;border-radius:50%;background:#908BA8;margin-top:16px;"></span>
+                  <span style="flex:1;width:1px;background:#26262C;"></span>
+                </div>
+                <div style="flex:1;border:1px solid #1F1F24;border-radius:9px;background:#151519;padding:10px 14px;margin-bottom:0;">
+                  <div style="display:flex;align-items:center;gap:9px;">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#908BA8;background:rgba(144,139,168,0.1);border-radius:4px;padding:2px 7px;min-width:52px;text-align:center;">SRC-044</span>
+                    <span style="flex:1;font-size:13.5px;font-weight:500;color:#E7E4DE;">Support thread: three freelancers chasing the same overdue invoice</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8B8893;">evidence</span>
+                  </div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#6E6B76;margin-top:5px;">filed by intake · J. Ortiz, ops · 2026-08-19 · 3e91c04</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:14px;">
+                <div style="width:20px;flex:0 0 auto;display:flex;justify-content:center;"><span style="width:1px;background:#26262C;"></span></div>
+                <div style="padding:5px 0 5px 2px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#D9A03F;">◈ intent gate — Daniel interpreted, stamp fired the define pass</div>
+              </div>
+
+              <!-- REQ-036 -->
+              <div style="display:flex;gap:14px;">
+                <div style="width:20px;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;">
+                  <span style="width:1px;height:10px;background:#26262C;"></span>
+                  <span style="width:9px;height:9px;border-radius:50%;background:#7EA6C4;margin-top:6px;"></span>
+                  <span style="flex:1;width:1px;background:#26262C;"></span>
+                </div>
+                <div style="flex:1;border:1px solid #1F1F24;border-radius:9px;background:#151519;padding:10px 14px;">
+                  <div style="display:flex;align-items:center;gap:9px;">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#7EA6C4;background:rgba(126,166,196,0.1);border-radius:4px;padding:2px 7px;min-width:52px;text-align:center;">REQ-036</span>
+                    <span style="flex:1;font-size:13.5px;font-weight:500;color:#E7E4DE;">Overdue invoices send a reminder without the freelancer asking</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#7FAF8A;">accepted</span>
+                  </div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#6E6B76;margin-top:5px;">bet: open-rate ≥ 40% · approved 2026-08-21 by Daniel · a41f2c9</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:14px;">
+                <div style="width:20px;flex:0 0 auto;display:flex;justify-content:center;"><span style="width:1px;background:#26262C;"></span></div>
+                <div style="padding:5px 0 5px 2px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#D9A03F;">◈ decision gate — one choice with real alternatives surfaced en route</div>
+              </div>
+
+              <!-- DEC-149 -->
+              <div style="display:flex;gap:14px;">
+                <div style="width:20px;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;">
+                  <span style="width:1px;height:10px;background:#26262C;"></span>
+                  <span style="width:9px;height:9px;border-radius:50%;background:#CFA83D;margin-top:6px;"></span>
+                  <span style="flex:1;width:1px;background:#26262C;"></span>
+                </div>
+                <div style="flex:1;border:1px solid #1F1F24;border-radius:9px;background:#151519;padding:10px 14px;">
+                  <div style="display:flex;align-items:center;gap:9px;">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#CFA83D;background:rgba(207,168,61,0.1);border-radius:4px;padding:2px 7px;min-width:52px;text-align:center;">DEC-149</span>
+                    <span style="flex:1;font-size:13.5px;font-weight:500;color:#E7E4DE;">Reminders ride the existing digest worker</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#7FAF8A;">active</span>
+                  </div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#6E6B76;margin-top:5px;">2 alternatives rejected, reasons on file · approved 2026-08-22 · c7d20aa</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:14px;">
+                <div style="width:20px;flex:0 0 auto;display:flex;justify-content:center;"><span style="width:1px;background:#26262C;"></span></div>
+                <div style="padding:5px 0 5px 2px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#D9A03F;">◈ dispatch gate — veri dispatch WO-159 --as fable-wo159 stamped and claimed in one gesture</div>
+              </div>
+
+              <!-- WO-159 -->
+              <div style="display:flex;gap:14px;">
+                <div style="width:20px;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;">
+                  <span style="width:1px;height:10px;background:#26262C;"></span>
+                  <span style="width:9px;height:9px;border-radius:50%;background:#E8703A;margin-top:6px;"></span>
+                  <span style="flex:1;width:1px;background:#26262C;"></span>
+                </div>
+                <div style="flex:1;border:1px solid #3A2A20;border-radius:9px;background:rgba(232,112,58,0.05);padding:10px 14px;">
+                  <div style="display:flex;align-items:center;gap:9px;">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#E8703A;background:rgba(232,112,58,0.1);border-radius:4px;padding:2px 7px;min-width:52px;text-align:center;">WO-159</span>
+                    <span style="flex:1;font-size:13.5px;font-weight:500;color:#E7E4DE;">Reminder scheduling and send path</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#7FAF8A;">done</span>
+                  </div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#6E6B76;margin-top:5px;">⌁ fable-wo159 · context package pulled 2026-08-23 · diff 6 files · receipt: 3/3 criteria evidenced</div>
+                  <div style="display:flex;gap:6px;margin-top:7px;">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8B8893;border:1px solid #26262C;border-radius:4px;padding:2px 7px;min-width:52px;text-align:center;">de50b17</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8B8893;border:1px solid #26262C;border-radius:4px;padding:2px 7px;min-width:52px;text-align:center;">91acc3f</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8B8893;border:1px solid #26262C;border-radius:4px;padding:2px 7px;min-width:52px;text-align:center;">8b0d3e1 · receipt</span>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;gap:14px;">
+                <div style="width:20px;flex:0 0 auto;display:flex;justify-content:center;"><span style="width:1px;background:#26262C;"></span></div>
+                <div style="padding:5px 0 5px 2px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#7FAF8A;">◇ receipt commit fired the review pass — a session that didn't write the diff</div>
+              </div>
+
+              <!-- Review -->
+              <div style="display:flex;gap:14px;">
+                <div style="width:20px;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;">
+                  <span style="width:1px;height:10px;background:#26262C;"></span>
+                  <span style="width:9px;height:9px;border-radius:50%;background:#7FAF8A;margin-top:6px;"></span>
+                  <span style="flex:1;width:1px;background:#26262C;"></span>
+                </div>
+                <div style="flex:1;border:1px solid #1F1F24;border-radius:9px;background:#151519;padding:10px 14px;">
+                  <div style="display:flex;align-items:center;gap:9px;">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#7FAF8A;background:rgba(127,175,138,0.1);border-radius:4px;padding:2px 7px;min-width:52px;text-align:center;">review</span>
+                    <span style="flex:1;font-size:13.5px;font-weight:500;color:#E7E4DE;">Diff read against the work order that produced it</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#7FAF8A;">clean</span>
+                  </div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#6E6B76;margin-top:5px;">0 important · 2 nits · no out-of-scope touches · done stamped by Daniel 2026-08-25</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:14px;">
+                <div style="width:20px;flex:0 0 auto;display:flex;justify-content:center;"><span style="width:1px;background:#26262C;"></span></div>
+                <div style="padding:5px 0 5px 2px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#8B8893;">⌁ agents watched the deployment · a week of send data collected</div>
+              </div>
+
+              <!-- SRC-052 -->
+              <div style="display:flex;gap:14px;">
+                <div style="width:20px;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;">
+                  <span style="width:1px;height:10px;background:#26262C;"></span>
+                  <span style="width:9px;height:9px;border-radius:50%;background:#908BA8;margin-top:6px;"></span>
+                </div>
+                <div style="flex:1;border:1px solid #1F1F24;border-radius:9px;background:#151519;padding:10px 14px;">
+                  <div style="display:flex;align-items:center;gap:9px;">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#908BA8;background:rgba(144,139,168,0.1);border-radius:4px;padding:2px 7px;min-width:52px;text-align:center;">SRC-052</span>
+                    <span style="flex:1;font-size:13.5px;font-weight:500;color:#E7E4DE;">Outcome: reminder open-rate 61% against the 40% target</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#7FAF8A;">supports</span>
+                  </div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#6E6B76;margin-top:5px;">verdict: worked · tests REQ-036 · outcome-of WO-159 · wrote the next intent → REQ-041 draft</div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Right rail -->
+            <div style="width:300px;flex:0 0 auto;display:flex;flex-direction:column;gap:14px;">
+              <div style="border:1px solid #1E1E24;border-radius:10px;background:#131316;padding:14px 16px;">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#8B8893;margin-bottom:10px;">THE AUDIT TRAIL</div>
+                <div style="font-size:12.5px;color:#A09DA6;line-height:1.6;">Every hop is a commit in <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#C9C6CF;">veri/</span>. The chain answers three questions without a meeting: who asked for it, what the agent produced, and who approved it.</div>
+              </div>
+              <div style="border:1px solid #1E1E24;border-radius:10px;background:#131316;padding:14px 16px;">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#8B8893;margin-bottom:10px;">STAMPS ON THIS TURN</div>
+                <div style="display:flex;flex-direction:column;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10.5px;">
+                  <div style="display:flex;justify-content:space-between;"><span style="color:#7EA6C4;">REQ-036 accepted</span><span style="color:#6E6B76;">08-21 · Daniel</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span style="color:#CFA83D;">DEC-149 active</span><span style="color:#6E6B76;">08-22 · Daniel</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span style="color:#E8703A;">WO-159 dispatched</span><span style="color:#6E6B76;">08-23 · Daniel</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span style="color:#E8703A;">WO-159 done</span><span style="color:#6E6B76;">08-25 · Daniel</span></div>
+                </div>
+              </div>
+              <div style="border:1px solid #1E1E24;border-radius:10px;background:#131316;padding:14px 16px;">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:#8B8893;margin-bottom:10px;">ELAPSED</div>
+                <div style="display:flex;flex-direction:column;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10.5px;">
+                  <div style="display:flex;justify-content:space-between;"><span style="color:#A09DA6;">evidence → accepted REQ</span><span style="color:#C9C6CF;">2 d</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span style="color:#A09DA6;">accepted → shipped</span><span style="color:#C9C6CF;">4 d</span></div>
+                  <div style="display:flex;justify-content:space-between;"><span style="color:#A09DA6;">shipped → verdict</span><span style="color:#C9C6CF;">1 w</span></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
