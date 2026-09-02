@@ -2,7 +2,7 @@
 id: WO-164
 type: work-order
 title: "The Change Trace — one turn of the loop on the work-order surface"
-status: in-progress
+status: done
 approved: 2026-09-02
 claimed_by: fable-wo164
 claimed_at: 2026-09-02
@@ -43,12 +43,12 @@ The audit trail as a screen, per [[SRC-076]] §Change Trace: from any work order
 
 ## Acceptance tests
 
-- [ ] For a fixture work order with a full chain, the spine renders every hop in causal order with stamp dates read from frontmatter (proves SRC-076 §Change Trace anatomy)
-- [ ] A chain with missing hops — no decision, no outcome yet — renders open-ended, not as an error (proves SRC-076 "the loop is often mid-turn"; degenerate render)
-- [ ] Elapsed times match the frontmatter date arithmetic for evidence → accepted, accepted → done, done → verdict (proves SRC-076 §Change Trace indicators)
-- [ ] The trace opens from the work-order detail screen (proves the SRC-024-style placement this slice reconciles to)
-- [ ] The derivation module is covered by `node --test` cases (scaffolding, declared: pins the walk order and hop tolerance)
+- [x] For a fixture work order with a full chain, the spine renders every hop in causal order with stamp dates read from frontmatter (proves SRC-076 §Change Trace anatomy)
+- [x] A chain with missing hops — no decision, no outcome yet — renders open-ended, not as an error (proves SRC-076 "the loop is often mid-turn"; degenerate render)
+- [x] Elapsed times match the frontmatter date arithmetic for evidence → accepted, accepted → done, done → verdict (proves SRC-076 §Change Trace indicators)
+- [x] The trace opens from the work-order detail screen (proves the SRC-024-style placement this slice reconciles to)
+- [x] The derivation module is covered by `node --test` cases (scaffolding, declared: pins the walk order and hop tolerance)
 
 ## Receipts
 
-(none yet)
+- 2026-09-02 — 0aca0f1 — ["packages/ui/src/renderer/trace.ts", "packages/ui/src/renderer/trace.test.ts", "packages/ui/src/renderer/views/trace.ts", "packages/ui/src/renderer/views/workorder.ts", "packages/ui/renderer/styles.css"] — claude session (fable-wo164) shipped the Change Trace: pure chain derivation + spine render behind a Trace-this-change expander on the work-order detail, stamp ledger and elapsed legs from frontmatter dates, evidence scoped per DEC-153; verify npm -w @verikb/ui test exit 0, 364 pass
