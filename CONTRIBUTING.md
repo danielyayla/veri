@@ -72,3 +72,8 @@ The PR template asks three things: what changed, the work order or
 issue it traces to, and how you verified it. Green on **test** and
 **veri-check** plus maintainer review is the whole bar — there is no
 CLA.
+
+## Security issues
+
+Not here — see [SECURITY.md](SECURITY.md) for the private reporting
+path.
