@@ -35,7 +35,7 @@
     "test": "node --test \"src/**/*.test.ts\""
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "@verikb/core": "^0.1.0",
     "zod": "^3.25.0"
   }
